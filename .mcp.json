@@ -1,0 +1,62 @@
+{
+  "mcpServers": {
+    "lsp-typescript": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "tritlo/lsp-mcp",
+        "typescript",
+        "/Users/nanda/.local/share/nvim/mason/bin/vtsls",
+        "--stdio"
+      ]
+    },
+    "lsp-json": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "tritlo/lsp-mcp",
+        "json",
+        "/Users/nanda/.local/share/nvim/mason/bin/vscode-json-language-server",
+        "--stdio"
+      ]
+    },
+    "lsp-yaml": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "tritlo/lsp-mcp",
+        "yaml",
+        "/Users/nanda/.local/share/nvim/mason/bin/yaml-language-server",
+        "--stdio"
+      ]
+    },
+    "lsp-tailwind": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "tritlo/lsp-mcp",
+        "css",
+        "/Users/nanda/.local/share/nvim/mason/bin/tailwindcss-language-server",
+        "--stdio"
+      ]
+    },
+    "lsp-go": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "tritlo/lsp-mcp",
+        "go",
+        "/Users/nanda/.local/share/nvim/mason/bin/gopls"
+      ]
+    },
+    "lsp-lua": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "tritlo/lsp-mcp",
+        "lua",
+        "/Users/nanda/.local/share/nvim/mason/bin/lua-language-server"
+      ]
+    }
+  }
+}

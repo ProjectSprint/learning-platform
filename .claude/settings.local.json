@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run db:generate:*)",
+      "Bash(npx shadcn@latest add card badge progress)",
+      "Bash(npm ls:*)",
+      "Bash(npm test)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run:*)",
+      "Bash(rm:*)",
+      "mcp__lsp-typescript__start_lsp",
+      "mcp__lsp-typescript__open_document",
+      "mcp__lsp-typescript__get_diagnostics",
+      "Bash(cat:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsx:*)",
+      "Bash(pkill:*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "lsp-typescript",
+    "lsp-json",
+    "lsp-yaml",
+    "lsp-tailwind",
+    "lsp-go",
+    "lsp-lua"
+  ]
+}
