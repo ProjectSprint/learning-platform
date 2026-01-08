@@ -14,9 +14,14 @@
       "Bash(cat:*)",
       "Bash(npm install:*)",
       "Bash(npx tsx:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(pnpm db:generate:*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(npx tsc:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "lsp-typescript",
     "lsp-json",
