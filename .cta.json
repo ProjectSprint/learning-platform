@@ -1,9 +1,9 @@
 {
-  "projectName": "ps-learning-platform",
+  "projectName": "learning-platform",
   "mode": "file-router",
   "typescript": true,
   "tailwind": true,
-  "packageManager": "npm",
+  "packageManager": "pnpm",
   "addOnOptions": {
     "drizzle": {
       "database": "postgresql"
@@ -16,14 +16,10 @@
     "biome",
     "nitro",
     "start",
-    "t3env",
-    "tanstack-query",
     "clerk",
-    "form",
-    "shadcn",
     "drizzle",
-    "tanchat",
-    "store"
+    "form",
+    "t3env",
+    "tanstack-query"
   ]
 }
-

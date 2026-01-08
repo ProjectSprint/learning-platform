@@ -5,10 +5,6 @@ import viteReact from '@vitejs/plugin-react'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
-import { config as loadEnv } from 'dotenv'
-
-// Load environment variables from .env files
-loadEnv({ path: ['.env.local', '.env'] })
 
 const config = defineConfig({
   plugins: [
@@ -22,9 +18,6 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
-  test: {
-    globals: true,
-  },
 })
 
 export default config
