@@ -156,6 +156,16 @@ export const PlayCanvas = ({
 	const canvasRef = useRef<HTMLDivElement | null>(null);
 	const placedItemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const draggablesRef = useRef<DragHandle[]>([]);
+	const callbacksRef = useRef<{
+		canPlaceItemAt: (
+			data: DragData,
+			target: { blockX: number; blockY: number },
+		) => boolean;
+		placeOrRepositionItem: (
+			data: DragData,
+			target: { blockX: number; blockY: number },
+		) => boolean;
+	} | null>(null);
 	const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
 	const [hoveredBlock, setHoveredBlock] = useState<{
 		x: number;
@@ -293,6 +303,8 @@ export const PlayCanvas = ({
 		[canPlaceItemAt, dispatch, stateKey],
 	);
 
+	callbacksRef.current = { canPlaceItemAt, placeOrRepositionItem };
+
 	useEffect(() => {
 		ensureGsapPlugins();
 	}, []);
@@ -349,7 +361,7 @@ export const PlayCanvas = ({
 						absoluteY,
 						gridMetrics,
 					);
-					const valid = canPlaceItemAt(
+					const valid = callbacksRef.current?.canPlaceItemAt(
 						{
 							...dragData,
 							fromBlockX: placedItem.blockX,
@@ -368,7 +380,7 @@ export const PlayCanvas = ({
 						width: blockWidth,
 						height: blockHeight,
 						valid:
-							valid ||
+							Boolean(valid) ||
 							(blockX === placedItem.blockX && blockY === placedItem.blockY),
 					});
 				},
@@ -381,7 +393,17 @@ export const PlayCanvas = ({
 						gridMetrics,
 					);
 
-					const placed = placeOrRepositionItem(dragData, { blockX, blockY });
+					const placed = callbacksRef.current?.placeOrRepositionItem(
+						dragData,
+						{ blockX, blockY },
+					);
+
+					const clearDragState = () => {
+						setDraggingItemId(null);
+						setActiveDrag(null);
+						setDragPreview(null);
+						setHoveredBlock(null);
+					};
 
 					if (!placed) {
 						gsap.to(el, {
@@ -389,15 +411,12 @@ export const PlayCanvas = ({
 							y: 0,
 							duration: 0.3,
 							ease: "power2.out",
+							onComplete: clearDragState,
 						});
 					} else {
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+						clearDragState();
 					}
-
-					setDraggingItemId(null);
-					setActiveDrag(null);
-					setDragPreview(null);
-					setHoveredBlock(null);
 				},
 				onClick: () => {
 					if (onPlacedItemClick && isItemClickable(placedItem)) {
@@ -418,12 +437,10 @@ export const PlayCanvas = ({
 	}, [
 		blockHeight,
 		blockWidth,
-		canPlaceItemAt,
 		canvas.placedItems,
 		gridMetrics,
 		isItemClickable,
 		onPlacedItemClick,
-		placeOrRepositionItem,
 		setActiveDrag,
 		stepX,
 		stepY,
