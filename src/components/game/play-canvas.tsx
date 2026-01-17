@@ -279,13 +279,18 @@ export const PlayCanvas = ({
 				}
 
 				dispatch({
-					type: "REMOVE_ITEM",
+					type: "REPOSITION_ITEM",
 					payload: {
-						blockX: data.fromBlockX,
-						blockY: data.fromBlockY,
+						itemId: data.itemId,
+						fromBlockX: data.fromBlockX,
+						fromBlockY: data.fromBlockY,
+						toBlockX: target.blockX,
+						toBlockY: target.blockY,
 						stateKey,
 					},
 				});
+
+				return true;
 			}
 
 			dispatch({

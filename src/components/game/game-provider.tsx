@@ -151,6 +151,17 @@ export type GameAction =
 			payload: { blockX: number; blockY: number; stateKey?: string };
 	  }
 	| {
+			type: "REPOSITION_ITEM";
+			payload: {
+				itemId: string;
+				fromBlockX: number;
+				fromBlockY: number;
+				toBlockX: number;
+				toBlockY: number;
+				stateKey?: string;
+			};
+	  }
+	| {
 			type: "MAKE_CONNECTION";
 			payload: {
 				from: { x: number; y: number };
@@ -646,6 +657,67 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				action.payload.stateKey,
 				nextCanvas,
 			);
+		}
+		case "REPOSITION_ITEM": {
+			const canvas = resolveCanvasState(state, action.payload.stateKey);
+			const { itemId, fromBlockX, fromBlockY, toBlockX, toBlockY } =
+				action.payload;
+
+			if (fromBlockX === toBlockX && fromBlockY === toBlockY) {
+				return state;
+			}
+
+			const fromBlock = canvas.blocks[fromBlockY]?.[fromBlockX];
+			if (!fromBlock?.itemId || fromBlock.itemId !== itemId) {
+				return state;
+			}
+
+			const toBlock = canvas.blocks[toBlockY]?.[toBlockX];
+			if (!toBlock) {
+				return state;
+			}
+
+			if (toBlock.status === "occupied") {
+				return state;
+			}
+
+			if (
+				canvas.config.allowedItemTypes &&
+				!canvas.config.allowedItemTypes.includes(
+					canvas.placedItems.find((p) => p.itemId === itemId)?.type ?? "",
+				)
+			) {
+				return state;
+			}
+
+			const placedItem = canvas.placedItems.find((p) => p.itemId === itemId);
+			if (!placedItem) {
+				return state;
+			}
+
+			let nextBlocks = updateBlock(canvas.blocks, fromBlockX, fromBlockY, {
+				status: "empty",
+				itemId: undefined,
+			});
+			nextBlocks = updateBlock(nextBlocks, toBlockX, toBlockY, {
+				status: "occupied",
+				itemId,
+			});
+
+			const nextPlacedItems = canvas.placedItems.map((item) =>
+				item.itemId === itemId
+					? { ...item, blockX: toBlockX, blockY: toBlockY }
+					: item,
+			);
+
+			const nextCanvas: CanvasState = {
+				...canvas,
+				blocks: nextBlocks,
+				placedItems: nextPlacedItems,
+				connections: deriveConnectionsFromCables(nextPlacedItems),
+			};
+
+			return updateCanvasState(state, action.payload.stateKey, nextCanvas);
 		}
 		case "MAKE_CONNECTION": {
 			const canvas = resolveCanvasState(state, action.payload.stateKey);
