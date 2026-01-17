@@ -27,6 +27,8 @@ import {
 } from "./gsap-drag";
 import { SLOT_HEIGHT, SLOT_WIDTH } from "./inventory-panel";
 
+const BLOCK_HEIGHT = 60;
+
 type ItemLabelGetter = (itemType: string) => string;
 type StatusMessageGetter = (placedItem: PlacedItem) => string | null;
 type PlacedItemClickHandler = (placedItem: PlacedItem) => void;
@@ -81,7 +83,7 @@ const GridCell = memo(
 				borderColor={resolvedBorderColor}
 				borderRadius="md"
 				bg="transparent"
-				minHeight="40px"
+				height={`${BLOCK_HEIGHT}px`}
 				transition="border-color 0.15s ease"
 				data-occupied={isOccupied}
 			/>
@@ -251,9 +253,7 @@ export const PlayCanvas = ({
 	const blockWidth =
 		(canvasSize.width - canvasSize.gapX * (canvas.config.columns - 1)) /
 			canvas.config.columns || 0;
-	const blockHeight =
-		(canvasSize.height - canvasSize.gapY * (canvas.config.rows - 1)) /
-			canvas.config.rows || 0;
+	const blockHeight = BLOCK_HEIGHT;
 	const stepX = blockWidth + canvasSize.gapX;
 	const stepY = blockHeight + canvasSize.gapY;
 
@@ -704,10 +704,8 @@ export const PlayCanvas = ({
 				position="relative"
 				display="grid"
 				gridTemplateColumns={`repeat(${canvas.config.columns}, minmax(0, 1fr))`}
-				gridTemplateRows={`repeat(${canvas.config.rows}, minmax(0, 1fr))`}
+				gridTemplateRows={`repeat(${canvas.config.rows}, ${BLOCK_HEIGHT}px)`}
 				gap={2}
-				flex="1"
-				minHeight={0}
 			>
 				{canvas.blocks.flat().map((block) => {
 					const key = `${block.x}-${block.y}`;
