@@ -355,6 +355,7 @@ export const PlayCanvas = ({
 
 			const handle = createDraggable(el, {
 				bounds: canvasRef.current,
+				inertia: false,
 				liveSnap: {
 					x: (value: number) => Math.round(value / stepX) * stepX,
 					y: (value: number) => Math.round(value / stepY) * stepY,
