@@ -398,24 +398,16 @@ export const PlayCanvas = ({
 						{ blockX, blockY },
 					);
 
-					const clearDragState = () => {
-						setDraggingItemId(null);
-						setActiveDrag(null);
-						setDragPreview(null);
-						setHoveredBlock(null);
-					};
+					setActiveDrag(null);
+					setDragPreview(null);
+					setHoveredBlock(null);
 
 					if (!placed) {
-						gsap.to(el, {
-							x: 0,
-							y: 0,
-							duration: 0.3,
-							ease: "power2.out",
-							onComplete: clearDragState,
-						});
+						setDraggingItemId(null);
+						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
 					} else {
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-						clearDragState();
+						setDraggingItemId(null);
 					}
 				},
 				onClick: () => {
