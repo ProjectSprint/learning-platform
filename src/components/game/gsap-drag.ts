@@ -158,3 +158,26 @@ export const convertBlockToPixel = (
 		y: blockY * cellHeight,
 	};
 };
+
+export const hitTest = (
+	element1: Element,
+	element2: Element,
+	threshold: number | string = "50%",
+): boolean => {
+	ensureGsapPlugins();
+	return Draggable.hitTest(element1, element2, threshold);
+};
+
+export const hitTestAny = (
+	element: Element,
+	targets: Element[],
+	threshold: number | string = "50%",
+): Element | null => {
+	ensureGsapPlugins();
+	for (const target of targets) {
+		if (Draggable.hitTest(element, target, threshold)) {
+			return target;
+		}
+	}
+	return null;
+};

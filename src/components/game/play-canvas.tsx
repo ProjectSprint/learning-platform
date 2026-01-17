@@ -22,6 +22,7 @@ import {
 	type DragHandle,
 	ensureGsapPlugins,
 	type GridMetrics,
+	hitTestAny,
 } from "./gsap-drag";
 
 type ItemLabelGetter = (itemType: string) => string;
@@ -342,6 +343,16 @@ export const PlayCanvas = ({
 			const startX = placedItem.blockX * stepX;
 			const startY = placedItem.blockY * stepY;
 
+			const getOtherPlacedElements = () => {
+				const others: Element[] = [];
+				for (const [id, element] of placedItemRefs.current) {
+					if (id !== placedItem.id) {
+						others.push(element);
+					}
+				}
+				return others;
+			};
+
 			const handle = createDraggable(el, {
 				bounds: canvasRef.current,
 				liveSnap: {
@@ -366,14 +377,13 @@ export const PlayCanvas = ({
 						absoluteY,
 						gridMetrics,
 					);
-					const valid = callbacksRef.current?.canPlaceItemAt(
-						{
-							...dragData,
-							fromBlockX: placedItem.blockX,
-							fromBlockY: placedItem.blockY,
-						},
-						{ blockX, blockY },
-					);
+
+					const collidingElement = hitTestAny(el, getOtherPlacedElements(), "50%");
+					const hasCollision = collidingElement !== null;
+
+					const isOriginalPosition =
+						blockX === placedItem.blockX && blockY === placedItem.blockY;
+
 					setHoveredBlock({ x: blockX, y: blockY });
 					setDragPreview({
 						itemId: placedItem.itemId,
@@ -384,12 +394,22 @@ export const PlayCanvas = ({
 						y: blockY * stepY,
 						width: blockWidth,
 						height: blockHeight,
-						valid:
-							Boolean(valid) ||
-							(blockX === placedItem.blockX && blockY === placedItem.blockY),
+						valid: !hasCollision || isOriginalPosition,
 					});
 				},
 				onDragEnd: function (this: Draggable) {
+					const collidingElement = hitTestAny(el, getOtherPlacedElements(), "50%");
+
+					setActiveDrag(null);
+					setDragPreview(null);
+					setHoveredBlock(null);
+
+					if (collidingElement) {
+						setDraggingItemId(null);
+						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+						return;
+					}
+
 					const absoluteX = startX + this.x;
 					const absoluteY = startY + this.y;
 					const { blockX, blockY } = convertPixelToBlock(
@@ -402,10 +422,6 @@ export const PlayCanvas = ({
 						dragData,
 						{ blockX, blockY },
 					);
-
-					setActiveDrag(null);
-					setDragPreview(null);
-					setHoveredBlock(null);
 
 					if (!placed) {
 						setDraggingItemId(null);
