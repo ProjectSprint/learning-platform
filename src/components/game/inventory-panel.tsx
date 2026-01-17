@@ -99,7 +99,6 @@ export const InventoryPanel = () => {
 			borderColor="gray.800"
 			p={3}
 			overflowY="auto"
-			contain="layout"
 		>
 			<Text fontSize="sm" fontWeight="bold" mb={3} color="gray.200">
 				Inventory

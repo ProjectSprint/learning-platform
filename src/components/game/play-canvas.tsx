@@ -314,6 +314,9 @@ export const PlayCanvas = ({
 				fromBlockY: placedItem.blockY,
 			};
 
+			const startX = placedItem.blockX * stepX;
+			const startY = placedItem.blockY * stepY;
+
 			const handle = createDraggable(el, {
 				bounds: canvasRef.current,
 				liveSnap: {
@@ -331,9 +334,11 @@ export const PlayCanvas = ({
 					});
 				},
 				onDrag: function (this: Draggable) {
+					const absoluteX = startX + this.x;
+					const absoluteY = startY + this.y;
 					const { blockX, blockY } = convertPixelToBlock(
-						this.x,
-						this.y,
+						absoluteX,
+						absoluteY,
 						gridMetrics,
 					);
 					const valid = canPlaceItemAt(
@@ -360,9 +365,11 @@ export const PlayCanvas = ({
 					});
 				},
 				onDragEnd: function (this: Draggable) {
+					const absoluteX = startX + this.x;
+					const absoluteY = startY + this.y;
 					const { blockX, blockY } = convertPixelToBlock(
-						this.x,
-						this.y,
+						absoluteX,
+						absoluteY,
 						gridMetrics,
 					);
 

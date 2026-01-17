@@ -126,8 +126,6 @@ export const GameLayout = ({
 						width={{ base: "100%", md: "200px" }}
 						minWidth={{ base: "100%", md: "200px" }}
 						height={{ base: "140px", md: "auto" }}
-						overflow="hidden"
-						contain="layout"
 					>
 						<SegmentErrorBoundary name="inventory">
 							<InventoryPanel />
