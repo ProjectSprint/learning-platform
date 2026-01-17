@@ -4,6 +4,7 @@ import {
 	createRootRouteWithContext,
 	HeadContent,
 	Scripts,
+	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Provider } from "@/components/ui/provider";
@@ -41,6 +42,9 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	const routerState = useRouterState();
+	const isQuestionRoute = routerState.location.pathname.startsWith("/questions");
+
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
@@ -48,20 +52,22 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body>
 				<Provider>
-					<Header />
+					{!isQuestionRoute && <Header />}
 					{children}
-					<TanStackDevtools
-						config={{
-							position: "bottom-right",
-						}}
-						plugins={[
-							{
-								name: "Tanstack Router",
-								render: <TanStackRouterDevtoolsPanel />,
-							},
-							TanStackQueryDevtools,
-						]}
-					/>
+					{!isQuestionRoute && (
+						<TanStackDevtools
+							config={{
+								position: "bottom-right",
+							}}
+							plugins={[
+								{
+									name: "Tanstack Router",
+									render: <TanStackRouterDevtoolsPanel />,
+								},
+								TanStackQueryDevtools,
+							]}
+						/>
+					)}
 				</Provider>
 				<Scripts />
 			</body>

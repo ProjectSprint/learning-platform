@@ -116,9 +116,9 @@ export const GameLayout = ({
 					flex="1"
 					overflow="visible"
 					direction="column"
-					gap={3}
-					px={3}
-					py={3}
+					gap={4}
+					px={{ base: 4, md: 12, lg: 24 }}
+					py={{ base: 4, md: 6 }}
 				>
 					<Box
 						as="section"
