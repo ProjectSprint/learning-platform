@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { useEffect, useRef, useState } from "react";
 
 import { useDragContext } from "./drag-context";
+import { SLOT_HEIGHT, SLOT_WIDTH } from "./inventory-panel";
 
 type DragOverlayProps = {
 	getItemLabel?: (itemType: string) => string;
@@ -18,9 +19,10 @@ export const DragOverlay = ({
 	const [isVisible, setIsVisible] = useState(false);
 	const [size, setSize] = useState({ width: 0, height: 0 });
 	const initializedRef = useRef(false);
+	const pointerOffsetRef = useRef({ x: 0, y: 0 });
 
 	useEffect(() => {
-		if (!activeDrag || activeDrag.source !== "inventory") {
+		if (!activeDrag) {
 			setIsVisible(false);
 			initializedRef.current = false;
 			if (proxyRef.current) {
@@ -35,16 +37,27 @@ export const DragOverlay = ({
 			return;
 		}
 
-		setSize({ width: initialRect.width, height: initialRect.height });
+		const targetWidth = SLOT_WIDTH;
+		const targetHeight = SLOT_HEIGHT;
+
+		pointerOffsetRef.current = {
+			x: targetWidth / 2,
+			y: targetHeight / 2,
+		};
+
+		setSize({ width: targetWidth, height: targetHeight });
 		setIsVisible(true);
 
 		const initializePosition = () => {
 			if (proxyRef.current && !initializedRef.current) {
+				const pointerX = activeDrag.pointerOffset?.x ?? initialRect.width / 2;
+				const pointerY = activeDrag.pointerOffset?.y ?? initialRect.height / 2;
+
 				gsap.set(proxyRef.current, {
-					x: initialRect.left,
-					y: initialRect.top,
-					width: initialRect.width,
-					height: initialRect.height,
+					x: initialRect.left + pointerX - pointerOffsetRef.current.x,
+					y: initialRect.top + pointerY - pointerOffsetRef.current.y,
+					width: targetWidth,
+					height: targetHeight,
 				});
 				initializedRef.current = true;
 			}
@@ -55,8 +68,8 @@ export const DragOverlay = ({
 		const handlePointerMove = (event: PointerEvent) => {
 			if (proxyRef.current) {
 				gsap.set(proxyRef.current, {
-					x: event.clientX - initialRect.width / 2,
-					y: event.clientY - initialRect.height / 2,
+					x: event.clientX - pointerOffsetRef.current.x,
+					y: event.clientY - pointerOffsetRef.current.y,
 				});
 			}
 		};
@@ -65,7 +78,7 @@ export const DragOverlay = ({
 		return () => window.removeEventListener("pointermove", handlePointerMove);
 	}, [activeDrag, proxyRef]);
 
-	if (!isVisible || !activeDrag || activeDrag.source !== "inventory") {
+	if (!isVisible || !activeDrag) {
 		return null;
 	}
 

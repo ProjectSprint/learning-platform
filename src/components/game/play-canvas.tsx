@@ -25,6 +25,7 @@ import {
 	hitTest,
 	hitTestAny,
 } from "./gsap-drag";
+import { SLOT_HEIGHT, SLOT_WIDTH } from "./inventory-panel";
 
 type ItemLabelGetter = (itemType: string) => string;
 type StatusMessageGetter = (placedItem: PlacedItem) => string | null;
@@ -134,8 +135,7 @@ const PlacedItemCard = memo(
 				alignItems="center"
 				justifyContent="center"
 				cursor="grab"
-				opacity={isDragging ? 0.5 : 1}
-				zIndex={isDragging ? 100 : 1}
+				zIndex={isDragging ? 9999 : 1}
 				style={{ touchAction: "none" }}
 				aria-label={`${label}${statusMessage ? `: ${statusMessage}` : ""}`}
 			>
@@ -388,30 +388,59 @@ export const PlayCanvas = ({
 			};
 
 			const handle = createDraggable(el, {
-				bounds: canvasRef.current,
 				inertia: false,
-				liveSnap: {
-					x: (value: number) => Math.round(value / stepX) * stepX,
-					y: (value: number) => Math.round(value / stepY) * stepY,
-				},
-				edgeResistance: 0.65,
 				minimumMovement: 4,
-				onDragStart: () => {
+				onClick: function () {
+					if (el.dataset.wasDragged === "true") {
+						el.dataset.wasDragged = "false";
+						return;
+					}
+					if (onPlacedItemClick && isItemClickable(placedItem)) {
+						onPlacedItemClick(placedItem);
+					}
+				},
+				onDragStart: function (this: Draggable) {
+					el.dataset.wasDragged = "true";
+					const rect = el.getBoundingClientRect();
+					const pointerOffset = {
+						x: this.pointerX - rect.left,
+						y: this.pointerY - rect.top,
+					};
+
 					setDraggingItemId(placedItem.id);
 					setActiveDrag({
 						source: "canvas",
-						data: dragData,
+						data: {
+							...dragData,
+							itemName: placedItem.type,
+						},
 						element: el,
+						initialRect: rect,
+						pointerOffset,
 					});
+
+					el.style.opacity = "0";
 				},
 				onDrag: function (this: Draggable) {
-					const absoluteX = startX + this.x;
-					const absoluteY = startY + this.y;
+					const centerX = startX + this.x + blockWidth / 2;
+					const centerY = startY + this.y + blockHeight / 2;
 					const { blockX, blockY } = convertPixelToBlock(
-						absoluteX,
-						absoluteY,
+						centerX,
+						centerY,
 						gridMetrics,
 					);
+
+					const isOutOfBounds =
+						blockX < 0 ||
+						blockY < 0 ||
+						blockX >= canvas.config.columns ||
+						blockY >= canvas.config.rows;
+
+					if (isOutOfBounds) {
+						setHoveredBlock(null);
+						setDragPreview(null);
+						return;
+					}
 
 					const collidingElement = hitTestAny(el, getOtherPlacedElements(), "50%");
 					const hasCollision = collidingElement !== null;
@@ -434,14 +463,20 @@ export const PlayCanvas = ({
 				},
 				onDragEnd: function (this: Draggable) {
 					const inventoryPanel = document.querySelector("[data-inventory-panel]");
+					const inventoryRect = inventoryPanel?.getBoundingClientRect();
 					const isOverInventory =
-						inventoryPanel && hitTest(el, inventoryPanel, "50%");
+						inventoryPanel &&
+						inventoryRect &&
+						this.pointerX >= inventoryRect.left &&
+						this.pointerX <= inventoryRect.right &&
+						this.pointerY >= inventoryRect.top &&
+						this.pointerY <= inventoryRect.bottom;
 
 					setActiveDrag(null);
 					setDragPreview(null);
 					setHoveredBlock(null);
 
-					if (isOverInventory) {
+					if (isOverInventory && inventoryPanel) {
 						dispatch({
 							type: "REMOVE_ITEM",
 							payload: {
@@ -454,19 +489,21 @@ export const PlayCanvas = ({
 						return;
 					}
 
+					el.style.opacity = "1";
+
 					const collidingElement = hitTestAny(el, getOtherPlacedElements(), "50%");
 
 					if (collidingElement) {
-						setDraggingItemId(null);
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+						setDraggingItemId(null);
 						return;
 					}
 
-					const absoluteX = startX + this.x;
-					const absoluteY = startY + this.y;
+					const centerX = startX + this.x + blockWidth / 2;
+					const centerY = startY + this.y + blockHeight / 2;
 					const { blockX, blockY } = convertPixelToBlock(
-						absoluteX,
-						absoluteY,
+						centerX,
+						centerY,
 						gridMetrics,
 					);
 
@@ -475,17 +512,11 @@ export const PlayCanvas = ({
 						{ blockX, blockY },
 					);
 
+					gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+					setDraggingItemId(null);
+
 					if (!placed) {
-						setDraggingItemId(null);
-						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-					} else {
-						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-						setDraggingItemId(null);
-					}
-				},
-				onClick: () => {
-					if (onPlacedItemClick && isItemClickable(placedItem)) {
-						onPlacedItemClick(placedItem);
+						el.style.opacity = "1";
 					}
 				},
 			});
@@ -643,8 +674,7 @@ export const PlayCanvas = ({
 			height="100%"
 			bg="gray.950"
 			p={4}
-			overflow="hidden"
-			contain="layout"
+			overflow="visible"
 			position="relative"
 			display="flex"
 			flexDirection="column"

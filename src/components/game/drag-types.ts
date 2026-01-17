@@ -14,4 +14,5 @@ export type ActiveDrag = {
 	data: DragData;
 	element?: HTMLElement | null;
 	initialRect?: DOMRect;
+	pointerOffset?: { x: number; y: number };
 };

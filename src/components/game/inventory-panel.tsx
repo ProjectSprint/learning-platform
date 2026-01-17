@@ -1,18 +1,71 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 import { useDragContext } from "./drag-context";
 import type { InventoryItem } from "./game-provider";
 import { useGameState } from "./game-provider";
 
+const SLOT_WIDTH = 100;
+const SLOT_HEIGHT = 48;
+
+type InventorySlotProps = {
+	item: InventoryItem;
+	isEmpty: boolean;
+	isDragging: boolean;
+	onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
+	slotRef?: React.RefCallback<HTMLDivElement>;
+};
+
+const InventorySlot = ({
+	item,
+	isEmpty,
+	isDragging,
+	onPointerDown,
+	slotRef,
+}: InventorySlotProps) => {
+	return (
+		<Box
+			ref={slotRef}
+			as="li"
+			role="listitem"
+			data-inventory-slot={item.id}
+			aria-grabbed={isDragging}
+			width={`${SLOT_WIDTH}px`}
+			height={`${SLOT_HEIGHT}px`}
+			bg={isEmpty ? "transparent" : "gray.800"}
+			border="1px"
+			borderStyle={isEmpty ? "dashed" : "solid"}
+			borderColor={isEmpty ? "gray.700" : "cyan.500"}
+			borderRadius="md"
+			display="flex"
+			alignItems="center"
+			justifyContent="center"
+			opacity={isDragging ? 0.3 : 1}
+			cursor={isEmpty ? "default" : "grab"}
+			transition="opacity 0.1s ease"
+			style={{ touchAction: "none" }}
+			onPointerDown={isEmpty ? undefined : onPointerDown}
+		>
+			{!isEmpty && (
+				<Text fontSize="sm" fontWeight="bold" color="gray.100">
+					{item.name ?? item.type}
+				</Text>
+			)}
+		</Box>
+	);
+};
+
 export const InventoryPanel = () => {
 	const { inventory } = useGameState();
 	const { activeDrag, setActiveDrag } = useDragContext();
+	const slotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-	const availableItems = useMemo(
-		() => inventory.items.filter((item) => !item.used),
-		[inventory.items],
-	);
+	const items = inventory.items;
+
+	const firstEmptySlot = useMemo(() => {
+		const emptyItem = items.find((item) => item.used);
+		return emptyItem?.id ?? null;
+	}, [items]);
 
 	const handlePointerDown = useCallback(
 		(item: InventoryItem, event: React.PointerEvent<HTMLDivElement>) => {
@@ -34,10 +87,22 @@ export const InventoryPanel = () => {
 		[setActiveDrag],
 	);
 
+	const setSlotRef = useCallback(
+		(itemId: string) => (el: HTMLDivElement | null) => {
+			if (el) {
+				slotRefs.current.set(itemId, el);
+			} else {
+				slotRefs.current.delete(itemId);
+			}
+		},
+		[],
+	);
+
 	return (
 		<Box
 			className="inventory-panel"
 			data-inventory-panel
+			data-first-empty-slot={firstEmptySlot}
 			height="100%"
 			bg="gray.900"
 			borderRight={{ base: "none", md: "1px solid" }}
@@ -60,43 +125,25 @@ export const InventoryPanel = () => {
 				p={0}
 				m={0}
 			>
-				{availableItems.length === 0 ? (
+				{items.length === 0 ? (
 					<Text fontSize="sm" color="gray.500">
-						All items placed.
+						No items.
 					</Text>
 				) : (
-					availableItems.map((item) => {
+					items.map((item) => {
+						const isEmpty = item.used;
 						const isDragging =
 							activeDrag?.source === "inventory" &&
 							activeDrag.data.itemId === item.id;
 						return (
-							<Box
+							<InventorySlot
 								key={item.id}
-								as="li"
-								role="listitem"
-								aria-grabbed={isDragging}
-								px={3}
-								py={2}
-								bg="gray.800"
-								border="1px solid"
-								borderColor="gray.700"
-								borderRadius="md"
-								minWidth="80px"
-								opacity={isDragging ? 0.3 : 1}
-								cursor="grab"
-								transition="opacity 0.1s ease"
-								style={{ touchAction: "none" }}
+								item={item}
+								isEmpty={isEmpty}
+								isDragging={isDragging}
 								onPointerDown={(e) => handlePointerDown(item, e)}
-							>
-								<Text fontSize="sm" fontWeight="bold" color="gray.100">
-									{item.name ?? item.type}
-								</Text>
-								{typeof item.quantity === "number" && item.quantity > 1 ? (
-									<Text fontSize="xs" color="gray.400">
-										x{item.quantity}
-									</Text>
-								) : null}
-							</Box>
+								slotRef={setSlotRef(item.id)}
+							/>
 						);
 					})
 				)}
@@ -104,3 +151,5 @@ export const InventoryPanel = () => {
 		</Box>
 	);
 };
+
+export { SLOT_WIDTH, SLOT_HEIGHT };

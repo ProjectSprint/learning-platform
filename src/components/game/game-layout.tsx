@@ -140,8 +140,7 @@ export const GameLayout = ({
 						aria-label="Game Canvas"
 						flex="1"
 						minHeight={{ base: "240px", md: "auto" }}
-						overflow="hidden"
-						contain="layout"
+						overflow="visible"
 					>
 						<SegmentErrorBoundary name="canvas">
 							<PlayCanvas

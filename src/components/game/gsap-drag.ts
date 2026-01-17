@@ -139,8 +139,8 @@ export const convertPixelToBlock = (
 	const cellHeight = blockHeight + gapY;
 
 	return {
-		blockX: Math.round(x / cellWidth),
-		blockY: Math.round(y / cellHeight),
+		blockX: Math.floor(x / cellWidth),
+		blockY: Math.floor(y / cellHeight),
 	};
 };
 

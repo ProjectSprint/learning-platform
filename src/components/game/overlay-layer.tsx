@@ -338,7 +338,7 @@ export const OverlayLayer = () => {
 	})();
 
 	return createPortal(
-		<Box position="fixed" inset="0" zIndex={100} pointerEvents="none">
+		<Box position="fixed" inset="0" zIndex={10000} pointerEvents="none">
 			{activeModal && (
 				<Box
 					position="absolute"
