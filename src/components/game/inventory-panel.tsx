@@ -45,6 +45,7 @@ export const InventoryPanel = () => {
 			const handle = createDraggable(el, {
 				type: "x,y",
 				zIndexBoost: true,
+				inertia: false,
 				onDragStart: () => {
 					setActiveDrag({
 						source: "inventory",
@@ -56,7 +57,8 @@ export const InventoryPanel = () => {
 					});
 				},
 				onDragEnd: function () {
-					setActiveDrag(null);
+					// Reset the visual position only - don't clear activeDrag here
+					// The play-canvas handlePointerUp will clear it after processing the drop
 					this.target.style.transform = "";
 					this.target.style.zIndex = "";
 				},
@@ -64,14 +66,17 @@ export const InventoryPanel = () => {
 
 			draggablesRef.current.set(item.id, handle);
 		}
+	}, [availableItems, setActiveDrag]);
 
+	// Cleanup all draggables on unmount only
+	useEffect(() => {
 		return () => {
 			for (const handle of draggablesRef.current.values()) {
 				handle.cleanup();
 			}
 			draggablesRef.current.clear();
 		};
-	}, [availableItems, setActiveDrag]);
+	}, []);
 
 	const setItemRef = useCallback(
 		(itemId: string) => (el: HTMLDivElement | null) => {

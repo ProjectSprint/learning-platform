@@ -472,6 +472,7 @@ export const PlayCanvas = ({
 				placeOrRepositionItem(activeDrag.data, { blockX, blockY });
 			}
 
+			setActiveDrag(null);
 			setDragPreview(null);
 			setHoveredBlock(null);
 		};
