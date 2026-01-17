@@ -105,8 +105,7 @@ export const InventoryPanel = () => {
 			data-first-empty-slot={firstEmptySlot}
 			height="100%"
 			bg="gray.900"
-			borderRight={{ base: "none", md: "1px solid" }}
-			borderBottom={{ base: "1px solid", md: "none" }}
+			borderTop="1px solid"
 			borderColor="gray.800"
 			p={3}
 			overflow="visible"
@@ -118,7 +117,7 @@ export const InventoryPanel = () => {
 			<Flex
 				as="ul"
 				role="list"
-				direction={{ base: "row", md: "column" }}
+				direction="row"
 				gap={2}
 				wrap="wrap"
 				listStyleType="none"

@@ -390,7 +390,7 @@ export const PlayCanvas = ({
 			const handle = createDraggable(el, {
 				inertia: false,
 				minimumMovement: 4,
-				onClick: function () {
+				onClick: () => {
 					if (el.dataset.wasDragged === "true") {
 						el.dataset.wasDragged = "false";
 						return;
@@ -442,7 +442,11 @@ export const PlayCanvas = ({
 						return;
 					}
 
-					const collidingElement = hitTestAny(el, getOtherPlacedElements(), "50%");
+					const collidingElement = hitTestAny(
+						el,
+						getOtherPlacedElements(),
+						"50%",
+					);
 					const hasCollision = collidingElement !== null;
 
 					const isOriginalPosition =
@@ -462,7 +466,9 @@ export const PlayCanvas = ({
 					});
 				},
 				onDragEnd: function (this: Draggable) {
-					const inventoryPanel = document.querySelector("[data-inventory-panel]");
+					const inventoryPanel = document.querySelector(
+						"[data-inventory-panel]",
+					);
 					const inventoryRect = inventoryPanel?.getBoundingClientRect();
 					const isOverInventory =
 						inventoryPanel &&
@@ -491,7 +497,11 @@ export const PlayCanvas = ({
 
 					el.style.opacity = "1";
 
-					const collidingElement = hitTestAny(el, getOtherPlacedElements(), "50%");
+					const collidingElement = hitTestAny(
+						el,
+						getOtherPlacedElements(),
+						"50%",
+					);
 
 					if (collidingElement) {
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
@@ -507,10 +517,10 @@ export const PlayCanvas = ({
 						gridMetrics,
 					);
 
-					const placed = callbacksRef.current?.placeOrRepositionItem(
-						dragData,
-						{ blockX, blockY },
-					);
+					const placed = callbacksRef.current?.placeOrRepositionItem(dragData, {
+						blockX,
+						blockY,
+					});
 
 					gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
 					setDraggingItemId(null);

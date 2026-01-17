@@ -115,31 +115,18 @@ export const GameLayout = ({
 				<Flex
 					flex="1"
 					overflow="visible"
-					direction={{ base: "column", md: "row" }}
-					gap={{ base: 3, md: 0 }}
-					px={{ base: 3, md: 0 }}
-					py={{ base: 3, md: 0 }}
+					direction="column"
+					gap={3}
+					px={3}
+					py={3}
 				>
-					<Box
-						as="aside"
-						role="complementary"
-						aria-label="Inventory"
-						width={{ base: "100%", md: "200px" }}
-						minWidth={{ base: "100%", md: "200px" }}
-						height={{ base: "140px", md: "auto" }}
-					>
-						<SegmentErrorBoundary name="inventory">
-							<InventoryPanel />
-						</SegmentErrorBoundary>
-					</Box>
-
 					<Box
 						as="section"
 						id={canvasId}
 						role="region"
 						aria-label="Game Canvas"
 						flex="1"
-						minHeight={{ base: "240px", md: "auto" }}
+						minHeight="200px"
 						overflow="visible"
 					>
 						<SegmentErrorBoundary name="canvas">
@@ -149,6 +136,18 @@ export const GameLayout = ({
 								onPlacedItemClick={onPlacedItemClick}
 								isItemClickable={isItemClickable}
 							/>
+						</SegmentErrorBoundary>
+					</Box>
+
+					<Box
+						as="aside"
+						role="complementary"
+						aria-label="Inventory"
+						width="100%"
+						minHeight="120px"
+					>
+						<SegmentErrorBoundary name="inventory">
+							<InventoryPanel />
 						</SegmentErrorBoundary>
 					</Box>
 				</Flex>
