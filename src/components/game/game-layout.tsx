@@ -2,6 +2,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { Component, type ReactNode, useId } from "react";
 
 import { DragProvider } from "./drag-context";
+import { DragOverlay } from "./drag-overlay";
 import type { PlacedItem } from "./game-provider";
 import { InventoryPanel } from "./inventory-panel";
 import { OverlayLayer } from "./overlay-layer";
@@ -113,7 +114,7 @@ export const GameLayout = ({
 
 				<Flex
 					flex="1"
-					overflow="hidden"
+					overflow="visible"
 					direction={{ base: "column", md: "row" }}
 					gap={{ base: 3, md: 0 }}
 					px={{ base: 3, md: 0 }}
@@ -160,6 +161,7 @@ export const GameLayout = ({
 				</Box>
 
 				<OverlayLayer />
+				<DragOverlay getItemLabel={getItemLabel} />
 			</Box>
 		</DragProvider>
 	);

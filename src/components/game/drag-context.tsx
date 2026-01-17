@@ -1,18 +1,20 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import type { ActiveDrag } from "./drag-types";
 
 type DragContextValue = {
 	activeDrag: ActiveDrag | null;
 	setActiveDrag: (drag: ActiveDrag | null) => void;
+	proxyRef: React.RefObject<HTMLDivElement | null>;
 };
 
 const DragContext = createContext<DragContextValue | null>(null);
 
 export function DragProvider({ children }: { children: React.ReactNode }) {
 	const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
+	const proxyRef = useRef<HTMLDivElement | null>(null);
 
 	return (
-		<DragContext.Provider value={{ activeDrag, setActiveDrag }}>
+		<DragContext.Provider value={{ activeDrag, setActiveDrag, proxyRef }}>
 			{children}
 		</DragContext.Provider>
 	);

@@ -1,6 +1,7 @@
 export type DragData = {
 	itemId: string;
 	itemType: string;
+	itemName?: string;
 	isReposition?: boolean;
 	fromBlockX?: number;
 	fromBlockY?: number;
@@ -12,4 +13,5 @@ export type ActiveDrag = {
 	source: DragSource;
 	data: DragData;
 	element?: HTMLElement | null;
+	initialRect?: DOMRect;
 };

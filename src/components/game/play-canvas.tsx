@@ -22,6 +22,7 @@ import {
 	type DragHandle,
 	ensureGsapPlugins,
 	type GridMetrics,
+	hitTest,
 	hitTestAny,
 } from "./gsap-drag";
 
@@ -60,85 +61,118 @@ const defaultGetStatusMessage: StatusMessageGetter = () => {
 
 const defaultIsItemClickable: ItemClickableCheck = () => true;
 
-const BlockCell = memo(
+const GridCell = memo(
 	({
-		placedItem,
 		borderColor,
 		showBorder,
-		getItemLabel,
-		getStatusMessage,
-		cellRef,
+		isOccupied,
 	}: {
-		placedItem?: PlacedItem;
 		borderColor: string;
 		showBorder: boolean;
-		getItemLabel: ItemLabelGetter;
-		getStatusMessage: StatusMessageGetter;
-		cellRef?: React.RefCallback<HTMLDivElement>;
+		isOccupied: boolean;
 	}) => {
-		const borderStyle = placedItem ? "solid" : showBorder ? "dashed" : "solid";
-		const resolvedBorderColor =
-			placedItem || showBorder ? borderColor : "transparent";
-
-		const itemLabel = placedItem ? getItemLabel(placedItem.type) : null;
-		const statusMessage = placedItem ? getStatusMessage(placedItem) : null;
-		const hasWarning = placedItem?.status === "warning";
+		const borderStyle = showBorder ? "dashed" : "solid";
+		const resolvedBorderColor = showBorder ? borderColor : "transparent";
 
 		return (
 			<Box
-				ref={cellRef}
 				border={`1px ${borderStyle}`}
 				borderColor={resolvedBorderColor}
 				borderRadius="md"
-				bg={placedItem ? "gray.900" : "transparent"}
+				bg="transparent"
+				minHeight="40px"
+				transition="border-color 0.15s ease"
+				data-occupied={isOccupied}
+			/>
+		);
+	},
+	(prev, next) =>
+		prev.borderColor === next.borderColor &&
+		prev.showBorder === next.showBorder &&
+		prev.isOccupied === next.isOccupied,
+);
+
+const PlacedItemCard = memo(
+	({
+		item,
+		x,
+		y,
+		width,
+		height,
+		isDragging,
+		getItemLabel,
+		getStatusMessage,
+		itemRef,
+	}: {
+		item: PlacedItem;
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+		isDragging: boolean;
+		getItemLabel: ItemLabelGetter;
+		getStatusMessage: StatusMessageGetter;
+		itemRef: React.RefCallback<HTMLDivElement>;
+	}) => {
+		const label = getItemLabel(item.type);
+		const statusMessage = getStatusMessage(item);
+		const hasWarning = item.status === "warning";
+
+		return (
+			<Box
+				ref={itemRef}
+				position="absolute"
+				top={`${y}px`}
+				left={`${x}px`}
+				width={`${width}px`}
+				height={`${height}px`}
+				bg="gray.800"
+				border="1px solid"
+				borderColor="cyan.500"
+				borderRadius="md"
 				display="flex"
-				flexDirection="column"
 				alignItems="center"
 				justifyContent="center"
-				minHeight="40px"
-				gap={1}
-				p={2}
-				transition="border-color 0.15s ease"
-				cursor={placedItem ? "grab" : "default"}
-				position="relative"
+				cursor="grab"
+				opacity={isDragging ? 0.5 : 1}
+				zIndex={isDragging ? 100 : 1}
 				style={{ touchAction: "none" }}
-				aria-label={
-					placedItem
-						? `${itemLabel}${statusMessage ? `: ${statusMessage}` : ""}`
-						: undefined
-				}
+				aria-label={`${label}${statusMessage ? `: ${statusMessage}` : ""}`}
 			>
-				{placedItem ? (
-					<>
-						<Text fontSize="xs" fontWeight="bold" color="gray.100">
-							{itemLabel}
-						</Text>
-						{statusMessage && (
-							<Box
-								fontSize="10px"
-								px={2}
-								py={0.5}
-								borderRadius="sm"
-								border={hasWarning ? "1px solid" : "none"}
-								borderColor={hasWarning ? "red.500" : "transparent"}
-								bg={hasWarning ? "red.900/20" : "transparent"}
-								color={hasWarning ? "red.300" : "green.300"}
-								fontWeight="medium"
-							>
-								{statusMessage}
-							</Box>
-						)}
-					</>
-				) : null}
+				<Text fontSize="xs" fontWeight="bold" color="gray.100">
+					{label}
+				</Text>
+
+				{statusMessage && (
+					<Box
+						position="absolute"
+						top="-8px"
+						right="-8px"
+						fontSize="9px"
+						px={1.5}
+						py={0.5}
+						borderRadius="full"
+						bg={hasWarning ? "red.600" : "green.600"}
+						color="white"
+						fontWeight="medium"
+						boxShadow="sm"
+						whiteSpace="nowrap"
+					>
+						{statusMessage}
+					</Box>
+				)}
 			</Box>
 		);
 	},
 	(prev, next) =>
-		prev.placedItem?.id === next.placedItem?.id &&
-		prev.placedItem?.status === next.placedItem?.status &&
-		prev.placedItem?.data?.ip === next.placedItem?.data?.ip &&
-		prev.borderColor === next.borderColor &&
-		prev.showBorder === next.showBorder,
+		prev.item.id === next.item.id &&
+		prev.item.status === next.item.status &&
+		prev.item.data?.ip === next.item.data?.ip &&
+		prev.x === next.x &&
+		prev.y === next.y &&
+		prev.width === next.width &&
+		prev.height === next.height &&
+		prev.isDragging === next.isDragging,
 );
 
 export const PlayCanvas = ({
@@ -150,7 +184,7 @@ export const PlayCanvas = ({
 }: PlayCanvasProps) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
-	const { activeDrag, setActiveDrag } = useDragContext();
+	const { activeDrag, setActiveDrag, proxyRef } = useDragContext();
 	const canvas = stateKey
 		? (state.canvases?.[stateKey] ?? state.canvas)
 		: state.canvas;
@@ -399,11 +433,28 @@ export const PlayCanvas = ({
 					});
 				},
 				onDragEnd: function (this: Draggable) {
-					const collidingElement = hitTestAny(el, getOtherPlacedElements(), "50%");
+					const inventoryPanel = document.querySelector("[data-inventory-panel]");
+					const isOverInventory =
+						inventoryPanel && hitTest(el, inventoryPanel, "50%");
 
 					setActiveDrag(null);
 					setDragPreview(null);
 					setHoveredBlock(null);
+
+					if (isOverInventory) {
+						dispatch({
+							type: "REMOVE_ITEM",
+							payload: {
+								blockX: placedItem.blockX,
+								blockY: placedItem.blockY,
+								stateKey,
+							},
+						});
+						setDraggingItemId(null);
+						return;
+					}
+
+					const collidingElement = hitTestAny(el, getOtherPlacedElements(), "50%");
 
 					if (collidingElement) {
 						setDraggingItemId(null);
@@ -452,10 +503,12 @@ export const PlayCanvas = ({
 		blockHeight,
 		blockWidth,
 		canvas.placedItems,
+		dispatch,
 		gridMetrics,
 		isItemClickable,
 		onPlacedItemClick,
 		setActiveDrag,
+		stateKey,
 		stepX,
 		stepY,
 	]);
@@ -515,14 +568,35 @@ export const PlayCanvas = ({
 			const x = event.clientX - rect.left;
 			const y = event.clientY - rect.top;
 
-			if (x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
-				const { blockX, blockY } = convertPixelToBlock(x, y, gridMetrics);
-				placeOrRepositionItem(activeDrag.data, { blockX, blockY });
-			}
+			const isInsideCanvas =
+				x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+			const { blockX, blockY } = convertPixelToBlock(x, y, gridMetrics);
+			const canPlace =
+				isInsideCanvas && canPlaceItemAt(activeDrag.data, { blockX, blockY });
 
-			setActiveDrag(null);
-			setDragPreview(null);
-			setHoveredBlock(null);
+			if (canPlace && proxyRef.current) {
+				const targetX = rect.left + blockX * stepX;
+				const targetY = rect.top + blockY * stepY;
+
+				gsap.to(proxyRef.current, {
+					x: targetX,
+					y: targetY,
+					width: blockWidth,
+					height: blockHeight,
+					duration: 0.2,
+					ease: "power2.out",
+					onComplete: () => {
+						placeOrRepositionItem(activeDrag.data, { blockX, blockY });
+						setActiveDrag(null);
+						setDragPreview(null);
+						setHoveredBlock(null);
+					},
+				});
+			} else {
+				setActiveDrag(null);
+				setDragPreview(null);
+				setHoveredBlock(null);
+			}
 		};
 
 		window.addEventListener("pointermove", handlePointerMove);
@@ -541,6 +615,8 @@ export const PlayCanvas = ({
 		canvas.config.rows,
 		gridMetrics,
 		placeOrRepositionItem,
+		proxyRef,
+		setActiveDrag,
 		stepX,
 		stepY,
 	]);
@@ -555,20 +631,6 @@ export const PlayCanvas = ({
 		},
 		[],
 	);
-
-	const connections = useMemo(() => {
-		if (!blockWidth || !blockHeight) {
-			return [];
-		}
-
-		return canvas.connections.map((connection) => ({
-			id: connection.id,
-			x1: connection.from.x * stepX + blockWidth / 2,
-			y1: connection.from.y * stepY + blockHeight / 2,
-			x2: connection.to.x * stepX + blockWidth / 2,
-			y2: connection.to.y * stepY + blockHeight / 2,
-		}));
-	}, [blockHeight, blockWidth, canvas.connections, stepX, stepY]);
 
 	const showGrid = Boolean(
 		dragPreview || draggingItemId || activeDrag || canvas.placedItems.length,
@@ -612,46 +674,40 @@ export const PlayCanvas = ({
 					const placedItem = placedItemsByKey.get(key);
 					const isHovered =
 						hoveredBlock?.x === block.x && hoveredBlock?.y === block.y;
-					const isDragging = placedItem && draggingItemId === placedItem.id;
 					const borderColor =
 						isHovered && dragPreview
 							? dragPreview.valid
 								? "cyan.400"
 								: "red.400"
-							: placedItem
-								? "green.400"
-								: "gray.700";
+							: "gray.700";
 
 					return (
-						<BlockCell
+						<GridCell
 							key={key}
-							placedItem={isDragging ? undefined : placedItem}
 							borderColor={borderColor}
-							showBorder={showGrid || Boolean(placedItem)}
-							getItemLabel={getItemLabel}
-							getStatusMessage={getStatusMessage}
-							cellRef={placedItem ? setPlacedItemRef(placedItem.id) : undefined}
+							showBorder={showGrid}
+							isOccupied={Boolean(placedItem)}
 						/>
 					);
 				})}
-				{connections.length > 0 && (
-					<Box position="absolute" inset={0} pointerEvents="none">
-						<svg width="100%" height="100%" role="img" aria-label="Connections">
-							<title>Connections</title>
-							{connections.map((line) => (
-								<line
-									key={line.id}
-									x1={line.x1}
-									y1={line.y1}
-									x2={line.x2}
-									y2={line.y2}
-									stroke="#22d3ee"
-									strokeWidth={2}
-								/>
-							))}
-						</svg>
-					</Box>
-				)}
+
+				{canvas.placedItems.map((item) => {
+					const isDragging = draggingItemId === item.id;
+					return (
+						<PlacedItemCard
+							key={item.id}
+							item={item}
+							x={item.blockX * stepX}
+							y={item.blockY * stepY}
+							width={blockWidth}
+							height={blockHeight}
+							isDragging={isDragging}
+							getItemLabel={getItemLabel}
+							getStatusMessage={getStatusMessage}
+							itemRef={setPlacedItemRef(item.id)}
+						/>
+					);
+				})}
 
 				{dragPreview && (
 					<Box
