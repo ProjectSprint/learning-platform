@@ -10,14 +10,14 @@ import {
 } from "@/components/game/game-provider";
 import { GameLayout } from "@/components/game/game-layout";
 
-import { CANVAS_CONFIG, INVENTORY_ITEMS, QUESTION_ID, TERMINAL_PROMPT } from "./constants";
+import { CANVAS_CONFIG, INVENTORY_ITEMS, QUESTION_ID, TERMINAL_PROMPT } from "./-utils/constants";
 import {
 	getNetworkingItemLabel,
 	getNetworkingStatusMessage,
-} from "./item-formatters";
-import { useHintSystem } from "./use-hint-system";
-import { useNetworkState } from "./use-network-state";
-import { useTerminalHandler } from "./use-terminal-handler";
+} from "./-utils/item-formatters";
+import { useHintSystem } from "./-utils/use-hint-system";
+import { useNetworkState } from "./-utils/use-network-state";
+import { useTerminalHandler } from "./-utils/use-terminal-handler";
 
 export const NetworkingQuestion = () => {
 	return (
