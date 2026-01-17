@@ -1,6 +1,14 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { gsap } from "gsap";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	memo,
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useDragContext } from "./drag-context";
 import type { DragData } from "./drag-types";
 import {
@@ -289,7 +297,7 @@ export const PlayCanvas = ({
 		ensureGsapPlugins();
 	}, []);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (!canvasRef.current || !blockWidth || !blockHeight) {
 			return;
 		}
@@ -382,6 +390,8 @@ export const PlayCanvas = ({
 							duration: 0.3,
 							ease: "power2.out",
 						});
+					} else {
+						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
 					}
 
 					setDraggingItemId(null);
