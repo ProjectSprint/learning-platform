@@ -56,7 +56,6 @@ const BlockCell = memo(
 		placedItem,
 		borderColor,
 		showBorder,
-		onClick,
 		getItemLabel,
 		getStatusMessage,
 		cellRef,
@@ -64,7 +63,6 @@ const BlockCell = memo(
 		placedItem?: PlacedItem;
 		borderColor: string;
 		showBorder: boolean;
-		onClick?: () => void;
 		getItemLabel: ItemLabelGetter;
 		getStatusMessage: StatusMessageGetter;
 		cellRef?: React.RefCallback<HTMLDivElement>;
@@ -92,9 +90,9 @@ const BlockCell = memo(
 				gap={1}
 				p={2}
 				transition="border-color 0.15s ease"
-				cursor={onClick ? "pointer" : placedItem ? "grab" : "default"}
-				onClick={onClick}
+				cursor={placedItem ? "grab" : "default"}
 				position="relative"
+				style={{ touchAction: "none" }}
 				aria-label={
 					placedItem
 						? `${itemLabel}${statusMessage ? `: ${statusMessage}` : ""}`
@@ -131,8 +129,7 @@ const BlockCell = memo(
 		prev.placedItem?.status === next.placedItem?.status &&
 		prev.placedItem?.data?.ip === next.placedItem?.data?.ip &&
 		prev.borderColor === next.borderColor &&
-		prev.showBorder === next.showBorder &&
-		prev.onClick === next.onClick,
+		prev.showBorder === next.showBorder,
 );
 
 export const PlayCanvas = ({
@@ -582,11 +579,6 @@ export const PlayCanvas = ({
 							placedItem={isDragging ? undefined : placedItem}
 							borderColor={borderColor}
 							showBorder={showGrid || Boolean(placedItem)}
-							onClick={
-								placedItem && onPlacedItemClick && isItemClickable(placedItem)
-									? () => onPlacedItemClick(placedItem)
-									: undefined
-							}
 							getItemLabel={getItemLabel}
 							getStatusMessage={getStatusMessage}
 							cellRef={placedItem ? setPlacedItemRef(placedItem.id) : undefined}
