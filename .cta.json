@@ -1,0 +1,25 @@
+{
+  "projectName": "learning-platform",
+  "mode": "file-router",
+  "typescript": true,
+  "packageManager": "pnpm",
+  "tailwind": true,
+  "addOnOptions": {
+    "drizzle": {
+      "database": "postgresql"
+    }
+  },
+  "git": true,
+  "version": 1,
+  "framework": "react-cra",
+  "chosenAddOns": [
+    "biome",
+    "nitro",
+    "start",
+    "drizzle",
+    "t3env",
+    "tanstack-query",
+    "better-auth",
+    "compiler"
+  ]
+}

@@ -1,0 +1,972 @@
+import {
+	createContext,
+	type Dispatch,
+	type ReactNode,
+	useContext,
+	useReducer,
+} from "react";
+
+export type GamePhase = "setup" | "playing" | "terminal" | "completed";
+export type QuestionStatus = "in_progress" | "completed";
+
+export type InventoryItem = {
+	id: string;
+	type: string;
+	name?: string;
+	used: boolean;
+	quantity?: number;
+	data?: Record<string, unknown>;
+};
+
+export type CanvasConfig = {
+	id: string;
+	columns: number;
+	rows: number;
+	stateKey?: string;
+	allowedItemTypes?: string[];
+	maxItems?: number;
+	initialPlacements?: Placement[];
+};
+
+export type Placement = {
+	blockX: number;
+	blockY: number;
+	itemType: string;
+};
+
+export type BlockStatus = "empty" | "hover" | "occupied" | "invalid";
+
+export type Block = {
+	x: number;
+	y: number;
+	status: BlockStatus;
+	itemId?: string;
+};
+
+export type PlacedItemStatus = "normal" | "warning" | "success" | "error";
+
+export type PlacedItem = {
+	id: string;
+	itemId: string;
+	type: string;
+	blockX: number;
+	blockY: number;
+	status: PlacedItemStatus;
+	data: Record<string, unknown>;
+};
+
+export type Connection = {
+	id: string;
+	type: "cable" | "wireless";
+	from: { x: number; y: number };
+	to: { x: number; y: number };
+	cableId?: string;
+};
+
+export type TerminalEntryType =
+	| "prompt"
+	| "input"
+	| "output"
+	| "error"
+	| "hint";
+
+export type TerminalEntry = {
+	id: string;
+	type: TerminalEntryType;
+	content: string;
+	timestamp: number;
+};
+
+export type TerminalState = {
+	visible: boolean;
+	prompt: string;
+	history: TerminalEntry[];
+};
+
+export type ModalType = "router-config" | "pc-config" | "success" | "confirm";
+
+export type ModalState = {
+	type: ModalType;
+	deviceId?: string;
+	data?: Record<string, unknown>;
+	blocking?: boolean;
+};
+
+export type Hint = {
+	id: string;
+	message: string;
+	docsUrl?: string;
+	autoDismiss: boolean;
+	timestamp: number;
+};
+
+export type OverlayState = {
+	activeModal: ModalState | null;
+	hints: Hint[];
+};
+
+export type CanvasState = {
+	config: CanvasConfig;
+	blocks: Block[][];
+	placedItems: PlacedItem[];
+	connections: Connection[];
+	selectedBlock: { x: number; y: number } | null;
+};
+
+export type GameState = {
+	phase: GamePhase;
+	inventory: { items: InventoryItem[] };
+	canvas: CanvasState;
+	canvases?: Record<string, CanvasState>;
+	terminal: TerminalState;
+	overlay: OverlayState;
+	question: { id: string; status: QuestionStatus };
+	sequence: number;
+};
+
+export type InitQuestionConfig = {
+	canvas?: CanvasConfig;
+	inventory?: InventoryItem[];
+	terminal?: Partial<TerminalState>;
+	phase?: GamePhase;
+	questionStatus?: QuestionStatus;
+};
+
+export type GameAction =
+	| {
+			type: "INIT_QUESTION";
+			payload: { questionId: string; config?: InitQuestionConfig };
+	  }
+	| {
+			type: "PLACE_ITEM";
+			payload: {
+				itemId: string;
+				blockX: number;
+				blockY: number;
+				stateKey?: string;
+			};
+	  }
+	| {
+			type: "REMOVE_ITEM";
+			payload: { blockX: number; blockY: number; stateKey?: string };
+	  }
+	| {
+			type: "MAKE_CONNECTION";
+			payload: {
+				from: { x: number; y: number };
+				to: { x: number; y: number };
+				cableId?: string;
+				stateKey?: string;
+			};
+	  }
+	| {
+			type: "REMOVE_CONNECTION";
+			payload: { connectionId: string; stateKey?: string };
+	  }
+	| {
+			type: "CONFIGURE_DEVICE";
+			payload: {
+				deviceId: string;
+				config: Record<string, unknown>;
+				stateKey?: string;
+			};
+	  }
+	| { type: "OPEN_MODAL"; payload: ModalState }
+	| { type: "CLOSE_MODAL" }
+	| { type: "SUBMIT_COMMAND"; payload: { input: string } }
+	| {
+			type: "ADD_TERMINAL_OUTPUT";
+			payload: {
+				content: string;
+				type: Exclude<TerminalEntryType, "input" | "prompt">;
+			};
+	  }
+	| { type: "CLEAR_TERMINAL_HISTORY" }
+	| {
+			type: "SHOW_HINT";
+			payload: { message: string; docsUrl?: string; autoDismiss?: boolean };
+	  }
+	| { type: "DISMISS_HINT"; payload: { hintId: string } }
+	| { type: "SET_PHASE"; payload: { phase: GamePhase } }
+	| { type: "COMPLETE_QUESTION" };
+
+const MAX_HISTORY_ENTRIES = 100;
+const MAX_HINTS = 3;
+const MAX_HINT_LENGTH = 200;
+const MAX_INPUT_LENGTH = 200;
+const MAX_OUTPUT_LENGTH = 500;
+const MAX_CONFIG_VALUE_LENGTH = 100;
+const MAX_INVENTORY_ITEMS = 50;
+
+const VALID_MODAL_TYPES: ModalType[] = [
+	"router-config",
+	"pc-config",
+	"success",
+	"confirm",
+];
+
+const defaultCanvasConfig: CanvasConfig = {
+	id: "default-canvas",
+	columns: 6,
+	rows: 4,
+};
+
+const sanitizeText = (value: string, maxLength: number) =>
+	value
+		.slice(0, maxLength)
+		.replace(/<[^>]*>/g, "")
+		.replace(/[<>"'&]/g, "")
+		.trim();
+
+const sanitizeTerminalInput = (input: string) =>
+	sanitizeText(input, MAX_INPUT_LENGTH);
+
+const sanitizeTerminalOutput = (output: string) =>
+	sanitizeText(output, MAX_OUTPUT_LENGTH);
+
+const sanitizeConfigValue = (value: string) =>
+	sanitizeText(value, MAX_CONFIG_VALUE_LENGTH);
+
+const sanitizeDeviceConfig = (config: Record<string, unknown>) => {
+	const sanitized: Record<string, unknown> = {};
+
+	for (const [key, value] of Object.entries(config)) {
+		if (value === null) {
+			sanitized[key] = null;
+			continue;
+		}
+
+		if (typeof value === "string") {
+			sanitized[key] = sanitizeConfigValue(value);
+			continue;
+		}
+
+		if (typeof value === "number" || typeof value === "boolean") {
+			sanitized[key] = value;
+		}
+	}
+
+	return sanitized;
+};
+
+const createBlockGrid = (columns: number, rows: number) =>
+	Array.from({ length: rows }, (_, rowIndex) =>
+		Array.from({ length: columns }, (_, colIndex) => ({
+			x: colIndex,
+			y: rowIndex,
+			status: "empty" as BlockStatus,
+		})),
+	);
+
+const createCanvasState = (config: CanvasConfig): CanvasState => ({
+	config,
+	blocks: createBlockGrid(config.columns, config.rows),
+	placedItems: [],
+	connections: [],
+	selectedBlock: null,
+});
+
+const resolveCanvasState = (state: GameState, stateKey?: string) => {
+	if (!stateKey) {
+		return state.canvas;
+	}
+
+	return state.canvases?.[stateKey] ?? state.canvas;
+};
+
+const updateCanvasState = (
+	state: GameState,
+	stateKey: string | undefined,
+	nextCanvas: CanvasState,
+): GameState => {
+	if (!stateKey) {
+		return { ...state, canvas: nextCanvas };
+	}
+
+	return {
+		...state,
+		canvases: {
+			...(state.canvases ?? {}),
+			[stateKey]: nextCanvas,
+		},
+	};
+};
+
+const updateBlock = (
+	blocks: Block[][],
+	blockX: number,
+	blockY: number,
+	updates: Partial<Block>,
+) => {
+	if (!blocks[blockY]?.[blockX]) {
+		return blocks;
+	}
+
+	const nextBlocks = blocks.slice();
+	const nextRow = nextBlocks[blockY].slice();
+	nextRow[blockX] = { ...nextRow[blockX], ...updates };
+	nextBlocks[blockY] = nextRow;
+	return nextBlocks;
+};
+
+const addHistoryEntry = (history: TerminalEntry[], entry: TerminalEntry) => {
+	const nextHistory = [...history, entry];
+	if (nextHistory.length > MAX_HISTORY_ENTRIES) {
+		return nextHistory.slice(-MAX_HISTORY_ENTRIES);
+	}
+	return nextHistory;
+};
+
+const normalizeInventory = (items: InventoryItem[]) =>
+	items
+		.filter(
+			(item) =>
+				item && typeof item.id === "string" && typeof item.type === "string",
+		)
+		.slice(0, MAX_INVENTORY_ITEMS)
+		.map((item) => ({ ...item, used: Boolean(item.used) }));
+
+const applyInitialPlacements = (
+	canvas: CanvasState,
+	inventoryItems: InventoryItem[],
+): { canvas: CanvasState; inventory: InventoryItem[] } => {
+	const placements = canvas.config.initialPlacements ?? [];
+	if (placements.length === 0) {
+		return { canvas, inventory: inventoryItems };
+	}
+
+	let nextBlocks = canvas.blocks;
+	let nextInventory = inventoryItems;
+	const placedItems: PlacedItem[] = [];
+
+	placements.forEach((placement) => {
+		if (!nextBlocks[placement.blockY]?.[placement.blockX]) {
+			return;
+		}
+
+		if (nextBlocks[placement.blockY][placement.blockX].status === "occupied") {
+			return;
+		}
+
+		let itemId = `initial-${placement.itemType}-${placement.blockX}-${placement.blockY}`;
+		const inventoryIndex = nextInventory.findIndex(
+			(item) => item.type === placement.itemType && !item.used,
+		);
+
+		if (inventoryIndex >= 0) {
+			const inventoryItem = nextInventory[inventoryIndex];
+			itemId = inventoryItem.id;
+			nextInventory = nextInventory.map((item, index) =>
+				index === inventoryIndex ? { ...item, used: true } : item,
+			);
+		}
+
+		placedItems.push({
+			id: itemId,
+			itemId,
+			type: placement.itemType,
+			blockX: placement.blockX,
+			blockY: placement.blockY,
+			status: "normal",
+			data: {},
+		});
+
+		nextBlocks = updateBlock(nextBlocks, placement.blockX, placement.blockY, {
+			status: "occupied",
+			itemId,
+		});
+	});
+
+	return {
+		canvas: {
+			...canvas,
+			blocks: nextBlocks,
+			placedItems,
+			connections: deriveConnectionsFromCables(placedItems),
+		},
+		inventory: nextInventory,
+	};
+};
+
+const createDefaultState = (): GameState => ({
+	phase: "setup",
+	inventory: { items: [] },
+	canvas: createCanvasState(defaultCanvasConfig),
+	terminal: {
+		visible: false,
+		prompt: "",
+		history: [],
+	},
+	overlay: {
+		activeModal: null,
+		hints: [],
+	},
+	question: {
+		id: "",
+		status: "in_progress",
+	},
+	sequence: 0,
+});
+
+const createEntry = (
+	state: GameState,
+	type: TerminalEntryType,
+	content: string,
+): { entry: TerminalEntry; sequence: number } => {
+	const nextSequence = state.sequence + 1;
+	return {
+		entry: {
+			id: `entry-${nextSequence}`,
+			type,
+			content,
+			timestamp: nextSequence,
+		},
+		sequence: nextSequence,
+	};
+};
+
+const createHint = (
+	state: GameState,
+	message: string,
+	docsUrl?: string,
+	autoDismiss?: boolean,
+): { hint: Hint; sequence: number } => {
+	const nextSequence = state.sequence + 1;
+	return {
+		hint: {
+			id: `hint-${nextSequence}`,
+			message,
+			docsUrl,
+			autoDismiss: autoDismiss ?? true,
+			timestamp: nextSequence,
+		},
+		sequence: nextSequence,
+	};
+};
+
+const normalizeConnectionKey = (
+	from: { x: number; y: number },
+	to: { x: number; y: number },
+) => {
+	if (from.y < to.y || (from.y === to.y && from.x <= to.x)) {
+		return `${from.x},${from.y}-${to.x},${to.y}`;
+	}
+	return `${to.x},${to.y}-${from.x},${from.y}`;
+};
+
+const CONNECTABLE_DEVICE_TYPES = new Set(["pc", "router"]);
+
+const isConnectableDevice = (item?: PlacedItem) =>
+	Boolean(item && CONNECTABLE_DEVICE_TYPES.has(item.type));
+
+const deriveConnectionsFromCables = (placedItems: PlacedItem[]) => {
+	const byCoord = new Map<string, PlacedItem>();
+	placedItems.forEach((item) => {
+		byCoord.set(`${item.blockX}-${item.blockY}`, item);
+	});
+
+	const connections: Connection[] = [];
+	const seen = new Set<string>();
+
+	const maybeAddConnection = (from: PlacedItem, to: PlacedItem) => {
+		if (!isConnectableDevice(from) || !isConnectableDevice(to)) {
+			return;
+		}
+
+		if (from.type === to.type) {
+			return;
+		}
+
+		const fromCoord = { x: from.blockX, y: from.blockY };
+		const toCoord = { x: to.blockX, y: to.blockY };
+		const key = normalizeConnectionKey(fromCoord, toCoord);
+		if (seen.has(key)) {
+			return;
+		}
+
+		seen.add(key);
+		connections.push({
+			id: `connection-${key}-link`,
+			type: "cable",
+			from: fromCoord,
+			to: toCoord,
+		});
+	};
+
+	placedItems
+		.filter((item) => item.type === "cable")
+		.forEach((cable) => {
+			const left = byCoord.get(`${cable.blockX - 1}-${cable.blockY}`);
+			const right = byCoord.get(`${cable.blockX + 1}-${cable.blockY}`);
+			const up = byCoord.get(`${cable.blockX}-${cable.blockY - 1}`);
+			const down = byCoord.get(`${cable.blockX}-${cable.blockY + 1}`);
+
+			if (left && right) {
+				maybeAddConnection(left, right);
+			}
+
+			if (up && down) {
+				maybeAddConnection(up, down);
+			}
+		});
+
+	return connections;
+};
+
+const reducer = (state: GameState, action: GameAction): GameState => {
+	switch (action.type) {
+		case "INIT_QUESTION": {
+			const config = action.payload.config;
+			const canvasConfig = config?.canvas ?? defaultCanvasConfig;
+			const nextCanvas = createCanvasState(canvasConfig);
+			const inventoryItems = normalizeInventory(config?.inventory ?? []);
+			const seeded = applyInitialPlacements(nextCanvas, inventoryItems);
+			const terminal = {
+				...state.terminal,
+				...config?.terminal,
+			};
+			return {
+				...createDefaultState(),
+				phase: config?.phase ?? "setup",
+				inventory: { items: seeded.inventory },
+				canvas: seeded.canvas,
+				terminal: {
+					visible: terminal.visible ?? false,
+					prompt: terminal.prompt ?? "",
+					history: terminal.history ?? [],
+				},
+				question: {
+					id: action.payload.questionId,
+					status: config?.questionStatus ?? "in_progress",
+				},
+			};
+		}
+		case "PLACE_ITEM": {
+			const canvas = resolveCanvasState(state, action.payload.stateKey);
+			const { itemId, blockX, blockY } = action.payload;
+			const item = state.inventory.items.find((entry) => entry.id === itemId);
+
+			if (!item || item.used) {
+				return state;
+			}
+
+			if (!canvas.blocks[blockY]?.[blockX]) {
+				return state;
+			}
+
+			if (canvas.blocks[blockY][blockX].status === "occupied") {
+				return state;
+			}
+
+			if (
+				canvas.config.allowedItemTypes &&
+				!canvas.config.allowedItemTypes.includes(item.type)
+			) {
+				return state;
+			}
+
+			if (
+				typeof canvas.config.maxItems === "number" &&
+				canvas.placedItems.length >= canvas.config.maxItems
+			) {
+				return state;
+			}
+
+			const placedItem: PlacedItem = {
+				id: item.id,
+				itemId: item.id,
+				type: item.type,
+				blockX,
+				blockY,
+				status: "normal",
+				data: item.data ?? {},
+			};
+
+			const nextBlocks = updateBlock(canvas.blocks, blockX, blockY, {
+				status: "occupied",
+				itemId: item.id,
+			});
+
+			const nextPlacedItems = [...canvas.placedItems, placedItem];
+			const nextCanvas: CanvasState = {
+				...canvas,
+				blocks: nextBlocks,
+				placedItems: nextPlacedItems,
+				connections: deriveConnectionsFromCables(nextPlacedItems),
+			};
+
+			const nextInventory = state.inventory.items.map((entry) =>
+				entry.id === item.id ? { ...entry, used: true } : entry,
+			);
+
+			return updateCanvasState(
+				{
+					...state,
+					inventory: { items: nextInventory },
+				},
+				action.payload.stateKey,
+				nextCanvas,
+			);
+		}
+		case "REMOVE_ITEM": {
+			const canvas = resolveCanvasState(state, action.payload.stateKey);
+			const { blockX, blockY } = action.payload;
+			const block = canvas.blocks[blockY]?.[blockX];
+
+			if (!block?.itemId) {
+				return state;
+			}
+
+			const nextBlocks = updateBlock(canvas.blocks, blockX, blockY, {
+				status: "empty",
+				itemId: undefined,
+			});
+
+			const nextPlacedItems = canvas.placedItems.filter(
+				(item) => item.itemId !== block.itemId,
+			);
+			const nextConnections = deriveConnectionsFromCables(nextPlacedItems);
+
+			const nextInventory = state.inventory.items.map((entry) =>
+				entry.id === block.itemId ? { ...entry, used: false } : entry,
+			);
+
+			const nextCanvas: CanvasState = {
+				...canvas,
+				blocks: nextBlocks,
+				placedItems: nextPlacedItems,
+				connections: nextConnections,
+			};
+
+			return updateCanvasState(
+				{
+					...state,
+					inventory: { items: nextInventory },
+				},
+				action.payload.stateKey,
+				nextCanvas,
+			);
+		}
+		case "MAKE_CONNECTION": {
+			const canvas = resolveCanvasState(state, action.payload.stateKey);
+			const { from, to, cableId } = action.payload;
+
+			if (from.x === to.x && from.y === to.y) {
+				return state;
+			}
+
+			const fromBlock = canvas.blocks[from.y]?.[from.x];
+			const toBlock = canvas.blocks[to.y]?.[to.x];
+
+			if (!fromBlock?.itemId || !toBlock?.itemId) {
+				return state;
+			}
+
+			const connectionKey = normalizeConnectionKey(from, to);
+			const exists = canvas.connections.some(
+				(connection) =>
+					normalizeConnectionKey(connection.from, connection.to) ===
+					connectionKey,
+			);
+
+			if (exists) {
+				return state;
+			}
+
+			if (cableId) {
+				const cableItem = state.inventory.items.find(
+					(entry) => entry.id === cableId,
+				);
+				if (!cableItem || cableItem.used) {
+					return state;
+				}
+			}
+
+			const connectionId = `connection-${connectionKey}-${cableId ?? "link"}`;
+			const nextConnections: Connection[] = [
+				...canvas.connections,
+				{
+					id: connectionId,
+					type: "cable",
+					from,
+					to,
+					cableId,
+				},
+			];
+
+			const nextCanvas: CanvasState = {
+				...canvas,
+				connections: nextConnections,
+			};
+
+			let nextInventory = state.inventory.items;
+			if (cableId) {
+				nextInventory = state.inventory.items.map((entry) =>
+					entry.id === cableId ? { ...entry, used: true } : entry,
+				);
+			}
+
+			return updateCanvasState(
+				{
+					...state,
+					inventory: { items: nextInventory },
+				},
+				action.payload.stateKey,
+				nextCanvas,
+			);
+		}
+		case "REMOVE_CONNECTION": {
+			const canvas = resolveCanvasState(state, action.payload.stateKey);
+			const connection = canvas.connections.find(
+				(entry) => entry.id === action.payload.connectionId,
+			);
+
+			if (!connection) {
+				return state;
+			}
+
+			const nextConnections = canvas.connections.filter(
+				(entry) => entry.id !== action.payload.connectionId,
+			);
+
+			const nextCanvas: CanvasState = {
+				...canvas,
+				connections: nextConnections,
+			};
+
+			let nextInventory = state.inventory.items;
+			if (connection.cableId) {
+				nextInventory = state.inventory.items.map((entry) =>
+					entry.id === connection.cableId ? { ...entry, used: false } : entry,
+				);
+			}
+
+			return updateCanvasState(
+				{
+					...state,
+					inventory: { items: nextInventory },
+				},
+				action.payload.stateKey,
+				nextCanvas,
+			);
+		}
+		case "CONFIGURE_DEVICE": {
+			const canvas = resolveCanvasState(state, action.payload.stateKey);
+			const config = sanitizeDeviceConfig(action.payload.config);
+			const itemIndex = canvas.placedItems.findIndex(
+				(item) => item.id === action.payload.deviceId,
+			);
+
+			if (itemIndex === -1) {
+				return state;
+			}
+
+			const nextPlacedItems = canvas.placedItems.slice();
+			const currentItem = nextPlacedItems[itemIndex];
+
+			// Extract status if provided
+			const newStatus =
+				typeof config.status === "string" ? config.status : undefined;
+			const { status: _, ...dataConfig } = config;
+
+			nextPlacedItems[itemIndex] = {
+				...currentItem,
+				...(newStatus && { status: newStatus as PlacedItemStatus }),
+				data: {
+					...currentItem.data,
+					...dataConfig,
+				},
+			};
+
+			const nextCanvas: CanvasState = {
+				...canvas,
+				placedItems: nextPlacedItems,
+			};
+
+			return updateCanvasState(
+				{
+					...state,
+					overlay: {
+						...state.overlay,
+						activeModal: null,
+					},
+				},
+				action.payload.stateKey,
+				nextCanvas,
+			);
+		}
+		case "OPEN_MODAL": {
+			const modal = action.payload;
+			if (!VALID_MODAL_TYPES.includes(modal.type)) {
+				return state;
+			}
+
+			if (
+				(modal.type === "router-config" || modal.type === "pc-config") &&
+				typeof modal.deviceId !== "string"
+			) {
+				return state;
+			}
+
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					activeModal: modal,
+				},
+			};
+		}
+		case "CLOSE_MODAL":
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					activeModal: null,
+				},
+			};
+		case "SUBMIT_COMMAND": {
+			const input = sanitizeTerminalInput(action.payload.input);
+			if (!input) {
+				return state;
+			}
+
+			const { entry, sequence } = createEntry(state, "input", input);
+			return {
+				...state,
+				sequence,
+				terminal: {
+					...state.terminal,
+					history: addHistoryEntry(state.terminal.history, entry),
+				},
+			};
+		}
+		case "ADD_TERMINAL_OUTPUT": {
+			const content = sanitizeTerminalOutput(action.payload.content);
+			if (!content) {
+				return state;
+			}
+
+			const { entry, sequence } = createEntry(
+				state,
+				action.payload.type,
+				content,
+			);
+			return {
+				...state,
+				sequence,
+				terminal: {
+					...state.terminal,
+					history: addHistoryEntry(state.terminal.history, entry),
+				},
+			};
+		}
+		case "CLEAR_TERMINAL_HISTORY":
+			return {
+				...state,
+				terminal: {
+					...state.terminal,
+					history: [],
+				},
+			};
+		case "SHOW_HINT": {
+			const message = sanitizeText(action.payload.message, MAX_HINT_LENGTH);
+			if (!message) {
+				return state;
+			}
+
+			if (state.overlay.hints.some((hint) => hint.message === message)) {
+				return state;
+			}
+
+			const { hint, sequence } = createHint(
+				state,
+				message,
+				action.payload.docsUrl,
+				action.payload.autoDismiss,
+			);
+
+			const nextHints = [...state.overlay.hints, hint].slice(-MAX_HINTS);
+			return {
+				...state,
+				sequence,
+				overlay: {
+					...state.overlay,
+					hints: nextHints,
+				},
+			};
+		}
+		case "DISMISS_HINT":
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					hints: state.overlay.hints.filter(
+						(hint) => hint.id !== action.payload.hintId,
+					),
+				},
+			};
+		case "SET_PHASE":
+			return {
+				...state,
+				phase: action.payload.phase,
+				terminal: {
+					...state.terminal,
+					visible:
+						action.payload.phase === "terminal" ||
+						action.payload.phase === "completed",
+				},
+			};
+		case "COMPLETE_QUESTION":
+			return {
+				...state,
+				phase: "completed",
+				question: { ...state.question, status: "completed" },
+			};
+		default:
+			return state;
+	}
+};
+
+const GameStateContext = createContext<GameState | null>(null);
+const GameDispatchContext = createContext<Dispatch<GameAction> | null>(null);
+
+export type GameProviderProps = {
+	children: ReactNode;
+	initialState?: GameState;
+};
+
+export const GameProvider = ({ children, initialState }: GameProviderProps) => {
+	const [state, dispatch] = useReducer(
+		reducer,
+		initialState ?? createDefaultState(),
+	);
+
+	return (
+		<GameStateContext.Provider value={state}>
+			<GameDispatchContext.Provider value={dispatch}>
+				{children}
+			</GameDispatchContext.Provider>
+		</GameStateContext.Provider>
+	);
+};
+
+export const useGameState = () => {
+	const state = useContext(GameStateContext);
+	if (!state) {
+		throw new Error("useGameState must be used within GameProvider");
+	}
+	return state;
+};
+
+export const useGameDispatch = () => {
+	const dispatch = useContext(GameDispatchContext);
+	if (!dispatch) {
+		throw new Error("useGameDispatch must be used within GameProvider");
+	}
+	return dispatch;
+};
+
+export const useGame = () => ({
+	state: useGameState(),
+	dispatch: useGameDispatch(),
+});
