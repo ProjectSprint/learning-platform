@@ -210,7 +210,7 @@ const PlacedItemCard = memo(
 
 export const PlayCanvas = ({
 	stateKey,
-	title = "Play Canvas",
+	title,
 	getItemLabel = defaultGetItemLabel,
 	getStatusMessage = defaultGetStatusMessage,
 	onPlacedItemClick,
@@ -854,7 +854,6 @@ export const PlayCanvas = ({
 		<Box
 			className="play-canvas"
 			data-game-canvas
-			height="100%"
 			bg="gray.950"
 			p={4}
 			overflow="visible"
@@ -863,14 +862,13 @@ export const PlayCanvas = ({
 			flexDirection="column"
 			gap={3}
 		>
-			<Flex align="center" justify="space-between" mb={4}>
-				<Text fontSize="sm" fontWeight="bold" color="gray.200">
-					{title}
-				</Text>
-				<Text fontSize="xs" color="gray.500">
-					{canvas.config.columns} x {canvas.config.rows}
-				</Text>
-			</Flex>
+			{title ? (
+				<Flex align="center" justify="space-between" mb={4}>
+					<Text fontSize="sm" fontWeight="bold" color="gray.200">
+						{title}
+					</Text>
+				</Flex>
+			) : null}
 
 			<Box
 				ref={canvasRef}

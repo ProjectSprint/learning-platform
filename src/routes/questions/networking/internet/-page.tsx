@@ -338,10 +338,9 @@ const InternetGame = ({
 				</Box>
 
 				<Flex
-					flex="1"
 					direction={{ base: "column", xl: "row" }}
 					gap={4}
-					align="stretch"
+					align={{ base: "stretch", xl: "flex-start" }}
 				>
 					{CANVAS_ORDER.map((key) => {
 						const config = CANVAS_CONFIGS[key];
@@ -363,15 +362,6 @@ const InternetGame = ({
 								flexBasis={0}
 								minW={{ base: "100%", xl: "0" }}
 							>
-								<Text
-									fontSize="xs"
-									textTransform="uppercase"
-									letterSpacing="0.08em"
-									color="gray.400"
-									mb={2}
-								>
-									{title}
-								</Text>
 								<PlayCanvas
 									stateKey={key}
 									title={title}
