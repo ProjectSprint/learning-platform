@@ -58,6 +58,7 @@ export const TerminalPanel = () => {
 	const [input, setInput] = useState("");
 	const [historyIndex, setHistoryIndex] = useState<number | null>(null);
 	const [commandHistory, setCommandHistory] = useState<string[]>([]);
+	const [isCollapsed, setIsCollapsed] = useState(false);
 	const historyRef = useRef<HTMLDivElement | null>(null);
 	const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -168,13 +169,54 @@ export const TerminalPanel = () => {
 	}, [terminal.history.length, terminal.prompt]);
 
 	useEffect(() => {
-		if (visible) {
+		if (visible && !isCollapsed) {
 			inputRef.current?.focus();
 		}
-	}, [visible]);
+	}, [visible, isCollapsed]);
+
+	const handleToggleCollapse = useCallback(() => {
+		setIsCollapsed((prev) => !prev);
+	}, []);
+
+	const handleExpandClick = useCallback(() => {
+		setIsCollapsed(false);
+	}, []);
 
 	if (!visible) {
 		return null;
+	}
+
+	if (isCollapsed) {
+		return (
+			<Box
+				position="fixed"
+				bottom={0}
+				left={0}
+				right={0}
+				zIndex={100}
+				bg="gray.900"
+				borderTop="1px solid"
+				borderColor="gray.700"
+				cursor="pointer"
+				onClick={handleExpandClick}
+				_hover={{ bg: "gray.800" }}
+				role="button"
+				aria-label="Expand terminal"
+				tabIndex={0}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						handleExpandClick();
+					}
+				}}
+			>
+				<Flex align="center" justify="center" px={4} py={3}>
+					<Text fontWeight="bold" color="gray.100" fontFamily="mono">
+						Terminal
+					</Text>
+				</Flex>
+			</Box>
+		);
 	}
 
 	return (
@@ -182,7 +224,11 @@ export const TerminalPanel = () => {
 			as="section"
 			role="region"
 			aria-label="Command Terminal"
-			height="150px"
+			position="fixed"
+			bottom={0}
+			left={0}
+			right={0}
+			height="40vh"
 			bg="gray.900"
 			color="gray.200"
 			fontFamily="mono"
@@ -190,8 +236,39 @@ export const TerminalPanel = () => {
 			borderColor="gray.700"
 			display="flex"
 			flexDirection="column"
-			contain="layout"
+			zIndex={100}
 		>
+			<Flex
+				align="center"
+				justify="space-between"
+				px={4}
+				py={2}
+				borderBottom="1px solid"
+				borderColor="gray.800"
+				flexShrink={0}
+			>
+				<Text fontWeight="bold" color="gray.100" fontSize="sm">
+					Terminal
+				</Text>
+				<Box
+					asChild
+					px={2}
+					py={1}
+					borderRadius="md"
+					color="gray.400"
+					_hover={{ bg: "gray.800", color: "gray.100" }}
+					cursor="pointer"
+				>
+					<button
+						type="button"
+						onClick={handleToggleCollapse}
+						aria-label="Collapse terminal"
+					>
+						<Text fontSize="xs">✕</Text>
+					</button>
+				</Box>
+			</Flex>
+
 			<Box
 				ref={historyRef}
 				flex="1"

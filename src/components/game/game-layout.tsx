@@ -102,7 +102,6 @@ export const GameLayout = ({
 	inventoryTooltips,
 }: GameLayoutProps = {}) => {
 	const canvasId = useId();
-	const terminalId = useId();
 
 	return (
 		<DragProvider>
@@ -117,7 +116,6 @@ export const GameLayout = ({
 				position="relative"
 			>
 				<SkipLink href={`#${canvasId}`}>Skip to Game Canvas</SkipLink>
-				<SkipLink href={`#${terminalId}`}>Skip to Terminal</SkipLink>
 
 				<Flex
 					flex="1"
@@ -199,11 +197,9 @@ export const GameLayout = ({
 					</Box>
 				</Flex>
 
-				<Box id={terminalId}>
-					<SegmentErrorBoundary name="terminal">
-						<TerminalPanel />
-					</SegmentErrorBoundary>
-				</Box>
+				<SegmentErrorBoundary name="terminal">
+					<TerminalPanel />
+				</SegmentErrorBoundary>
 
 				<OverlayLayer />
 				<DragOverlay getItemLabel={getItemLabel} />
