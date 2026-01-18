@@ -109,32 +109,24 @@ const validateDnsServer: ModalFieldValidator<string> = (input) => {
 	return null;
 };
 
-const validateConnectionType: ModalFieldValidator<string> = (input) => {
-	if (!input || input === "none") {
-		return "Select a connection type";
-	}
+const validateConnectionType: ModalFieldValidator<string> = (_input) => {
+	// Allow saving with any value - status will show unconfigured
 	return null;
 };
 
 const validatePppoeUsername: ModalFieldValidator<string> = (
-	input,
-	allValues,
+	_input,
+	_allValues,
 ) => {
-	const connectionType = allValues.connectionType as string | undefined;
-	if (connectionType === "pppoe" && !input) {
-		return "Enter your ISP username";
-	}
+	// Allow saving with empty username - status will show needs credentials
 	return null;
 };
 
 const validatePppoePassword: ModalFieldValidator<string> = (
-	input,
-	allValues,
+	_input,
+	_allValues,
 ) => {
-	const connectionType = allValues.connectionType as string | undefined;
-	if (connectionType === "pppoe" && !input) {
-		return "Enter your ISP password";
-	}
+	// Allow saving with empty password - status will show needs credentials
 	return null;
 };
 
