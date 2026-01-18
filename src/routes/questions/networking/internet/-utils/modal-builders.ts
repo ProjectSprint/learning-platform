@@ -340,7 +340,7 @@ export const buildRouterWanConfigModal = (
 				id: "password",
 				kind: "text",
 				label: "PPPoE Password",
-				placeholder: "Enter password",
+				placeholder: "telkom123",
 				defaultValue:
 					typeof currentConfig.password === "string"
 						? currentConfig.password
@@ -361,6 +361,7 @@ export const buildRouterWanConfigModal = (
 			id: "save",
 			label: "Save",
 			variant: "primary",
+			closesModal: true,
 			async onClick({ values, dispatch }) {
 				const connectionType = String(values.connectionType ?? "none");
 				const username = String(values.username ?? "");

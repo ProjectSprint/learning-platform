@@ -61,7 +61,7 @@ export const PUBLIC_DNS_SERVERS = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"];
 export const VALID_PPPOE_CREDENTIALS = {
 	username: "user@telkom.net",
 	password: "telkom123",
-};
+} as const;
 
 // Google's IP address for ping verification
 export const GOOGLE_IP = "142.250.80.46";
