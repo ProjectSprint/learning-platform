@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as QuestionsNetworkingIndexRouteImport } from './routes/questions/networking/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as QuestionsNetworkingDnsIndexRouteImport } from './routes/questions/networking/dns/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,35 +30,58 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuestionsNetworkingDnsIndexRoute =
+  QuestionsNetworkingDnsIndexRouteImport.update({
+    id: '/questions/networking/dns/',
+    path: '/questions/networking/dns/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/questions/networking': typeof QuestionsNetworkingIndexRoute
+  '/questions/networking/dns': typeof QuestionsNetworkingDnsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/questions/networking': typeof QuestionsNetworkingIndexRoute
+  '/questions/networking/dns': typeof QuestionsNetworkingDnsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/questions/networking/': typeof QuestionsNetworkingIndexRoute
+  '/questions/networking/dns/': typeof QuestionsNetworkingDnsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/auth/$' | '/questions/networking'
+  fullPaths:
+    | '/'
+    | '/api/auth/$'
+    | '/questions/networking'
+    | '/questions/networking/dns'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/auth/$' | '/questions/networking'
-  id: '__root__' | '/' | '/api/auth/$' | '/questions/networking/'
+  to:
+    | '/'
+    | '/api/auth/$'
+    | '/questions/networking'
+    | '/questions/networking/dns'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/auth/$'
+    | '/questions/networking/'
+    | '/questions/networking/dns/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   QuestionsNetworkingIndexRoute: typeof QuestionsNetworkingIndexRoute
+  QuestionsNetworkingDnsIndexRoute: typeof QuestionsNetworkingDnsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -83,6 +107,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/questions/networking/dns/': {
+      id: '/questions/networking/dns/'
+      path: '/questions/networking/dns'
+      fullPath: '/questions/networking/dns'
+      preLoaderRoute: typeof QuestionsNetworkingDnsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -90,6 +121,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   QuestionsNetworkingIndexRoute: QuestionsNetworkingIndexRoute,
+  QuestionsNetworkingDnsIndexRoute: QuestionsNetworkingDnsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

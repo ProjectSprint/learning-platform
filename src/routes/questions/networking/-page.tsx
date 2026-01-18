@@ -1,188 +1,78 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
-import { GameLayout } from "@/components/game/game-layout";
-import {
-	type GamePhase,
-	GameProvider,
-	type PlacedItem,
-	useGameDispatch,
-	useGameState,
-} from "@/components/game/game-provider";
-import type { QuestionProps } from "@/components/module";
+import { Box, Button, Flex, Text } from "@chakra-ui/react";
+import { useNavigate } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
 
-import {
-	CANVAS_CONFIG,
-	INVENTORY_ITEMS,
-	QUESTION_DESCRIPTION,
-	QUESTION_ID,
-	QUESTION_TITLE,
-	TERMINAL_PROMPT,
-} from "./-utils/constants";
-import { getContextualHint } from "./-utils/get-contextual-hint";
-import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
-import {
-	getNetworkingItemLabel,
-	getNetworkingStatusMessage,
-} from "./-utils/item-formatters";
-import {
-	buildPcConfigModal,
-	buildRouterConfigModal,
-} from "./-utils/modal-builders";
-import { useNetworkState } from "./-utils/use-network-state";
-import { useNetworkingTerminal } from "./-utils/use-networking-terminal";
+import { type ModuleConfig, ModuleEngine } from "@/components/module";
+import { DnsQuestion } from "./dns/-page";
 
-export const NetworkingQuestion = ({ onQuestionComplete }: QuestionProps) => {
-	return (
-		<GameProvider>
-			<NetworkingGame onQuestionComplete={onQuestionComplete} />
-		</GameProvider>
-	);
+const NETWORKING_MODULE: ModuleConfig = {
+	id: "networking-basics",
+	title: "Networking Basics",
+	questions: [
+		{ id: "dns-1", component: DnsQuestion },
+		{ id: "dns-2", component: DnsQuestion },
+		{ id: "dns-3", component: DnsQuestion },
+	],
 };
 
-const NetworkingGame = ({
-	onQuestionComplete,
-}: {
-	onQuestionComplete: () => void;
-}) => {
-	const dispatch = useGameDispatch();
-	const state = useGameState();
-	const initializedRef = useRef(false);
+export const NetworkingModulePage = () => {
+	const navigate = useNavigate();
+	const [started, setStarted] = useState(false);
 
-	useEffect(() => {
-		if (initializedRef.current) {
-			return;
-		}
+	const handlePlay = useCallback(() => {
+		setStarted(true);
+	}, []);
 
-		initializedRef.current = true;
-		dispatch({
-			type: "INIT_QUESTION",
-			payload: {
-				questionId: QUESTION_ID,
-				config: {
-					canvas: CANVAS_CONFIG,
-					inventory: INVENTORY_ITEMS,
-					terminal: {
-						visible: false,
-						prompt: TERMINAL_PROMPT,
-						history: [],
-					},
-					phase: "setup",
-					questionStatus: "in_progress",
-				},
-			},
-		});
-	}, [dispatch]);
+	const handleExit = useCallback(() => {
+		void navigate({ to: "/" });
+	}, [navigate]);
 
-	const dragEngine = useDragEngine();
+	const handleComplete = useCallback(() => {
+		void navigate({ to: "/" });
+	}, [navigate]);
 
-	const networkState = useNetworkState({ dragEngine });
-
-	const handleNetworkingCommand = useNetworkingTerminal({
-		pc2Ip: networkState.pc2Ip,
-		onQuestionComplete,
-	});
-
-	useTerminalEngine({
-		onCommand: handleNetworkingCommand,
-	});
-
-	useEffect(() => {
-		let desiredPhase: GamePhase = "setup";
-
-		if (dragEngine.progress.status === "started") {
-			desiredPhase = "playing";
-		}
-
-		if (dragEngine.progress.status === "finished") {
-			desiredPhase = "terminal";
-		}
-
-		if (state.question.status === "completed") {
-			desiredPhase = "completed";
-		}
-
-		if (state.phase !== desiredPhase) {
-			dispatch({ type: "SET_PHASE", payload: { phase: desiredPhase } });
-		}
-	}, [
-		dispatch,
-		state.phase,
-		state.question.status,
-		dragEngine.progress.status,
-	]);
-
-	const contextualHint = useMemo(
-		() =>
-			getContextualHint({
-				placedItems: networkState.placedItems,
-				connections: networkState.connections,
-				router: networkState.network.router,
-				pc1: networkState.network.pc1,
-				pc2: networkState.network.pc2,
-				connectedPcIds: networkState.network.connectedPcIds,
-				routerConfigured: networkState.routerConfigured,
-				dhcpEnabled: networkState.dhcpEnabled,
-				startIp: networkState.startIp,
-				endIp: networkState.endIp,
-				routerSettingsOpen: networkState.routerSettingsOpen,
-				pc1HasIp: networkState.pc1HasIp,
-				pc2HasIp: networkState.pc2HasIp,
-			}),
-		[
-			networkState.placedItems,
-			networkState.connections,
-			networkState.network.router,
-			networkState.network.pc1,
-			networkState.network.pc2,
-			networkState.network.connectedPcIds,
-			networkState.routerConfigured,
-			networkState.dhcpEnabled,
-			networkState.startIp,
-			networkState.endIp,
-			networkState.routerSettingsOpen,
-			networkState.pc1HasIp,
-			networkState.pc2HasIp,
-		],
-	);
-
-	const handlePlacedItemClick = useCallback(
-		(item: PlacedItem) => {
-			const placedItem = state.canvas.placedItems.find((p) => p.id === item.id);
-			const currentConfig = placedItem?.data ?? {};
-
-			if (item.type === "router") {
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildRouterConfigModal(item.id, currentConfig),
-				});
-				return;
-			}
-
-			if (item.type === "pc") {
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildPcConfigModal(item.id, currentConfig),
-				});
-			}
-		},
-		[dispatch, state.canvas.placedItems],
-	);
-
-	const isItemClickable = useCallback(
-		(item: PlacedItem) => item.type === "router" || item.type === "pc",
-		[],
-	);
+	if (started) {
+		return (
+			<ModuleEngine
+				config={NETWORKING_MODULE}
+				onExit={handleExit}
+				onComplete={handleComplete}
+			/>
+		);
+	}
 
 	return (
-		<GameLayout
-			title={QUESTION_TITLE}
-			description={QUESTION_DESCRIPTION}
-			getItemLabel={getNetworkingItemLabel}
-			getStatusMessage={getNetworkingStatusMessage}
-			onPlacedItemClick={handlePlacedItemClick}
-			isItemClickable={isItemClickable}
-			contextualHint={contextualHint}
-			inventoryTooltips={INVENTORY_TOOLTIPS}
-		/>
+		<Box
+			height="100vh"
+			display="flex"
+			flexDirection="column"
+			bg="gray.950"
+			color="gray.100"
+		>
+			<Flex flex="1" align="center" justify="center">
+				<Box textAlign="center" maxWidth="480px" px={4}>
+					<Text fontSize="3xl" fontWeight="bold" mb={4}>
+						Welcome to Networking Basics
+					</Text>
+					<Text fontSize="md" color="gray.400" mb={2}>
+						In this module, you will learn how to:
+					</Text>
+					<Box as="ul" textAlign="left" color="gray.300" mb={8} pl={6}>
+						<Text as="li" mb={1}>
+							Connect computers using routers and cables
+						</Text>
+						<Text as="li" mb={1}>
+							Configure DHCP to assign IP addresses automatically
+						</Text>
+						<Text as="li">
+							Verify network connectivity using the ping command
+						</Text>
+					</Box>
+					<Button colorPalette="green" size="lg" onClick={handlePlay}>
+						Play
+					</Button>
+				</Box>
+			</Flex>
+		</Box>
 	);
 };

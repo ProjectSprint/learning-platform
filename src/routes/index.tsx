@@ -1,40 +1,12 @@
 import { Box, Button, Flex, Text } from "@chakra-ui/react";
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
-
-import { type ModuleConfig, ModuleEngine } from "@/components/module";
-import { NetworkingQuestion } from "./questions/networking/-page";
-
-const NETWORKING_MODULE: ModuleConfig = {
-	id: "networking-basics",
-	title: "Networking Basics",
-	questions: [{ id: "networking-1", component: NetworkingQuestion }],
-};
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 const LandingPage = () => {
-	const [activeModule, setActiveModule] = useState<ModuleConfig | null>(null);
+	const navigate = useNavigate();
 
-	const handleStartModule = useCallback(() => {
-		setActiveModule(NETWORKING_MODULE);
-	}, []);
-
-	const handleExit = useCallback(() => {
-		setActiveModule(null);
-	}, []);
-
-	const handleComplete = useCallback(() => {
-		setActiveModule(null);
-	}, []);
-
-	if (activeModule) {
-		return (
-			<ModuleEngine
-				config={activeModule}
-				onExit={handleExit}
-				onComplete={handleComplete}
-			/>
-		);
-	}
+	const handlePlay = () => {
+		void navigate({ to: "/questions/networking" });
+	};
 
 	return (
 		<Box
@@ -44,30 +16,16 @@ const LandingPage = () => {
 			bg="gray.950"
 			color="gray.100"
 		>
-			<Flex
-				as="header"
-				align="center"
-				justify="center"
-				px={6}
-				py={4}
-				borderBottom="1px solid"
-				borderColor="gray.800"
-			>
-				<Text fontSize="xl" fontWeight="bold">
-					Learning Platform
-				</Text>
-			</Flex>
-
 			<Flex flex="1" align="center" justify="center">
 				<Box textAlign="center">
-					<Text fontSize="3xl" fontWeight="bold" mb={4}>
-						Networking Basics
+					<Text fontSize="4xl" fontWeight="bold" mb={4}>
+						Learning Platform
 					</Text>
-					<Text fontSize="md" color="gray.400" mb={8}>
-						Learn how to connect computers and configure networks.
+					<Text fontSize="lg" color="gray.400" mb={8}>
+						Master networking concepts through interactive challenges.
 					</Text>
-					<Button colorPalette="green" size="lg" onClick={handleStartModule}>
-						Start
+					<Button colorPalette="green" size="lg" onClick={handlePlay}>
+						Play
 					</Button>
 				</Box>
 			</Flex>
