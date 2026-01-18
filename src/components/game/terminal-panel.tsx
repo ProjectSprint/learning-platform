@@ -210,7 +210,7 @@ export const TerminalPanel = () => {
 					}
 				}}
 			>
-				<Flex align="center" justify="center" px={4} py={3}>
+				<Flex align="center" justify="flex-start" px={4} py={3}>
 					<Text fontWeight="bold" color="gray.100" fontFamily="mono">
 						Terminal
 					</Text>
