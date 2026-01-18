@@ -244,14 +244,19 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			}
 		}
 
-		// Router WAN status: error → warning → success based on PPPoE config
+		// Router WAN status: error → warning → success based on PPPoE config AND connection to fiber/IGW/internet
 		if (network.routerWan) {
 			let desiredStatus: "error" | "warning" | "success";
-			if (connectionType !== "pppoe") {
-				desiredStatus = "error";
-			} else if (!hasValidPppoeCredentials) {
+			if (!hasValidPppoeCredentials) {
+				desiredStatus = "warning";
+			} else if (!network.routerWanConnectedToIgw) {
+				// Has credentials but not connected to fiber → IGW
+				desiredStatus = "warning";
+			} else if (!network.igw || !network.internet) {
+				// Connected to fiber but IGW or internet not placed
 				desiredStatus = "warning";
 			} else {
+				// Fully configured and connected
 				desiredStatus = "success";
 			}
 			if (network.routerWan.status !== desiredStatus) {
@@ -377,7 +382,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		hasValidIpRange,
 		hasValidDnsServer,
 		natEnabled,
-		connectionType,
 		hasValidPppoeCredentials,
 		routerNatConfigured,
 		routerWanConfigured,

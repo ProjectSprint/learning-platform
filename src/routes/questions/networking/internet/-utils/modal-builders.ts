@@ -109,13 +109,6 @@ const validateDnsServer: ModalFieldValidator<string> = (input) => {
 	return null;
 };
 
-const validateConnectionType: ModalFieldValidator<string> = (input) => {
-	if (!input || input === "none") {
-		return "Select a connection type";
-	}
-	return null;
-};
-
 const validatePppoeUsername: ModalFieldValidator<string> = (
 	input,
 	allValues,
@@ -278,7 +271,6 @@ export const buildRouterNatConfigModal = (
 			variant: "primary",
 			async onClick({ values, dispatch }) {
 				const natEnabled = !!values.natEnabled;
-
 				dispatch({
 					type: "CONFIGURE_DEVICE",
 					payload: {
@@ -298,28 +290,6 @@ export const buildRouterWanConfigModal = (
 	id: `router-wan-config-${deviceId}`,
 	title: "Router WAN Configuration",
 	content: [
-		{
-			kind: "field",
-			field: {
-				id: "connectionType",
-				kind: "select",
-				label: "Connection Type",
-				placeholder: "Select connection type",
-				options: [
-					{ value: "none", label: "Not configured" },
-					{ value: "pppoe", label: "PPPoE" },
-				],
-				defaultValue:
-					typeof currentConfig.connectionType === "string"
-						? currentConfig.connectionType
-						: "none",
-				validate: validateConnectionType,
-				helpLink: {
-					label: "What is PPPoE?",
-					href: "https://www.google.com/search?q=what+is+PPPoE",
-				},
-			},
-		},
 		{
 			kind: "field",
 			field: {
@@ -362,7 +332,6 @@ export const buildRouterWanConfigModal = (
 			label: "Save",
 			variant: "primary",
 			async onClick({ values, dispatch }) {
-				const connectionType = String(values.connectionType ?? "none");
 				const username = String(values.username ?? "");
 				const password = String(values.password ?? "");
 
@@ -370,7 +339,7 @@ export const buildRouterWanConfigModal = (
 					type: "CONFIGURE_DEVICE",
 					payload: {
 						deviceId,
-						config: { connectionType, username, password },
+						config: { username, password },
 					},
 				});
 			},
