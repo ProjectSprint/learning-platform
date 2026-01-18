@@ -320,7 +320,6 @@ const InternetGame = ({
 		<GameShell getItemLabel={getInternetItemLabel}>
 			<Flex
 				direction="column"
-				height="100vh"
 				px={{ base: 4, md: 12, lg: 24 }}
 				py={{ base: 4, md: 6 }}
 			>

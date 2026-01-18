@@ -256,7 +256,11 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasPcIp) {
 				desiredStatus = "error";
-			} else if (!googleReachable) {
+			} else if (
+				!network.routerWanConnectedToIgw ||
+				!network.igw ||
+				!network.internet
+			) {
 				desiredStatus = "warning";
 			} else {
 				desiredStatus = "success";
@@ -292,7 +296,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		// Router WAN status: error → warning → success based on PPPoE config AND connection to fiber/IGW/internet
 		if (network.routerWan) {
 			let desiredStatus: "error" | "warning" | "success";
-			console.log("hasValidPppoeCredentials", hasValidPppoeCredentials);
 			if (!hasValidPppoeCredentials) {
 				desiredStatus = "error";
 			} else if (!network.routerWanConnectedToIgw) {
@@ -388,7 +391,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		natEnabled,
 		hasValidPppoeCredentials,
 		routerNatConfigured,
-		googleReachable,
 		state.question.status,
 	]);
 

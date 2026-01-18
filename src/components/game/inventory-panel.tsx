@@ -1,4 +1,4 @@
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { useCallback, useMemo, useRef } from "react";
 
@@ -8,8 +8,11 @@ import { useGameState } from "./game-provider";
 import { InfoTooltip } from "./help-components";
 import type { IconInfo } from "./item-icons";
 
-const SLOT_WIDTH = 150;
-const SLOT_HEIGHT = 64;
+export const useInventorySlotSize = () => {
+	const width = useBreakpointValue({ base: 120, sm: 132, md: 150 }) ?? 150;
+	const height = useBreakpointValue({ base: 52, sm: 58, md: 64 }) ?? 64;
+	return { width, height };
+};
 
 export type TooltipInfo = {
 	content: string;
@@ -20,6 +23,8 @@ type InventorySlotProps = {
 	item: InventoryItem;
 	isEmpty: boolean;
 	isDragging: boolean;
+	slotWidth: number;
+	slotHeight: number;
 	onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
 	slotRef?: React.RefCallback<HTMLDivElement>;
 	tooltip?: TooltipInfo;
@@ -30,6 +35,8 @@ const InventorySlot = ({
 	item,
 	isEmpty,
 	isDragging,
+	slotWidth,
+	slotHeight,
 	onPointerDown,
 	slotRef,
 	tooltip,
@@ -42,8 +49,8 @@ const InventorySlot = ({
 			role="listitem"
 			data-inventory-slot={item.id}
 			aria-grabbed={isDragging}
-			width={`${SLOT_WIDTH}px`}
-			height={`${SLOT_HEIGHT}px`}
+			width={`${slotWidth}px`}
+			height={`${slotHeight}px`}
 			bg={isEmpty ? "transparent" : "gray.800"}
 			border="1px"
 			borderStyle={isEmpty ? "dashed" : "solid"}
@@ -95,6 +102,7 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 	const { inventory } = useGameState();
 	const { activeDrag, setActiveDrag } = useDragContext();
 	const slotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+	const slotSize = useInventorySlotSize();
 
 	const items = inventory.items;
 
@@ -178,6 +186,8 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 								item={item}
 								isEmpty={isEmpty}
 								isDragging={isDragging}
+								slotWidth={slotSize.width}
+								slotHeight={slotSize.height}
 								onPointerDown={(e) => handlePointerDown(item, e)}
 								slotRef={setSlotRef(item.id)}
 								tooltip={tooltip}
@@ -190,5 +200,3 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 		</Box>
 	);
 };
-
-export { SLOT_WIDTH, SLOT_HEIGHT };

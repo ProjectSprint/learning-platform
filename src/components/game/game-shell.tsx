@@ -16,7 +16,6 @@ export const GameShell = ({ children, getItemLabel }: GameShellProps) => {
 			<Box
 				as="main"
 				role="main"
-				height="100vh"
 				display="flex"
 				flexDirection="column"
 				bg="gray.950"

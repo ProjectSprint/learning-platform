@@ -42,7 +42,7 @@ export const getInternetStatusMessage = (
 				return ip;
 			}
 			if (status === "success" && ip) {
-				return `${ip} → internet`;
+				return `I have access to internet!`;
 			}
 			return null;
 		}

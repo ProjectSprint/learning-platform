@@ -3,7 +3,7 @@ import { gsap } from "gsap";
 import { useEffect, useRef, useState } from "react";
 
 import { useDragContext } from "./drag-context";
-import { SLOT_HEIGHT, SLOT_WIDTH } from "./inventory-panel";
+import { useInventorySlotSize } from "./inventory-panel";
 
 type DragOverlayProps = {
 	getItemLabel?: (itemType: string) => string;
@@ -16,6 +16,7 @@ export const DragOverlay = ({
 	getItemLabel = defaultGetItemLabel,
 }: DragOverlayProps) => {
 	const { activeDrag, proxyRef } = useDragContext();
+	const slotSize = useInventorySlotSize();
 	const [isVisible, setIsVisible] = useState(false);
 	const [size, setSize] = useState({ width: 0, height: 0 });
 	const initializedRef = useRef(false);
@@ -37,8 +38,8 @@ export const DragOverlay = ({
 			return;
 		}
 
-		const targetWidth = SLOT_WIDTH;
-		const targetHeight = SLOT_HEIGHT;
+		const targetWidth = slotSize.width;
+		const targetHeight = slotSize.height;
 
 		pointerOffsetRef.current = {
 			x: targetWidth / 2,
@@ -76,7 +77,7 @@ export const DragOverlay = ({
 
 		window.addEventListener("pointermove", handlePointerMove);
 		return () => window.removeEventListener("pointermove", handlePointerMove);
-	}, [activeDrag, proxyRef]);
+	}, [activeDrag, proxyRef, slotSize.height, slotSize.width]);
 
 	if (!isVisible || !activeDrag) {
 		return null;

@@ -1,4 +1,4 @@
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { gsap } from "gsap";
 import {
@@ -70,10 +70,12 @@ const GridCell = memo(
 		borderColor,
 		showBorder,
 		isOccupied,
+		height,
 	}: {
 		borderColor: string;
 		showBorder: boolean;
 		isOccupied: boolean;
+		height: number;
 	}) => {
 		const borderStyle = showBorder ? "dashed" : "solid";
 		const resolvedBorderColor = showBorder ? borderColor : "transparent";
@@ -84,7 +86,7 @@ const GridCell = memo(
 				borderColor={resolvedBorderColor}
 				borderRadius="md"
 				bg="transparent"
-				height={`${BLOCK_HEIGHT}px`}
+				height={`${height}px`}
 				transition="border-color 0.15s ease"
 				data-occupied={isOccupied}
 			/>
@@ -349,7 +351,8 @@ export const PlayCanvas = ({
 	const blockWidth =
 		(canvasSize.width - canvasSize.gapX * (canvas.config.columns - 1)) /
 			canvas.config.columns || 0;
-	const blockHeight = BLOCK_HEIGHT;
+	const blockHeight =
+		useBreakpointValue({ base: 48, sm: 54, md: 60 }) ?? BLOCK_HEIGHT;
 	const stepX = blockWidth + canvasSize.gapX;
 	const stepY = blockHeight + canvasSize.gapY;
 
@@ -877,7 +880,7 @@ export const PlayCanvas = ({
 				data-game-canvas
 				data-canvas-key={canvasKey}
 				gridTemplateColumns={`repeat(${canvas.config.columns}, minmax(0, 1fr))`}
-				gridTemplateRows={`repeat(${canvas.config.rows}, ${BLOCK_HEIGHT}px)`}
+				gridTemplateRows={`repeat(${canvas.config.rows}, ${blockHeight}px)`}
 				gridAutoFlow={orientation === "vertical" ? "column" : "row"}
 				gap={2}
 			>
@@ -899,6 +902,7 @@ export const PlayCanvas = ({
 							borderColor={borderColor}
 							showBorder={showGrid}
 							isOccupied={Boolean(placedItem)}
+							height={blockHeight}
 						/>
 					);
 				})}
