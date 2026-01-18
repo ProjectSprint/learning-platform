@@ -9,7 +9,8 @@ export interface NetworkState {
 	connectedPcIds: Set<string>;
 	routerConfigured: boolean;
 	dhcpEnabled: boolean;
-	ipRange: string | null;
+	startIp: string | null;
+	endIp: string | null;
 	routerSettingsOpen: boolean;
 	pc1HasIp: boolean;
 	pc2HasIp: boolean;
@@ -26,28 +27,13 @@ const isValidIP = (ip: string): boolean => {
 
 const parseIP = (ip: string): number => {
 	const parts = ip.split(".").map((p) => Number.parseInt(p, 10));
-	return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+	return (
+		((parts[0] << 24) >>> 0) + (parts[1] << 16) + (parts[2] << 8) + parts[3]
+	);
 };
 
 const calculateRange = (startIP: string, endIP: string): number => {
 	return parseIP(endIP) - parseIP(startIP) + 1;
-};
-
-const extractIPRangeFromCidr = (
-	cidr: string | null,
-): { startIP: string; endIP: string } | null => {
-	if (!cidr) return null;
-	const match = cidr.match(/^(\d+\.\d+\.\d+)\.(\d+)\/(\d+)$/);
-	if (!match) return null;
-	const base = match[1];
-	const lastOctet = Number.parseInt(match[2], 10);
-	const prefix = Number.parseInt(match[3], 10);
-	const hostBits = 32 - prefix;
-	const numAddresses = 2 ** hostBits;
-	return {
-		startIP: `${base}.${lastOctet}`,
-		endIP: `${base}.${Math.min(lastOctet + numAddresses - 1, 255)}`,
-	};
 };
 
 export const getContextualHint = (state: NetworkState): string => {
@@ -58,7 +44,8 @@ export const getContextualHint = (state: NetworkState): string => {
 		connectedPcIds,
 		routerConfigured,
 		dhcpEnabled,
-		ipRange,
+		startIp,
+		endIp,
 		routerSettingsOpen,
 		pc1HasIp,
 		pc2HasIp,
@@ -138,21 +125,19 @@ export const getContextualHint = (state: NetworkState): string => {
 		return "❌ This PC already has a cable - connect the other PC instead";
 	}
 
-	if (routerSettingsOpen && ipRange) {
-		const range = extractIPRangeFromCidr(ipRange);
-		if (range) {
-			if (!isValidIP(range.startIP)) {
-				return "❌ Invalid IP - each number must be between 0-255";
-			}
-			if (!isValidIP(range.endIP)) {
-				return "❌ Invalid IP - each number must be between 0-255";
-			}
-			if (parseIP(range.startIP) > parseIP(range.endIP)) {
-				return "❌ Start IP must be lower than End IP";
-			}
-			if (calculateRange(range.startIP, range.endIP) < 2) {
-				return "❌ Range too small - you need at least 2 addresses for 2 PCs";
-			}
+	// Validate IP range when router settings are open
+	if (routerSettingsOpen && startIp && endIp) {
+		if (!isValidIP(startIp)) {
+			return "❌ Invalid start IP - each number must be between 0-255";
+		}
+		if (!isValidIP(endIp)) {
+			return "❌ Invalid end IP - each number must be between 0-255";
+		}
+		if (parseIP(startIp) > parseIP(endIp)) {
+			return "❌ Start IP must be lower than End IP";
+		}
+		if (calculateRange(startIp, endIp) < 2) {
+			return "❌ Range too small - you need at least 2 addresses for 2 PCs";
 		}
 	}
 
@@ -191,12 +176,22 @@ export const getContextualHint = (state: NetworkState): string => {
 		return "Enable DHCP so the router can assign IP addresses";
 	}
 
-	if (routerSettingsOpen && dhcpEnabled && !ipRange) {
-		return "Set IP range - Start: 192.168.1.100, End: 192.168.1.200";
+	if (routerSettingsOpen && dhcpEnabled && !startIp) {
+		return "Set the start IP address (e.g., 192.168.1.100)";
 	}
 
-	if (routerSettingsOpen && dhcpEnabled && ipRange && !routerConfigured) {
-		return "Click 'Apply' to activate DHCP";
+	if (routerSettingsOpen && dhcpEnabled && startIp && !endIp) {
+		return "Set the end IP address (e.g., 192.168.1.200)";
+	}
+
+	if (
+		routerSettingsOpen &&
+		dhcpEnabled &&
+		startIp &&
+		endIp &&
+		!routerConfigured
+	) {
+		return "Click 'Save' to activate DHCP";
 	}
 
 	if (routerConfigured && pc1HasIp && pc2HasIp) {

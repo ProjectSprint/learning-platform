@@ -4,7 +4,12 @@
 import { useEffect, useMemo } from "react";
 import type { GamePhase, PlacedItem } from "@/components/game/game-provider";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
-import { buildNetworkSnapshot, parseCidrBase } from "./network-utils";
+import {
+	buildNetworkSnapshot,
+	isPrivateIp,
+	isValidIp,
+	parseIpRangeBase,
+} from "./network-utils";
 
 /**
  * Manages the network state including DHCP configuration and automatic phase transitions
@@ -24,10 +29,23 @@ export const useNetworkState = () => {
 	// Extract router configuration
 	const routerConfig = network.router?.data ?? {};
 	const dhcpEnabled = routerConfig.dhcpEnabled === true;
-	const ipRange =
-		typeof routerConfig.ipRange === "string" ? routerConfig.ipRange : null;
-	const ipBase = dhcpEnabled ? parseCidrBase(ipRange) : null;
-	const routerConfigured = Boolean(ipBase && dhcpEnabled);
+	const startIp =
+		typeof routerConfig.startIp === "string" ? routerConfig.startIp : null;
+	const endIp =
+		typeof routerConfig.endIp === "string" ? routerConfig.endIp : null;
+
+	// Validate IP range configuration
+	const hasValidIpRange =
+		startIp !== null &&
+		endIp !== null &&
+		isValidIp(startIp) &&
+		isValidIp(endIp) &&
+		isPrivateIp(startIp) &&
+		isPrivateIp(endIp);
+
+	const ipBase =
+		dhcpEnabled && hasValidIpRange ? parseIpRangeBase(startIp) : null;
+	const routerConfigured = Boolean(ipBase && dhcpEnabled && hasValidIpRange);
 
 	// Check connection and IP assignment status
 	const pc1Connected = Boolean(
@@ -58,10 +76,18 @@ export const useNetworkState = () => {
 		const desiredIps = new Map<string, string>();
 
 		// Assign sequential IPs to connected PCs based on sorted order
-		if (routerConfigured && ipBase) {
+		// Uses the start IP's last octet as the base for assignment
+		if (routerConfigured && startIp) {
+			const startOctets = startIp.split(".").map((s) => Number.parseInt(s, 10));
+			const baseOctets = startOctets.slice(0, 3);
+			const startLastOctet = startOctets[3];
+
 			const sorted = [...connectedPcs].sort((a, b) => a.id.localeCompare(b.id));
 			sorted.forEach((pc, index) => {
-				desiredIps.set(pc.id, `${ipBase}.${index + 2}`);
+				const assignedLastOctet = startLastOctet + index;
+				if (assignedLastOctet <= 255) {
+					desiredIps.set(pc.id, `${baseOctets.join(".")}.${assignedLastOctet}`);
+				}
 			});
 		}
 
@@ -139,7 +165,7 @@ export const useNetworkState = () => {
 		}
 	}, [
 		dispatch,
-		ipBase,
+		startIp,
 		network.cables,
 		network.connectedCableIds,
 		network.connectedPcIds,
@@ -157,7 +183,8 @@ export const useNetworkState = () => {
 		network,
 		routerConfig,
 		dhcpEnabled,
-		ipRange,
+		startIp,
+		endIp,
 		ipBase,
 		routerConfigured,
 		routerSettingsOpen,

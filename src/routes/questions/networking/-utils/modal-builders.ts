@@ -7,20 +7,60 @@ import type {
 } from "@/components/game/modal-types";
 import { PRIVATE_IP_RANGES } from "./constants";
 
-const validateIpRange: ModalFieldValidator<string> = (input) => {
-	const cidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
-	if (!cidrPattern.test(input)) {
-		return "Invalid format. Use 192.168.1.0/24.";
+const validateIpAddress: ModalFieldValidator<string> = (input) => {
+	if (!input) {
+		return null; // Allow empty, will be caught by range validation
 	}
 
-	const [ip, prefix] = input.split("/");
-	const prefixNum = Number.parseInt(prefix, 10);
-	if (Number.isNaN(prefixNum) || prefixNum < 8 || prefixNum > 30) {
-		return "Prefix must be between /8 and /30.";
+	const ipPattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+	const match = input.match(ipPattern);
+
+	if (!match) {
+		return "Invalid format. Use 192.168.1.100";
 	}
 
-	if (!PRIVATE_IP_RANGES.some((range) => range.test(ip))) {
+	const octets = [match[1], match[2], match[3], match[4]].map((s) =>
+		Number.parseInt(s, 10),
+	);
+
+	if (octets.some((n) => n < 0 || n > 255)) {
+		return "Each number must be 0-255.";
+	}
+
+	if (!PRIVATE_IP_RANGES.some((range) => range.test(input))) {
 		return "Use a private IP range.";
+	}
+
+	return null;
+};
+
+const validateEndIp: ModalFieldValidator<string> = (input, allValues) => {
+	const baseError = validateIpAddress(input, allValues);
+	if (baseError) {
+		return baseError;
+	}
+
+	const startIp = allValues.startIp as string | undefined;
+	if (!startIp || !input) {
+		return null;
+	}
+
+	const parseIp = (ip: string): number => {
+		const parts = ip.split(".").map((p) => Number.parseInt(p, 10));
+		return (
+			((parts[0] << 24) >>> 0) + (parts[1] << 16) + (parts[2] << 8) + parts[3]
+		);
+	};
+
+	const startNum = parseIp(startIp);
+	const endNum = parseIp(input);
+
+	if (endNum < startNum) {
+		return "End IP must be greater than start IP.";
+	}
+
+	if (endNum - startNum + 1 < 2) {
+		return "Range must have at least 2 addresses.";
 	}
 
 	return null;
@@ -52,15 +92,27 @@ export const buildRouterConfigModal = (
 		{
 			kind: "field",
 			field: {
-				id: "ipRange",
+				id: "startIp",
 				kind: "text",
-				label: "IP range (CIDR)",
-				placeholder: "192.168.1.0/24",
+				label: "Start IP",
+				placeholder: "192.168.1.100",
 				defaultValue:
-					typeof currentConfig.ipRange === "string"
-						? currentConfig.ipRange
+					typeof currentConfig.startIp === "string"
+						? currentConfig.startIp
 						: "",
-				validate: validateIpRange,
+				validate: validateIpAddress,
+			},
+		},
+		{
+			kind: "field",
+			field: {
+				id: "endIp",
+				kind: "text",
+				label: "End IP",
+				placeholder: "192.168.1.200",
+				defaultValue:
+					typeof currentConfig.endIp === "string" ? currentConfig.endIp : "",
+				validate: validateEndIp,
 			},
 		},
 	],
@@ -78,13 +130,14 @@ export const buildRouterConfigModal = (
 			variant: "primary",
 			async onClick({ values, dispatch }) {
 				const dhcpEnabled = !!values.dhcpEnabled;
-				const ipRange = String(values.ipRange ?? "");
+				const startIp = String(values.startIp ?? "");
+				const endIp = String(values.endIp ?? "");
 
 				dispatch({
 					type: "CONFIGURE_DEVICE",
 					payload: {
 						deviceId,
-						config: { dhcpEnabled, ipRange },
+						config: { dhcpEnabled, startIp, endIp },
 					},
 				});
 			},

@@ -129,7 +129,8 @@ Modals are **data-driven** - you define the structure and the game engine render
 | Field ID | Kind | Label | Default | Validation |
 |----------|------|-------|---------|------------|
 | dhcpEnabled | checkbox | Enable DHCP | false | - |
-| ipRange | text | IP range (CIDR) | "" | CIDR format, private IP |
+| startIp | text | Start IP | "" | Valid IP, private range |
+| endIp | text | End IP | "" | Valid IP, private range, > startIp |
 
 **Help Links:**
 
@@ -141,9 +142,12 @@ Modals are **data-driven** - you define the structure and the game engine render
 
 | Field | Rule | Error Message |
 |-------|------|---------------|
-| ipRange | Must be valid CIDR notation | Invalid format. Use 192.168.1.0/24. |
-| ipRange | Must be private IP range | Use a private IP range. |
-| ipRange | Prefix must be 8-30 | Prefix must be between /8 and /30. |
+| startIp | Must be valid IP format | Invalid format. Use 192.168.1.100 |
+| startIp | Must be private IP range | Use a private IP range. |
+| endIp | Must be valid IP format | Invalid format. Use 192.168.1.200 |
+| endIp | Must be private IP range | Use a private IP range. |
+| endIp | Must be greater than startIp | End IP must be greater than start IP. |
+| endIp | Range must have ≥2 addresses | Range must have at least 2 addresses. |
 
 **Validation Constants:**
 
@@ -173,12 +177,12 @@ PRIVATE_IP_RANGES = [
 
 When router is configured (DHCP enabled + valid IP range), the system automatically assigns IPs to connected PCs:
 
-1. Parse CIDR to extract base IP (e.g., `192.168.1.0/24` → `192.168.1`)
+1. Parse start IP to extract base (first 3 octets) and starting last octet (e.g., `192.168.1.100` → base `192.168.1`, start `100`)
 2. Find all PCs connected to router via cables (using adjacency detection)
 3. Sort connected PCs by ID alphabetically
-4. Assign sequential IPs starting from `.2`:
-   - PC-1 → `{base}.2` (e.g., `192.168.1.2`)
-   - PC-2 → `{base}.3` (e.g., `192.168.1.3`)
+4. Assign sequential IPs starting from the start IP's last octet:
+   - PC-1 → `{base}.{startOctet}` (e.g., `192.168.1.100`)
+   - PC-2 → `{base}.{startOctet + 1}` (e.g., `192.168.1.101`)
 5. Update PC status to "success" when IP assigned, "warning" when not
 
 #### 2.7.3 PC Configuration Modal
@@ -214,7 +218,8 @@ Guide the learner through each step:
 | 1 cable connected | Connect PC-2 to the router with the second cable |
 | All connected, router not configured | ⚠️ Physically connected but not working! Click the router to configure DHCP |
 | Router config open, DHCP off | Enable DHCP so the router can assign IP addresses |
-| DHCP on, no IP range | Set IP range - Start: 192.168.1.100, End: 192.168.1.200 |
+| DHCP on, no start IP | Set the start IP address (e.g., 192.168.1.100) |
+| DHCP on, no end IP | Set the end IP address (e.g., 192.168.1.200) |
 | All configured | 🎉 Network configured! Both PCs can now communicate |
 
 **Error Hints:**
