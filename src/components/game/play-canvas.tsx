@@ -127,8 +127,10 @@ const PlacedItemCard = memo(
 			const isConnectable = config?.behavior === "connectable";
 
 			if (isConnectable) {
-				if (item.status === "success") return "green.500";
-				if (item.status === "warning") return "red.500";
+				if (item.status === "success") return "cyan.500";
+				if (item.status === "warning") return "yellow.500";
+				if (item.status === "error") return "red.500";
+				return "gray.500";
 			}
 			return "cyan.500";
 		};
