@@ -182,6 +182,7 @@ export const buildSuccessModal = (
 	title: string,
 	message: string,
 	actionLabel: string,
+	onAction?: () => void,
 ): ModalInstance => ({
 	id: "success",
 	title,
@@ -198,6 +199,7 @@ export const buildSuccessModal = (
 			variant: "primary",
 			validate: false,
 			closesModal: true,
+			onClick: onAction ? () => onAction() : undefined,
 		},
 	],
 });

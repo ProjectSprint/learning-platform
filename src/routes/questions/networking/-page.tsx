@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import { GameLayout } from "@/components/game/game-layout";
 import {
-	GameProvider,
 	type GamePhase,
+	GameProvider,
 	type PlacedItem,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import type { QuestionProps } from "@/components/module";
 
 import {
 	CANVAS_CONFIG,
@@ -30,15 +31,19 @@ import {
 import { useNetworkState } from "./-utils/use-network-state";
 import { useNetworkingTerminal } from "./-utils/use-networking-terminal";
 
-export const NetworkingQuestion = () => {
+export const NetworkingQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
 		<GameProvider>
-			<NetworkingGame />
+			<NetworkingGame onQuestionComplete={onQuestionComplete} />
 		</GameProvider>
 	);
 };
 
-const NetworkingGame = () => {
+const NetworkingGame = ({
+	onQuestionComplete,
+}: {
+	onQuestionComplete: () => void;
+}) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const initializedRef = useRef(false);
@@ -74,6 +79,7 @@ const NetworkingGame = () => {
 
 	const handleNetworkingCommand = useNetworkingTerminal({
 		pc2Ip: networkState.pc2Ip,
+		onQuestionComplete,
 	});
 
 	useTerminalEngine({
@@ -98,7 +104,12 @@ const NetworkingGame = () => {
 		if (state.phase !== desiredPhase) {
 			dispatch({ type: "SET_PHASE", payload: { phase: desiredPhase } });
 		}
-	}, [dispatch, state.phase, state.question.status, dragEngine.progress.status]);
+	}, [
+		dispatch,
+		state.phase,
+		state.question.status,
+		dragEngine.progress.status,
+	]);
 
 	const contextualHint = useMemo(
 		() =>
