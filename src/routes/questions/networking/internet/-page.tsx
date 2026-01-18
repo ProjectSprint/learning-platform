@@ -86,7 +86,7 @@ const InternetGame = ({
 		pcIp: internetState.pcIp,
 		dnsConfigured: internetState.hasValidDnsServer,
 		natEnabled: internetState.natEnabled,
-		wanConnected: internetState.routerWanConfigured,
+		wanConnected: internetState.hasValidPppoeCredentials,
 		onQuestionComplete,
 	});
 
@@ -142,7 +142,7 @@ const InternetGame = ({
 				allDevicesPlaced: internetState.allDevicesPlaced,
 				routerLanConfigured: internetState.routerLanConfigured,
 				routerNatConfigured: internetState.routerNatConfigured,
-				routerWanConfigured: internetState.routerWanConfigured,
+				routerWanConfigured: internetState.hasValidPppoeCredentials,
 				routerLanSettingsOpen: internetState.routerLanSettingsOpen,
 				routerNatSettingsOpen: internetState.routerNatSettingsOpen,
 				routerWanSettingsOpen: internetState.routerWanSettingsOpen,
@@ -173,7 +173,7 @@ const InternetGame = ({
 			internetState.allDevicesPlaced,
 			internetState.routerLanConfigured,
 			internetState.routerNatConfigured,
-			internetState.routerWanConfigured,
+			internetState.hasValidPppoeCredentials,
 			internetState.routerLanSettingsOpen,
 			internetState.routerNatSettingsOpen,
 			internetState.routerWanSettingsOpen,
@@ -239,7 +239,7 @@ const InternetGame = ({
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildIgwStatusModal(item.id, {
-						status: internetState.routerWanConfigured
+						status: internetState.hasValidPppoeCredentials
 							? "Authenticated"
 							: "Waiting for authentication",
 					}),
@@ -264,7 +264,7 @@ const InternetGame = ({
 					reason = "DNS not configured";
 				} else if (!internetState.natEnabled) {
 					reason = "NAT disabled";
-				} else if (!internetState.routerWanConfigured) {
+				} else if (!internetState.hasValidPppoeCredentials) {
 					reason = "WAN not connected";
 				}
 
@@ -285,7 +285,7 @@ const InternetGame = ({
 			dispatch,
 			state.canvas.placedItems,
 			internetState.googleReachable,
-			internetState.routerWanConfigured,
+			internetState.hasValidPppoeCredentials,
 			internetState.dnsServer,
 			internetState.hasValidDnsServer,
 			internetState.natEnabled,

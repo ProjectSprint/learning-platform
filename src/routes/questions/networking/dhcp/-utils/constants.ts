@@ -15,11 +15,46 @@ export const TERMINAL_PROMPT =
 
 // Initial inventory items available for the networking question
 export const INVENTORY_ITEMS: InventoryItem[] = [
-	{ id: "pc-1", type: "pc", name: "PC-1", used: false },
-	{ id: "pc-2", type: "pc", name: "PC-2", used: false },
-	{ id: "router-1", type: "router", name: "Router", used: false },
-	{ id: "cable-1", type: "cable", name: "Cable", used: false },
-	{ id: "cable-2", type: "cable", name: "Cable", used: false },
+	{
+		id: "pc-1",
+		type: "pc",
+		name: "PC-1",
+		used: false,
+		icon: { icon: "twemoji:laptop-computer" },
+		behavior: "connectable",
+	},
+	{
+		id: "pc-2",
+		type: "pc",
+		name: "PC-2",
+		used: false,
+		icon: { icon: "twemoji:laptop-computer" },
+		behavior: "connectable",
+	},
+	{
+		id: "router-1",
+		type: "router",
+		name: "Router",
+		used: false,
+		icon: { icon: "streamline-flex-color:router-wifi-network" },
+		behavior: "connectable",
+	},
+	{
+		id: "cable-1",
+		type: "cable",
+		name: "Cable",
+		used: false,
+		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
+		behavior: "connectable",
+	},
+	{
+		id: "cable-2",
+		type: "cable",
+		name: "Cable",
+		used: false,
+		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
+		behavior: "connectable",
+	},
 ];
 
 // Canvas configuration for the networking question

@@ -25,7 +25,6 @@ import {
 	type GridMetrics,
 	hitTestAny,
 } from "./gsap-drag";
-import { ITEM_CONFIGS, ITEM_ICONS } from "./item-icons";
 
 const BLOCK_HEIGHT = 60;
 
@@ -119,15 +118,20 @@ const PlacedItemCard = memo(
 	}) => {
 		const label = getItemLabel(item.type);
 		const statusMessage = getStatusMessage(item);
-		const hasWarning = item.status === "warning";
-		const iconInfo = ITEM_ICONS[item.type];
+		const iconInfo = item.icon;
+
+		const getStatusBadgeColor = () => {
+			if (item.status === "error") return "red.600";
+			if (item.status === "warning") return "yellow.600";
+			if (item.status === "success") return "green.600";
+			return "gray.600";
+		};
 
 		const getBorderColor = () => {
-			const config = ITEM_CONFIGS[item.type];
-			const isConnectable = config?.behavior === "connectable";
+			const isConnectable = item.behavior === "connectable";
 
 			if (isConnectable) {
-				if (item.status === "success") return "cyan.500";
+				if (item.status === "success") return "cyan.warning";
 				if (item.status === "warning") return "yellow.500";
 				if (item.status === "error") return "red.500";
 				return "gray.500";
@@ -179,7 +183,7 @@ const PlacedItemCard = memo(
 						px={1.5}
 						py={0.5}
 						borderRadius="full"
-						bg={hasWarning ? "red.600" : "green.600"}
+						bg={getStatusBadgeColor()}
 						color="white"
 						fontWeight="medium"
 						boxShadow="sm"

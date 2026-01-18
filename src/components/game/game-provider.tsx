@@ -9,12 +9,16 @@ import {
 export type GamePhase = "setup" | "playing" | "terminal" | "completed";
 export type QuestionStatus = "in_progress" | "completed";
 
+import type { IconInfo, ItemBehavior } from "./item-icons";
+
 export type InventoryItem = {
 	id: string;
 	type: string;
 	name?: string;
 	used: boolean;
 	quantity?: number;
+	icon?: IconInfo;
+	behavior?: ItemBehavior;
 	data?: Record<string, unknown>;
 };
 
@@ -52,6 +56,8 @@ export type PlacedItem = {
 	blockX: number;
 	blockY: number;
 	status: PlacedItemStatus;
+	icon?: IconInfo;
+	behavior?: ItemBehavior;
 	data: Record<string, unknown>;
 };
 
@@ -542,6 +548,8 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				blockX,
 				blockY,
 				status: "normal",
+				icon: item.icon,
+				behavior: item.behavior,
 				data: item.data ?? {},
 			};
 

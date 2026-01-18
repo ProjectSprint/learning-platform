@@ -92,10 +92,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const routerLanConfigured =
 		dhcpEnabled && hasValidIpRange && hasValidDnsServer;
 	const routerNatConfigured = natEnabled === true;
-	const routerWanConfigured =
-		connectionType === "pppoe" && hasValidPppoeCredentials;
 	const allRoutersConfigured =
-		routerLanConfigured && routerNatConfigured && routerWanConfigured;
+		routerLanConfigured && routerNatConfigured && hasValidPppoeCredentials;
 
 	// PC state
 	const pcHasIp = typeof network.pc?.data?.ip === "string";
@@ -247,8 +245,9 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		// Router WAN status: error → warning → success based on PPPoE config AND connection to fiber/IGW/internet
 		if (network.routerWan) {
 			let desiredStatus: "error" | "warning" | "success";
+			console.log("hasValidPppoeCredentials", hasValidPppoeCredentials);
 			if (!hasValidPppoeCredentials) {
-				desiredStatus = "warning";
+				desiredStatus = "error";
 			} else if (!network.routerWanConnectedToIgw) {
 				// Has credentials but not connected to fiber → IGW
 				desiredStatus = "warning";
@@ -272,7 +271,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// IGW status: warning → success based on WAN connection
 		if (network.igw) {
-			const desiredStatus = routerWanConfigured ? "success" : "warning";
+			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (network.igw.status !== desiredStatus) {
 				dispatch({
 					type: "CONFIGURE_DEVICE",
@@ -286,7 +285,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// Internet status: warning → success based on IGW
 		if (network.internet) {
-			const desiredStatus = routerWanConfigured ? "success" : "warning";
+			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (network.internet.status !== desiredStatus) {
 				dispatch({
 					type: "CONFIGURE_DEVICE",
@@ -317,7 +316,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasValidDnsServer) {
 				desiredStatus = "error";
-			} else if (!routerNatConfigured || !routerWanConfigured) {
+			} else if (!routerNatConfigured || !hasValidPppoeCredentials) {
 				desiredStatus = "warning";
 			} else {
 				desiredStatus = "success";
@@ -384,7 +383,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		natEnabled,
 		hasValidPppoeCredentials,
 		routerNatConfigured,
-		routerWanConfigured,
 		googleReachable,
 		state.question.status,
 	]);
@@ -437,7 +435,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		password,
 		publicIp,
 		hasValidPppoeCredentials,
-		routerWanConfigured,
 		// Combined state
 		allRoutersConfigured,
 		// PC state

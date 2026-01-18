@@ -77,7 +77,7 @@ export const getInternetStatusMessage = (
 				return "not configured";
 			}
 			if (status === "warning") {
-				return "no credentials";
+				return "no connection";
 			}
 			if (status === "success") {
 				return publicIp ? `connected ${publicIp}` : "connected";

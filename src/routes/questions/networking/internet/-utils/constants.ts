@@ -9,28 +9,98 @@ import type {
 export const QUESTION_ID = "internet-gateway";
 export const QUESTION_TITLE = "🌐 Connect to the Internet!";
 export const QUESTION_DESCRIPTION =
-	"Your home network is ready, but you can't reach Google yet. Connect to your ISP and configure the router to access the internet!";
+	"Now you can setup a router, but you can't reach Google yet. Connect to your ISP and configure the router to access the internet!";
 export const TERMINAL_PROMPT =
 	"Your network is configured! Can you verify that you can reach Google?";
 
 // Initial inventory items available for the internet gateway question
 export const INVENTORY_ITEMS: InventoryItem[] = [
-	{ id: "pc-1", type: "pc", name: "PC", used: false },
-	{ id: "cable-1", type: "cable", name: "Ethernet Cable", used: false },
-	{ id: "router-lan-1", type: "router-lan", name: "Router (LAN)", used: false },
-	{ id: "router-nat-1", type: "router-nat", name: "Router (NAT)", used: false },
-	{ id: "router-wan-1", type: "router-wan", name: "Router (WAN)", used: false },
-	{ id: "fiber-1", type: "fiber", name: "Fiber Cable", used: false },
-	{ id: "igw-1", type: "igw", name: "Internet Gateway", used: false },
-	{ id: "internet-1", type: "internet", name: "Internet", used: false },
-	{ id: "dns-1", type: "dns", name: "DNS Server", used: false },
-	{ id: "google-1", type: "google", name: "Google", used: false },
+	{
+		id: "cable-1",
+		type: "cable",
+		name: "Ethernet Cable",
+		used: false,
+		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
+		behavior: "connectable",
+	},
+	{
+		id: "fiber-1",
+		type: "fiber",
+		name: "Fiber Cable",
+		used: false,
+		icon: { icon: "mdi:fiber-smart-record", color: "#f97316" },
+		behavior: "connectable",
+	},
+	{
+		id: "pc-1",
+		type: "pc",
+		name: "PC",
+		used: false,
+		icon: { icon: "twemoji:laptop-computer" },
+		behavior: "connectable",
+	},
+	{
+		id: "router-lan-1",
+		type: "router-lan",
+		name: "Router (LAN)",
+		used: false,
+		icon: { icon: "mdi:lan" },
+		behavior: "connectable",
+	},
+	{
+		id: "router-nat-1",
+		type: "router-nat",
+		name: "Router (NAT)",
+		used: false,
+		icon: { icon: "mdi:swap-horizontal" },
+		behavior: "connectable",
+	},
+	{
+		id: "router-wan-1",
+		type: "router-wan",
+		name: "Router (WAN)",
+		used: false,
+		icon: { icon: "mdi:wan" },
+		behavior: "connectable",
+	},
+	{
+		id: "igw-1",
+		type: "igw",
+		name: "Internet Gateway",
+		used: false,
+		icon: { icon: "mdi:server-network" },
+		behavior: "connectable",
+	},
+	{
+		id: "internet-1",
+		type: "internet",
+		name: "Internet",
+		used: false,
+		icon: { icon: "mdi:cloud" },
+		behavior: "connectable",
+	},
+	{
+		id: "dns-1",
+		type: "dns",
+		name: "DNS Server",
+		used: false,
+		icon: { icon: "mdi:dns" },
+		behavior: "connectable",
+	},
+	{
+		id: "google-1",
+		type: "google",
+		name: "Google",
+		used: false,
+		icon: { icon: "mdi:google" },
+		behavior: "connectable",
+	},
 ];
 
 // Canvas configuration for the internet gateway question
 export const CANVAS_CONFIG: CanvasConfig = {
 	id: "internet-gateway-canvas",
-	columns: 12,
+	columns: 10,
 	rows: 1,
 	allowedItemTypes: [
 		"pc",
@@ -44,7 +114,7 @@ export const CANVAS_CONFIG: CanvasConfig = {
 		"dns",
 		"google",
 	],
-	maxItems: 12,
+	maxItems: 10,
 };
 
 // Private IP address ranges for validation
