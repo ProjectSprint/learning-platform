@@ -30,13 +30,13 @@ Fill out this template to define a new question. This information will be used t
 
 ### 2.2 Item Types
 
-Define the types of items in this question:
+Define the types of items in this question. Icons are from [Iconify](https://icon-sets.iconify.design/).
 
-| Type | Display Label | Description |
-|------|---------------|-------------|
-| pc | PC | A computer that can send/receive data |
-| router | Router | Connects devices and assigns IPs via DHCP |
-| cable | Cable | Connects two adjacent devices |
+| Type | Display Label | Icon | Description |
+|------|---------------|------|-------------|
+| pc | PC | `mdi:desktop-classic` | A computer that can send/receive data |
+| router | Router | `mdi:router-wireless` | Connects devices and assigns IPs via DHCP |
+| cable | Cable | `mdi:ethernet-cable` | Connects two adjacent devices |
 
 **Click Behavior:**
 
@@ -335,7 +335,7 @@ Before implementation, ensure you have defined:
 
 **Phase 1 - Canvas Game:**
 - [ ] Canvas setup (grid size, max items, allowed item types)
-- [ ] Item types with display labels and click behavior
+- [ ] Item types with display labels, icons, and click behavior
 - [ ] Item states and status messages for each type
 - [ ] Connection rules (valid and invalid)
 - [ ] Inventory items with IDs and types
