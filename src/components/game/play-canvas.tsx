@@ -858,7 +858,7 @@ export const PlayCanvas = ({
 			className="play-canvas"
 			data-game-canvas
 			bg="gray.950"
-			p={4}
+			p={{ base: 2, md: 4 }}
 			overflow="visible"
 			position="relative"
 			display="flex"

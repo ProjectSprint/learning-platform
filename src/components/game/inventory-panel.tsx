@@ -151,7 +151,7 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 			bg="gray.900"
 			borderTop="1px solid"
 			borderColor="gray.800"
-			p={3}
+			p={{ base: 2, md: 3 }}
 			overflow="visible"
 		>
 			<Text fontSize="sm" fontWeight="bold" mb={3} color="gray.200">
