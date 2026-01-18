@@ -1146,37 +1146,84 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			};
 		}
 		case "CONFIGURE_DEVICE": {
-			const canvas = resolveCanvasState(state, action.payload.stateKey);
 			const config = sanitizeDeviceConfig(action.payload.config);
-			const itemIndex = canvas.placedItems.findIndex(
-				(item) => item.id === action.payload.deviceId,
-			);
+			const applyConfig = (canvas: CanvasState): CanvasState | null => {
+				const itemIndex = canvas.placedItems.findIndex(
+					(item) => item.id === action.payload.deviceId,
+				);
 
-			if (itemIndex === -1) {
-				return state;
+				if (itemIndex === -1) {
+					return null;
+				}
+
+				const nextPlacedItems = canvas.placedItems.slice();
+				const currentItem = nextPlacedItems[itemIndex];
+
+				// Extract status if provided
+				const newStatus =
+					typeof config.status === "string" ? config.status : undefined;
+				const { status: _, ...dataConfig } = config;
+
+				nextPlacedItems[itemIndex] = {
+					...currentItem,
+					...(newStatus && { status: newStatus as PlacedItemStatus }),
+					data: {
+						...currentItem.data,
+						...dataConfig,
+					},
+				};
+
+				return {
+					...canvas,
+					placedItems: nextPlacedItems,
+				};
+			};
+
+			if (action.payload.stateKey) {
+				const canvas = resolveCanvasState(state, action.payload.stateKey);
+				const nextCanvas = applyConfig(canvas);
+				if (!nextCanvas) {
+					return state;
+				}
+
+				return updateCanvasState(
+					{
+						...state,
+						overlay: {
+							...state.overlay,
+							activeModal: null,
+						},
+					},
+					action.payload.stateKey,
+					nextCanvas,
+				);
 			}
 
-			const nextPlacedItems = canvas.placedItems.slice();
-			const currentItem = nextPlacedItems[itemIndex];
+			if (state.canvases) {
+				for (const [stateKey, canvas] of Object.entries(state.canvases)) {
+					const nextCanvas = applyConfig(canvas);
+					if (!nextCanvas) {
+						continue;
+					}
 
-			// Extract status if provided
-			const newStatus =
-				typeof config.status === "string" ? config.status : undefined;
-			const { status: _, ...dataConfig } = config;
+					return updateCanvasState(
+						{
+							...state,
+							overlay: {
+								...state.overlay,
+								activeModal: null,
+							},
+						},
+						stateKey,
+						nextCanvas,
+					);
+				}
+			}
 
-			nextPlacedItems[itemIndex] = {
-				...currentItem,
-				...(newStatus && { status: newStatus as PlacedItemStatus }),
-				data: {
-					...currentItem.data,
-					...dataConfig,
-				},
-			};
-
-			const nextCanvas: CanvasState = {
-				...canvas,
-				placedItems: nextPlacedItems,
-			};
+			const fallbackCanvas = applyConfig(state.canvas);
+			if (!fallbackCanvas) {
+				return state;
+			}
 
 			return updateCanvasState(
 				{
@@ -1187,7 +1234,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 					},
 				},
 				action.payload.stateKey,
-				nextCanvas,
+				fallbackCanvas,
 			);
 		}
 		case "OPEN_MODAL": {

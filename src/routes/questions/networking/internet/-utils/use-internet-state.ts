@@ -1,7 +1,15 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { DragEngine } from "@/components/game/engines";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import {
+	type Connection,
+	type PlacedItem,
+	useAllCanvases,
+	useGameDispatch,
+	useGameState,
+} from "@/components/game/game-provider";
+import {
+	CANVAS_CONFIGS,
+	CANVAS_ORDER,
 	GOOGLE_IP,
 	PUBLIC_DNS_SERVERS,
 	VALID_PPPOE_CREDENTIALS,
@@ -19,15 +27,69 @@ interface UseInternetStateArgs {
 
 export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const state = useGameState();
+	const canvases = useAllCanvases();
 	const dispatch = useGameDispatch();
 
+	const { combinedItems, combinedConnections, itemCanvasKeys } = useMemo(() => {
+		const items: PlacedItem[] = [];
+		const connections: Connection[] = [];
+		const keys = new Map<string, string>();
+		let offsetX = 0;
+
+		for (const key of CANVAS_ORDER) {
+			const canvas = canvases[key];
+			const config = CANVAS_CONFIGS[key];
+			if (!config) {
+				continue;
+			}
+
+			if (canvas) {
+				for (const item of canvas.placedItems) {
+					items.push({ ...item, blockX: item.blockX + offsetX });
+					keys.set(item.id, key);
+				}
+
+				for (const connection of canvas.connections) {
+					connections.push({
+						...connection,
+						from: { x: connection.from.x + offsetX, y: connection.from.y },
+						to: { x: connection.to.x + offsetX, y: connection.to.y },
+					});
+				}
+			}
+
+			offsetX += config.columns;
+		}
+
+		return {
+			combinedItems: items,
+			combinedConnections: connections,
+			itemCanvasKeys: keys,
+		};
+	}, [canvases]);
+
+	const resolveCanvasKey = useCallback(
+		(itemId: string) => itemCanvasKeys.get(itemId),
+		[itemCanvasKeys],
+	);
+
+	const dispatchConfig = useCallback(
+		(deviceId: string, config: Record<string, unknown>) => {
+			dispatch({
+				type: "CONFIGURE_DEVICE",
+				payload: {
+					deviceId,
+					config,
+					stateKey: resolveCanvasKey(deviceId),
+				},
+			});
+		},
+		[dispatch, resolveCanvasKey],
+	);
+
 	const network = useMemo(
-		() =>
-			buildInternetNetworkSnapshot(
-				state.canvas.placedItems,
-				state.canvas.connections,
-			),
-		[state.canvas.connections, state.canvas.placedItems],
+		() => buildInternetNetworkSnapshot(combinedItems, combinedConnections),
+		[combinedConnections, combinedItems],
 	);
 
 	// Extract Router LAN configuration
@@ -150,6 +212,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					payload: {
 						deviceId: network.pc.id,
 						config: { ip: desiredIp },
+						stateKey: resolveCanvasKey(network.pc.id),
 					},
 				});
 			}
@@ -166,6 +229,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					payload: {
 						deviceId: network.pc.id,
 						config: { ip: null },
+						stateKey: resolveCanvasKey(network.pc.id),
 					},
 				});
 			}
@@ -176,6 +240,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		network.pcConnectedToRouterLan,
 		routerLanConfigured,
 		startIp,
+		resolveCanvasKey,
 		state.question.status,
 	]);
 
@@ -197,13 +262,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				desiredStatus = "success";
 			}
 			if (network.pc.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.pc.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.pc.id, { status: desiredStatus });
 			}
 		}
 
@@ -218,13 +277,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				desiredStatus = "success";
 			}
 			if (network.routerLan.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.routerLan.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.routerLan.id, { status: desiredStatus });
 			}
 		}
 
@@ -232,13 +285,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		if (network.routerNat) {
 			const desiredStatus = natEnabled ? "success" : "error";
 			if (network.routerNat.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.routerNat.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.routerNat.id, { status: desiredStatus });
 			}
 		}
 
@@ -259,13 +306,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				desiredStatus = "success";
 			}
 			if (network.routerWan.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.routerWan.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.routerWan.id, { status: desiredStatus });
 			}
 		}
 
@@ -273,13 +314,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		if (network.igw) {
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (network.igw.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.igw.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.igw.id, { status: desiredStatus });
 			}
 		}
 
@@ -287,13 +322,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		if (network.internet) {
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (network.internet.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.internet.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.internet.id, { status: desiredStatus });
 			}
 		}
 
@@ -301,13 +330,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		if (network.dns) {
 			const desiredStatus = hasValidDnsServer ? "success" : "error";
 			if (network.dns.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.dns.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.dns.id, { status: desiredStatus });
 			}
 		}
 
@@ -322,13 +345,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				desiredStatus = "success";
 			}
 			if (network.google.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.google.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.google.id, { status: desiredStatus });
 			}
 		}
 
@@ -338,13 +355,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				? "success"
 				: "warning";
 			if (network.cable.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.cable.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.cable.id, { status: desiredStatus });
 			}
 		}
 
@@ -354,17 +365,11 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				? "success"
 				: "warning";
 			if (network.fiber.status !== desiredStatus) {
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId: network.fiber.id,
-						config: { status: desiredStatus },
-					},
-				});
+				dispatchConfig(network.fiber.id, { status: desiredStatus });
 			}
 		}
 	}, [
-		dispatch,
+		dispatchConfig,
 		network.pc,
 		network.cable,
 		network.routerLan,
@@ -448,8 +453,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		routerNatSettingsOpen,
 		routerWanSettingsOpen,
 		// Game state
-		placedItems: state.canvas.placedItems,
-		connections: state.canvas.connections,
+		placedItems: combinedItems,
+		connections: combinedConnections,
 		dragProgress: dragEngine?.progress ?? { status: "pending" as const },
 		// Constants for external use
 		googleIp: GOOGLE_IP,

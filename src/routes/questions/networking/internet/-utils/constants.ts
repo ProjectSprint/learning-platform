@@ -98,23 +98,62 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 ];
 
 // Canvas configuration for the internet gateway question
-export const CANVAS_CONFIG: CanvasConfig = {
-	id: "internet-gateway-canvas",
-	columns: 10,
-	rows: 1,
-	allowedItemTypes: [
-		"pc",
-		"cable",
-		"router-lan",
-		"router-nat",
-		"router-wan",
-		"fiber",
-		"igw",
-		"internet",
-		"dns",
-		"google",
-	],
-	maxItems: 10,
+export type InternetCanvasKey =
+	| "local"
+	| "conn-1"
+	| "router"
+	| "conn-2"
+	| "internet";
+
+export const CANVAS_ORDER: InternetCanvasKey[] = [
+	"local",
+	"conn-1",
+	"router",
+	"conn-2",
+	"internet",
+];
+
+export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
+	local: {
+		id: "internet-local",
+		stateKey: "local",
+		columns: 1,
+		rows: 1,
+		allowedItemTypes: ["pc"],
+		maxItems: 1,
+	},
+	"conn-1": {
+		id: "internet-conn-1",
+		stateKey: "conn-1",
+		columns: 1,
+		rows: 1,
+		allowedItemTypes: ["cable"],
+		maxItems: 1,
+	},
+	router: {
+		id: "internet-router",
+		stateKey: "router",
+		columns: 3,
+		rows: 1,
+		allowedItemTypes: ["router-lan", "router-nat", "router-wan"],
+		maxItems: 3,
+	},
+	"conn-2": {
+		id: "internet-conn-2",
+		stateKey: "conn-2",
+		columns: 1,
+		rows: 1,
+		allowedItemTypes: ["fiber"],
+		maxItems: 1,
+	},
+	internet: {
+		id: "internet-external",
+		stateKey: "internet",
+		columns: 4,
+		rows: 1,
+		allowedItemTypes: ["igw", "internet", "dns", "google"],
+		maxItems: 4,
+	},
 };
 
 // Private IP address ranges for validation

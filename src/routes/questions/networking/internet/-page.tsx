@@ -15,7 +15,8 @@ import { TerminalPanel } from "@/components/game/terminal-panel";
 import type { QuestionProps } from "@/components/module";
 
 import {
-	CANVAS_CONFIG,
+	CANVAS_CONFIGS,
+	CANVAS_ORDER,
 	INVENTORY_ITEMS,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
@@ -64,20 +65,18 @@ const InternetGame = ({
 
 		initializedRef.current = true;
 		dispatch({
-			type: "INIT_QUESTION",
+			type: "INIT_MULTI_CANVAS",
 			payload: {
 				questionId: QUESTION_ID,
-				config: {
-					canvas: CANVAS_CONFIG,
-					inventory: INVENTORY_ITEMS,
-					terminal: {
-						visible: false,
-						prompt: TERMINAL_PROMPT,
-						history: [],
-					},
-					phase: "setup",
-					questionStatus: "in_progress",
+				canvases: CANVAS_CONFIGS,
+				inventory: INVENTORY_ITEMS,
+				terminal: {
+					visible: false,
+					prompt: TERMINAL_PROMPT,
+					history: [],
 				},
+				phase: "setup",
+				questionStatus: "in_progress",
 			},
 		});
 	}, [dispatch]);
@@ -194,9 +193,17 @@ const InternetGame = ({
 		],
 	);
 
+	const placedItemById = useMemo(() => {
+		const map = new Map<string, PlacedItem>();
+		for (const entry of internetState.placedItems) {
+			map.set(entry.id, entry);
+		}
+		return map;
+	}, [internetState.placedItems]);
+
 	const handlePlacedItemClick = useCallback(
 		(item: PlacedItem) => {
-			const placedItem = state.canvas.placedItems.find((p) => p.id === item.id);
+			const placedItem = placedItemById.get(item.id);
 			const currentConfig = placedItem?.data ?? {};
 
 			if (item.type === "router-lan") {
@@ -287,13 +294,13 @@ const InternetGame = ({
 		},
 		[
 			dispatch,
-			state.canvas.placedItems,
 			internetState.googleReachable,
 			internetState.hasValidPppoeCredentials,
 			internetState.dnsServer,
 			internetState.hasValidDnsServer,
 			internetState.natEnabled,
 			internetState.googleIp,
+			placedItemById,
 		],
 	);
 
@@ -330,14 +337,52 @@ const InternetGame = ({
 					</Text>
 				</Box>
 
-				<Box flex="1">
-					<PlayCanvas
-						getItemLabel={getInternetItemLabel}
-						getStatusMessage={getInternetStatusMessage}
-						onPlacedItemClick={handlePlacedItemClick}
-						isItemClickable={isItemClickable}
-					/>
-				</Box>
+				<Flex
+					flex="1"
+					direction={{ base: "column", xl: "row" }}
+					gap={4}
+					align="stretch"
+				>
+					{CANVAS_ORDER.map((key) => {
+						const config = CANVAS_CONFIGS[key];
+						const title =
+							key === "local"
+								? "Local"
+								: key === "conn-1"
+									? "Connector (Conn 1)"
+									: key === "router"
+										? "Router"
+										: key === "conn-2"
+											? "Connector (Conn 2)"
+											: "Internet";
+
+						return (
+							<Box
+								key={key}
+								flexGrow={config.columns}
+								flexBasis={0}
+								minW={{ base: "100%", xl: "0" }}
+							>
+								<Text
+									fontSize="xs"
+									textTransform="uppercase"
+									letterSpacing="0.08em"
+									color="gray.400"
+									mb={2}
+								>
+									{title}
+								</Text>
+								<PlayCanvas
+									stateKey={key}
+									getItemLabel={getInternetItemLabel}
+									getStatusMessage={getInternetStatusMessage}
+									onPlacedItemClick={handlePlacedItemClick}
+									isItemClickable={isItemClickable}
+								/>
+							</Box>
+						);
+					})}
+				</Flex>
 
 				<Box alignSelf="center" my={4}>
 					<InventoryPanel tooltips={INVENTORY_TOOLTIPS} />
