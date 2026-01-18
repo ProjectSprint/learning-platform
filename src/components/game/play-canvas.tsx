@@ -36,6 +36,7 @@ type ItemClickableCheck = (placedItem: PlacedItem) => boolean;
 
 type PlayCanvasProps = {
 	stateKey?: string;
+	title?: string;
 	getItemLabel?: ItemLabelGetter;
 	getStatusMessage?: StatusMessageGetter;
 	onPlacedItemClick?: PlacedItemClickHandler;
@@ -209,6 +210,7 @@ const PlacedItemCard = memo(
 
 export const PlayCanvas = ({
 	stateKey,
+	title = "Play Canvas",
 	getItemLabel = defaultGetItemLabel,
 	getStatusMessage = defaultGetStatusMessage,
 	onPlacedItemClick,
@@ -251,6 +253,14 @@ export const PlayCanvas = ({
 
 	useEffect(() => {
 		activeDragRef.current = activeDrag;
+	}, [activeDrag]);
+
+	useEffect(() => {
+		if (activeDrag) {
+			return;
+		}
+		setDragPreview(null);
+		setHoveredBlock(null);
 	}, [activeDrag]);
 
 	const placedItemsByKey = useMemo(() => {
@@ -764,6 +774,11 @@ export const PlayCanvas = ({
 		};
 
 		const handlePointerUp = (event: PointerEvent) => {
+			const targetCanvasKey = activeDrag.targetCanvasKey;
+			if (targetCanvasKey && targetCanvasKey !== canvasKey) {
+				return;
+			}
+
 			const rect = canvasElement.getBoundingClientRect();
 			const x = event.clientX - rect.left;
 			const y = event.clientY - rect.top;
@@ -813,6 +828,7 @@ export const PlayCanvas = ({
 		canPlaceItemAt,
 		canvas.config.columns,
 		canvas.config.rows,
+		canvasKey,
 		gridMetrics,
 		placeOrRepositionItem,
 		proxyRef,
@@ -849,7 +865,7 @@ export const PlayCanvas = ({
 		>
 			<Flex align="center" justify="space-between" mb={4}>
 				<Text fontSize="sm" fontWeight="bold" color="gray.200">
-					Play Canvas
+					{title}
 				</Text>
 				<Text fontSize="xs" color="gray.500">
 					{canvas.config.columns} x {canvas.config.rows}

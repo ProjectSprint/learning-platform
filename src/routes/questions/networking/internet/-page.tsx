@@ -374,6 +374,7 @@ const InternetGame = ({
 								</Text>
 								<PlayCanvas
 									stateKey={key}
+									title={title}
 									getItemLabel={getInternetItemLabel}
 									getStatusMessage={getInternetStatusMessage}
 									onPlacedItemClick={handlePlacedItemClick}
