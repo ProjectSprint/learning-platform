@@ -1,10 +1,14 @@
 // Configuration constants for the networking question
 // Contains all static configuration like inventory items, canvas setup, and question metadata
 
-import type { CanvasConfig, InventoryItem } from "@/components/game/game-provider";
+import type {
+	CanvasConfig,
+	InventoryItem,
+} from "@/components/game/game-provider";
 
 export const QUESTION_ID = "networking";
-export const TERMINAL_PROMPT = "How can you check that PC-1 is connected to PC-2?";
+export const TERMINAL_PROMPT =
+	"How can you check that PC-1 is connected to PC-2?";
 
 // Initial inventory items available for the networking question
 export const INVENTORY_ITEMS: InventoryItem[] = [

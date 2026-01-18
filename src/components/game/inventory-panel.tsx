@@ -1,12 +1,20 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
+import { Icon } from "@iconify/react";
 import { useCallback, useMemo, useRef } from "react";
 
 import { useDragContext } from "./drag-context";
 import type { InventoryItem } from "./game-provider";
 import { useGameState } from "./game-provider";
+import { InfoTooltip } from "./help-components";
+import { type IconInfo, ITEM_ICONS } from "./item-icons";
 
 const SLOT_WIDTH = 100;
-const SLOT_HEIGHT = 48;
+const SLOT_HEIGHT = 64;
+
+export type TooltipInfo = {
+	content: string;
+	seeMoreHref: string;
+};
 
 type InventorySlotProps = {
 	item: InventoryItem;
@@ -14,6 +22,8 @@ type InventorySlotProps = {
 	isDragging: boolean;
 	onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
 	slotRef?: React.RefCallback<HTMLDivElement>;
+	tooltip?: TooltipInfo;
+	iconInfo?: IconInfo;
 };
 
 const InventorySlot = ({
@@ -22,6 +32,8 @@ const InventorySlot = ({
 	isDragging,
 	onPointerDown,
 	slotRef,
+	tooltip,
+	iconInfo,
 }: InventorySlotProps) => {
 	return (
 		<Box
@@ -38,8 +50,10 @@ const InventorySlot = ({
 			borderColor={isEmpty ? "gray.700" : "cyan.500"}
 			borderRadius="md"
 			display="flex"
+			flexDirection="column"
 			alignItems="center"
 			justifyContent="center"
+			gap={1}
 			opacity={isDragging ? 0.3 : 1}
 			cursor={isEmpty ? "default" : "grab"}
 			transition="opacity 0.1s ease"
@@ -47,15 +61,37 @@ const InventorySlot = ({
 			onPointerDown={isEmpty ? undefined : onPointerDown}
 		>
 			{!isEmpty && (
-				<Text fontSize="sm" fontWeight="bold" color="gray.100">
-					{item.name ?? item.type}
-				</Text>
+				<>
+					{iconInfo && (
+						<Icon
+							icon={iconInfo.icon}
+							width={20}
+							height={20}
+							color={iconInfo.color}
+						/>
+					)}
+					<Flex align="center" gap={1}>
+						<Text fontSize="xs" fontWeight="bold" color="gray.100">
+							{item.name ?? item.type}
+						</Text>
+						{tooltip && (
+							<InfoTooltip
+								content={tooltip.content}
+								seeMoreHref={tooltip.seeMoreHref}
+							/>
+						)}
+					</Flex>
+				</>
 			)}
 		</Box>
 	);
 };
 
-export const InventoryPanel = () => {
+export type InventoryPanelProps = {
+	tooltips?: Record<string, TooltipInfo>;
+};
+
+export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 	const { inventory } = useGameState();
 	const { activeDrag, setActiveDrag } = useDragContext();
 	const slotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -103,7 +139,7 @@ export const InventoryPanel = () => {
 			className="inventory-panel"
 			data-inventory-panel
 			data-first-empty-slot={firstEmptySlot}
-			height="100%"
+			width="fit-content"
 			bg="gray.900"
 			borderTop="1px solid"
 			borderColor="gray.800"
@@ -134,6 +170,8 @@ export const InventoryPanel = () => {
 						const isDragging =
 							activeDrag?.source === "inventory" &&
 							activeDrag.data.itemId === item.id;
+						const tooltip = tooltips?.[item.type];
+						const iconInfo = ITEM_ICONS[item.type];
 						return (
 							<InventorySlot
 								key={item.id}
@@ -142,6 +180,8 @@ export const InventoryPanel = () => {
 								isDragging={isDragging}
 								onPointerDown={(e) => handlePointerDown(item, e)}
 								slotRef={setSlotRef(item.id)}
+								tooltip={tooltip}
+								iconInfo={iconInfo}
 							/>
 						);
 					})

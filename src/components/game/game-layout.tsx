@@ -4,7 +4,7 @@ import { Component, type ReactNode, useId } from "react";
 import { DragProvider } from "./drag-context";
 import { DragOverlay } from "./drag-overlay";
 import type { PlacedItem } from "./game-provider";
-import { InventoryPanel } from "./inventory-panel";
+import { InventoryPanel, type TooltipInfo } from "./inventory-panel";
 import { OverlayLayer } from "./overlay-layer";
 import { PlayCanvas } from "./play-canvas";
 import { TerminalPanel } from "./terminal-panel";
@@ -19,6 +19,8 @@ type GameLayoutProps = {
 	getStatusMessage?: StatusMessageGetter;
 	onPlacedItemClick?: PlacedItemClickHandler;
 	isItemClickable?: ItemClickableCheck;
+	contextualHint?: string;
+	inventoryTooltips?: Record<string, TooltipInfo>;
 };
 
 type SegmentErrorBoundaryProps = {
@@ -71,8 +73,7 @@ const SkipLink = ({
 	children: ReactNode;
 }) => (
 	<Box
-		as="a"
-		href={href}
+		asChild
 		position="absolute"
 		top="0"
 		left="0"
@@ -84,7 +85,7 @@ const SkipLink = ({
 		_focus={{ transform: "translateY(0)" }}
 		zIndex={10}
 	>
-		{children}
+		<a href={href}>{children}</a>
 	</Box>
 );
 
@@ -93,6 +94,8 @@ export const GameLayout = ({
 	getStatusMessage,
 	onPlacedItemClick,
 	isItemClickable,
+	contextualHint,
+	inventoryTooltips,
 }: GameLayoutProps = {}) => {
 	const canvasId = useId();
 	const terminalId = useId();
@@ -116,17 +119,32 @@ export const GameLayout = ({
 					flex="1"
 					overflow="visible"
 					direction="column"
+					justify="center"
 					gap={4}
 					px={{ base: 4, md: 12, lg: 24 }}
 					py={{ base: 4, md: 6 }}
 				>
+					{contextualHint && (
+						<Box
+							bg="gray.800"
+							border="1px solid"
+							borderColor="gray.700"
+							borderRadius="md"
+							px={4}
+							py={3}
+							textAlign="center"
+						>
+							<Text fontSize="sm" color="gray.100">
+								{contextualHint}
+							</Text>
+						</Box>
+					)}
+
 					<Box
 						as="section"
 						id={canvasId}
 						role="region"
 						aria-label="Game Canvas"
-						flex="1"
-						minHeight="200px"
 						overflow="visible"
 					>
 						<SegmentErrorBoundary name="canvas">
@@ -143,11 +161,10 @@ export const GameLayout = ({
 						as="aside"
 						role="complementary"
 						aria-label="Inventory"
-						width="100%"
-						minHeight="120px"
+						alignSelf="center"
 					>
 						<SegmentErrorBoundary name="inventory">
-							<InventoryPanel />
+							<InventoryPanel tooltips={inventoryTooltips} />
 						</SegmentErrorBoundary>
 					</Box>
 				</Flex>

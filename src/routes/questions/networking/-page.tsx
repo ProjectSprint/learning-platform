@@ -1,21 +1,31 @@
 // Main page component for the networking question
-// Orchestrates the game flow by combining custom hooks for network state, terminal handling, and hints
+// Orchestrates the game flow by combining custom hooks for network state and terminal handling
 
-import { useCallback, useEffect, useRef } from "react";
-
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { GameLayout } from "@/components/game/game-layout";
 import {
 	GameProvider,
 	type PlacedItem,
 	useGameDispatch,
+	useGameState,
 } from "@/components/game/game-provider";
-import { GameLayout } from "@/components/game/game-layout";
 
-import { CANVAS_CONFIG, INVENTORY_ITEMS, QUESTION_ID, TERMINAL_PROMPT } from "./-utils/constants";
+import {
+	CANVAS_CONFIG,
+	INVENTORY_ITEMS,
+	QUESTION_ID,
+	TERMINAL_PROMPT,
+} from "./-utils/constants";
+import { getContextualHint } from "./-utils/get-contextual-hint";
+import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
 	getNetworkingItemLabel,
 	getNetworkingStatusMessage,
 } from "./-utils/item-formatters";
-import { useHintSystem } from "./-utils/use-hint-system";
+import {
+	buildPcConfigModal,
+	buildRouterConfigModal,
+} from "./-utils/modal-builders";
 import { useNetworkState } from "./-utils/use-network-state";
 import { useTerminalHandler } from "./-utils/use-terminal-handler";
 
@@ -29,6 +39,7 @@ export const NetworkingQuestion = () => {
 
 const NetworkingGame = () => {
 	const dispatch = useGameDispatch();
+	const state = useGameState();
 	const initializedRef = useRef(false);
 
 	// Initialize the question on mount
@@ -60,25 +71,49 @@ const NetworkingGame = () => {
 	// Use custom hooks for different concerns
 	const networkState = useNetworkState();
 	useTerminalHandler({ pc2Ip: networkState.pc2Ip });
-	useHintSystem({
-		routerPlaced: Boolean(networkState.network.router),
-		pc1Placed: Boolean(networkState.network.pc1),
-		pc2Placed: Boolean(networkState.network.pc2),
-		pc1Connected: networkState.pc1Connected,
-		pc2Connected: networkState.pc2Connected,
-		routerConfigured: networkState.routerConfigured,
-		pc1HasIp: networkState.pc1HasIp,
-		pc2HasIp: networkState.pc2HasIp,
-		dhcpEnabled: networkState.dhcpEnabled,
-		ipRange: networkState.ipRange,
-	});
+
+	// Compute contextual hint based on current network state
+	const contextualHint = useMemo(
+		() =>
+			getContextualHint({
+				placedItems: networkState.placedItems,
+				connections: networkState.connections,
+				router: networkState.network.router,
+				pc1: networkState.network.pc1,
+				pc2: networkState.network.pc2,
+				connectedPcIds: networkState.network.connectedPcIds,
+				routerConfigured: networkState.routerConfigured,
+				dhcpEnabled: networkState.dhcpEnabled,
+				ipRange: networkState.ipRange,
+				routerSettingsOpen: networkState.routerSettingsOpen,
+				pc1HasIp: networkState.pc1HasIp,
+				pc2HasIp: networkState.pc2HasIp,
+			}),
+		[
+			networkState.placedItems,
+			networkState.connections,
+			networkState.network.router,
+			networkState.network.pc1,
+			networkState.network.pc2,
+			networkState.network.connectedPcIds,
+			networkState.routerConfigured,
+			networkState.dhcpEnabled,
+			networkState.ipRange,
+			networkState.routerSettingsOpen,
+			networkState.pc1HasIp,
+			networkState.pc2HasIp,
+		],
+	);
 
 	const handlePlacedItemClick = useCallback(
 		(item: PlacedItem) => {
+			const placedItem = state.canvas.placedItems.find((p) => p.id === item.id);
+			const currentConfig = placedItem?.data ?? {};
+
 			if (item.type === "router") {
 				dispatch({
 					type: "OPEN_MODAL",
-					payload: { type: "router-config", deviceId: item.id },
+					payload: buildRouterConfigModal(item.id, currentConfig),
 				});
 				return;
 			}
@@ -86,11 +121,11 @@ const NetworkingGame = () => {
 			if (item.type === "pc") {
 				dispatch({
 					type: "OPEN_MODAL",
-					payload: { type: "pc-config", deviceId: item.id },
+					payload: buildPcConfigModal(item.id, currentConfig),
 				});
 			}
 		},
-		[dispatch],
+		[dispatch, state.canvas.placedItems],
 	);
 
 	const isItemClickable = useCallback(
@@ -104,6 +139,8 @@ const NetworkingGame = () => {
 			getStatusMessage={getNetworkingStatusMessage}
 			onPlacedItemClick={handlePlacedItemClick}
 			isItemClickable={isItemClickable}
+			contextualHint={contextualHint}
+			inventoryTooltips={INVENTORY_TOOLTIPS}
 		/>
 	);
 };

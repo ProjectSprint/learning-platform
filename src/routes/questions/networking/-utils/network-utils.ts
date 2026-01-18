@@ -42,7 +42,7 @@ export const parseCidrBase = (input?: string | null) => {
  * Analyzes the network topology to identify key devices and their connections
  * @param placedItems - All items placed on the canvas
  * @param connections - All cable connections between items
- * @returns Network snapshot containing router, PCs, and connected PC IDs
+ * @returns Network snapshot containing router, PCs, cables, and connected IDs
  */
 export const buildNetworkSnapshot = (
 	placedItems: PlacedItem[],
@@ -58,14 +58,35 @@ export const buildNetworkSnapshot = (
 	const router = placedItems.find((item) => item.type === "router");
 	const pc1 = placedItems.find((item) => item.id === "pc-1");
 	const pc2 = placedItems.find((item) => item.id === "pc-2");
+	const cables = placedItems.filter((item) => item.type === "cable");
 	const connectedPcIds = new Set<string>();
+	const connectedCableIds = new Set<string>();
 
-	// Identify which PCs are connected to the router
+	// Check each cable to see if it's properly connecting a PC to a router
+	cables.forEach((cable) => {
+		const left = byCoord.get(`${cable.blockX - 1}-${cable.blockY}`);
+		const right = byCoord.get(`${cable.blockX + 1}-${cable.blockY}`);
+		const up = byCoord.get(`${cable.blockX}-${cable.blockY - 1}`);
+		const down = byCoord.get(`${cable.blockX}-${cable.blockY + 1}`);
+
+		const neighbors = [left, right, up, down].filter(Boolean) as PlacedItem[];
+		const hasRouter = neighbors.some((n) => n.type === "router");
+		const hasPc = neighbors.some((n) => n.type === "pc");
+
+		// Cable is connected if it has both a router and a PC as neighbors
+		if (hasRouter && hasPc) {
+			connectedCableIds.add(cable.id);
+			// Also mark the PC as connected
+			for (const pc of neighbors.filter((n) => n.type === "pc")) {
+				connectedPcIds.add(pc.id);
+			}
+		}
+	});
+
+	// Also check connections array for additional PC connections
 	if (router) {
 		connections.forEach((connection) => {
-			const from = byCoord.get(
-				`${connection.from.x}-${connection.from.y}`,
-			);
+			const from = byCoord.get(`${connection.from.x}-${connection.from.y}`);
 			const to = byCoord.get(`${connection.to.x}-${connection.to.y}`);
 
 			if (!from || !to) {
@@ -83,5 +104,5 @@ export const buildNetworkSnapshot = (
 		});
 	}
 
-	return { router, pc1, pc2, connectedPcIds };
+	return { router, pc1, pc2, cables, connectedPcIds, connectedCableIds };
 };

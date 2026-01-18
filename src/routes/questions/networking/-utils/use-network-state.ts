@@ -16,7 +16,8 @@ export const useNetworkState = () => {
 
 	// Build network topology snapshot
 	const network = useMemo(
-		() => buildNetworkSnapshot(state.canvas.placedItems, state.canvas.connections),
+		() =>
+			buildNetworkSnapshot(state.canvas.placedItems, state.canvas.connections),
 		[state.canvas.connections, state.canvas.placedItems],
 	);
 
@@ -29,11 +30,20 @@ export const useNetworkState = () => {
 	const routerConfigured = Boolean(ipBase && dhcpEnabled);
 
 	// Check connection and IP assignment status
-	const pc1Connected = Boolean(network.pc1 && network.connectedPcIds.has("pc-1"));
-	const pc2Connected = Boolean(network.pc2 && network.connectedPcIds.has("pc-2"));
+	const pc1Connected = Boolean(
+		network.pc1 && network.connectedPcIds.has("pc-1"),
+	);
+	const pc2Connected = Boolean(
+		network.pc2 && network.connectedPcIds.has("pc-2"),
+	);
 	const pc1HasIp = typeof network.pc1?.data?.ip === "string";
 	const pc2HasIp = typeof network.pc2?.data?.ip === "string";
-	const pc2Ip = typeof network.pc2?.data?.ip === "string" ? network.pc2.data.ip : null;
+	const pc2Ip =
+		typeof network.pc2?.data?.ip === "string" ? network.pc2.data.ip : null;
+
+	// Check if router settings modal is open
+	const routerSettingsOpen =
+		state.overlay.activeModal?.id?.startsWith("router-config") ?? false;
 
 	// Automatically assign IPs to connected PCs when DHCP is configured
 	useEffect(() => {
@@ -42,7 +52,8 @@ export const useNetworkState = () => {
 		}
 
 		const connectedPcs = [network.pc1, network.pc2].filter(
-			(pc): pc is PlacedItem => Boolean(pc && network.connectedPcIds.has(pc.id)),
+			(pc): pc is PlacedItem =>
+				Boolean(pc && network.connectedPcIds.has(pc.id)),
 		);
 		const desiredIps = new Map<string, string>();
 
@@ -70,14 +81,32 @@ export const useNetworkState = () => {
 			}
 		}
 
+		// Update cable status based on whether they're properly connected
+		network.cables.forEach((cable) => {
+			const isConnected = network.connectedCableIds.has(cable.id);
+			const desiredStatus = isConnected ? "success" : "warning";
+			if (cable.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: cable.id,
+						config: {
+							status: desiredStatus,
+						},
+					},
+				});
+			}
+		});
+
 		// Update PC IP addresses and status as needed
 		[network.pc1, network.pc2].forEach((pc) => {
 			if (!pc) {
 				return;
 			}
 
-			const shouldHaveIp = routerConfigured && network.connectedPcIds.has(pc.id);
-			const desiredIp = shouldHaveIp ? desiredIps.get(pc.id) ?? null : null;
+			const shouldHaveIp =
+				routerConfigured && network.connectedPcIds.has(pc.id);
+			const desiredIp = shouldHaveIp ? (desiredIps.get(pc.id) ?? null) : null;
 			const currentIp =
 				typeof pc.data?.ip === "string" ? (pc.data.ip as string) : null;
 			const desiredStatus = desiredIp ? "success" : "warning";
@@ -111,6 +140,8 @@ export const useNetworkState = () => {
 	}, [
 		dispatch,
 		ipBase,
+		network.cables,
+		network.connectedCableIds,
 		network.connectedPcIds,
 		network.pc1,
 		network.pc2,
@@ -129,10 +160,13 @@ export const useNetworkState = () => {
 		ipRange,
 		ipBase,
 		routerConfigured,
+		routerSettingsOpen,
 		pc1Connected,
 		pc2Connected,
 		pc1HasIp,
 		pc2HasIp,
 		pc2Ip,
+		placedItems: state.canvas.placedItems,
+		connections: state.canvas.connections,
 	};
 };

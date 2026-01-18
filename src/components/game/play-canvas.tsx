@@ -1,4 +1,5 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
+import { Icon } from "@iconify/react";
 import { gsap } from "gsap";
 import {
 	memo,
@@ -22,10 +23,9 @@ import {
 	type DragHandle,
 	ensureGsapPlugins,
 	type GridMetrics,
-	hitTest,
 	hitTestAny,
 } from "./gsap-drag";
-import { SLOT_HEIGHT, SLOT_WIDTH } from "./inventory-panel";
+import { ITEM_CONFIGS, ITEM_ICONS } from "./item-icons";
 
 const BLOCK_HEIGHT = 60;
 
@@ -120,6 +120,18 @@ const PlacedItemCard = memo(
 		const label = getItemLabel(item.type);
 		const statusMessage = getStatusMessage(item);
 		const hasWarning = item.status === "warning";
+		const iconInfo = ITEM_ICONS[item.type];
+
+		const getBorderColor = () => {
+			const config = ITEM_CONFIGS[item.type];
+			const isConnectable = config?.behavior === "connectable";
+
+			if (isConnectable) {
+				if (item.status === "success") return "green.500";
+				if (item.status === "warning") return "red.500";
+			}
+			return "cyan.500";
+		};
 
 		return (
 			<Box
@@ -131,16 +143,27 @@ const PlacedItemCard = memo(
 				height={`${height}px`}
 				bg="gray.800"
 				border="1px solid"
-				borderColor="cyan.500"
+				borderColor={getBorderColor()}
 				borderRadius="md"
 				display="flex"
+				flexDirection="row"
 				alignItems="center"
 				justifyContent="center"
+				gap={2}
+				px={3}
 				cursor="grab"
 				zIndex={isDragging ? 9999 : 1}
 				style={{ touchAction: "none" }}
 				aria-label={`${label}${statusMessage ? `: ${statusMessage}` : ""}`}
 			>
+				{iconInfo && (
+					<Icon
+						icon={iconInfo.icon}
+						width={20}
+						height={20}
+						color={iconInfo.color}
+					/>
+				)}
 				<Text fontSize="xs" fontWeight="bold" color="gray.100">
 					{label}
 				</Text>
@@ -552,6 +575,8 @@ export const PlayCanvas = ({
 		stateKey,
 		stepX,
 		stepY,
+		canvas.config.columns,
+		canvas.config.rows,
 	]);
 
 	useEffect(() => {
@@ -673,9 +698,7 @@ export const PlayCanvas = ({
 		[],
 	);
 
-	const showGrid = Boolean(
-		dragPreview || draggingItemId || activeDrag || canvas.placedItems.length,
-	);
+	const showGrid = true;
 
 	return (
 		<Box

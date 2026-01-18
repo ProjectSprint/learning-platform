@@ -1,8 +1,9 @@
 // Custom hook for handling terminal commands in the networking question
-// Processes ping commands and manages command validation and hints
+// Processes ping commands and manages command validation
 
 import { useEffect, useRef } from "react";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import { buildSuccessModal } from "./modal-builders";
 
 interface UseTerminalHandlerProps {
 	pc2Ip: string | null;
@@ -16,7 +17,6 @@ export const useTerminalHandler = ({ pc2Ip }: UseTerminalHandlerProps) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
 	const lastInputIdRef = useRef<string | null>(null);
-	const invalidCommandCountRef = useRef(0);
 
 	useEffect(() => {
 		const lastEntry = state.terminal.history[state.terminal.history.length - 1];
@@ -52,7 +52,6 @@ export const useTerminalHandler = ({ pc2Ip }: UseTerminalHandlerProps) => {
 		const parts = normalized.split(/\s+/);
 
 		if (parts[0] !== "ping") {
-			invalidCommandCountRef.current += 1;
 			dispatch({
 				type: "ADD_TERMINAL_OUTPUT",
 				payload: {
@@ -61,7 +60,6 @@ export const useTerminalHandler = ({ pc2Ip }: UseTerminalHandlerProps) => {
 				},
 			});
 		} else if (parts.length < 2) {
-			invalidCommandCountRef.current += 1;
 			dispatch({
 				type: "ADD_TERMINAL_OUTPUT",
 				payload: {
@@ -75,7 +73,6 @@ export const useTerminalHandler = ({ pc2Ip }: UseTerminalHandlerProps) => {
 
 			// Handle successful ping
 			if (isValidTarget && pc2Ip) {
-				invalidCommandCountRef.current = 0;
 				dispatch({
 					type: "ADD_TERMINAL_OUTPUT",
 					payload: {
@@ -85,22 +82,17 @@ export const useTerminalHandler = ({ pc2Ip }: UseTerminalHandlerProps) => {
 				});
 				dispatch({
 					type: "OPEN_MODAL",
-					payload: {
-						type: "success",
-						data: {
-							title: "Question complete",
-							message:
-								"You connected two computers and verified their connection using ping.",
-							actionLabel: "Next question",
-						},
-					},
+					payload: buildSuccessModal(
+						"Question complete",
+						"You connected two computers and verified their connection using ping.",
+						"Next question",
+					),
 				});
 				dispatch({ type: "COMPLETE_QUESTION" });
 				return;
 			}
 
 			// Handle invalid target
-			invalidCommandCountRef.current += 1;
 			dispatch({
 				type: "ADD_TERMINAL_OUTPUT",
 				payload: {
@@ -109,40 +101,9 @@ export const useTerminalHandler = ({ pc2Ip }: UseTerminalHandlerProps) => {
 				},
 			});
 		}
-
-		// Provide hints after repeated failures
-		if (
-			invalidCommandCountRef.current === 2 &&
-			!state.overlay.activeModal &&
-			state.overlay.hints.length === 0
-		) {
-			dispatch({
-				type: "SHOW_HINT",
-				payload: {
-					message: "That reachability test is commonly called ping.",
-					docsUrl: "https://www.google.com/search?q=ping+command",
-				},
-			});
-		}
-
-		if (
-			invalidCommandCountRef.current === 3 &&
-			!state.overlay.activeModal &&
-			state.overlay.hints.length === 0
-		) {
-			dispatch({
-				type: "SHOW_HINT",
-				payload: {
-					message: "Target the other PC or its IP address.",
-					docsUrl: "https://www.google.com/search?q=ping+ip+address",
-				},
-			});
-		}
 	}, [
 		dispatch,
 		pc2Ip,
-		state.overlay.activeModal,
-		state.overlay.hints.length,
 		state.phase,
 		state.question.status,
 		state.terminal.history,

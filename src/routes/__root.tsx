@@ -8,7 +8,6 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Provider } from "@/components/ui/provider";
-import Header from "../components/Header";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import appCss from "../styles.css?url";
 
@@ -43,7 +42,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	const routerState = useRouterState();
-	const isQuestionRoute = routerState.location.pathname.startsWith("/questions");
+	const isQuestionRoute =
+		routerState.location.pathname.startsWith("/questions");
 
 	return (
 		<html lang="en" suppressHydrationWarning>
@@ -52,7 +52,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body>
 				<Provider>
-					{!isQuestionRoute && <Header />}
 					{children}
 					{!isQuestionRoute && (
 						<TanStackDevtools

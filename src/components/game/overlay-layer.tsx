@@ -1,41 +1,9 @@
-import { Box, Button, Flex, Link, Text } from "@chakra-ui/react";
-import {
-	Fragment,
-	lazy,
-	type MouseEvent,
-	Suspense,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { Box, Flex, Text } from "@chakra-ui/react";
+import { type MouseEvent, Suspense, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { type Hint, useGameDispatch, useGameState } from "./game-provider";
-
-const RouterConfigForm = lazy(() =>
-	import("./forms/router-config-form").then((mod) => ({
-		default: mod.RouterConfigForm,
-	})),
-);
-
-const PCConfigForm = lazy(() =>
-	import("./forms/pc-config-form").then((mod) => ({
-		default: mod.PCConfigForm,
-	})),
-);
-
-const SuccessModal = lazy(() =>
-	import("./forms/success-modal").then((mod) => ({
-		default: mod.SuccessModal,
-	})),
-);
-
-const ConfirmModal = lazy(() =>
-	import("./forms/confirm-modal").then((mod) => ({
-		default: mod.ConfirmModal,
-	})),
-);
+import { DataDrivenModal } from "./data-driven-modal";
+import { useGameDispatch, useGameState } from "./game-provider";
 
 const getFocusableElements = (container: HTMLElement) =>
 	Array.from(
@@ -47,71 +15,14 @@ const getFocusableElements = (container: HTMLElement) =>
 			!element.hasAttribute("disabled") && !element.getAttribute("aria-hidden"),
 	);
 
-const HintToast = ({
-	hint,
-	onDismiss,
-}: {
-	hint: Hint;
-	onDismiss: () => void;
-}) => {
-	return (
-		<Box
-			bg="gray.800"
-			border="1px solid"
-			borderColor="gray.700"
-			borderRadius="md"
-			p={3}
-			width="260px"
-			boxShadow="lg"
-		>
-			<Text fontSize="sm" fontWeight="bold" mb={2}>
-				Hint
-			</Text>
-			<Text fontSize="sm" color="gray.200" mb={3}>
-				{hint.message}
-			</Text>
-			<Flex justify="space-between" align="center" gap={2}>
-				{hint.docsUrl ? (
-					<Link
-						href={hint.docsUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-						fontSize="sm"
-					>
-						Docs
-					</Link>
-				) : (
-					<Box />
-				)}
-				<Button variant="ghost" size="xs" onClick={onDismiss}>
-					Dismiss
-				</Button>
-			</Flex>
-		</Box>
-	);
-};
-
 export const OverlayLayer = () => {
-	const { overlay, canvas } = useGameState();
+	const { overlay } = useGameState();
 	const dispatch = useGameDispatch();
 	const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 	const modalRef = useRef<HTMLDivElement | null>(null);
 	const lastActiveRef = useRef<HTMLElement | null>(null);
-	const hintTimeouts = useRef<Map<string, number>>(new Map());
 
 	const activeModal = overlay.activeModal;
-	const hints = overlay.hints;
-
-	const currentDeviceConfig = useMemo(() => {
-		if (!activeModal?.deviceId) {
-			return undefined;
-		}
-
-		const placed = canvas.placedItems.find(
-			(item) => item.id === activeModal.deviceId,
-		);
-		return placed?.data;
-	}, [activeModal?.deviceId, canvas.placedItems]);
 
 	useEffect(() => {
 		if (typeof document === "undefined") {
@@ -209,37 +120,6 @@ export const OverlayLayer = () => {
 		};
 	}, [activeModal, dispatch]);
 
-	useEffect(() => {
-		hints.forEach((hint) => {
-			if (!hint.autoDismiss || hintTimeouts.current.has(hint.id)) {
-				return;
-			}
-
-			const timeoutId = window.setTimeout(() => {
-				dispatch({ type: "DISMISS_HINT", payload: { hintId: hint.id } });
-			}, 10_000);
-
-			hintTimeouts.current.set(hint.id, timeoutId);
-		});
-
-		const currentIds = new Set(hints.map((hint) => hint.id));
-		hintTimeouts.current.forEach((timeoutId, hintId) => {
-			if (!currentIds.has(hintId)) {
-				window.clearTimeout(timeoutId);
-				hintTimeouts.current.delete(hintId);
-			}
-		});
-	}, [dispatch, hints]);
-
-	useEffect(() => {
-		return () => {
-			hintTimeouts.current.forEach((timeoutId) => {
-				window.clearTimeout(timeoutId);
-			});
-			hintTimeouts.current.clear();
-		};
-	}, []);
-
 	const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
 		if (event.target !== event.currentTarget) {
 			return;
@@ -254,88 +134,11 @@ export const OverlayLayer = () => {
 		return null;
 	}
 
-	if (!activeModal && hints.length === 0) {
+	if (!activeModal) {
 		return null;
 	}
 
-	const modalContent = (() => {
-		if (!activeModal) {
-			return null;
-		}
-
-		switch (activeModal.type) {
-			case "router-config":
-				return (
-					<RouterConfigForm
-						deviceId={activeModal.deviceId ?? ""}
-						currentConfig={currentDeviceConfig}
-						onClose={() => dispatch({ type: "CLOSE_MODAL" })}
-					/>
-				);
-			case "pc-config":
-				return (
-					<PCConfigForm
-						deviceId={activeModal.deviceId ?? ""}
-						currentConfig={currentDeviceConfig}
-						onClose={() => dispatch({ type: "CLOSE_MODAL" })}
-					/>
-				);
-			case "success": {
-				const title =
-					typeof activeModal.data?.title === "string"
-						? activeModal.data.title
-						: undefined;
-				const message =
-					typeof activeModal.data?.message === "string"
-						? activeModal.data.message
-						: undefined;
-				const actionLabel =
-					typeof activeModal.data?.actionLabel === "string"
-						? activeModal.data.actionLabel
-						: undefined;
-
-				return (
-					<SuccessModal
-						title={title}
-						message={message}
-						actionLabel={actionLabel}
-						onAction={() => dispatch({ type: "CLOSE_MODAL" })}
-					/>
-				);
-			}
-			case "confirm": {
-				const title =
-					typeof activeModal.data?.title === "string"
-						? activeModal.data.title
-						: undefined;
-				const message =
-					typeof activeModal.data?.message === "string"
-						? activeModal.data.message
-						: undefined;
-				const confirmLabel =
-					typeof activeModal.data?.confirmLabel === "string"
-						? activeModal.data.confirmLabel
-						: undefined;
-				const cancelLabel =
-					typeof activeModal.data?.cancelLabel === "string"
-						? activeModal.data.cancelLabel
-						: undefined;
-
-				return (
-					<ConfirmModal
-						title={title}
-						message={message}
-						confirmLabel={confirmLabel}
-						cancelLabel={cancelLabel}
-						onConfirm={() => dispatch({ type: "CLOSE_MODAL" })}
-						onCancel={() => dispatch({ type: "CLOSE_MODAL" })}
-					/>
-				);
-			}
-			default:
-				return null;
-		}
-	})();
+	const handleClose = () => dispatch({ type: "CLOSE_MODAL" });
 
 	return createPortal(
 		<Box position="fixed" inset="0" zIndex={10000} pointerEvents="none">
@@ -373,32 +176,9 @@ export const OverlayLayer = () => {
 								</Flex>
 							}
 						>
-							{modalContent ?? <Fragment />}
+							<DataDrivenModal modal={activeModal} onClose={handleClose} />
 						</Suspense>
 					</Box>
-				</Box>
-			)}
-
-			{hints.length > 0 && (
-				<Box
-					position="absolute"
-					bottom={{ base: 4, md: 6 }}
-					right={{ base: 4, md: 6 }}
-					display="flex"
-					flexDirection="column"
-					gap={3}
-					pointerEvents="auto"
-					aria-live="polite"
-				>
-					{hints.map((hint) => (
-						<HintToast
-							key={hint.id}
-							hint={hint}
-							onDismiss={() =>
-								dispatch({ type: "DISMISS_HINT", payload: { hintId: hint.id } })
-							}
-						/>
-					))}
 				</Box>
 			)}
 		</Box>,

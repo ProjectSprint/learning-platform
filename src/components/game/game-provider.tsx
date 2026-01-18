@@ -83,26 +83,12 @@ export type TerminalState = {
 	history: TerminalEntry[];
 };
 
-export type ModalType = "router-config" | "pc-config" | "success" | "confirm";
+export type { ModalInstance } from "./modal-types";
 
-export type ModalState = {
-	type: ModalType;
-	deviceId?: string;
-	data?: Record<string, unknown>;
-	blocking?: boolean;
-};
-
-export type Hint = {
-	id: string;
-	message: string;
-	docsUrl?: string;
-	autoDismiss: boolean;
-	timestamp: number;
-};
+import type { ModalInstance } from "./modal-types";
 
 export type OverlayState = {
-	activeModal: ModalState | null;
-	hints: Hint[];
+	activeModal: ModalInstance | null;
 };
 
 export type CanvasState = {
@@ -182,7 +168,7 @@ export type GameAction =
 				stateKey?: string;
 			};
 	  }
-	| { type: "OPEN_MODAL"; payload: ModalState }
+	| { type: "OPEN_MODAL"; payload: ModalInstance }
 	| { type: "CLOSE_MODAL" }
 	| { type: "SUBMIT_COMMAND"; payload: { input: string } }
 	| {
@@ -193,28 +179,14 @@ export type GameAction =
 			};
 	  }
 	| { type: "CLEAR_TERMINAL_HISTORY" }
-	| {
-			type: "SHOW_HINT";
-			payload: { message: string; docsUrl?: string; autoDismiss?: boolean };
-	  }
-	| { type: "DISMISS_HINT"; payload: { hintId: string } }
 	| { type: "SET_PHASE"; payload: { phase: GamePhase } }
 	| { type: "COMPLETE_QUESTION" };
 
 const MAX_HISTORY_ENTRIES = 100;
-const MAX_HINTS = 3;
-const MAX_HINT_LENGTH = 200;
 const MAX_INPUT_LENGTH = 200;
 const MAX_OUTPUT_LENGTH = 500;
 const MAX_CONFIG_VALUE_LENGTH = 100;
 const MAX_INVENTORY_ITEMS = 50;
-
-const VALID_MODAL_TYPES: ModalType[] = [
-	"router-config",
-	"pc-config",
-	"success",
-	"confirm",
-];
 
 const defaultCanvasConfig: CanvasConfig = {
 	id: "default-canvas",
@@ -410,7 +382,6 @@ const createDefaultState = (): GameState => ({
 	},
 	overlay: {
 		activeModal: null,
-		hints: [],
 	},
 	question: {
 		id: "",
@@ -430,25 +401,6 @@ const createEntry = (
 			id: `entry-${nextSequence}`,
 			type,
 			content,
-			timestamp: nextSequence,
-		},
-		sequence: nextSequence,
-	};
-};
-
-const createHint = (
-	state: GameState,
-	message: string,
-	docsUrl?: string,
-	autoDismiss?: boolean,
-): { hint: Hint; sequence: number } => {
-	const nextSequence = state.sequence + 1;
-	return {
-		hint: {
-			id: `hint-${nextSequence}`,
-			message,
-			docsUrl,
-			autoDismiss: autoDismiss ?? true,
 			timestamp: nextSequence,
 		},
 		sequence: nextSequence,
@@ -868,23 +820,11 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			);
 		}
 		case "OPEN_MODAL": {
-			const modal = action.payload;
-			if (!VALID_MODAL_TYPES.includes(modal.type)) {
-				return state;
-			}
-
-			if (
-				(modal.type === "router-config" || modal.type === "pc-config") &&
-				typeof modal.deviceId !== "string"
-			) {
-				return state;
-			}
-
 			return {
 				...state,
 				overlay: {
 					...state.overlay,
-					activeModal: modal,
+					activeModal: action.payload,
 				},
 			};
 		}
@@ -938,43 +878,6 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				terminal: {
 					...state.terminal,
 					history: [],
-				},
-			};
-		case "SHOW_HINT": {
-			const message = sanitizeText(action.payload.message, MAX_HINT_LENGTH);
-			if (!message) {
-				return state;
-			}
-
-			if (state.overlay.hints.some((hint) => hint.message === message)) {
-				return state;
-			}
-
-			const { hint, sequence } = createHint(
-				state,
-				message,
-				action.payload.docsUrl,
-				action.payload.autoDismiss,
-			);
-
-			const nextHints = [...state.overlay.hints, hint].slice(-MAX_HINTS);
-			return {
-				...state,
-				sequence,
-				overlay: {
-					...state.overlay,
-					hints: nextHints,
-				},
-			};
-		}
-		case "DISMISS_HINT":
-			return {
-				...state,
-				overlay: {
-					...state.overlay,
-					hints: state.overlay.hints.filter(
-						(hint) => hint.id !== action.payload.hintId,
-					),
 				},
 			};
 		case "SET_PHASE":
