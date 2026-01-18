@@ -1,8 +1,6 @@
-// Custom hook for managing network state and DHCP IP assignment
-// Handles automatic IP assignment to connected PCs when DHCP is enabled
-
 import { useEffect, useMemo } from "react";
-import type { GamePhase, PlacedItem } from "@/components/game/game-provider";
+import type { DragEngine } from "@/components/game/engines";
+import type { PlacedItem } from "@/components/game/game-provider";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import {
 	buildNetworkSnapshot,
@@ -11,22 +9,20 @@ import {
 	parseIpRangeBase,
 } from "./network-utils";
 
-/**
- * Manages the network state including DHCP configuration and automatic phase transitions
- * @returns Network state information including router config, PC connections, and IPs
- */
-export const useNetworkState = () => {
+interface UseNetworkStateArgs {
+	dragEngine: DragEngine | null;
+}
+
+export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
 
-	// Build network topology snapshot
 	const network = useMemo(
 		() =>
 			buildNetworkSnapshot(state.canvas.placedItems, state.canvas.connections),
 		[state.canvas.connections, state.canvas.placedItems],
 	);
 
-	// Extract router configuration
 	const routerConfig = network.router?.data ?? {};
 	const dhcpEnabled = routerConfig.dhcpEnabled === true;
 	const startIp =
@@ -34,7 +30,6 @@ export const useNetworkState = () => {
 	const endIp =
 		typeof routerConfig.endIp === "string" ? routerConfig.endIp : null;
 
-	// Validate IP range configuration
 	const hasValidIpRange =
 		startIp !== null &&
 		endIp !== null &&
@@ -47,7 +42,6 @@ export const useNetworkState = () => {
 		dhcpEnabled && hasValidIpRange ? parseIpRangeBase(startIp) : null;
 	const routerConfigured = Boolean(ipBase && dhcpEnabled && hasValidIpRange);
 
-	// Check connection and IP assignment status
 	const pc1Connected = Boolean(
 		network.pc1 && network.connectedPcIds.has("pc-1"),
 	);
@@ -59,11 +53,9 @@ export const useNetworkState = () => {
 	const pc2Ip =
 		typeof network.pc2?.data?.ip === "string" ? network.pc2.data.ip : null;
 
-	// Check if router settings modal is open
 	const routerSettingsOpen =
 		state.overlay.activeModal?.id?.startsWith("router-config") ?? false;
 
-	// Automatically assign IPs to connected PCs when DHCP is configured
 	useEffect(() => {
 		if (state.question.status === "completed") {
 			return;
@@ -75,8 +67,6 @@ export const useNetworkState = () => {
 		);
 		const desiredIps = new Map<string, string>();
 
-		// Assign sequential IPs to connected PCs based on sorted order
-		// Uses the start IP's last octet as the base for assignment
 		if (routerConfigured && startIp) {
 			const startOctets = startIp.split(".").map((s) => Number.parseInt(s, 10));
 			const baseOctets = startOctets.slice(0, 3);
@@ -91,7 +81,6 @@ export const useNetworkState = () => {
 			});
 		}
 
-		// Update router status
 		if (network.router) {
 			const desiredRouterStatus = routerConfigured ? "success" : "warning";
 			if (network.router.status !== desiredRouterStatus) {
@@ -107,7 +96,6 @@ export const useNetworkState = () => {
 			}
 		}
 
-		// Update cable status based on whether they're properly connected
 		network.cables.forEach((cable) => {
 			const isConnected = network.connectedCableIds.has(cable.id);
 			const desiredStatus = isConnected ? "success" : "warning";
@@ -124,7 +112,6 @@ export const useNetworkState = () => {
 			}
 		});
 
-		// Update PC IP addresses and status as needed
 		[network.pc1, network.pc2].forEach((pc) => {
 			if (!pc) {
 				return;
@@ -150,19 +137,6 @@ export const useNetworkState = () => {
 				});
 			}
 		});
-
-		// Determine game phase based on network state
-		let desiredPhase: GamePhase = "setup";
-		if (network.router && network.connectedPcIds.size > 0) {
-			desiredPhase = "playing";
-		}
-		if (network.router && pc1HasIp && pc2HasIp) {
-			desiredPhase = "terminal";
-		}
-
-		if (state.phase !== desiredPhase) {
-			dispatch({ type: "SET_PHASE", payload: { phase: desiredPhase } });
-		}
 	}, [
 		dispatch,
 		startIp,
@@ -172,10 +146,36 @@ export const useNetworkState = () => {
 		network.pc1,
 		network.pc2,
 		network.router,
+		routerConfigured,
+		state.question.status,
+	]);
+
+	useEffect(() => {
+		if (!dragEngine) return;
+		if (state.question.status === "completed") return;
+
+		if (
+			dragEngine.progress.status === "pending" &&
+			network.router &&
+			network.connectedPcIds.size > 0
+		) {
+			dragEngine.start();
+		}
+
+		if (
+			dragEngine.progress.status !== "finished" &&
+			network.router &&
+			pc1HasIp &&
+			pc2HasIp
+		) {
+			dragEngine.finish();
+		}
+	}, [
+		dragEngine,
+		network.router,
+		network.connectedPcIds,
 		pc1HasIp,
 		pc2HasIp,
-		routerConfigured,
-		state.phase,
 		state.question.status,
 	]);
 
@@ -195,5 +195,6 @@ export const useNetworkState = () => {
 		pc2Ip,
 		placedItems: state.canvas.placedItems,
 		connections: state.canvas.connections,
+		dragProgress: dragEngine?.progress ?? { status: "pending" as const },
 	};
 };

@@ -7,6 +7,9 @@ import type {
 } from "@/components/game/game-provider";
 
 export const QUESTION_ID = "networking";
+export const QUESTION_TITLE = "🏡 Setup your home connection!";
+export const QUESTION_DESCRIPTION =
+	"Try to connect two of this PC using Router!";
 export const TERMINAL_PROMPT =
 	"How can you check that PC-1 is connected to PC-2?";
 

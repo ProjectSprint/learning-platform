@@ -1,10 +1,9 @@
-// Main page component for the networking question
-// Orchestrates the game flow by combining custom hooks for network state and terminal handling
-
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import { GameLayout } from "@/components/game/game-layout";
 import {
 	GameProvider,
+	type GamePhase,
 	type PlacedItem,
 	useGameDispatch,
 	useGameState,
@@ -13,7 +12,9 @@ import {
 import {
 	CANVAS_CONFIG,
 	INVENTORY_ITEMS,
+	QUESTION_DESCRIPTION,
 	QUESTION_ID,
+	QUESTION_TITLE,
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
@@ -27,7 +28,7 @@ import {
 	buildRouterConfigModal,
 } from "./-utils/modal-builders";
 import { useNetworkState } from "./-utils/use-network-state";
-import { useTerminalHandler } from "./-utils/use-terminal-handler";
+import { useNetworkingTerminal } from "./-utils/use-networking-terminal";
 
 export const NetworkingQuestion = () => {
 	return (
@@ -42,7 +43,6 @@ const NetworkingGame = () => {
 	const state = useGameState();
 	const initializedRef = useRef(false);
 
-	// Initialize the question on mount
 	useEffect(() => {
 		if (initializedRef.current) {
 			return;
@@ -68,11 +68,38 @@ const NetworkingGame = () => {
 		});
 	}, [dispatch]);
 
-	// Use custom hooks for different concerns
-	const networkState = useNetworkState();
-	useTerminalHandler({ pc2Ip: networkState.pc2Ip });
+	const dragEngine = useDragEngine();
 
-	// Compute contextual hint based on current network state
+	const networkState = useNetworkState({ dragEngine });
+
+	const handleNetworkingCommand = useNetworkingTerminal({
+		pc2Ip: networkState.pc2Ip,
+	});
+
+	useTerminalEngine({
+		onCommand: handleNetworkingCommand,
+	});
+
+	useEffect(() => {
+		let desiredPhase: GamePhase = "setup";
+
+		if (dragEngine.progress.status === "started") {
+			desiredPhase = "playing";
+		}
+
+		if (dragEngine.progress.status === "finished") {
+			desiredPhase = "terminal";
+		}
+
+		if (state.question.status === "completed") {
+			desiredPhase = "completed";
+		}
+
+		if (state.phase !== desiredPhase) {
+			dispatch({ type: "SET_PHASE", payload: { phase: desiredPhase } });
+		}
+	}, [dispatch, state.phase, state.question.status, dragEngine.progress.status]);
+
 	const contextualHint = useMemo(
 		() =>
 			getContextualHint({
@@ -137,6 +164,8 @@ const NetworkingGame = () => {
 
 	return (
 		<GameLayout
+			title={QUESTION_TITLE}
+			description={QUESTION_DESCRIPTION}
 			getItemLabel={getNetworkingItemLabel}
 			getStatusMessage={getNetworkingStatusMessage}
 			onPlacedItemClick={handlePlacedItemClick}

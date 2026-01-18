@@ -15,6 +15,8 @@ type PlacedItemClickHandler = (placedItem: PlacedItem) => void;
 type ItemClickableCheck = (placedItem: PlacedItem) => boolean;
 
 type GameLayoutProps = {
+	title?: string;
+	description?: string;
 	getItemLabel?: ItemLabelGetter;
 	getStatusMessage?: StatusMessageGetter;
 	onPlacedItemClick?: PlacedItemClickHandler;
@@ -90,6 +92,8 @@ const SkipLink = ({
 );
 
 export const GameLayout = ({
+	title,
+	description,
 	getItemLabel,
 	getStatusMessage,
 	onPlacedItemClick,
@@ -124,19 +128,22 @@ export const GameLayout = ({
 					px={{ base: 4, md: 12, lg: 24 }}
 					py={{ base: 4, md: 6 }}
 				>
-					{contextualHint && (
-						<Box
-							bg="gray.800"
-							border="1px solid"
-							borderColor="gray.700"
-							borderRadius="md"
-							px={4}
-							py={3}
-							textAlign="center"
-						>
-							<Text fontSize="sm" color="gray.100">
-								{contextualHint}
-							</Text>
+					{(title || description) && (
+						<Box textAlign="left">
+							{title && (
+								<Text
+									fontSize={{ base: "2xl", md: "4xl" }}
+									fontWeight="bold"
+									color="gray.50"
+								>
+									{title}
+								</Text>
+							)}
+							{description && (
+								<Text fontSize={{ base: "sm", md: "md" }} color="gray.400">
+									{description}
+								</Text>
+							)}
 						</Box>
 					)}
 
@@ -166,6 +173,29 @@ export const GameLayout = ({
 						<SegmentErrorBoundary name="inventory">
 							<InventoryPanel tooltips={inventoryTooltips} />
 						</SegmentErrorBoundary>
+					</Box>
+
+					<Box
+						minHeight="40px"
+						display="flex"
+						alignItems="center"
+						justifyContent="center"
+					>
+						{contextualHint && (
+							<Box
+								bg="gray.800"
+								border="1px solid"
+								borderColor="gray.700"
+								borderRadius="md"
+								px={4}
+								py={2}
+								textAlign="center"
+							>
+								<Text fontSize="sm" color="gray.100">
+									{contextualHint}
+								</Text>
+							</Box>
+						)}
 					</Box>
 				</Flex>
 

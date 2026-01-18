@@ -8,7 +8,9 @@ Fill out this template to define a new question. This information will be used t
 
 **Question ID:** `[unique-slug, e.g., "networking", "firewall-basics"]`
 
-**Question Title:** `[Display title]`
+**Question Title:** `[Display title shown as large heading, e.g., "🏡 Setup your home connection!"]`
+
+**Question Description:** `[Brief instruction shown below the title, e.g., "Try to connect two of this PC using Router!"]`
 
 **Learning Objective:** `[What should the learner understand after completing this?]`
 
@@ -362,4 +364,4 @@ Before implementation, ensure you have defined:
 - [ ] Success modal content (title, message, button)
 
 **Overall:**
-- [ ] Question ID, title, and learning objective
+- [ ] Question ID, title, description, and learning objective
