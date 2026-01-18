@@ -109,24 +109,32 @@ const validateDnsServer: ModalFieldValidator<string> = (input) => {
 	return null;
 };
 
-const validateConnectionType: ModalFieldValidator<string> = (_input) => {
-	// Allow saving with any value - status will show unconfigured
+const validateConnectionType: ModalFieldValidator<string> = (input) => {
+	if (!input || input === "none") {
+		return "Select a connection type";
+	}
 	return null;
 };
 
 const validatePppoeUsername: ModalFieldValidator<string> = (
-	_input,
-	_allValues,
+	input,
+	allValues,
 ) => {
-	// Allow saving with empty username - status will show needs credentials
+	const connectionType = allValues.connectionType as string | undefined;
+	if (connectionType === "pppoe" && !input) {
+		return "Enter your ISP username";
+	}
 	return null;
 };
 
 const validatePppoePassword: ModalFieldValidator<string> = (
-	_input,
-	_allValues,
+	input,
+	allValues,
 ) => {
-	// Allow saving with empty password - status will show needs credentials
+	const connectionType = allValues.connectionType as string | undefined;
+	if (connectionType === "pppoe" && !input) {
+		return "Enter your ISP password";
+	}
 	return null;
 };
 
@@ -353,7 +361,6 @@ export const buildRouterWanConfigModal = (
 			id: "save",
 			label: "Save",
 			variant: "primary",
-			closesModal: true,
 			async onClick({ values, dispatch }) {
 				const connectionType = String(values.connectionType ?? "none");
 				const username = String(values.username ?? "");
