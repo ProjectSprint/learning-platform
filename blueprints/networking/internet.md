@@ -36,6 +36,11 @@ Fill out this template to define a new question. This information will be used t
 | conn-2 | Connector (Conn 2) | 1 x 1 | 1 | ["fiber"] |
 | internet | Internet | 4 x 1 | 4 | ["igw", "internet", "dns", "google"] |
 
+**Interaction Rules:**
+- Placed items can be repositioned within or across canvases.
+- Dropping a placed item onto another placed item swaps them (cross-canvas allowed if both canvases allow the incoming type).
+- Inventory drops never swap; they only place into empty slots.
+
 ### 2.2 Item Types
 
 Define the types of items in this question. Icons are from [Iconify](https://icon-sets.iconify.design/).
