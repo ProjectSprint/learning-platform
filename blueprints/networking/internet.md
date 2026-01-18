@@ -22,7 +22,33 @@ Fill out this template to define a new question. This information will be used t
 
 **Goal:** Build a complete path from PC to Google by connecting devices and configuring the router's WAN settings, NAT, and DNS
 
-### 2.1 Canvas Setup
+### 2.1 Canvas and Inventory Architecture
+
+**Engine Capability:** The game engine supports multiple canvases and multiple inventories with independent visibility rules and appearance/disappearance conditions.
+
+**This Question:** Currently uses one inventory, but the architecture supports:
+- Multiple inventories (e.g., primary inventory, secondary inventory, context-specific inventories)
+- Per-canvas visibility rules (show/hide specific canvases based on game state)
+- Per-inventory visibility rules (show/hide specific inventory items based on game state)
+- Conditional inventory item availability (items appear/disappear based on game progress)
+
+**Architecture Design Pattern:**
+
+```
+Question State
+  ├── Canvas 1 (Local)
+  ├── Canvas 2 (Connector)
+  ├── ...
+  ├── Inventory 1 (Primary)
+  │   ├── Item 1 (visibility rules)
+  │   ├── Item 2 (visibility rules)
+  │   └── ...
+  ├── Inventory 2 (Secondary) [optional]
+  │   ├── Item X
+  │   └── ...
+```
+
+### 2.1.1 Canvas Setup
 
 **Canvas Layout:** Five canvases arranged left-to-right, each with its own title.
 
@@ -40,6 +66,50 @@ Fill out this template to define a new question. This information will be used t
 - Placed items can be repositioned within or across canvases.
 - Dropping a placed item onto another placed item swaps them (cross-canvas allowed if both canvases allow the incoming type).
 - Inventory drops never swap; they only place into empty slots.
+
+**Canvas Visibility Rules:**
+
+| Canvas Key | Initial Visibility | Visibility Condition | Notes |
+|------------|-------------------|----------------------|-------|
+| local | Always visible | Always visible | User's local network |
+| conn-1 | Always visible | Always visible | Connection point 1 |
+| router | Always visible | Always visible | Router configuration hub |
+| conn-2 | Always visible | Always visible | Connection point 2 |
+| internet | Always visible | Always visible | Internet destination |
+
+*Note: For future puzzles with multiple inventories, canvases can be conditionally shown/hidden based on game progress, user level, or specific learning paths.*
+
+### 2.1.2 Inventory Setup
+
+**Inventory Configuration:** This question uses a single primary inventory. The engine architecture supports multiple inventories:
+
+| Inventory Key | Display Name | Visibility | Item Groups | Visibility Rules |
+|---|---|---|---|---|
+| primary | Inventory | Always visible | All network items | Items visible based on game phase |
+
+**Inventory Visibility Rules:**
+
+Items in the inventory can have conditional visibility rules:
+
+| Item ID | Initial Visibility | Show Condition | Hide Condition | Notes |
+|---------|-------------------|----------------|-----------------|-------|
+| pc-1 | Always visible | Always visible | Never hidden | Core item |
+| cable-1 | Always visible | Always visible | Never hidden | Core item |
+| router-lan-1 | Always visible | Always visible | Never hidden | Core item |
+| router-nat-1 | Always visible | Always visible | Never hidden | Core item |
+| router-wan-1 | Always visible | Always visible | Never hidden | Core item |
+| fiber-1 | Always visible | Always visible | Never hidden | Core item |
+| igw-1 | Always visible | Always visible | Never hidden | Core item |
+| internet-1 | Always visible | Always visible | Never hidden | Core item |
+| dns-1 | Always visible | Always visible | Never hidden | Core item |
+| google-1 | Always visible | Always visible | Never hidden | Core item |
+
+*Note: In future puzzles with dynamic inventory, items can conditionally appear/disappear based on:*
+- *Game phase completion*
+- *Previous question results*
+- *Difficulty level selection*
+- *User unlock progress*
+- *Time-based availability*
 
 ### 2.2 Item Types
 
@@ -701,6 +771,200 @@ The puzzle uses PPPoE with credentials similar to Indonesian ISPs (Indihome/Telk
 To reduce complexity, some values could be pre-filled:
 - DHCP range (from previous puzzle)
 - ISP username hint shown in placeholder
+
+### 5.5 Multi-Inventory & Multi-Canvas Extension
+
+The game engine architecture supports extending this question with multiple inventories and advanced visibility rules. This section documents how to implement these features for future enhancements.
+
+#### 5.5.1 When to Use Multiple Inventories
+
+Multiple inventories are useful when:
+- **Different item sets based on difficulty**: Beginner vs Advanced modes with different available tools
+- **Unlockable items**: Items appear in inventory only after completing previous questions
+- **Scenario-based learning**: Different network scenarios (home, office, ISP) with different available devices
+- **Progressive complexity**: Items unlock as the player progresses through phases
+- **Conditional availability**: Items appear/disappear based on game state or user choices
+
+#### 5.5.2 Multi-Inventory Example Structure
+
+```yaml
+Question: Internet Gateway Configuration
+
+Inventories:
+  primary:
+    name: "Core Network Items"
+    items:
+      - pc, cable, router-lan, router-nat, router-wan
+      - fiber, igw, internet, dns, google
+    visibility: always_visible
+    rules: none
+
+  advanced:
+    name: "Advanced Configuration"
+    items:
+      - vlan-switch, load-balancer, firewall
+    visibility: conditional
+    conditions:
+      show_after: internet_phase_completion
+      show_for: advanced_difficulty_mode
+
+  optional:
+    name: "Optional Devices"
+    items:
+      - redundant-router, backup-dns, vpn-gateway
+    visibility: conditional
+    conditions:
+      show_after: question_completion
+      enabled_by: achievement_unlocked
+```
+
+#### 5.5.3 Visibility Rule Types
+
+| Rule Type | Trigger | Example |
+|-----------|---------|---------|
+| `always_visible` | Always shown | PC, cable, router components |
+| `after_phase` | After completing a phase | Advanced items after configuring WAN |
+| `after_question` | After completing previous question | Items unlocked from DHCP question |
+| `on_difficulty` | Based on selected difficulty | Advanced items on "Expert" mode |
+| `on_achievement` | After earning an achievement | Items unlocked by finding all error hints |
+| `on_first_visit` | On first time entering question | Tutorial items |
+| `on_repeat` | On replaying the question | Additional challenge items |
+| `time_based` | After time elapsed | Items appear after 5 minutes |
+
+#### 5.5.4 Canvas Visibility Rules
+
+Similar to inventory items, canvases can have conditional visibility:
+
+```yaml
+Canvases:
+  local:
+    visibility: always_visible
+
+  router:
+    visibility: always_visible
+
+  advanced_diagnostics:
+    visibility: conditional
+    show_after: wan_configuration_phase
+    show_for: advanced_difficulty_mode
+
+  security:
+    visibility: conditional
+    show_after: dns_resolution_success
+    show_for: difficulty >= advanced
+```
+
+#### 5.5.5 Implementation Pattern for Multi-Inventory
+
+When adding multiple inventories to a question, follow this pattern:
+
+**Step 1: Define Inventories**
+```yaml
+inventories:
+  - id: primary
+    name: "Inventory"
+    visible_by_default: true
+    item_groups: [core-networking]
+
+  - id: advanced
+    name: "Advanced Tools"
+    visible_by_default: false
+    visibility_condition: phase === "configuring" && difficulty === "expert"
+    item_groups: [advanced-networking]
+```
+
+**Step 2: Define Inventory Items with Visibility**
+```yaml
+items:
+  - id: pc-1
+    inventory_id: primary
+    visibility: always_visible
+
+  - id: firewall-1
+    inventory_id: advanced
+    visibility: conditional
+    show_when: phase === "configuring"
+    hide_when: phase === "setup"
+```
+
+**Step 3: Define Visibility Conditions**
+```yaml
+visibility_conditions:
+  - id: after_lan_config
+    condition: router_lan.status === "success"
+
+  - id: advanced_difficulty
+    condition: question.difficulty === "advanced" || "expert"
+
+  - id: phase_dependent
+    condition: phase_transitions.current === "configuring"
+```
+
+**Step 4: Apply to Canvases and Inventories**
+```yaml
+canvas_visibility:
+  internet:
+    show_when:
+      - always (base canvas)
+      - condition: after_lan_config
+        items_to_show: [igw-1, internet-1, dns-1]
+
+inventory_visibility:
+  advanced:
+    show_when:
+      - condition: advanced_difficulty
+      - condition: phase_dependent
+```
+
+#### 5.5.6 Common Multi-Inventory Patterns
+
+**Pattern 1: Progressive Unlock**
+```
+Phase 1 (setup):      Show PC, cable, router
+Phase 2 (configuring): Show router configs, fiber
+Phase 3 (testing):    Show all + diagnostic tools
+Phase 4 (completed):  Show all + achievement items
+```
+
+**Pattern 2: Difficulty-Based**
+```
+Beginner:   Show basic networking items (5 items)
+Intermediate: Add configuration tools (8 items)
+Advanced:   Add diagnostic + security tools (12 items)
+Expert:     Add SDN + virtualization tools (15 items)
+```
+
+**Pattern 3: Scenario-Based**
+```
+Scenario A (Home):    PC, router, modem, ISP connection
+Scenario B (Office):  Multiple PCs, switch, firewall, corporate ISP
+Scenario C (Cloud):   Virtual machines, cloud gateway, CDN
+```
+
+#### 5.5.7 Extending This Question to Multi-Inventory
+
+To extend the current "Internet Gateway" question with multiple inventories:
+
+1. **Keep primary inventory** as-is (all current items always visible)
+
+2. **Add advanced inventory** for network professionals:
+   - VLAN Switch (advanced network segmentation)
+   - Load Balancer (distribute traffic)
+   - Firewall (security filtering)
+   - Intrusion Detection System (IDS)
+   - Condition: `show_after: internet_phase_completion && difficulty === "advanced"`
+
+3. **Add optional inventory** for extended learning:
+   - Redundant router (high availability)
+   - Backup DNS server (fault tolerance)
+   - VPN Gateway (secure remote access)
+   - Condition: `show_after: question_completion`
+
+4. **Add diagnostic inventory** in testing phase:
+   - Packet analyzer
+   - Network monitor
+   - DNS tester
+   - Condition: `show_when: phase === "terminal" || phase === "completed"`
 
 ---
 

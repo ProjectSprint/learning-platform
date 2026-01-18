@@ -20,7 +20,8 @@
       "mcp__chrome-devtools__close_page",
       "mcp__chrome-devtools__list_console_messages",
       "Bash(pgrep:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

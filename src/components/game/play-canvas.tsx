@@ -806,6 +806,8 @@ export const PlayCanvas = ({
 		}
 
 		const canvasElement = canvasRef.current;
+		let lastBlockX: number | null = null;
+		let lastBlockY: number | null = null;
 
 		const handlePointerMove = (event: PointerEvent) => {
 			const rect = canvasElement.getBoundingClientRect();
@@ -831,19 +833,25 @@ export const PlayCanvas = ({
 				return;
 			}
 
-			const valid = canPlaceItemAt(activeDrag.data, { blockX, blockY });
-			setHoveredBlock({ x: blockX, y: blockY });
-			setDragPreview({
-				itemId: activeDrag.data.itemId,
-				itemType: activeDrag.data.itemType,
-				blockX,
-				blockY,
-				x: blockX * stepX,
-				y: blockY * stepY,
-				width: blockWidth,
-				height: blockHeight,
-				valid,
-			});
+			// Only update if block coordinates changed
+			if (lastBlockX !== blockX || lastBlockY !== blockY) {
+				lastBlockX = blockX;
+				lastBlockY = blockY;
+
+				const valid = canPlaceItemAt(activeDrag.data, { blockX, blockY });
+				setHoveredBlock({ x: blockX, y: blockY });
+				setDragPreview({
+					itemId: activeDrag.data.itemId,
+					itemType: activeDrag.data.itemType,
+					blockX,
+					blockY,
+					x: blockX * stepX,
+					y: blockY * stepY,
+					width: blockWidth,
+					height: blockHeight,
+					valid,
+				});
+			}
 		};
 
 		const handlePointerUp = (event: PointerEvent) => {
@@ -1002,6 +1010,7 @@ export const PlayCanvas = ({
 				{dragPreview && (
 					<Box
 						position="absolute"
+						zIndex={10}
 						top={`${dragPreview.y}px`}
 						left={`${dragPreview.x}px`}
 						width={`${dragPreview.width}px`}
