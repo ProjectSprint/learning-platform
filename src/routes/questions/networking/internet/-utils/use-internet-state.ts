@@ -1,0 +1,448 @@
+import { useEffect, useMemo } from "react";
+import type { DragEngine } from "@/components/game/engines";
+import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import {
+	GOOGLE_IP,
+	PUBLIC_DNS_SERVERS,
+	VALID_PPPOE_CREDENTIALS,
+} from "./constants";
+import {
+	buildInternetNetworkSnapshot,
+	isPrivateIp,
+	isPublicIp,
+	isValidIp,
+} from "./network-utils";
+
+interface UseInternetStateArgs {
+	dragEngine: DragEngine | null;
+}
+
+export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
+	const state = useGameState();
+	const dispatch = useGameDispatch();
+
+	const network = useMemo(
+		() =>
+			buildInternetNetworkSnapshot(
+				state.canvas.placedItems,
+				state.canvas.connections,
+			),
+		[state.canvas.connections, state.canvas.placedItems],
+	);
+
+	// Extract Router LAN configuration
+	const routerLanConfig = network.routerLan?.data ?? {};
+	const dhcpEnabled = routerLanConfig.dhcpEnabled === true;
+	const startIp =
+		typeof routerLanConfig.startIp === "string"
+			? routerLanConfig.startIp
+			: null;
+	const endIp =
+		typeof routerLanConfig.endIp === "string" ? routerLanConfig.endIp : null;
+	const dnsServer =
+		typeof routerLanConfig.dnsServer === "string"
+			? routerLanConfig.dnsServer
+			: null;
+
+	// Extract Router NAT configuration
+	const routerNatConfig = network.routerNat?.data ?? {};
+	const natEnabled = routerNatConfig.natEnabled === true;
+
+	// Extract Router WAN configuration
+	const routerWanConfig = network.routerWan?.data ?? {};
+	const connectionType =
+		typeof routerWanConfig.connectionType === "string"
+			? routerWanConfig.connectionType
+			: null;
+	const username =
+		typeof routerWanConfig.username === "string"
+			? routerWanConfig.username
+			: null;
+	const password =
+		typeof routerWanConfig.password === "string"
+			? routerWanConfig.password
+			: null;
+	const publicIp =
+		typeof routerWanConfig.publicIp === "string"
+			? routerWanConfig.publicIp
+			: null;
+
+	// Validate IP range
+	const hasValidIpRange =
+		startIp !== null &&
+		endIp !== null &&
+		isValidIp(startIp) &&
+		isValidIp(endIp) &&
+		isPrivateIp(startIp) &&
+		isPrivateIp(endIp);
+
+	// Validate DNS server
+	const hasValidDnsServer =
+		dnsServer !== null &&
+		isValidIp(dnsServer) &&
+		isPublicIp(dnsServer) &&
+		PUBLIC_DNS_SERVERS.includes(dnsServer);
+
+	// Validate PPPoE credentials
+	const hasValidPppoeCredentials =
+		username === VALID_PPPOE_CREDENTIALS.username &&
+		password === VALID_PPPOE_CREDENTIALS.password;
+
+	// Derived states
+	const routerLanConfigured =
+		dhcpEnabled && hasValidIpRange && hasValidDnsServer;
+	const routerNatConfigured = natEnabled === true;
+	const routerWanConfigured =
+		connectionType === "pppoe" && hasValidPppoeCredentials;
+	const allRoutersConfigured =
+		routerLanConfigured && routerNatConfigured && routerWanConfigured;
+
+	// PC state
+	const pcHasIp = typeof network.pc?.data?.ip === "string";
+	const pcIp =
+		typeof network.pc?.data?.ip === "string" ? network.pc.data.ip : null;
+
+	// Google reachability: all configured and all devices in correct order
+	const googleReachable = allRoutersConfigured && network.isFullyConnected;
+
+	// Check if all devices are placed
+	const allDevicesPlaced =
+		network.pc !== undefined &&
+		network.cable !== undefined &&
+		network.routerLan !== undefined &&
+		network.routerNat !== undefined &&
+		network.routerWan !== undefined &&
+		network.fiber !== undefined &&
+		network.igw !== undefined &&
+		network.internet !== undefined &&
+		network.dns !== undefined &&
+		network.google !== undefined;
+
+	// Modal states
+	const routerLanSettingsOpen =
+		state.overlay.activeModal?.id?.startsWith("router-lan-config") ?? false;
+	const routerNatSettingsOpen =
+		state.overlay.activeModal?.id?.startsWith("router-nat-config") ?? false;
+	const routerWanSettingsOpen =
+		state.overlay.activeModal?.id?.startsWith("router-wan-config") ?? false;
+
+	// Auto-assign IP to PC when routerLan is configured and PC is connected
+	useEffect(() => {
+		if (state.question.status === "completed") {
+			return;
+		}
+
+		// Auto-assign IP to PC when router LAN is configured
+		if (
+			network.pc &&
+			routerLanConfigured &&
+			startIp &&
+			network.isFullyConnected
+		) {
+			const startOctets = startIp.split(".").map((s) => Number.parseInt(s, 10));
+			const baseOctets = startOctets.slice(0, 3);
+			const startLastOctet = startOctets[3];
+			const desiredIp = `${baseOctets.join(".")}.${startLastOctet}`;
+			const currentIp =
+				typeof network.pc.data?.ip === "string" ? network.pc.data.ip : null;
+
+			if (currentIp !== desiredIp) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.pc.id,
+						config: { ip: desiredIp },
+					},
+				});
+			}
+		} else if (network.pc && !routerLanConfigured) {
+			// Remove IP if router LAN not configured
+			const currentIp =
+				typeof network.pc.data?.ip === "string" ? network.pc.data.ip : null;
+			if (currentIp !== null) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.pc.id,
+						config: { ip: null },
+					},
+				});
+			}
+		}
+	}, [
+		dispatch,
+		network.pc,
+		network.isFullyConnected,
+		routerLanConfigured,
+		startIp,
+		state.question.status,
+	]);
+
+	// Update device statuses based on network state
+	useEffect(() => {
+		if (state.question.status === "completed") {
+			return;
+		}
+
+		// PC status: error → warning → success based on IP and internet access
+		if (network.pc) {
+			const hasPcIp = typeof network.pc.data?.ip === "string";
+			let desiredStatus: "error" | "warning" | "success";
+			if (!hasPcIp) {
+				desiredStatus = "error";
+			} else if (!googleReachable) {
+				desiredStatus = "warning";
+			} else {
+				desiredStatus = "success";
+			}
+			if (network.pc.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.pc.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+
+		// Router LAN status: error → warning → success based on config
+		if (network.routerLan) {
+			let desiredStatus: "error" | "warning" | "success";
+			if (!dhcpEnabled || !hasValidIpRange) {
+				desiredStatus = "error";
+			} else if (!hasValidDnsServer) {
+				desiredStatus = "warning";
+			} else {
+				desiredStatus = "success";
+			}
+			if (network.routerLan.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.routerLan.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+
+		// Router NAT status: error → success based on natEnabled
+		if (network.routerNat) {
+			const desiredStatus = natEnabled ? "success" : "error";
+			if (network.routerNat.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.routerNat.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+
+		// Router WAN status: error → warning → success based on PPPoE config
+		if (network.routerWan) {
+			let desiredStatus: "error" | "warning" | "success";
+			if (connectionType !== "pppoe") {
+				desiredStatus = "error";
+			} else if (!hasValidPppoeCredentials) {
+				desiredStatus = "warning";
+			} else {
+				desiredStatus = "success";
+			}
+			if (network.routerWan.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.routerWan.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+
+		// IGW status: warning → success based on WAN connection
+		if (network.igw) {
+			const desiredStatus = routerWanConfigured ? "success" : "warning";
+			if (network.igw.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.igw.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+
+		// Internet status: warning → success based on IGW
+		if (network.internet) {
+			const desiredStatus = routerWanConfigured ? "success" : "warning";
+			if (network.internet.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.internet.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+
+		// DNS status: error → success based on router LAN DNS config
+		if (network.dns) {
+			const desiredStatus = hasValidDnsServer ? "success" : "error";
+			if (network.dns.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.dns.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+
+		// Google status: error → warning → success based on full connectivity
+		if (network.google) {
+			let desiredStatus: "error" | "warning" | "success";
+			if (!hasValidDnsServer) {
+				desiredStatus = "error";
+			} else if (!routerNatConfigured || !routerWanConfigured) {
+				desiredStatus = "warning";
+			} else {
+				desiredStatus = "success";
+			}
+			if (network.google.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.google.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+
+		// Cable status
+		if (network.cable) {
+			const desiredStatus = network.isFullyConnected ? "success" : "warning";
+			if (network.cable.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.cable.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+
+		// Fiber status
+		if (network.fiber) {
+			const desiredStatus = network.isFullyConnected ? "success" : "warning";
+			if (network.fiber.status !== desiredStatus) {
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId: network.fiber.id,
+						config: { status: desiredStatus },
+					},
+				});
+			}
+		}
+	}, [
+		dispatch,
+		network.pc,
+		network.cable,
+		network.routerLan,
+		network.routerNat,
+		network.routerWan,
+		network.fiber,
+		network.igw,
+		network.internet,
+		network.dns,
+		network.google,
+		network.isFullyConnected,
+		dhcpEnabled,
+		hasValidIpRange,
+		hasValidDnsServer,
+		natEnabled,
+		connectionType,
+		hasValidPppoeCredentials,
+		routerNatConfigured,
+		routerWanConfigured,
+		googleReachable,
+		state.question.status,
+	]);
+
+	// Phase transitions
+	useEffect(() => {
+		if (!dragEngine) return;
+		if (state.question.status === "completed") return;
+
+		// pending → start when all devices placed
+		if (dragEngine.progress.status === "pending" && allDevicesPlaced) {
+			dragEngine.start();
+		}
+
+		// playing → finish when all configured and googleReachable
+		if (
+			dragEngine.progress.status !== "finished" &&
+			allRoutersConfigured &&
+			googleReachable
+		) {
+			dragEngine.finish();
+		}
+	}, [
+		dragEngine,
+		allDevicesPlaced,
+		allRoutersConfigured,
+		googleReachable,
+		state.question.status,
+	]);
+
+	return {
+		network,
+		// Router LAN config
+		routerLanConfig,
+		dhcpEnabled,
+		startIp,
+		endIp,
+		dnsServer,
+		hasValidIpRange,
+		hasValidDnsServer,
+		routerLanConfigured,
+		// Router NAT config
+		routerNatConfig,
+		natEnabled,
+		routerNatConfigured,
+		// Router WAN config
+		routerWanConfig,
+		connectionType,
+		username,
+		password,
+		publicIp,
+		hasValidPppoeCredentials,
+		routerWanConfigured,
+		// Combined state
+		allRoutersConfigured,
+		// PC state
+		pcHasIp,
+		pcIp,
+		// Connectivity
+		googleReachable,
+		allDevicesPlaced,
+		// Modal states
+		routerLanSettingsOpen,
+		routerNatSettingsOpen,
+		routerWanSettingsOpen,
+		// Game state
+		placedItems: state.canvas.placedItems,
+		connections: state.canvas.connections,
+		dragProgress: dragEngine?.progress ?? { status: "pending" as const },
+		// Constants for external use
+		googleIp: GOOGLE_IP,
+	};
+};

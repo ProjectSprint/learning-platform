@@ -4,14 +4,14 @@ import { useCallback, useState } from "react";
 
 import { type ModuleConfig, ModuleEngine } from "@/components/module";
 import { DhcpQuestion } from "./dhcp/-page";
+import { InternetQuestion } from "./internet/-page";
 
 const NETWORKING_MODULE: ModuleConfig = {
 	id: "networking-basics",
 	title: "Networking Basics",
 	questions: [
-		{ id: "dhcp-1", component: DhcpQuestion },
-		{ id: "dhcp-2", component: DhcpQuestion },
-		{ id: "dhcp-3", component: DhcpQuestion },
+		{ id: "dhcp-basics", component: DhcpQuestion },
+		{ id: "internet-gateway", component: InternetQuestion },
 	],
 };
 

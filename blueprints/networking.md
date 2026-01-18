@@ -37,6 +37,7 @@
 | Order | Question ID | Blueprint File | Description |
 |-------|-------------|----------------|-------------|
 | 1 | `dhcp-basics` | `blueprints/networking/dhcp.md` | Set up a home network with DHCP |
+| 2 | `internet-gateway` | `blueprints/networking/internet.md` | Connect to the Internet via ISP |
 
 ---
 
