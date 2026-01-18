@@ -239,6 +239,13 @@ export type GameAction =
 			};
 	  }
 	| {
+			type: "SWAP_ITEMS";
+			payload: {
+				from: { canvasKey?: string; blockX: number; blockY: number };
+				to: { canvasKey?: string; blockX: number; blockY: number };
+			};
+	  }
+	| {
 			type: "INIT_MULTI_CANVAS";
 			payload: {
 				questionId: string;
@@ -1143,6 +1150,158 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				canvas: nextPrimaryCanvas,
 				canvases: nextCanvases,
 				crossConnections: nextCrossConnections,
+			};
+		}
+		case "SWAP_ITEMS": {
+			const { from, to } = action.payload;
+
+			const resolveCanvasByKey = (key?: string) => {
+				if (!key) {
+					return state.canvas;
+				}
+				if (state.canvases?.[key]) {
+					return state.canvases[key];
+				}
+				if (state.canvas.config.stateKey === key) {
+					return state.canvas;
+				}
+				return undefined;
+			};
+
+			const fromCanvasKey = from.canvasKey;
+			const toCanvasKey = to.canvasKey;
+			const sameCanvas = fromCanvasKey === toCanvasKey;
+
+			const sourceCanvas = resolveCanvasByKey(fromCanvasKey);
+			const targetCanvas = resolveCanvasByKey(toCanvasKey);
+
+			if (!sourceCanvas || !targetCanvas) {
+				return state;
+			}
+
+			const fromBlock = sourceCanvas.blocks[from.blockY]?.[from.blockX];
+			const toBlock = targetCanvas.blocks[to.blockY]?.[to.blockX];
+
+			if (!fromBlock?.itemId || !toBlock?.itemId) {
+				return state;
+			}
+
+			if (fromBlock.itemId === toBlock.itemId) {
+				return state;
+			}
+
+			const fromItem = sourceCanvas.placedItems.find(
+				(item) => item.itemId === fromBlock.itemId,
+			);
+			const toItem = targetCanvas.placedItems.find(
+				(item) => item.itemId === toBlock.itemId,
+			);
+
+			if (!fromItem || !toItem) {
+				return state;
+			}
+
+			if (sameCanvas || !fromCanvasKey || !toCanvasKey) {
+				let nextBlocks = updateBlock(
+					sourceCanvas.blocks,
+					from.blockX,
+					from.blockY,
+					{ itemId: toItem.itemId },
+				);
+				nextBlocks = updateBlock(nextBlocks, to.blockX, to.blockY, {
+					itemId: fromItem.itemId,
+				});
+
+				const nextPlacedItems = sourceCanvas.placedItems.map((item) => {
+					if (item.itemId === fromItem.itemId) {
+						return { ...item, blockX: to.blockX, blockY: to.blockY };
+					}
+					if (item.itemId === toItem.itemId) {
+						return { ...item, blockX: from.blockX, blockY: from.blockY };
+					}
+					return item;
+				});
+
+				const nextCanvas: CanvasState = {
+					...sourceCanvas,
+					blocks: nextBlocks,
+					placedItems: nextPlacedItems,
+					connections: deriveConnectionsFromCables(nextPlacedItems),
+				};
+
+				return updateCanvasState(state, fromCanvasKey, nextCanvas);
+			}
+
+			if (
+				sourceCanvas.config.allowedItemTypes &&
+				!sourceCanvas.config.allowedItemTypes.includes(toItem.type)
+			) {
+				return state;
+			}
+
+			if (
+				targetCanvas.config.allowedItemTypes &&
+				!targetCanvas.config.allowedItemTypes.includes(fromItem.type)
+			) {
+				return state;
+			}
+
+			const nextSourceBlocks = updateBlock(
+				sourceCanvas.blocks,
+				from.blockX,
+				from.blockY,
+				{ itemId: toItem.itemId },
+			);
+			const nextTargetBlocks = updateBlock(
+				targetCanvas.blocks,
+				to.blockX,
+				to.blockY,
+				{ itemId: fromItem.itemId },
+			);
+
+			const nextSourcePlacedItems = [
+				...sourceCanvas.placedItems.filter(
+					(item) => item.itemId !== fromItem.itemId,
+				),
+				{ ...toItem, blockX: from.blockX, blockY: from.blockY },
+			];
+			const nextTargetPlacedItems = [
+				...targetCanvas.placedItems.filter(
+					(item) => item.itemId !== toItem.itemId,
+				),
+				{ ...fromItem, blockX: to.blockX, blockY: to.blockY },
+			];
+
+			const nextSourceCanvas: CanvasState = {
+				...sourceCanvas,
+				blocks: nextSourceBlocks,
+				placedItems: nextSourcePlacedItems,
+				connections: deriveConnectionsFromCables(nextSourcePlacedItems),
+			};
+			const nextTargetCanvas: CanvasState = {
+				...targetCanvas,
+				blocks: nextTargetBlocks,
+				placedItems: nextTargetPlacedItems,
+				connections: deriveConnectionsFromCables(nextTargetPlacedItems),
+			};
+
+			const nextCanvases = {
+				...state.canvases,
+				[fromCanvasKey]: nextSourceCanvas,
+				[toCanvasKey]: nextTargetCanvas,
+			};
+
+			let nextPrimaryCanvas = state.canvas;
+			if (state.canvas.config.stateKey === fromCanvasKey) {
+				nextPrimaryCanvas = nextSourceCanvas;
+			} else if (state.canvas.config.stateKey === toCanvasKey) {
+				nextPrimaryCanvas = nextTargetCanvas;
+			}
+
+			return {
+				...state,
+				canvas: nextPrimaryCanvas,
+				canvases: nextCanvases,
 			};
 		}
 		case "CONFIGURE_DEVICE": {

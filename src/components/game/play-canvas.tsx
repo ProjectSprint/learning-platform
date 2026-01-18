@@ -394,12 +394,29 @@ export const PlayCanvas = ({
 		],
 	);
 
-	const placeOrRepositionItem = useCallback(
+	const getSwapTarget = useCallback(
 		(data: DragData, target: { blockX: number; blockY: number }) => {
-			if (!canPlaceItemAt(data, target)) {
-				return false;
+			if (!data.isReposition) {
+				return null;
 			}
 
+			const blockKey = `${target.blockX}-${target.blockY}`;
+			const targetItem = placedItemsByKey.get(blockKey);
+			if (!targetItem) {
+				return null;
+			}
+
+			if (targetItem.itemId === data.itemId) {
+				return null;
+			}
+
+			return targetItem;
+		},
+		[placedItemsByKey],
+	);
+
+	const placeOrRepositionItem = useCallback(
+		(data: DragData, target: { blockX: number; blockY: number }) => {
 			if (
 				data.isReposition &&
 				typeof data.fromBlockX === "number" &&
@@ -409,6 +426,30 @@ export const PlayCanvas = ({
 					data.fromBlockX === target.blockX &&
 					data.fromBlockY === target.blockY
 				) {
+					return false;
+				}
+
+				const swapTarget = getSwapTarget(data, target);
+				if (swapTarget) {
+					dispatch({
+						type: "SWAP_ITEMS",
+						payload: {
+							from: {
+								canvasKey: stateKey,
+								blockX: data.fromBlockX,
+								blockY: data.fromBlockY,
+							},
+							to: {
+								canvasKey: stateKey,
+								blockX: target.blockX,
+								blockY: target.blockY,
+							},
+						},
+					});
+					return true;
+				}
+
+				if (!canPlaceItemAt(data, target)) {
 					return false;
 				}
 
@@ -427,6 +468,10 @@ export const PlayCanvas = ({
 				return true;
 			}
 
+			if (!canPlaceItemAt(data, target)) {
+				return false;
+			}
+
 			dispatch({
 				type: "PLACE_ITEM",
 				payload: {
@@ -439,7 +484,7 @@ export const PlayCanvas = ({
 
 			return true;
 		},
-		[canPlaceItemAt, dispatch, stateKey],
+		[canPlaceItemAt, dispatch, getSwapTarget, stateKey],
 	);
 
 	callbacksRef.current = { canPlaceItemAt, placeOrRepositionItem };
@@ -549,6 +594,8 @@ export const PlayCanvas = ({
 						"50%",
 					);
 					const hasCollision = collidingElement !== null;
+					const swapTarget = getSwapTarget(dragData, { blockX, blockY });
+					const canSwap = Boolean(swapTarget);
 
 					const isOriginalPosition =
 						blockX === placedItem.blockX && blockY === placedItem.blockY;
@@ -563,7 +610,7 @@ export const PlayCanvas = ({
 						y: blockY * stepY,
 						width: blockWidth,
 						height: blockHeight,
-						valid: !hasCollision || isOriginalPosition,
+						valid: !hasCollision || isOriginalPosition || canSwap,
 					});
 				},
 				onDragEnd: function (this: Draggable) {
@@ -642,36 +689,45 @@ export const PlayCanvas = ({
 								blockY < targetCanvas.config.rows;
 
 							if (isInsideTarget) {
-								dispatch({
-									type: "TRANSFER_ITEM",
-									payload: {
-										itemId: placedItem.itemId,
-										fromCanvas: sourceCanvasKey,
-										fromBlockX: placedItem.blockX,
-										fromBlockY: placedItem.blockY,
-										toCanvas: targetCanvasKey,
-										toBlockX: blockX,
-										toBlockY: blockY,
-									},
-								});
+								const targetBlock = targetCanvas.blocks[blockY]?.[blockX];
+								const isTargetOccupied = Boolean(targetBlock?.itemId);
+
+								if (isTargetOccupied) {
+									dispatch({
+										type: "SWAP_ITEMS",
+										payload: {
+											from: {
+												canvasKey: sourceCanvasKey,
+												blockX: placedItem.blockX,
+												blockY: placedItem.blockY,
+											},
+											to: {
+												canvasKey: targetCanvasKey,
+												blockX,
+												blockY,
+											},
+										},
+									});
+								} else {
+									dispatch({
+										type: "TRANSFER_ITEM",
+										payload: {
+											itemId: placedItem.itemId,
+											fromCanvas: sourceCanvasKey,
+											fromBlockX: placedItem.blockX,
+											fromBlockY: placedItem.blockY,
+											toCanvas: targetCanvasKey,
+											toBlockX: blockX,
+											toBlockY: blockY,
+										},
+									});
+								}
 								gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
 								setDraggingItemId(null);
 								return;
 							}
 						}
 
-						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-						setDraggingItemId(null);
-						return;
-					}
-
-					const collidingElement = hitTestAny(
-						el,
-						getOtherPlacedElements(),
-						"50%",
-					);
-
-					if (collidingElement) {
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
 						setDraggingItemId(null);
 						return;
@@ -684,6 +740,18 @@ export const PlayCanvas = ({
 						centerY,
 						gridMetrics,
 					);
+					const swapTarget = getSwapTarget(dragData, { blockX, blockY });
+					const collidingElement = hitTestAny(
+						el,
+						getOtherPlacedElements(),
+						"50%",
+					);
+
+					if (collidingElement && !swapTarget) {
+						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+						setDraggingItemId(null);
+						return;
+					}
 
 					const placed = callbacksRef.current?.placeOrRepositionItem(dragData, {
 						blockX,
@@ -712,6 +780,7 @@ export const PlayCanvas = ({
 		blockHeight,
 		blockWidth,
 		canvas.placedItems,
+		getSwapTarget,
 		dispatch,
 		gridMetrics,
 		isItemClickable,
