@@ -320,10 +320,10 @@ const InternetGame = ({
 		<GameShell getItemLabel={getInternetItemLabel}>
 			<Flex
 				direction="column"
-				px={{ base: 4, md: 12, lg: 24 }}
-				py={{ base: 4, md: 6 }}
+				px={{ base: 2, md: 12, lg: 24 }}
+				py={{ base: 2, md: 6 }}
 			>
-				<Box textAlign="left" mb={4}>
+				<Box textAlign="left" mb={{ base: 2, md: 4 }} pb={{ base: 1, md: 0 }}>
 					<Text
 						fontSize={{ base: "2xl", md: "4xl" }}
 						fontWeight="bold"
@@ -338,7 +338,7 @@ const InternetGame = ({
 
 				<Flex
 					direction={{ base: "column", xl: "row" }}
-					gap={4}
+					gap={{ base: 2, md: 4 }}
 					align={{ base: "stretch", xl: "flex-start" }}
 				>
 					{CANVAS_ORDER.map((key) => {

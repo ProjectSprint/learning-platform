@@ -866,8 +866,12 @@ export const PlayCanvas = ({
 			gap={3}
 		>
 			{title ? (
-				<Flex align="center" justify="space-between" mb={4}>
-					<Text fontSize="sm" fontWeight="bold" color="gray.200">
+				<Flex align="center" justify="space-between" mb={{ base: 0, md: 4 }}>
+					<Text
+						fontSize={{ base: "xs", md: "sm" }}
+						fontWeight="bold"
+						color="gray.200"
+					>
 						{title}
 					</Text>
 				</Flex>
