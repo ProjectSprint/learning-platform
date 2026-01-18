@@ -15,7 +15,7 @@ It owns state and exposes it via React context.
 │   │                            STATE                                    │   │
 │   │                                                                     │   │
 │   │  • phase (setup | playing | terminal | completed)                   │   │
-│   │  • inventory items                                                  │   │
+│   │  • inventory groups + items                                         │   │
 │   │  • canvas blocks + placed items                                     │   │
 │   │  • connections                                                      │   │
 │   │  • terminal history                                                 │   │
@@ -67,10 +67,14 @@ GameState
 ├── phase: 'setup' | 'playing' | 'terminal' | 'completed'
 │
 ├── inventory
-│   └── items: InventoryItem[]
+│   └── groups: InventoryGroup[]
 │       ├── id: string
-│       ├── type: 'pc' | 'router' | 'cable' | ...
-│       └── used: boolean
+│       ├── title: string
+│       ├── visible: boolean
+│       └── items: InventoryItem[]
+│           ├── id: string
+│           ├── type: 'pc' | 'router' | 'cable' | ...
+│           └── used: boolean
 │
 ├── canvas                          ◄── single canvas (default)
 │   ├── config: CanvasConfig
@@ -121,6 +125,10 @@ function getCanvasState(state: GameState, stateKey?: string): CanvasState {
 | Action                  | Payload                          | Effect                              |
 | ----------------------- | -------------------------------- | ----------------------------------- |
 | `INIT_QUESTION`         | `{ questionId, config }`         | Initialize state for question       |
+| `ADD_INVENTORY_GROUP`   | `{ group }`                      | Add a new inventory group           |
+| `UPDATE_INVENTORY_GROUP`| `{ id, title?, visible?, items? }`| Update group metadata or items      |
+| `REMOVE_INVENTORY_GROUP`| `{ id }`                         | Remove an inventory group           |
+| `PURGE_ITEMS`           | `{ itemIds }`                    | Remove items from inventory/canvas  |
 | `PLACE_ITEM`            | `{ itemId, blockX, blockY }`     | Move item from inventory to canvas  |
 | `REMOVE_ITEM`           | `{ blockX, blockY }`             | Remove item from canvas             |
 | `MAKE_CONNECTION`       | `{ from, to, cableId }`          | Create connection between items     |
@@ -134,6 +142,32 @@ function getCanvasState(state: GameState, stateKey?: string): CanvasState {
 | `DISMISS_HINT`          | `{ hintId }`                     | Remove hint                         |
 | `SET_PHASE`             | `{ phase }`                      | Change game phase                   |
 | `COMPLETE_QUESTION`     | —                                | Mark question as completed          |
+
+---
+
+## Inventory Groups
+
+```ts
+// Example: spawn a new credentials inventory when a domain is placed
+dispatch({
+  type: "ADD_INVENTORY_GROUP",
+  payload: {
+    group: {
+      id: "letsencrypt-credentials",
+      title: "Let's Encrypt Credentials",
+      visible: true,
+      items: [
+        { id: "le-private-key", type: "private-key", name: "Private Key", used: false },
+        { id: "le-public-key", type: "public-key", name: "Public Key", used: false },
+      ],
+    },
+  },
+})
+
+// Later: hide or remove items when the domain is removed
+dispatch({ type: "UPDATE_INVENTORY_GROUP", payload: { id: "letsencrypt-credentials", visible: false } })
+dispatch({ type: "PURGE_ITEMS", payload: { itemIds: ["le-private-key", "le-public-key"] } })
+```
 
 ---
 
@@ -271,7 +305,13 @@ if (state.phase === 'terminal') {
 // Memoized selectors to prevent unnecessary re-renders
 const useInventory = () => {
   const state = useGameState()
-  return useMemo(() => state.inventory.items.filter(i => !i.used), [state.inventory])
+  return useMemo(
+    () =>
+      state.inventory.groups.flatMap(group =>
+        group.items.filter(i => !i.used),
+      ),
+    [state.inventory.groups],
+  )
 }
 
 const useCanvasItems = () => {
@@ -317,7 +357,7 @@ const useCanvasItems = () => {
 function validateState(state: unknown): GameState | null {
   if (!state || typeof state !== 'object') return null
   if (!isValidPhase(state.phase)) return null
-  if (!Array.isArray(state.inventory?.items)) return null
+  if (!Array.isArray(state.inventory?.groups)) return null
   // ... validate each section
   return state as GameState
 }

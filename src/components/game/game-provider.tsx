@@ -27,6 +27,20 @@ export type InventoryItem = {
 	data?: Record<string, unknown>;
 };
 
+export type InventoryGroup = {
+	id: string;
+	title: string;
+	visible: boolean;
+	items: InventoryItem[];
+};
+
+export type InventoryGroupConfig = {
+	id: string;
+	title: string;
+	visible?: boolean;
+	items: InventoryItem[];
+};
+
 export type CanvasConfig = {
 	id: string;
 	columns: number;
@@ -141,7 +155,7 @@ export type CanvasState = {
 
 export type GameState = {
 	phase: GamePhase;
-	inventory: { items: InventoryItem[] };
+	inventory: { groups: InventoryGroup[] };
 	canvas: CanvasState;
 	canvases?: Record<string, CanvasState>;
 	crossConnections: CrossCanvasConnection[];
@@ -155,6 +169,7 @@ export type GameState = {
 export type InitQuestionConfig = {
 	canvas?: CanvasConfig;
 	inventory?: InventoryItem[];
+	inventoryGroups?: InventoryGroupConfig[];
 	terminal?: Partial<TerminalState>;
 	phase?: GamePhase;
 	questionStatus?: QuestionStatus;
@@ -164,6 +179,27 @@ export type GameAction =
 	| {
 			type: "INIT_QUESTION";
 			payload: { questionId: string; config?: InitQuestionConfig };
+	  }
+	| {
+			type: "ADD_INVENTORY_GROUP";
+			payload: { group: InventoryGroupConfig };
+	  }
+	| {
+			type: "UPDATE_INVENTORY_GROUP";
+			payload: {
+				id: string;
+				title?: string;
+				visible?: boolean;
+				items?: InventoryItem[];
+			};
+	  }
+	| {
+			type: "REMOVE_INVENTORY_GROUP";
+			payload: { id: string };
+	  }
+	| {
+			type: "PURGE_ITEMS";
+			payload: { itemIds: string[] };
 	  }
 	| {
 			type: "PLACE_ITEM";
@@ -251,6 +287,7 @@ export type GameAction =
 				questionId: string;
 				canvases: Record<string, CanvasConfig>;
 				inventory?: InventoryItem[];
+				inventoryGroups?: InventoryGroupConfig[];
 				terminal?: Partial<TerminalState>;
 				phase?: GamePhase;
 				questionStatus?: QuestionStatus;
@@ -283,6 +320,8 @@ const MAX_INPUT_LENGTH = 200;
 const MAX_OUTPUT_LENGTH = 500;
 const MAX_CONFIG_VALUE_LENGTH = 100;
 const MAX_INVENTORY_ITEMS = 50;
+const DEFAULT_INVENTORY_GROUP_ID = "default";
+const DEFAULT_INVENTORY_TITLE = "Inventory";
 
 const defaultCanvasConfig: CanvasConfig = {
 	id: "default-canvas",
@@ -410,17 +449,183 @@ const normalizeInventory = (items: InventoryItem[]) =>
 		.slice(0, MAX_INVENTORY_ITEMS)
 		.map((item) => ({ ...item, used: Boolean(item.used) }));
 
+const normalizeInventoryGroup = (
+	group: InventoryGroupConfig,
+	usedIds: Set<string>,
+): InventoryGroup | null => {
+	if (!group || typeof group.id !== "string") {
+		return null;
+	}
+
+	const normalizedItems = normalizeInventory(group.items ?? []).filter(
+		(item) => {
+			if (usedIds.has(item.id)) {
+				return false;
+			}
+			usedIds.add(item.id);
+			return true;
+		},
+	);
+
+	return {
+		id: group.id,
+		title:
+			typeof group.title === "string" && group.title.trim().length > 0
+				? group.title
+				: DEFAULT_INVENTORY_TITLE,
+		visible: group.visible ?? true,
+		items: normalizedItems,
+	};
+};
+
+const normalizeInventoryGroups = (
+	inventoryItems: InventoryItem[] | undefined,
+	inventoryGroups: InventoryGroupConfig[] | undefined,
+): InventoryGroup[] => {
+	const usedIds = new Set<string>();
+	const groups: InventoryGroup[] = [];
+
+	if (Array.isArray(inventoryGroups)) {
+		for (const group of inventoryGroups) {
+			const normalized = normalizeInventoryGroup(group, usedIds);
+			if (!normalized) {
+				continue;
+			}
+			if (groups.some((existing) => existing.id === normalized.id)) {
+				continue;
+			}
+			groups.push(normalized);
+		}
+	}
+
+	const legacyItems = normalizeInventory(inventoryItems ?? []).filter(
+		(item) => {
+			if (usedIds.has(item.id)) {
+				return false;
+			}
+			usedIds.add(item.id);
+			return true;
+		},
+	);
+
+	if (legacyItems.length > 0) {
+		const defaultIndex = groups.findIndex(
+			(group) => group.id === DEFAULT_INVENTORY_GROUP_ID,
+		);
+		if (defaultIndex >= 0) {
+			const target = groups[defaultIndex];
+			groups[defaultIndex] = {
+				...target,
+				items: [...target.items, ...legacyItems],
+			};
+		} else {
+			groups.push({
+				id: DEFAULT_INVENTORY_GROUP_ID,
+				title: DEFAULT_INVENTORY_TITLE,
+				visible: true,
+				items: legacyItems,
+			});
+		}
+	}
+
+	if (groups.length === 0) {
+		groups.push({
+			id: DEFAULT_INVENTORY_GROUP_ID,
+			title: DEFAULT_INVENTORY_TITLE,
+			visible: true,
+			items: [],
+		});
+	}
+
+	return groups;
+};
+
+const findInventoryItem = (
+	groups: InventoryGroup[],
+	itemId: string,
+): { groupIndex: number; itemIndex: number; item: InventoryItem } | null => {
+	for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+		const itemIndex = groups[groupIndex].items.findIndex(
+			(item) => item.id === itemId,
+		);
+		if (itemIndex >= 0) {
+			return {
+				groupIndex,
+				itemIndex,
+				item: groups[groupIndex].items[itemIndex],
+			};
+		}
+	}
+	return null;
+};
+
+const updateInventoryItem = (
+	groups: InventoryGroup[],
+	itemId: string,
+	update: (item: InventoryItem) => InventoryItem,
+): InventoryGroup[] => {
+	const match = findInventoryItem(groups, itemId);
+	if (!match) {
+		return groups;
+	}
+
+	return groups.map((group, groupIndex) => {
+		if (groupIndex !== match.groupIndex) {
+			return group;
+		}
+		const nextItems = group.items.map((item, itemIndex) =>
+			itemIndex === match.itemIndex ? update(item) : item,
+		);
+		return { ...group, items: nextItems };
+	});
+};
+
+const findUnusedItemByType = (
+	groups: InventoryGroup[],
+	itemType: string,
+): { groupIndex: number; itemIndex: number; item: InventoryItem } | null => {
+	for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+		const itemIndex = groups[groupIndex].items.findIndex(
+			(item) => item.type === itemType && !item.used,
+		);
+		if (itemIndex >= 0) {
+			return {
+				groupIndex,
+				itemIndex,
+				item: groups[groupIndex].items[itemIndex],
+			};
+		}
+	}
+	return null;
+};
+
+const updateInventoryItemsUsage = (
+	groups: InventoryGroup[],
+	itemId: string,
+	used: boolean,
+): InventoryGroup[] =>
+	updateInventoryItem(groups, itemId, (item) => ({ ...item, used }));
+
+const removeInventoryItems = (
+	groups: InventoryGroup[],
+	itemIds: Set<string>,
+): InventoryGroup[] =>
+	groups.map((group) => ({
+		...group,
+		items: group.items.filter((item) => !itemIds.has(item.id)),
+	}));
+
 const applyInitialPlacements = (
 	canvas: CanvasState,
-	inventoryItems: InventoryItem[],
-): { canvas: CanvasState; inventory: InventoryItem[] } => {
+	inventoryGroups: InventoryGroup[],
+): { canvas: CanvasState; inventoryGroups: InventoryGroup[] } => {
 	const placements = canvas.config.initialPlacements ?? [];
 	if (placements.length === 0) {
-		return { canvas, inventory: inventoryItems };
+		return { canvas, inventoryGroups };
 	}
 
 	let nextBlocks = canvas.blocks;
-	let nextInventory = inventoryItems;
+	let nextInventoryGroups = inventoryGroups;
 	const placedItems: PlacedItem[] = [];
 
 	placements.forEach((placement) => {
@@ -433,15 +638,17 @@ const applyInitialPlacements = (
 		}
 
 		let itemId = `initial-${placement.itemType}-${placement.blockX}-${placement.blockY}`;
-		const inventoryIndex = nextInventory.findIndex(
-			(item) => item.type === placement.itemType && !item.used,
+		const inventoryMatch = findUnusedItemByType(
+			nextInventoryGroups,
+			placement.itemType,
 		);
 
-		if (inventoryIndex >= 0) {
-			const inventoryItem = nextInventory[inventoryIndex];
-			itemId = inventoryItem.id;
-			nextInventory = nextInventory.map((item, index) =>
-				index === inventoryIndex ? { ...item, used: true } : item,
+		if (inventoryMatch) {
+			itemId = inventoryMatch.item.id;
+			nextInventoryGroups = updateInventoryItem(
+				nextInventoryGroups,
+				itemId,
+				(item) => ({ ...item, used: true }),
 			);
 		}
 
@@ -468,13 +675,53 @@ const applyInitialPlacements = (
 			placedItems,
 			connections: deriveConnectionsFromCables(placedItems),
 		},
-		inventory: nextInventory,
+		inventoryGroups: nextInventoryGroups,
+	};
+};
+
+const removeItemsFromCanvas = (
+	canvas: CanvasState,
+	itemIds: Set<string>,
+): CanvasState => {
+	const removedItems = canvas.placedItems.filter((item) =>
+		itemIds.has(item.itemId),
+	);
+	if (removedItems.length === 0) {
+		return canvas;
+	}
+
+	let nextBlocks = canvas.blocks;
+	for (const item of removedItems) {
+		nextBlocks = updateBlock(nextBlocks, item.blockX, item.blockY, {
+			status: "empty",
+			itemId: undefined,
+		});
+	}
+
+	const nextPlacedItems = canvas.placedItems.filter(
+		(item) => !itemIds.has(item.itemId),
+	);
+
+	return {
+		...canvas,
+		blocks: nextBlocks,
+		placedItems: nextPlacedItems,
+		connections: deriveConnectionsFromCables(nextPlacedItems),
 	};
 };
 
 const createDefaultState = (): GameState => ({
 	phase: "setup",
-	inventory: { items: [] },
+	inventory: {
+		groups: [
+			{
+				id: DEFAULT_INVENTORY_GROUP_ID,
+				title: DEFAULT_INVENTORY_TITLE,
+				visible: true,
+				items: [],
+			},
+		],
+	},
 	canvas: createCanvasState(defaultCanvasConfig),
 	crossConnections: [],
 	sharedZone: { items: {} },
@@ -585,8 +832,11 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			const config = action.payload.config;
 			const canvasConfig = config?.canvas ?? defaultCanvasConfig;
 			const nextCanvas = createCanvasState(canvasConfig);
-			const inventoryItems = normalizeInventory(config?.inventory ?? []);
-			const seeded = applyInitialPlacements(nextCanvas, inventoryItems);
+			const inventoryGroups = normalizeInventoryGroups(
+				config?.inventory,
+				config?.inventoryGroups,
+			);
+			const seeded = applyInitialPlacements(nextCanvas, inventoryGroups);
 			const terminal = {
 				...state.terminal,
 				...config?.terminal,
@@ -594,7 +844,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			return {
 				...createDefaultState(),
 				phase: config?.phase ?? "setup",
-				inventory: { items: seeded.inventory },
+				inventory: { groups: seeded.inventoryGroups },
 				canvas: seeded.canvas,
 				terminal: {
 					visible: terminal.visible ?? false,
@@ -625,7 +875,10 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				stateKeys.add(canvasConfig.stateKey);
 			}
 
-			let inventoryItems = normalizeInventory(config.inventory ?? []);
+			let inventoryGroups = normalizeInventoryGroups(
+				config.inventory,
+				config.inventoryGroups,
+			);
 			const nextCanvases: Record<string, CanvasState> = {};
 
 			for (const canvasConfig of entries) {
@@ -635,9 +888,9 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				}
 				const seeded = applyInitialPlacements(
 					createCanvasState(canvasConfig),
-					inventoryItems,
+					inventoryGroups,
 				);
-				inventoryItems = seeded.inventory;
+				inventoryGroups = seeded.inventoryGroups;
 				nextCanvases[key] = seeded.canvas;
 			}
 
@@ -658,7 +911,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			return {
 				...createDefaultState(),
 				phase: config.phase ?? "setup",
-				inventory: { items: inventoryItems },
+				inventory: { groups: inventoryGroups },
 				canvas: firstCanvas,
 				canvases: nextCanvases,
 				terminal: {
@@ -672,10 +925,149 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				},
 			};
 		}
+		case "ADD_INVENTORY_GROUP": {
+			const { group } = action.payload;
+			if (state.inventory.groups.some((entry) => entry.id === group.id)) {
+				return state;
+			}
+
+			const usedIds = new Set<string>();
+			for (const entry of state.inventory.groups) {
+				for (const item of entry.items) {
+					usedIds.add(item.id);
+				}
+			}
+
+			const normalized = normalizeInventoryGroup(group, usedIds);
+			if (!normalized) {
+				return state;
+			}
+
+			return {
+				...state,
+				inventory: {
+					groups: [...state.inventory.groups, normalized],
+				},
+			};
+		}
+		case "UPDATE_INVENTORY_GROUP": {
+			const { id, title, visible, items } = action.payload;
+			const groupIndex = state.inventory.groups.findIndex(
+				(entry) => entry.id === id,
+			);
+			if (groupIndex === -1) {
+				return state;
+			}
+
+			let nextItems: InventoryItem[] | undefined;
+			if (Array.isArray(items)) {
+				const usedIds = new Set<string>();
+				for (const [index, entry] of state.inventory.groups.entries()) {
+					if (index === groupIndex) {
+						continue;
+					}
+					for (const item of entry.items) {
+						usedIds.add(item.id);
+					}
+				}
+				const normalizedItems = normalizeInventory(items);
+				nextItems = normalizedItems.filter((item) => {
+					if (usedIds.has(item.id)) {
+						return false;
+					}
+					usedIds.add(item.id);
+					return true;
+				});
+			}
+
+			const nextGroups = state.inventory.groups.map((entry, index) => {
+				if (index !== groupIndex) {
+					return entry;
+				}
+				return {
+					...entry,
+					title:
+						typeof title === "string" && title.trim().length > 0
+							? title
+							: entry.title,
+					visible: visible ?? entry.visible,
+					items: nextItems ?? entry.items,
+				};
+			});
+
+			return {
+				...state,
+				inventory: { groups: nextGroups },
+			};
+		}
+		case "REMOVE_INVENTORY_GROUP": {
+			const nextGroups = state.inventory.groups.filter(
+				(entry) => entry.id !== action.payload.id,
+			);
+
+			return {
+				...state,
+				inventory: { groups: nextGroups },
+			};
+		}
+		case "PURGE_ITEMS": {
+			const itemIds = new Set(action.payload.itemIds);
+			if (itemIds.size === 0) {
+				return state;
+			}
+
+			const nextInventoryGroups = removeInventoryItems(
+				state.inventory.groups,
+				itemIds,
+			);
+
+			let nextCanvas = removeItemsFromCanvas(state.canvas, itemIds);
+			let nextCanvases = state.canvases;
+			if (state.canvases) {
+				nextCanvases = Object.fromEntries(
+					Object.entries(state.canvases).map(([key, canvas]) => [
+						key,
+						removeItemsFromCanvas(canvas, itemIds),
+					]),
+				);
+
+				const primaryKey = state.canvas.config.stateKey;
+				if (primaryKey && nextCanvases[primaryKey]) {
+					nextCanvas = nextCanvases[primaryKey];
+				}
+			}
+
+			const resolveCanvas = (key: string) =>
+				nextCanvases?.[key] ??
+				(nextCanvas.config.stateKey === key ? nextCanvas : undefined);
+
+			const nextCrossConnections = state.crossConnections.filter(
+				(connection) => {
+					const fromCanvas = resolveCanvas(connection.from.canvasKey);
+					const toCanvas = resolveCanvas(connection.to.canvasKey);
+					if (!fromCanvas || !toCanvas) {
+						return false;
+					}
+					const fromBlock =
+						fromCanvas.blocks[connection.from.y]?.[connection.from.x];
+					const toBlock = toCanvas.blocks[connection.to.y]?.[connection.to.x];
+					return Boolean(fromBlock?.itemId && toBlock?.itemId);
+				},
+			);
+
+			return {
+				...state,
+				canvas: nextCanvas,
+				canvases: nextCanvases,
+				crossConnections: nextCrossConnections,
+				inventory: { groups: nextInventoryGroups },
+			};
+		}
 		case "PLACE_ITEM": {
 			const canvas = resolveCanvasState(state, action.payload.stateKey);
 			const { itemId, blockX, blockY } = action.payload;
-			const item = state.inventory.items.find((entry) => entry.id === itemId);
+			const match = findInventoryItem(state.inventory.groups, itemId);
+			const item = match?.item;
 
 			if (!item || item.used) {
 				return state;
@@ -728,14 +1120,16 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				connections: deriveConnectionsFromCables(nextPlacedItems),
 			};
 
-			const nextInventory = state.inventory.items.map((entry) =>
-				entry.id === item.id ? { ...entry, used: true } : entry,
+			const nextInventoryGroups = updateInventoryItemsUsage(
+				state.inventory.groups,
+				item.id,
+				true,
 			);
 
 			return updateCanvasState(
 				{
 					...state,
-					inventory: { items: nextInventory },
+					inventory: { groups: nextInventoryGroups },
 				},
 				action.payload.stateKey,
 				nextCanvas,
@@ -760,8 +1154,10 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			);
 			const nextConnections = deriveConnectionsFromCables(nextPlacedItems);
 
-			const nextInventory = state.inventory.items.map((entry) =>
-				entry.id === block.itemId ? { ...entry, used: false } : entry,
+			const nextInventoryGroups = updateInventoryItemsUsage(
+				state.inventory.groups,
+				block.itemId,
+				false,
 			);
 
 			const nextCanvas: CanvasState = {
@@ -774,7 +1170,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			return updateCanvasState(
 				{
 					...state,
-					inventory: { items: nextInventory },
+					inventory: { groups: nextInventoryGroups },
 				},
 				action.payload.stateKey,
 				nextCanvas,
@@ -868,9 +1264,10 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			}
 
 			if (cableId) {
-				const cableItem = state.inventory.items.find(
-					(entry) => entry.id === cableId,
-				);
+				const cableItem = findInventoryItem(
+					state.inventory.groups,
+					cableId,
+				)?.item;
 				if (!cableItem || cableItem.used) {
 					return state;
 				}
@@ -893,17 +1290,19 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				connections: nextConnections,
 			};
 
-			let nextInventory = state.inventory.items;
+			let nextInventoryGroups = state.inventory.groups;
 			if (cableId) {
-				nextInventory = state.inventory.items.map((entry) =>
-					entry.id === cableId ? { ...entry, used: true } : entry,
+				nextInventoryGroups = updateInventoryItemsUsage(
+					state.inventory.groups,
+					cableId,
+					true,
 				);
 			}
 
 			return updateCanvasState(
 				{
 					...state,
-					inventory: { items: nextInventory },
+					inventory: { groups: nextInventoryGroups },
 				},
 				action.payload.stateKey,
 				nextCanvas,
@@ -928,17 +1327,19 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				connections: nextConnections,
 			};
 
-			let nextInventory = state.inventory.items;
+			let nextInventoryGroups = state.inventory.groups;
 			if (connection.cableId) {
-				nextInventory = state.inventory.items.map((entry) =>
-					entry.id === connection.cableId ? { ...entry, used: false } : entry,
+				nextInventoryGroups = updateInventoryItemsUsage(
+					state.inventory.groups,
+					connection.cableId,
+					false,
 				);
 			}
 
 			return updateCanvasState(
 				{
 					...state,
-					inventory: { items: nextInventory },
+					inventory: { groups: nextInventoryGroups },
 				},
 				action.payload.stateKey,
 				nextCanvas,

@@ -163,7 +163,8 @@ Each item in the panel:
 
 ## Must Do
 
-- Read inventory from `state.inventory.items`
+- Read inventory groups from `state.inventory.groups`
+- Render only visible groups (`group.visible === true`)
 - Filter out used items (`item.used === true`)
 - Set drag data on drag start
 - Show quantity for stackable items (cables)

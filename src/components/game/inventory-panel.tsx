@@ -103,13 +103,10 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 	const { activeDrag, setActiveDrag } = useDragContext();
 	const slotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const slotSize = useInventorySlotSize();
-
-	const items = inventory.items;
-
-	const firstEmptySlot = useMemo(() => {
-		const emptyItem = items.find((item) => item.used);
-		return emptyItem?.id ?? null;
-	}, [items]);
+	const visibleGroups = useMemo(
+		() => inventory.groups.filter((group) => group.visible),
+		[inventory.groups],
+	);
 
 	const handlePointerDown = useCallback(
 		(item: InventoryItem, event: React.PointerEvent<HTMLDivElement>) => {
@@ -142,61 +139,79 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 		[],
 	);
 
+	if (visibleGroups.length === 0) {
+		return null;
+	}
+
 	return (
-		<Box
+		<Flex
 			className="inventory-panel"
 			data-inventory-panel
-			data-first-empty-slot={firstEmptySlot}
+			direction="column"
+			gap={{ base: 2, md: 3 }}
 			width="fit-content"
-			bg="gray.900"
-			borderTop="1px solid"
-			borderColor="gray.800"
-			p={{ base: 2, md: 3 }}
 			overflow="visible"
 		>
-			<Text fontSize="sm" fontWeight="bold" mb={3} color="gray.200">
-				Inventory
-			</Text>
+			{visibleGroups.map((group) => {
+				const items = group.items;
+				const firstEmptySlot = items.find((item) => item.used)?.id ?? null;
 
-			<Flex
-				as="ul"
-				role="list"
-				direction="row"
-				gap={2}
-				wrap="wrap"
-				listStyleType="none"
-				p={0}
-				m={0}
-			>
-				{items.length === 0 ? (
-					<Text fontSize="sm" color="gray.500">
-						No items.
-					</Text>
-				) : (
-					items.map((item) => {
-						const isEmpty = item.used;
-						const isDragging =
-							activeDrag?.source === "inventory" &&
-							activeDrag.data.itemId === item.id;
-						const tooltip = tooltips?.[item.type];
-						const iconInfo = item.icon;
-						return (
-							<InventorySlot
-								key={item.id}
-								item={item}
-								isEmpty={isEmpty}
-								isDragging={isDragging}
-								slotWidth={slotSize.width}
-								slotHeight={slotSize.height}
-								onPointerDown={(e) => handlePointerDown(item, e)}
-								slotRef={setSlotRef(item.id)}
-								tooltip={tooltip}
-								iconInfo={iconInfo}
-							/>
-						);
-					})
-				)}
-			</Flex>
-		</Box>
+				return (
+					<Box
+						key={group.id}
+						data-first-empty-slot={firstEmptySlot}
+						bg="gray.900"
+						borderTop="1px solid"
+						borderColor="gray.800"
+						p={{ base: 2, md: 3 }}
+						overflow="visible"
+					>
+						<Text fontSize="sm" fontWeight="bold" mb={3} color="gray.200">
+							{group.title}
+						</Text>
+
+						<Flex
+							as="ul"
+							role="list"
+							direction="row"
+							gap={2}
+							wrap="wrap"
+							listStyleType="none"
+							p={0}
+							m={0}
+						>
+							{items.length === 0 ? (
+								<Text fontSize="sm" color="gray.500">
+									No items.
+								</Text>
+							) : (
+								items.map((item) => {
+									const isEmpty = item.used;
+									const isDragging =
+										activeDrag?.source === "inventory" &&
+										activeDrag.data.itemId === item.id;
+									const tooltip = tooltips?.[item.type];
+									const iconInfo = item.icon;
+									return (
+										<InventorySlot
+											key={item.id}
+											item={item}
+											isEmpty={isEmpty}
+											isDragging={isDragging}
+											slotWidth={slotSize.width}
+											slotHeight={slotSize.height}
+											onPointerDown={(e) => handlePointerDown(item, e)}
+											slotRef={setSlotRef(item.id)}
+											tooltip={tooltip}
+											iconInfo={iconInfo}
+										/>
+									);
+								})
+							)}
+						</Flex>
+					</Box>
+				);
+			})}
+		</Flex>
 	);
 };

@@ -614,17 +614,18 @@ export const PlayCanvas = ({
 					});
 				},
 				onDragEnd: function (this: Draggable) {
-					const inventoryPanel = document.querySelector(
-						"[data-inventory-panel]",
+					const inventoryPanels = Array.from(
+						document.querySelectorAll<HTMLElement>("[data-inventory-panel]"),
 					);
-					const inventoryRect = inventoryPanel?.getBoundingClientRect();
-					const isOverInventory =
-						inventoryPanel &&
-						inventoryRect &&
-						this.pointerX >= inventoryRect.left &&
-						this.pointerX <= inventoryRect.right &&
-						this.pointerY >= inventoryRect.top &&
-						this.pointerY <= inventoryRect.bottom;
+					const isOverInventory = inventoryPanels.some((panel) => {
+						const rect = panel.getBoundingClientRect();
+						return (
+							this.pointerX >= rect.left &&
+							this.pointerX <= rect.right &&
+							this.pointerY >= rect.top &&
+							this.pointerY <= rect.bottom
+						);
+					});
 
 					const dragSnapshot = activeDragRef.current;
 
@@ -632,7 +633,7 @@ export const PlayCanvas = ({
 					setDragPreview(null);
 					setHoveredBlock(null);
 
-					if (isOverInventory && inventoryPanel) {
+					if (isOverInventory) {
 						dispatch({
 							type: "REMOVE_ITEM",
 							payload: {
