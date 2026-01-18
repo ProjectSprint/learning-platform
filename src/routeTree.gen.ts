@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as QuestionsNetworkingIndexRouteImport } from './routes/questions/networking/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as QuestionsNetworkingDnsIndexRouteImport } from './routes/questions/networking/dns/index'
+import { Route as QuestionsNetworkingDhcpIndexRouteImport } from './routes/questions/networking/dhcp/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -30,10 +30,10 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const QuestionsNetworkingDnsIndexRoute =
-  QuestionsNetworkingDnsIndexRouteImport.update({
-    id: '/questions/networking/dns/',
-    path: '/questions/networking/dns/',
+const QuestionsNetworkingDhcpIndexRoute =
+  QuestionsNetworkingDhcpIndexRouteImport.update({
+    id: '/questions/networking/dhcp/',
+    path: '/questions/networking/dhcp/',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -41,20 +41,20 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/questions/networking': typeof QuestionsNetworkingIndexRoute
-  '/questions/networking/dns': typeof QuestionsNetworkingDnsIndexRoute
+  '/questions/networking/dhcp': typeof QuestionsNetworkingDhcpIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/questions/networking': typeof QuestionsNetworkingIndexRoute
-  '/questions/networking/dns': typeof QuestionsNetworkingDnsIndexRoute
+  '/questions/networking/dhcp': typeof QuestionsNetworkingDhcpIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/questions/networking/': typeof QuestionsNetworkingIndexRoute
-  '/questions/networking/dns/': typeof QuestionsNetworkingDnsIndexRoute
+  '/questions/networking/dhcp/': typeof QuestionsNetworkingDhcpIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -62,26 +62,26 @@ export interface FileRouteTypes {
     | '/'
     | '/api/auth/$'
     | '/questions/networking'
-    | '/questions/networking/dns'
+    | '/questions/networking/dhcp'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/api/auth/$'
     | '/questions/networking'
-    | '/questions/networking/dns'
+    | '/questions/networking/dhcp'
   id:
     | '__root__'
     | '/'
     | '/api/auth/$'
     | '/questions/networking/'
-    | '/questions/networking/dns/'
+    | '/questions/networking/dhcp/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   QuestionsNetworkingIndexRoute: typeof QuestionsNetworkingIndexRoute
-  QuestionsNetworkingDnsIndexRoute: typeof QuestionsNetworkingDnsIndexRoute
+  QuestionsNetworkingDhcpIndexRoute: typeof QuestionsNetworkingDhcpIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -107,11 +107,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/questions/networking/dns/': {
-      id: '/questions/networking/dns/'
-      path: '/questions/networking/dns'
-      fullPath: '/questions/networking/dns'
-      preLoaderRoute: typeof QuestionsNetworkingDnsIndexRouteImport
+    '/questions/networking/dhcp/': {
+      id: '/questions/networking/dhcp/'
+      path: '/questions/networking/dhcp'
+      fullPath: '/questions/networking/dhcp'
+      preLoaderRoute: typeof QuestionsNetworkingDhcpIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -121,7 +121,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   QuestionsNetworkingIndexRoute: QuestionsNetworkingIndexRoute,
-  QuestionsNetworkingDnsIndexRoute: QuestionsNetworkingDnsIndexRoute,
+  QuestionsNetworkingDhcpIndexRoute: QuestionsNetworkingDhcpIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

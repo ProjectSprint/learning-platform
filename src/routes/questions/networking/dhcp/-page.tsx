@@ -31,7 +31,7 @@ import {
 import { useNetworkState } from "./-utils/use-network-state";
 import { useNetworkingTerminal } from "./-utils/use-networking-terminal";
 
-export const DnsQuestion = ({ onQuestionComplete }: QuestionProps) => {
+export const DhcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
 		<GameProvider>
 			<NetworkingGame onQuestionComplete={onQuestionComplete} />

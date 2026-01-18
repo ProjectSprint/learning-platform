@@ -3,15 +3,15 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 
 import { type ModuleConfig, ModuleEngine } from "@/components/module";
-import { DnsQuestion } from "./dns/-page";
+import { DhcpQuestion } from "./dhcp/-page";
 
 const NETWORKING_MODULE: ModuleConfig = {
 	id: "networking-basics",
 	title: "Networking Basics",
 	questions: [
-		{ id: "dns-1", component: DnsQuestion },
-		{ id: "dns-2", component: DnsQuestion },
-		{ id: "dns-3", component: DnsQuestion },
+		{ id: "dhcp-1", component: DhcpQuestion },
+		{ id: "dhcp-2", component: DhcpQuestion },
+		{ id: "dhcp-3", component: DhcpQuestion },
 	],
 };
 
