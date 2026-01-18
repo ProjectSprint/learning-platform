@@ -6,7 +6,12 @@ import {
 	useReducer,
 } from "react";
 
-export type GamePhase = "setup" | "playing" | "terminal" | "completed";
+export type GamePhase =
+	| "setup"
+	| "configuring"
+	| "playing"
+	| "terminal"
+	| "completed";
 export type QuestionStatus = "in_progress" | "completed";
 
 import type { IconInfo, ItemBehavior } from "./item-icons";
@@ -26,6 +31,7 @@ export type CanvasConfig = {
 	id: string;
 	columns: number;
 	rows: number;
+	orientation?: "horizontal" | "vertical";
 	stateKey?: string;
 	allowedItemTypes?: string[];
 	maxItems?: number;
@@ -69,6 +75,34 @@ export type Connection = {
 	cableId?: string;
 };
 
+export type CrossCanvasConnection = {
+	id: string;
+	type: "cable" | "wireless";
+	from: {
+		canvasKey: string;
+		x: number;
+		y: number;
+	};
+	to: {
+		canvasKey: string;
+		x: number;
+		y: number;
+	};
+	cableId?: string;
+};
+
+export type SharedZoneItem = {
+	id: string;
+	key: string;
+	value: unknown;
+	sourceCanvas?: string;
+	timestamp: number;
+};
+
+export type SharedZoneState = {
+	items: Record<string, SharedZoneItem>;
+};
+
 export type TerminalEntryType =
 	| "prompt"
 	| "input"
@@ -110,6 +144,8 @@ export type GameState = {
 	inventory: { items: InventoryItem[] };
 	canvas: CanvasState;
 	canvases?: Record<string, CanvasState>;
+	crossConnections: CrossCanvasConnection[];
+	sharedZone: SharedZoneState;
 	terminal: TerminalState;
 	overlay: OverlayState;
 	question: { id: string; status: QuestionStatus };
@@ -167,6 +203,53 @@ export type GameAction =
 			payload: { connectionId: string; stateKey?: string };
 	  }
 	| {
+			type: "MAKE_CROSS_CONNECTION";
+			payload: {
+				from: { canvasKey: string; x: number; y: number };
+				to: { canvasKey: string; x: number; y: number };
+				cableId?: string;
+			};
+	  }
+	| {
+			type: "REMOVE_CROSS_CONNECTION";
+			payload: { connectionId: string };
+	  }
+	| {
+			type: "SET_SHARED_DATA";
+			payload: {
+				key: string;
+				value: unknown;
+				sourceCanvas?: string;
+			};
+	  }
+	| {
+			type: "REMOVE_SHARED_DATA";
+			payload: { key: string };
+	  }
+	| {
+			type: "TRANSFER_ITEM";
+			payload: {
+				itemId: string;
+				fromCanvas: string;
+				fromBlockX: number;
+				fromBlockY: number;
+				toCanvas: string;
+				toBlockX: number;
+				toBlockY: number;
+			};
+	  }
+	| {
+			type: "INIT_MULTI_CANVAS";
+			payload: {
+				questionId: string;
+				canvases: Record<string, CanvasConfig>;
+				inventory?: InventoryItem[];
+				terminal?: Partial<TerminalState>;
+				phase?: GamePhase;
+				questionStatus?: QuestionStatus;
+			};
+	  }
+	| {
 			type: "CONFIGURE_DEVICE";
 			payload: {
 				deviceId: string;
@@ -198,6 +281,7 @@ const defaultCanvasConfig: CanvasConfig = {
 	id: "default-canvas",
 	columns: 6,
 	rows: 4,
+	orientation: "horizontal",
 };
 
 const sanitizeText = (value: string, maxLength: number) =>
@@ -272,8 +356,12 @@ const updateCanvasState = (
 		return { ...state, canvas: nextCanvas };
 	}
 
+	const nextPrimary =
+		state.canvas.config.stateKey === stateKey ? nextCanvas : state.canvas;
+
 	return {
 		...state,
+		canvas: nextPrimary,
 		canvases: {
 			...(state.canvases ?? {}),
 			[stateKey]: nextCanvas,
@@ -381,6 +469,8 @@ const createDefaultState = (): GameState => ({
 	phase: "setup",
 	inventory: { items: [] },
 	canvas: createCanvasState(defaultCanvasConfig),
+	crossConnections: [],
+	sharedZone: { items: {} },
 	terminal: {
 		visible: false,
 		prompt: "",
@@ -507,6 +597,71 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				question: {
 					id: action.payload.questionId,
 					status: config?.questionStatus ?? "in_progress",
+				},
+			};
+		}
+		case "INIT_MULTI_CANVAS": {
+			const config = action.payload;
+			const entries = Object.values(config.canvases);
+			if (entries.length === 0) {
+				return state;
+			}
+
+			const stateKeys = new Set<string>();
+			for (const canvasConfig of entries) {
+				if (!canvasConfig.stateKey) {
+					return state;
+				}
+				if (stateKeys.has(canvasConfig.stateKey)) {
+					return state;
+				}
+				stateKeys.add(canvasConfig.stateKey);
+			}
+
+			let inventoryItems = normalizeInventory(config.inventory ?? []);
+			const nextCanvases: Record<string, CanvasState> = {};
+
+			for (const canvasConfig of entries) {
+				const key = canvasConfig.stateKey;
+				if (!key) {
+					return state;
+				}
+				const seeded = applyInitialPlacements(
+					createCanvasState(canvasConfig),
+					inventoryItems,
+				);
+				inventoryItems = seeded.inventory;
+				nextCanvases[key] = seeded.canvas;
+			}
+
+			const firstKey = entries[0].stateKey;
+			if (!firstKey) {
+				return state;
+			}
+			const firstCanvas = nextCanvases[firstKey];
+			if (!firstCanvas) {
+				return state;
+			}
+
+			const terminal = {
+				...state.terminal,
+				...config.terminal,
+			};
+
+			return {
+				...createDefaultState(),
+				phase: config.phase ?? "setup",
+				inventory: { items: inventoryItems },
+				canvas: firstCanvas,
+				canvases: nextCanvases,
+				terminal: {
+					visible: terminal.visible ?? false,
+					prompt: terminal.prompt ?? "",
+					history: terminal.history ?? [],
+				},
+				question: {
+					id: config.questionId,
+					status: config.questionStatus ?? "in_progress",
 				},
 			};
 		}
@@ -782,6 +937,214 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				nextCanvas,
 			);
 		}
+		case "MAKE_CROSS_CONNECTION": {
+			const { from, to, cableId } = action.payload;
+			if (!state.canvases) {
+				return state;
+			}
+
+			if (from.canvasKey === to.canvasKey) {
+				return state;
+			}
+
+			const fromCanvas = state.canvases[from.canvasKey];
+			const toCanvas = state.canvases[to.canvasKey];
+			if (!fromCanvas || !toCanvas) {
+				return state;
+			}
+
+			const fromBlock = fromCanvas.blocks[from.y]?.[from.x];
+			const toBlock = toCanvas.blocks[to.y]?.[to.x];
+			if (!fromBlock?.itemId || !toBlock?.itemId) {
+				return state;
+			}
+
+			const nextConnection: CrossCanvasConnection = {
+				id: crypto.randomUUID(),
+				type: "cable",
+				from,
+				to,
+				cableId,
+			};
+
+			return {
+				...state,
+				crossConnections: [...state.crossConnections, nextConnection],
+			};
+		}
+		case "REMOVE_CROSS_CONNECTION": {
+			const nextConnections = state.crossConnections.filter(
+				(connection) => connection.id !== action.payload.connectionId,
+			);
+
+			return {
+				...state,
+				crossConnections: nextConnections,
+			};
+		}
+		case "SET_SHARED_DATA": {
+			const nextItem: SharedZoneItem = {
+				id: crypto.randomUUID(),
+				key: action.payload.key,
+				value: action.payload.value,
+				sourceCanvas: action.payload.sourceCanvas,
+				timestamp: Date.now(),
+			};
+
+			return {
+				...state,
+				sharedZone: {
+					items: {
+						...state.sharedZone.items,
+						[action.payload.key]: nextItem,
+					},
+				},
+			};
+		}
+		case "REMOVE_SHARED_DATA": {
+			const nextItems = { ...state.sharedZone.items };
+			delete nextItems[action.payload.key];
+
+			return {
+				...state,
+				sharedZone: {
+					items: nextItems,
+				},
+			};
+		}
+		case "TRANSFER_ITEM": {
+			const {
+				itemId,
+				fromCanvas,
+				fromBlockX,
+				fromBlockY,
+				toCanvas,
+				toBlockX,
+				toBlockY,
+			} = action.payload;
+
+			if (!state.canvases) {
+				return state;
+			}
+
+			if (fromCanvas === toCanvas) {
+				return state;
+			}
+
+			const sourceCanvas = state.canvases[fromCanvas];
+			const targetCanvas = state.canvases[toCanvas];
+			if (!sourceCanvas || !targetCanvas) {
+				return state;
+			}
+
+			const sourceBlock = sourceCanvas.blocks[fromBlockY]?.[fromBlockX];
+			if (!sourceBlock?.itemId || sourceBlock.itemId !== itemId) {
+				return state;
+			}
+
+			const targetBlock = targetCanvas.blocks[toBlockY]?.[toBlockX];
+			if (!targetBlock || targetBlock.status === "occupied") {
+				return state;
+			}
+
+			const movingItem = sourceCanvas.placedItems.find(
+				(item) => item.itemId === itemId,
+			);
+			if (!movingItem) {
+				return state;
+			}
+
+			if (
+				targetCanvas.config.allowedItemTypes &&
+				!targetCanvas.config.allowedItemTypes.includes(movingItem.type)
+			) {
+				return state;
+			}
+
+			if (
+				typeof targetCanvas.config.maxItems === "number" &&
+				targetCanvas.placedItems.length >= targetCanvas.config.maxItems
+			) {
+				return state;
+			}
+
+			const nextSourceBlocks = updateBlock(
+				sourceCanvas.blocks,
+				fromBlockX,
+				fromBlockY,
+				{ status: "empty", itemId: undefined },
+			);
+			const nextSourcePlacedItems = sourceCanvas.placedItems.filter(
+				(item) => item.itemId !== itemId,
+			);
+			const nextSourceConnections = deriveConnectionsFromCables(
+				nextSourcePlacedItems,
+			);
+			const nextSourceCanvas: CanvasState = {
+				...sourceCanvas,
+				blocks: nextSourceBlocks,
+				placedItems: nextSourcePlacedItems,
+				connections: nextSourceConnections,
+			};
+
+			const nextTargetBlocks = updateBlock(
+				targetCanvas.blocks,
+				toBlockX,
+				toBlockY,
+				{ status: "occupied", itemId },
+			);
+			const nextTargetPlacedItems = [
+				...targetCanvas.placedItems,
+				{
+					...movingItem,
+					blockX: toBlockX,
+					blockY: toBlockY,
+				},
+			];
+			const nextTargetConnections = deriveConnectionsFromCables(
+				nextTargetPlacedItems,
+			);
+			const nextTargetCanvas: CanvasState = {
+				...targetCanvas,
+				blocks: nextTargetBlocks,
+				placedItems: nextTargetPlacedItems,
+				connections: nextTargetConnections,
+			};
+
+			const nextCrossConnections = state.crossConnections.filter(
+				(connection) => {
+					const fromMatch =
+						connection.from.canvasKey === fromCanvas &&
+						connection.from.x === fromBlockX &&
+						connection.from.y === fromBlockY;
+					const toMatch =
+						connection.to.canvasKey === fromCanvas &&
+						connection.to.x === fromBlockX &&
+						connection.to.y === fromBlockY;
+					return !fromMatch && !toMatch;
+				},
+			);
+
+			const nextCanvases = {
+				...state.canvases,
+				[fromCanvas]: nextSourceCanvas,
+				[toCanvas]: nextTargetCanvas,
+			};
+
+			let nextPrimaryCanvas = state.canvas;
+			if (state.canvas.config.stateKey === fromCanvas) {
+				nextPrimaryCanvas = nextSourceCanvas;
+			} else if (state.canvas.config.stateKey === toCanvas) {
+				nextPrimaryCanvas = nextTargetCanvas;
+			}
+
+			return {
+				...state,
+				canvas: nextPrimaryCanvas,
+				canvases: nextCanvases,
+				crossConnections: nextCrossConnections,
+			};
+		}
 		case "CONFIGURE_DEVICE": {
 			const canvas = resolveCanvasState(state, action.payload.stateKey);
 			const config = sanitizeDeviceConfig(action.payload.config);
@@ -953,3 +1316,31 @@ export const useGame = () => ({
 	state: useGameState(),
 	dispatch: useGameDispatch(),
 });
+
+export const useCanvasState = (stateKey?: string) => {
+	const state = useGameState();
+	if (!stateKey) {
+		return state.canvas;
+	}
+	return state.canvases?.[stateKey] ?? state.canvas;
+};
+
+export const useCrossConnections = () => {
+	const state = useGameState();
+	return state.crossConnections;
+};
+
+export const useSharedZone = () => {
+	const state = useGameState();
+	return state.sharedZone;
+};
+
+export const useSharedData = <T = unknown>(key: string): T | undefined => {
+	const state = useGameState();
+	return state.sharedZone.items[key]?.value as T | undefined;
+};
+
+export const useAllCanvases = () => {
+	const state = useGameState();
+	return state.canvases ?? { default: state.canvas };
+};

@@ -11,8 +11,9 @@ import {
 	useState,
 } from "react";
 import { useDragContext } from "./drag-context";
-import type { DragData } from "./drag-types";
+import type { ActiveDrag, DragData } from "./drag-types";
 import {
+	type Block,
 	type PlacedItem,
 	useGameDispatch,
 	useGameState,
@@ -219,7 +220,9 @@ export const PlayCanvas = ({
 	const canvas = stateKey
 		? (state.canvases?.[stateKey] ?? state.canvas)
 		: state.canvas;
+	const canvasKey = stateKey ?? "default";
 	const canvasRef = useRef<HTMLDivElement | null>(null);
+	const activeDragRef = useRef<ActiveDrag | null>(null);
 	const placedItemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const draggablesRef = useRef<DragHandle[]>([]);
 	const callbacksRef = useRef<{
@@ -244,6 +247,11 @@ export const PlayCanvas = ({
 		gapX: 0,
 		gapY: 0,
 	});
+	const orientation = canvas.config.orientation ?? "horizontal";
+
+	useEffect(() => {
+		activeDragRef.current = activeDrag;
+	}, [activeDrag]);
 
 	const placedItemsByKey = useMemo(() => {
 		const map = new Map<string, PlacedItem>();
@@ -252,6 +260,55 @@ export const PlayCanvas = ({
 		}
 		return map;
 	}, [canvas.placedItems]);
+
+	const orderedBlocks = useMemo(() => {
+		if (orientation !== "vertical") {
+			return canvas.blocks.flat();
+		}
+		const blocks: Block[] = [];
+		for (let x = 0; x < canvas.config.columns; x += 1) {
+			for (let y = 0; y < canvas.config.rows; y += 1) {
+				const block = canvas.blocks[y]?.[x];
+				if (block) {
+					blocks.push(block);
+				}
+			}
+		}
+		return blocks;
+	}, [canvas.blocks, canvas.config.columns, canvas.config.rows, orientation]);
+
+	useEffect(() => {
+		if (!activeDrag || !canvasRef.current) {
+			return;
+		}
+
+		const element = canvasRef.current;
+		const handlePointerMove = (event: PointerEvent) => {
+			const rect = element.getBoundingClientRect();
+			const isInside =
+				event.clientX >= rect.left &&
+				event.clientX <= rect.right &&
+				event.clientY >= rect.top &&
+				event.clientY <= rect.bottom;
+
+			setActiveDrag((current) => {
+				if (!current) {
+					return current;
+				}
+				const nextTarget = isInside ? canvasKey : undefined;
+				if (current.targetCanvasKey === nextTarget) {
+					return current;
+				}
+				if (!isInside && current.targetCanvasKey !== canvasKey) {
+					return current;
+				}
+				return { ...current, targetCanvasKey: nextTarget };
+			});
+		};
+
+		window.addEventListener("pointermove", handlePointerMove);
+		return () => window.removeEventListener("pointermove", handlePointerMove);
+	}, [activeDrag, canvasKey, setActiveDrag]);
 
 	useEffect(() => {
 		const element = canvasRef.current;
@@ -443,6 +500,8 @@ export const PlayCanvas = ({
 							...dragData,
 							itemName: placedItem.type,
 						},
+						sourceCanvasKey: canvasKey,
+						targetCanvasKey: canvasKey,
 						element: el,
 						initialRect: rect,
 						pointerOffset,
@@ -507,6 +566,8 @@ export const PlayCanvas = ({
 						this.pointerY >= inventoryRect.top &&
 						this.pointerY <= inventoryRect.bottom;
 
+					const dragSnapshot = activeDragRef.current;
+
 					setActiveDrag(null);
 					setDragPreview(null);
 					setHoveredBlock(null);
@@ -525,6 +586,71 @@ export const PlayCanvas = ({
 					}
 
 					el.style.opacity = "1";
+
+					const targetCanvasKey = dragSnapshot?.targetCanvasKey;
+					const sourceCanvasKey = dragSnapshot?.sourceCanvasKey ?? canvasKey;
+					const isCrossCanvas =
+						targetCanvasKey && targetCanvasKey !== sourceCanvasKey;
+
+					if (isCrossCanvas && state.canvases) {
+						const targetCanvas = state.canvases[targetCanvasKey];
+						const targetElement = document.querySelector<HTMLDivElement>(
+							`[data-game-canvas][data-canvas-key="${targetCanvasKey}"]`,
+						);
+
+						if (targetCanvas && targetElement) {
+							const rect = targetElement.getBoundingClientRect();
+							const styles = window.getComputedStyle(targetElement);
+							const gapX = Number.parseFloat(
+								styles.columnGap || styles.gap || "0",
+							);
+							const gapY = Number.parseFloat(
+								styles.rowGap || styles.gap || "0",
+							);
+							const targetBlockWidth =
+								(rect.width - gapX * (targetCanvas.config.columns - 1)) /
+									targetCanvas.config.columns || 0;
+
+							const { blockX, blockY } = convertPixelToBlock(
+								this.pointerX - rect.left,
+								this.pointerY - rect.top,
+								{
+									blockWidth: targetBlockWidth,
+									blockHeight,
+									gapX,
+									gapY,
+								},
+							);
+
+							const isInsideTarget =
+								blockX >= 0 &&
+								blockY >= 0 &&
+								blockX < targetCanvas.config.columns &&
+								blockY < targetCanvas.config.rows;
+
+							if (isInsideTarget) {
+								dispatch({
+									type: "TRANSFER_ITEM",
+									payload: {
+										itemId: placedItem.itemId,
+										fromCanvas: sourceCanvasKey,
+										fromBlockX: placedItem.blockX,
+										fromBlockY: placedItem.blockY,
+										toCanvas: targetCanvasKey,
+										toBlockX: blockX,
+										toBlockY: blockY,
+									},
+								});
+								gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+								setDraggingItemId(null);
+								return;
+							}
+						}
+
+						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+						setDraggingItemId(null);
+						return;
+					}
 
 					const collidingElement = hitTestAny(
 						el,
@@ -578,6 +704,8 @@ export const PlayCanvas = ({
 		isItemClickable,
 		onPlacedItemClick,
 		setActiveDrag,
+		state.canvases,
+		canvasKey,
 		stateKey,
 		stepX,
 		stepY,
@@ -732,11 +860,14 @@ export const PlayCanvas = ({
 				ref={canvasRef}
 				position="relative"
 				display="grid"
+				data-game-canvas
+				data-canvas-key={canvasKey}
 				gridTemplateColumns={`repeat(${canvas.config.columns}, minmax(0, 1fr))`}
 				gridTemplateRows={`repeat(${canvas.config.rows}, ${BLOCK_HEIGHT}px)`}
+				gridAutoFlow={orientation === "vertical" ? "column" : "row"}
 				gap={2}
 			>
-				{canvas.blocks.flat().map((block) => {
+				{orderedBlocks.map((block) => {
 					const key = `${block.x}-${block.y}`;
 					const placedItem = placedItemsByKey.get(key);
 					const isHovered =
@@ -801,3 +932,5 @@ export const PlayCanvas = ({
 		</Box>
 	);
 };
+
+export type { PlayCanvasProps };

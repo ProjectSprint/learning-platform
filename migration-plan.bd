@@ -1,0 +1,18 @@
+MIGRATION CHECKLIST
+===================
+
+GameLayout usages found:
+- src/routes/questions/networking/internet/-page.tsx
+- src/routes/questions/networking/dhcp/-page.tsx
+
+Questions to migrate:
+- [x] Internet question (src/routes/questions/networking/internet/-page.tsx)
+- [x] DHCP question (src/routes/questions/networking/dhcp/-page.tsx)
+
+For each question:
+- [x] Backup original file (git branch: backup/refactor-canvas)
+- [x] Replace imports
+- [x] Replace GameLayout with GameShell
+- [x] Compose own layout
+- [ ] Test locally
+- [ ] Verify all functionality

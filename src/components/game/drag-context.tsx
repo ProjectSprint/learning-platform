@@ -3,7 +3,7 @@ import type { ActiveDrag } from "./drag-types";
 
 type DragContextValue = {
 	activeDrag: ActiveDrag | null;
-	setActiveDrag: (drag: ActiveDrag | null) => void;
+	setActiveDrag: React.Dispatch<React.SetStateAction<ActiveDrag | null>>;
 	proxyRef: React.RefObject<HTMLDivElement | null>;
 };
 

@@ -12,6 +12,8 @@ export type DragSource = "inventory" | "canvas";
 export type ActiveDrag = {
 	source: DragSource;
 	data: DragData;
+	sourceCanvasKey?: string;
+	targetCanvasKey?: string;
 	element?: HTMLElement | null;
 	initialRect?: DOMRect;
 	pointerOffset?: { x: number; y: number };

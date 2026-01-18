@@ -1,6 +1,6 @@
+import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
-import { GameLayout } from "@/components/game/game-layout";
 import {
 	type GamePhase,
 	GameProvider,
@@ -8,6 +8,10 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import { GameShell } from "@/components/game/game-shell";
+import { InventoryPanel } from "@/components/game/inventory-panel";
+import { PlayCanvas } from "@/components/game/play-canvas";
+import { TerminalPanel } from "@/components/game/terminal-panel";
 import type { QuestionProps } from "@/components/module";
 
 import {
@@ -174,15 +178,58 @@ const NetworkingGame = ({
 	);
 
 	return (
-		<GameLayout
-			title={QUESTION_TITLE}
-			description={QUESTION_DESCRIPTION}
-			getItemLabel={getNetworkingItemLabel}
-			getStatusMessage={getNetworkingStatusMessage}
-			onPlacedItemClick={handlePlacedItemClick}
-			isItemClickable={isItemClickable}
-			contextualHint={contextualHint}
-			inventoryTooltips={INVENTORY_TOOLTIPS}
-		/>
+		<GameShell getItemLabel={getNetworkingItemLabel}>
+			<Flex
+				direction="column"
+				height="100vh"
+				px={{ base: 4, md: 12, lg: 24 }}
+				py={{ base: 4, md: 6 }}
+			>
+				<Box textAlign="left" mb={4}>
+					<Text
+						fontSize={{ base: "2xl", md: "4xl" }}
+						fontWeight="bold"
+						color="gray.50"
+					>
+						{QUESTION_TITLE}
+					</Text>
+					<Text fontSize={{ base: "sm", md: "md" }} color="gray.400">
+						{QUESTION_DESCRIPTION}
+					</Text>
+				</Box>
+
+				<Box flex="1">
+					<PlayCanvas
+						getItemLabel={getNetworkingItemLabel}
+						getStatusMessage={getNetworkingStatusMessage}
+						onPlacedItemClick={handlePlacedItemClick}
+						isItemClickable={isItemClickable}
+					/>
+				</Box>
+
+				<Box alignSelf="center" my={4}>
+					<InventoryPanel tooltips={INVENTORY_TOOLTIPS} />
+				</Box>
+
+				{contextualHint && (
+					<Box
+						bg="gray.800"
+						border="1px solid"
+						borderColor="gray.700"
+						borderRadius="md"
+						px={4}
+						py={2}
+						textAlign="center"
+						mb={4}
+					>
+						<Text fontSize="sm" color="gray.100">
+							{contextualHint}
+						</Text>
+					</Box>
+				)}
+
+				<TerminalPanel />
+			</Flex>
+		</GameShell>
 	);
 };
