@@ -24,11 +24,17 @@ Fill out this template to define a new question. This information will be used t
 
 ### 2.1 Canvas Setup
 
-**Grid Size:** `12 x 1` (horizontal layout showing the full path)
+**Canvas Layout:** Five canvases arranged left-to-right, each with its own title.
 
-**Max Items Allowed:** `12`
+**Canvas Order:** `local` → `conn-1` → `router` → `conn-2` → `internet`
 
-**Allowed Item Types:** `["pc", "cable", "router-lan", "router-nat", "router-wan", "fiber", "igw", "internet", "dns", "google"]`
+| Canvas Key | Title | Grid Size | Max Items | Allowed Item Types |
+|------------|-------|-----------|----------|--------------------|
+| local | Local | 1 x 1 | 1 | ["pc"] |
+| conn-1 | Connector (Conn 1) | 1 x 1 | 1 | ["cable"] |
+| router | Router | 3 x 1 | 3 | ["router-lan", "router-nat", "router-wan"] |
+| conn-2 | Connector (Conn 2) | 1 x 1 | 1 | ["fiber"] |
+| internet | Internet | 4 x 1 | 4 | ["igw", "internet", "dns", "google"] |
 
 ### 2.2 Item Types
 
@@ -136,6 +142,8 @@ For each item type, define the possible states and what message to display:
 ### 2.4 Connection Rules
 
 **Connection Method:** `adjacency` - items connect when placed next to each other in correct order
+
+**Canvas Adjacency:** Canvases are treated as one continuous path in the order listed above (local → conn-1 → router → conn-2 → internet).
 
 **Required Order (left to right):**
 ```
@@ -500,16 +508,16 @@ Guide the learner through each step:
 
 | Condition | Hint Text |
 |-----------|-----------|
-| Canvas is empty | Drag the PC from inventory to the leftmost slot |
-| PC placed, no cable | Connect the ethernet cable to the PC |
-| Cable placed, no router-lan | Place the Router (LAN) - this is where your home network starts |
-| Router LAN placed, no router-nat | Place the Router (NAT) - this translates your private IP |
-| Router NAT placed, no router-wan | Place the Router (WAN) - this connects to your ISP |
-| Router WAN placed, no fiber | Connect the fiber cable to the router's WAN side |
-| Fiber placed, no IGW | Place the Internet Gateway - this is your ISP's modem |
-| IGW placed, no internet | Add the Internet cloud |
-| Internet placed, no DNS | Place the DNS server - it translates domain names to IPs |
-| DNS placed, no Google | Finally, place Google - your destination! |
+| Canvas is empty | Drag the PC from inventory to the Local canvas |
+| PC placed, no cable | Place the Ethernet cable in Connector (Conn 1) |
+| Cable placed, no router-lan | Place the Router (LAN) in the Router canvas |
+| Router LAN placed, no router-nat | Place the Router (NAT) in the Router canvas |
+| Router NAT placed, no router-wan | Place the Router (WAN) in the Router canvas |
+| Router WAN placed, no fiber | Place the fiber cable in Connector (Conn 2) |
+| Fiber placed, no IGW | Place the Internet Gateway in the Internet canvas |
+| IGW placed, no internet | Add the Internet cloud in the Internet canvas |
+| Internet placed, no DNS | Place the DNS server in the Internet canvas |
+| DNS placed, no Google | Finally, place Google in the Internet canvas |
 | All placed, router-lan not configured | Click Router (LAN) to configure DHCP and DNS settings |
 | Router LAN config open, DHCP off | Enable DHCP so your PC can get an IP address |
 | DHCP on, no IP range | Set the IP range (e.g., 192.168.1.100 to 192.168.1.200) |
@@ -554,7 +562,7 @@ The game automatically transitions between phases based on network state:
 | `terminal` | Yes | Read-only | Read-only |
 | `completed` | Yes | Read-only | Read-only |
 
-**Canvas Phase Completion Trigger:** All devices connected AND all router components configured AND Google is reachable
+**Canvas Phase Completion Trigger:** All devices connected across canvases AND all router components configured AND Google is reachable
 
 **Next Phase:** Terminal Game
 
@@ -696,7 +704,7 @@ To reduce complexity, some values could be pre-filled:
 Before implementation, ensure you have defined:
 
 **Phase 1 - Canvas Game:**
-- [x] Canvas setup (grid size: 12x1, max items: 12)
+- [x] Canvas setup (five canvases: local/conn-1/router/conn-2/internet; sizes 1x1/1x1/3x1/1x1/4x1)
 - [x] Item types with display labels, icons, and click behavior (10 types including split router)
 - [x] Item states and status messages for each type (PC has 3 states: error/warning/success)
 - [x] Connection rules (valid order and invalid connections)
