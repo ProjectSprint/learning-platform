@@ -111,6 +111,7 @@ export interface InternetNetworkSnapshot {
 	internet: PlacedItem | undefined;
 	dns: PlacedItem | undefined;
 	google: PlacedItem | undefined;
+	pcConnectedToRouterLan: boolean;
 	isFullyConnected: boolean;
 	connectionErrors: string[];
 }
@@ -187,6 +188,18 @@ export const buildInternetNetworkSnapshot = (
 		}
 	}
 
+	// Check if PC is connected to Router LAN via cable (adjacent: PC → Cable → Router LAN)
+	let pcConnectedToRouterLan = false;
+	if (pc && cable && routerLan) {
+		// Check adjacency: PC next to Cable, Cable next to Router LAN, all on same row
+		const pcNextToCable =
+			cable.blockX === pc.blockX + 1 && cable.blockY === pc.blockY;
+		const cableNextToRouterLan =
+			routerLan.blockX === cable.blockX + 1 &&
+			routerLan.blockY === cable.blockY;
+		pcConnectedToRouterLan = pcNextToCable && cableNextToRouterLan;
+	}
+
 	return {
 		pc,
 		cable,
@@ -198,6 +211,7 @@ export const buildInternetNetworkSnapshot = (
 		internet,
 		dns,
 		google,
+		pcConnectedToRouterLan,
 		isFullyConnected,
 		connectionErrors,
 	};

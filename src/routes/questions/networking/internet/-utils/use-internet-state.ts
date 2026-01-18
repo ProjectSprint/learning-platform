@@ -126,18 +126,18 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const routerWanSettingsOpen =
 		state.overlay.activeModal?.id?.startsWith("router-wan-config") ?? false;
 
-	// Auto-assign IP to PC when routerLan is configured and PC is connected
+	// Auto-assign IP to PC when routerLan is configured and PC is connected via cable
 	useEffect(() => {
 		if (state.question.status === "completed") {
 			return;
 		}
 
-		// Auto-assign IP to PC when router LAN is configured
+		// Auto-assign IP to PC when router LAN is configured and PC is connected to it
 		if (
 			network.pc &&
 			routerLanConfigured &&
 			startIp &&
-			network.isFullyConnected
+			network.pcConnectedToRouterLan
 		) {
 			const startOctets = startIp.split(".").map((s) => Number.parseInt(s, 10));
 			const baseOctets = startOctets.slice(0, 3);
@@ -155,8 +155,11 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					},
 				});
 			}
-		} else if (network.pc && !routerLanConfigured) {
-			// Remove IP if router LAN not configured
+		} else if (
+			network.pc &&
+			(!routerLanConfigured || !network.pcConnectedToRouterLan)
+		) {
+			// Remove IP if router LAN not configured or PC not connected
 			const currentIp =
 				typeof network.pc.data?.ip === "string" ? network.pc.data.ip : null;
 			if (currentIp !== null) {
@@ -172,7 +175,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	}, [
 		dispatch,
 		network.pc,
-		network.isFullyConnected,
+		network.pcConnectedToRouterLan,
 		routerLanConfigured,
 		startIp,
 		state.question.status,
