@@ -328,9 +328,11 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			}
 		}
 
-		// Cable status
+		// Cable status - success when connecting PC to Router LAN
 		if (network.cable) {
-			const desiredStatus = network.isFullyConnected ? "success" : "warning";
+			const desiredStatus = network.pcConnectedToRouterLan
+				? "success"
+				: "warning";
 			if (network.cable.status !== desiredStatus) {
 				dispatch({
 					type: "CONFIGURE_DEVICE",
@@ -342,9 +344,11 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			}
 		}
 
-		// Fiber status
+		// Fiber status - success when connecting Router WAN to IGW
 		if (network.fiber) {
-			const desiredStatus = network.isFullyConnected ? "success" : "warning";
+			const desiredStatus = network.routerWanConnectedToIgw
+				? "success"
+				: "warning";
 			if (network.fiber.status !== desiredStatus) {
 				dispatch({
 					type: "CONFIGURE_DEVICE",
@@ -367,7 +371,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		network.internet,
 		network.dns,
 		network.google,
-		network.isFullyConnected,
+		network.pcConnectedToRouterLan,
+		network.routerWanConnectedToIgw,
 		dhcpEnabled,
 		hasValidIpRange,
 		hasValidDnsServer,

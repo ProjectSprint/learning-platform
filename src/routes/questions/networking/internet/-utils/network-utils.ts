@@ -112,6 +112,7 @@ export interface InternetNetworkSnapshot {
 	dns: PlacedItem | undefined;
 	google: PlacedItem | undefined;
 	pcConnectedToRouterLan: boolean;
+	routerWanConnectedToIgw: boolean;
 	isFullyConnected: boolean;
 	connectionErrors: string[];
 }
@@ -200,6 +201,17 @@ export const buildInternetNetworkSnapshot = (
 		pcConnectedToRouterLan = pcNextToCable && cableNextToRouterLan;
 	}
 
+	// Check if Router WAN is connected to IGW via fiber (adjacent: Router WAN → Fiber → IGW)
+	let routerWanConnectedToIgw = false;
+	if (routerWan && fiber && igw) {
+		const routerWanNextToFiber =
+			fiber.blockX === routerWan.blockX + 1 &&
+			fiber.blockY === routerWan.blockY;
+		const fiberNextToIgw =
+			igw.blockX === fiber.blockX + 1 && igw.blockY === fiber.blockY;
+		routerWanConnectedToIgw = routerWanNextToFiber && fiberNextToIgw;
+	}
+
 	return {
 		pc,
 		cable,
@@ -212,6 +224,7 @@ export const buildInternetNetworkSnapshot = (
 		dns,
 		google,
 		pcConnectedToRouterLan,
+		routerWanConnectedToIgw,
 		isFullyConnected,
 		connectionErrors,
 	};
