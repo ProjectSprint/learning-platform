@@ -13,13 +13,21 @@ export const QUESTION_DESCRIPTION =
 export const TERMINAL_PROMPT =
 	"Your network is configured! Can you verify that you can reach Google?";
 
+// Canvas keys for allowedPlaces
+export type InternetCanvasKey =
+	| "local"
+	| "conn-1"
+	| "router"
+	| "conn-2"
+	| "internet";
+
 // Initial inventory items available for the internet gateway question
 export const INVENTORY_ITEMS: InventoryItem[] = [
 	{
 		id: "cable-1",
 		type: "cable",
 		name: "Ethernet Cable",
-		used: false,
+		allowedPlaces: ["inventory", "conn-1"],
 		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
 		behavior: "connectable",
 	},
@@ -27,7 +35,7 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "fiber-1",
 		type: "fiber",
 		name: "Fiber Cable",
-		used: false,
+		allowedPlaces: ["inventory", "conn-2"],
 		icon: { icon: "mdi:fiber-smart-record", color: "#f97316" },
 		behavior: "connectable",
 	},
@@ -35,7 +43,7 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "pc-1",
 		type: "pc",
 		name: "PC",
-		used: false,
+		allowedPlaces: ["inventory", "local"],
 		icon: { icon: "twemoji:laptop-computer" },
 		behavior: "connectable",
 	},
@@ -43,7 +51,7 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "router-lan-1",
 		type: "router-lan",
 		name: "Router (LAN)",
-		used: false,
+		allowedPlaces: ["inventory", "router"],
 		icon: { icon: "mdi:lan" },
 		behavior: "connectable",
 	},
@@ -51,7 +59,7 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "router-nat-1",
 		type: "router-nat",
 		name: "Router (NAT)",
-		used: false,
+		allowedPlaces: ["inventory", "router"],
 		icon: { icon: "mdi:swap-horizontal" },
 		behavior: "connectable",
 	},
@@ -59,7 +67,7 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "router-wan-1",
 		type: "router-wan",
 		name: "Router (WAN)",
-		used: false,
+		allowedPlaces: ["inventory", "router"],
 		icon: { icon: "mdi:wan" },
 		behavior: "connectable",
 	},
@@ -67,7 +75,7 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "igw-1",
 		type: "igw",
 		name: "Internet Gateway",
-		used: false,
+		allowedPlaces: ["inventory", "internet"],
 		icon: { icon: "mdi:server-network" },
 		behavior: "connectable",
 	},
@@ -75,7 +83,7 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "internet-1",
 		type: "internet",
 		name: "Internet",
-		used: false,
+		allowedPlaces: ["inventory", "internet"],
 		icon: { icon: "mdi:cloud" },
 		behavior: "connectable",
 	},
@@ -83,7 +91,7 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "dns-1",
 		type: "dns",
 		name: "DNS Server",
-		used: false,
+		allowedPlaces: ["inventory", "internet"],
 		icon: { icon: "mdi:dns" },
 		behavior: "connectable",
 	},
@@ -91,19 +99,11 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "google-1",
 		type: "google",
 		name: "Google",
-		used: false,
+		allowedPlaces: ["inventory", "internet"],
 		icon: { icon: "mdi:google" },
 		behavior: "connectable",
 	},
 ];
-
-// Canvas configuration for the internet gateway question
-export type InternetCanvasKey =
-	| "local"
-	| "conn-1"
-	| "router"
-	| "conn-2"
-	| "internet";
 
 export const CANVAS_ORDER: InternetCanvasKey[] = [
 	"local",
@@ -119,7 +119,6 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 		stateKey: "local",
 		columns: 1,
 		rows: 1,
-		allowedItemTypes: ["pc"],
 		maxItems: 1,
 	},
 	"conn-1": {
@@ -127,7 +126,6 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 		stateKey: "conn-1",
 		columns: 1,
 		rows: 1,
-		allowedItemTypes: ["cable"],
 		maxItems: 1,
 	},
 	router: {
@@ -135,7 +133,6 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 		stateKey: "router",
 		columns: 3,
 		rows: 1,
-		allowedItemTypes: ["router-lan", "router-nat", "router-wan"],
 		maxItems: 3,
 	},
 	"conn-2": {
@@ -143,7 +140,6 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 		stateKey: "conn-2",
 		columns: 1,
 		rows: 1,
-		allowedItemTypes: ["fiber"],
 		maxItems: 1,
 	},
 	internet: {
@@ -151,7 +147,6 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 		stateKey: "internet",
 		columns: 4,
 		rows: 1,
-		allowedItemTypes: ["igw", "internet", "dns", "google"],
 		maxItems: 4,
 	},
 };

@@ -5,74 +5,79 @@ import { useCallback, useState } from "react";
 import { type ModuleConfig, ModuleEngine } from "@/components/module";
 import { DhcpQuestion } from "./dhcp/-page";
 import { InternetQuestion } from "./internet/-page";
+import { WebserverSslQuestion } from "./webserver-ssl/-page";
 
 const NETWORKING_MODULE: ModuleConfig = {
-	id: "networking-basics",
-	title: "Networking Basics",
-	questions: [
-		{ id: "dhcp-basics", component: DhcpQuestion },
-		{ id: "internet-gateway", component: InternetQuestion },
-	],
+   id: "networking-basics",
+   title: "Networking Basics",
+   questions: [
+      { id: "webserver-ssl", component: WebserverSslQuestion },
+      { id: "internet-gateway", component: InternetQuestion },
+      { id: "dhcp-basics", component: DhcpQuestion },
+   ],
 };
 
 export const NetworkingModulePage = () => {
-	const navigate = useNavigate();
-	const [started, setStarted] = useState(false);
+   const navigate = useNavigate();
+   const [started, setStarted] = useState(false);
 
-	const handlePlay = useCallback(() => {
-		setStarted(true);
-	}, []);
+   const handlePlay = useCallback(() => {
+      setStarted(true);
+   }, []);
 
-	const handleExit = useCallback(() => {
-		void navigate({ to: "/" });
-	}, [navigate]);
+   const handleExit = useCallback(() => {
+      void navigate({ to: "/" });
+   }, [navigate]);
 
-	const handleComplete = useCallback(() => {
-		void navigate({ to: "/" });
-	}, [navigate]);
+   const handleComplete = useCallback(() => {
+      void navigate({ to: "/" });
+   }, [navigate]);
 
-	if (started) {
-		return (
-			<ModuleEngine
-				config={NETWORKING_MODULE}
-				onExit={handleExit}
-				onComplete={handleComplete}
-			/>
-		);
-	}
+   if (started) {
+      return (
+         <ModuleEngine
+            config={NETWORKING_MODULE}
+            onExit={handleExit}
+            onComplete={handleComplete}
+         />
+      );
+   }
 
-	return (
-		<Box
-			height="100vh"
-			display="flex"
-			flexDirection="column"
-			bg="gray.950"
-			color="gray.100"
-		>
-			<Flex flex="1" align="center" justify="center">
-				<Box textAlign="center" maxWidth="480px" px={4}>
-					<Text fontSize="3xl" fontWeight="bold" mb={4}>
-						Welcome to Networking Basics
-					</Text>
-					<Text fontSize="md" color="gray.400" mb={2}>
-						In this module, you will learn how to:
-					</Text>
-					<Box as="ul" textAlign="left" color="gray.300" mb={8} pl={6}>
-						<Text as="li" mb={1}>
-							Connect computers using routers and cables
-						</Text>
-						<Text as="li" mb={1}>
-							Configure DHCP to assign IP addresses automatically
-						</Text>
-						<Text as="li">
-							Verify network connectivity using the ping command
-						</Text>
-					</Box>
-					<Button colorPalette="green" size="lg" onClick={handlePlay}>
-						Play
-					</Button>
-				</Box>
-			</Flex>
-		</Box>
-	);
+   return (
+      <Box
+         height="100vh"
+         display="flex"
+         flexDirection="column"
+         bg="gray.950"
+         color="gray.100"
+      >
+         <Flex flex="1" align="center" justify="center">
+            <Box textAlign="center" maxWidth="480px" px={4}>
+               <Text fontSize="3xl" fontWeight="bold" mb={4}>
+                  Welcome to Networking Basics
+               </Text>
+               <Text fontSize="md" color="gray.400" mb={2}>
+                  In this module, you will learn how to:
+               </Text>
+               <Box as="ul" textAlign="left" color="gray.300" mb={8} pl={6}>
+                  <Text as="li" mb={1}>
+                     Connect computers using routers and cables
+                  </Text>
+                  <Text as="li" mb={1}>
+                     Configure DHCP to assign IP addresses automatically
+                  </Text>
+                  <Text as="li" mb={1}>
+                     Verify network connectivity using the ping command
+                  </Text>
+                  <Text as="li" mb={1}>
+                     Secure your website with HTTPS and SSL certificates
+                  </Text>
+               </Box>
+               <Button colorPalette="green" size="lg" onClick={handlePlay}>
+                  Play
+               </Button>
+            </Box>
+         </Flex>
+      </Box>
+   );
 };

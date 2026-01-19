@@ -21,7 +21,11 @@
       "mcp__chrome-devtools__list_console_messages",
       "Bash(pgrep:*)",
       "Bash(pkill:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx:*)",
+      "Bash(pnpm type-check)",
+      "Bash(pnpm lint)"
     ]
   }
 }

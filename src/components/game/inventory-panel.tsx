@@ -99,13 +99,27 @@ export type InventoryPanelProps = {
 };
 
 export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
-	const { inventory } = useGameState();
+	const { inventory, canvases, canvas } = useGameState();
 	const { activeDrag, setActiveDrag } = useDragContext();
 	const slotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const slotSize = useInventorySlotSize();
 	const visibleGroups = useMemo(
 		() => inventory.groups.filter((group) => group.visible),
 		[inventory.groups],
+	);
+
+	// Check if an item is currently on any canvas
+	const isItemOnCanvas = useCallback(
+		(itemId: string): boolean => {
+			const allCanvases = canvases ? Object.values(canvases) : [];
+			if (canvas) {
+				allCanvases.push(canvas);
+			}
+			return allCanvases.some((c) =>
+				c.placedItems.some((p) => p.itemId === itemId),
+			);
+		},
+		[canvases, canvas],
 	);
 
 	const handlePointerDown = useCallback(
@@ -154,7 +168,8 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 		>
 			{visibleGroups.map((group) => {
 				const items = group.items;
-				const firstEmptySlot = items.find((item) => item.used)?.id ?? null;
+				const firstEmptySlot =
+					items.find((item) => !isItemOnCanvas(item.id))?.id ?? null;
 
 				return (
 					<Box
@@ -186,7 +201,7 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 								</Text>
 							) : (
 								items.map((item) => {
-									const isEmpty = item.used;
+									const isInInventory = !isItemOnCanvas(item.id);
 									const isDragging =
 										activeDrag?.source === "inventory" &&
 										activeDrag.data.itemId === item.id;
@@ -196,7 +211,7 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 										<InventorySlot
 											key={item.id}
 											item={item}
-											isEmpty={isEmpty}
+											isEmpty={!isInInventory}
 											isDragging={isDragging}
 											slotWidth={slotSize.width}
 											slotHeight={slotSize.height}

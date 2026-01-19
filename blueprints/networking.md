@@ -38,6 +38,7 @@
 |-------|-------------|----------------|-------------|
 | 1 | `dhcp-basics` | `blueprints/networking/dhcp.md` | Set up a home network with DHCP |
 | 2 | `internet-gateway` | `blueprints/networking/internet.md` | Connect to the Internet via ISP |
+| 3 | `webserver-ssl` | `blueprints/networking/webserver-ssl.md` | Secure your website with HTTPS |
 
 ---
 

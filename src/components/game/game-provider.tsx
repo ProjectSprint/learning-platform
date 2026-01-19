@@ -20,7 +20,7 @@ export type InventoryItem = {
 	id: string;
 	type: string;
 	name?: string;
-	used: boolean;
+	allowedPlaces: string[]; // Where this item CAN be placed (canvas keys)
 	quantity?: number;
 	icon?: IconInfo;
 	behavior?: ItemBehavior;
@@ -47,7 +47,6 @@ export type CanvasConfig = {
 	rows: number;
 	orientation?: "horizontal" | "vertical";
 	stateKey?: string;
-	allowedItemTypes?: string[];
 	maxItems?: number;
 	initialPlacements?: Placement[];
 };
@@ -446,8 +445,7 @@ const normalizeInventory = (items: InventoryItem[]) =>
 			(item) =>
 				item && typeof item.id === "string" && typeof item.type === "string",
 		)
-		.slice(0, MAX_INVENTORY_ITEMS)
-		.map((item) => ({ ...item, used: Boolean(item.used) }));
+		.slice(0, MAX_INVENTORY_ITEMS);
 
 const normalizeInventoryGroup = (
 	group: InventoryGroupConfig,
@@ -540,7 +538,7 @@ const normalizeInventoryGroups = (
 	return groups;
 };
 
-const findInventoryItem = (
+export const findInventoryItem = (
 	groups: InventoryGroup[],
 	itemId: string,
 ): { groupIndex: number; itemIndex: number; item: InventoryItem } | null => {
@@ -559,35 +557,24 @@ const findInventoryItem = (
 	return null;
 };
 
-const updateInventoryItem = (
-	groups: InventoryGroup[],
-	itemId: string,
-	update: (item: InventoryItem) => InventoryItem,
-): InventoryGroup[] => {
-	const match = findInventoryItem(groups, itemId);
-	if (!match) {
-		return groups;
-	}
-
-	return groups.map((group, groupIndex) => {
-		if (groupIndex !== match.groupIndex) {
-			return group;
-		}
-		const nextItems = group.items.map((item, itemIndex) =>
-			itemIndex === match.itemIndex ? update(item) : item,
-		);
-		return { ...group, items: nextItems };
-	});
-};
-
-const findUnusedItemByType = (
+const findAvailableItemByType = (
 	groups: InventoryGroup[],
 	itemType: string,
+	canvases: Record<string, CanvasState> | undefined,
 ): { groupIndex: number; itemIndex: number; item: InventoryItem } | null => {
 	for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
-		const itemIndex = groups[groupIndex].items.findIndex(
-			(item) => item.type === itemType && !item.used,
-		);
+		const itemIndex = groups[groupIndex].items.findIndex((item) => {
+			if (item.type !== itemType) return false;
+
+			// Find if this item instance is already placed on any canvas
+			const isOnCanvas = canvases
+				? Object.values(canvases).some((canvas) =>
+						canvas.placedItems.some((placed) => placed.itemId === item.id),
+					)
+				: false;
+
+			return !isOnCanvas;
+		});
 		if (itemIndex >= 0) {
 			return {
 				groupIndex,
@@ -599,12 +586,15 @@ const findUnusedItemByType = (
 	return null;
 };
 
-const updateInventoryItemsUsage = (
-	groups: InventoryGroup[],
+const isItemOnCanvas = (
 	itemId: string,
-	used: boolean,
-): InventoryGroup[] =>
-	updateInventoryItem(groups, itemId, (item) => ({ ...item, used }));
+	canvases: Record<string, CanvasState> | undefined,
+): boolean => {
+	if (!canvases) return false;
+	return Object.values(canvases).some((canvas) =>
+		canvas.placedItems.some((item) => item.itemId === itemId),
+	);
+};
 
 const removeInventoryItems = (
 	groups: InventoryGroup[],
@@ -618,6 +608,7 @@ const removeInventoryItems = (
 const applyInitialPlacements = (
 	canvas: CanvasState,
 	inventoryGroups: InventoryGroup[],
+	allCanvases: Record<string, CanvasState> | undefined,
 ): { canvas: CanvasState; inventoryGroups: InventoryGroup[] } => {
 	const placements = canvas.config.initialPlacements ?? [];
 	if (placements.length === 0) {
@@ -625,7 +616,7 @@ const applyInitialPlacements = (
 	}
 
 	let nextBlocks = canvas.blocks;
-	let nextInventoryGroups = inventoryGroups;
+	const nextInventoryGroups = inventoryGroups;
 	const placedItems: PlacedItem[] = [];
 
 	placements.forEach((placement) => {
@@ -638,18 +629,14 @@ const applyInitialPlacements = (
 		}
 
 		let itemId = `initial-${placement.itemType}-${placement.blockX}-${placement.blockY}`;
-		const inventoryMatch = findUnusedItemByType(
+		const inventoryMatch = findAvailableItemByType(
 			nextInventoryGroups,
 			placement.itemType,
+			allCanvases,
 		);
 
 		if (inventoryMatch) {
 			itemId = inventoryMatch.item.id;
-			nextInventoryGroups = updateInventoryItem(
-				nextInventoryGroups,
-				itemId,
-				(item) => ({ ...item, used: true }),
-			);
 		}
 
 		placedItems.push({
@@ -827,6 +814,7 @@ const deriveConnectionsFromCables = (placedItems: PlacedItem[]) => {
 };
 
 const reducer = (state: GameState, action: GameAction): GameState => {
+	console.log("event:", action.type);
 	switch (action.type) {
 		case "INIT_QUESTION": {
 			const config = action.payload.config;
@@ -836,7 +824,11 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				config?.inventory,
 				config?.inventoryGroups,
 			);
-			const seeded = applyInitialPlacements(nextCanvas, inventoryGroups);
+			const seeded = applyInitialPlacements(
+				nextCanvas,
+				inventoryGroups,
+				undefined,
+			);
 			const terminal = {
 				...state.terminal,
 				...config?.terminal,
@@ -889,6 +881,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				const seeded = applyInitialPlacements(
 					createCanvasState(canvasConfig),
 					inventoryGroups,
+					nextCanvases,
 				);
 				inventoryGroups = seeded.inventoryGroups;
 				nextCanvases[key] = seeded.canvas;
@@ -1064,12 +1057,17 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			};
 		}
 		case "PLACE_ITEM": {
-			const canvas = resolveCanvasState(state, action.payload.stateKey);
+			const targetKey = action.payload.stateKey ?? "canvas";
+			const canvas = resolveCanvasState(state, targetKey);
 			const { itemId, blockX, blockY } = action.payload;
 			const match = findInventoryItem(state.inventory.groups, itemId);
 			const item = match?.item;
 
-			if (!item || item.used) {
+			if (!item) {
+				return state;
+			}
+			// Check if the item is allowed to be placed at this location
+			if (!item.allowedPlaces.includes(targetKey)) {
 				return state;
 			}
 
@@ -1078,13 +1076,6 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			}
 
 			if (canvas.blocks[blockY][blockX].status === "occupied") {
-				return state;
-			}
-
-			if (
-				canvas.config.allowedItemTypes &&
-				!canvas.config.allowedItemTypes.includes(item.type)
-			) {
 				return state;
 			}
 
@@ -1120,18 +1111,11 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				connections: deriveConnectionsFromCables(nextPlacedItems),
 			};
 
-			const nextInventoryGroups = updateInventoryItemsUsage(
-				state.inventory.groups,
-				item.id,
-				true,
-			);
-
 			return updateCanvasState(
 				{
 					...state,
-					inventory: { groups: nextInventoryGroups },
 				},
-				action.payload.stateKey,
+				targetKey,
 				nextCanvas,
 			);
 		}
@@ -1154,12 +1138,6 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			);
 			const nextConnections = deriveConnectionsFromCables(nextPlacedItems);
 
-			const nextInventoryGroups = updateInventoryItemsUsage(
-				state.inventory.groups,
-				block.itemId,
-				false,
-			);
-
 			const nextCanvas: CanvasState = {
 				...canvas,
 				blocks: nextBlocks,
@@ -1170,7 +1148,6 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			return updateCanvasState(
 				{
 					...state,
-					inventory: { groups: nextInventoryGroups },
 				},
 				action.payload.stateKey,
 				nextCanvas,
@@ -1196,15 +1173,6 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 			}
 
 			if (toBlock.status === "occupied") {
-				return state;
-			}
-
-			if (
-				canvas.config.allowedItemTypes &&
-				!canvas.config.allowedItemTypes.includes(
-					canvas.placedItems.find((p) => p.itemId === itemId)?.type ?? "",
-				)
-			) {
 				return state;
 			}
 
@@ -1268,7 +1236,11 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 					state.inventory.groups,
 					cableId,
 				)?.item;
-				if (!cableItem || cableItem.used) {
+				if (!cableItem) {
+					return state;
+				}
+				// For cables, check if it's available in inventory (not on canvas)
+				if (isItemOnCanvas(cableId, state.canvases)) {
 					return state;
 				}
 			}
@@ -1290,19 +1262,9 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				connections: nextConnections,
 			};
 
-			let nextInventoryGroups = state.inventory.groups;
-			if (cableId) {
-				nextInventoryGroups = updateInventoryItemsUsage(
-					state.inventory.groups,
-					cableId,
-					true,
-				);
-			}
-
 			return updateCanvasState(
 				{
 					...state,
-					inventory: { groups: nextInventoryGroups },
 				},
 				action.payload.stateKey,
 				nextCanvas,
@@ -1327,19 +1289,9 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				connections: nextConnections,
 			};
 
-			let nextInventoryGroups = state.inventory.groups;
-			if (connection.cableId) {
-				nextInventoryGroups = updateInventoryItemsUsage(
-					state.inventory.groups,
-					connection.cableId,
-					false,
-				);
-			}
-
 			return updateCanvasState(
 				{
 					...state,
-					inventory: { groups: nextInventoryGroups },
 				},
 				action.payload.stateKey,
 				nextCanvas,
@@ -1462,9 +1414,11 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				return state;
 			}
 
+			// Check if the item is allowed to be placed at the target location
+			const inventoryMatch = findInventoryItem(state.inventory.groups, itemId);
 			if (
-				targetCanvas.config.allowedItemTypes &&
-				!targetCanvas.config.allowedItemTypes.includes(movingItem.type)
+				inventoryMatch?.item &&
+				!inventoryMatch.item.allowedPlaces.includes(toCanvas)
 			) {
 				return state;
 			}
@@ -1633,16 +1587,30 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				return updateCanvasState(state, fromCanvasKey, nextCanvas);
 			}
 
+			// For cross-canvas swaps, check if items are allowed at their new locations
+			const toInvMatch = findInventoryItem(
+				state.inventory.groups,
+				toItem.itemId,
+			);
+			const fromInvMatch = findInventoryItem(
+				state.inventory.groups,
+				fromItem.itemId,
+			);
+
 			if (
-				sourceCanvas.config.allowedItemTypes &&
-				!sourceCanvas.config.allowedItemTypes.includes(toItem.type)
+				toInvMatch?.item &&
+				!toInvMatch.item.allowedPlaces.includes(
+					sourceCanvas.config.stateKey ?? fromCanvasKey ?? "",
+				)
 			) {
 				return state;
 			}
 
 			if (
-				targetCanvas.config.allowedItemTypes &&
-				!targetCanvas.config.allowedItemTypes.includes(fromItem.type)
+				fromInvMatch?.item &&
+				!fromInvMatch.item.allowedPlaces.includes(
+					targetCanvas.config.stateKey ?? toCanvasKey ?? "",
+				)
 			) {
 				return state;
 			}

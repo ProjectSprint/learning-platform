@@ -207,12 +207,14 @@ type CanvasConfig = {
   stateKey?: string               // defaults to 'canvas'
 
   // Optional constraints
-  allowedItemTypes?: string[]      // e.g., ['pc', 'router', 'cable']
   maxItems?: number                // limit total placed items
 
   // Optional pre-placed items (for tutorials)
   initialPlacements?: Placement[]
 }
+
+// Note: Item placement is controlled by the item's `allowedPlaces` property.
+// Items must have the canvas key in their allowedPlaces to be placed there.
 
 type Placement = {
   blockX: number

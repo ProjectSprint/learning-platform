@@ -69,11 +69,12 @@ export type CanvasConfig = {
     columns: number;
     rows: number;
     stateKey?: string;
-    allowedItemTypes?: string[];
     maxItems?: number;
     initialPlacements?: Placement[];
 };
-```
+
+// Note: Item placement is controlled by the item's `allowedPlaces` property.
+// Items must have the canvas key in their allowedPlaces to be placed there.```
 
 **Add this property** after `rows`:
 ```typescript
@@ -339,8 +340,8 @@ sharedZone: { items: {} },
 1. Validate source canvas exists (`fromCanvas` in `state.canvases`)
 2. Validate target canvas exists (`toCanvas` in `state.canvases`)
 3. Find item in source canvas at `(fromBlockX, fromBlockY)`
-4. Validate target position is empty in target canvas
-5. Validate target canvas allows this item type (check `allowedItemTypes`)
+4. Validate item's `allowedPlaces` includes target canvas key
+5. Validate target position is empty in target canvas
 6. Validate target canvas has room (check `maxItems`)
 7. Remove item from source canvas:
    - Remove from `placedItems` array

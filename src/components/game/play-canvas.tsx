@@ -14,6 +14,7 @@ import { useDragContext } from "./drag-context";
 import type { ActiveDrag, DragData } from "./drag-types";
 import {
 	type Block,
+	findInventoryItem,
 	type PlacedItem,
 	useGameDispatch,
 	useGameState,
@@ -220,7 +221,8 @@ export const PlayCanvas = ({
 }: PlayCanvasProps) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
-	const { activeDrag, setActiveDrag, proxyRef } = useDragContext();
+	const { activeDrag, setActiveDrag, proxyRef, targetCanvasKeyRef } =
+		useDragContext();
 	const canvas = stateKey
 		? (state.canvases?.[stateKey] ?? state.canvas)
 		: state.canvas;
@@ -252,6 +254,9 @@ export const PlayCanvas = ({
 		gapY: 0,
 	});
 	const orientation = canvas.config.orientation ?? "horizontal";
+
+	console.log("PlayCanvas stateKey", stateKey);
+	console.log("PlayCanvas canvasKey", canvasKey);
 
 	useEffect(() => {
 		activeDragRef.current = activeDrag;
@@ -289,6 +294,7 @@ export const PlayCanvas = ({
 		return blocks;
 	}, [canvas.blocks, canvas.config.columns, canvas.config.rows, orientation]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: targetCanvasKeyRef is a ref and doesn't need to be in deps
 	useEffect(() => {
 		if (!activeDrag || !canvasRef.current) {
 			return;
@@ -303,24 +309,28 @@ export const PlayCanvas = ({
 				event.clientY >= rect.top &&
 				event.clientY <= rect.bottom;
 
-			setActiveDrag((current) => {
-				if (!current) {
-					return current;
-				}
-				const nextTarget = isInside ? canvasKey : undefined;
-				if (current.targetCanvasKey === nextTarget) {
-					return current;
-				}
-				if (!isInside && current.targetCanvasKey !== canvasKey) {
-					return current;
-				}
-				return { ...current, targetCanvasKey: nextTarget };
-			});
+			if (!isInside) {
+				return;
+			}
+
+			// Only update ref if different, prevents unnecessary re-renders
+			if (targetCanvasKeyRef.current !== canvasKey) {
+				const previousTarget = targetCanvasKeyRef.current;
+				targetCanvasKeyRef.current = canvasKey;
+				console.log(
+					"targetCanvasKeyRef update",
+					previousTarget,
+					"->",
+					canvasKey,
+					"via",
+					canvasKey,
+				);
+			}
 		};
 
 		window.addEventListener("pointermove", handlePointerMove);
 		return () => window.removeEventListener("pointermove", handlePointerMove);
-	}, [activeDrag, canvasKey, setActiveDrag]);
+	}, [activeDrag, canvasKey]);
 
 	useEffect(() => {
 		const element = canvasRef.current;
@@ -367,7 +377,11 @@ export const PlayCanvas = ({
 	);
 
 	const canPlaceItemAt = useCallback(
-		(data: DragData, target: { blockX: number; blockY: number }) => {
+		(
+			data: DragData,
+			target: { blockX: number; blockY: number },
+			targetCanvasKey?: string,
+		) => {
 			if (
 				target.blockX < 0 ||
 				target.blockY < 0 ||
@@ -377,20 +391,31 @@ export const PlayCanvas = ({
 				return false;
 			}
 
+			// Check allowedPlaces for the target canvas
+			if (targetCanvasKey) {
+				const inventoryMatch = findInventoryItem(
+					state.inventory.groups,
+					data.itemId,
+				);
+				if (
+					inventoryMatch?.item &&
+					!inventoryMatch.item.allowedPlaces.includes(targetCanvasKey)
+				) {
+					return false;
+				}
+			}
+
 			const blockKey = `${target.blockX}-${target.blockY}`;
 			const placedItem = placedItemsByKey.get(blockKey);
 			const isOccupied = Boolean(placedItem);
-			const isAllowed =
-				!canvas.config.allowedItemTypes ||
-				canvas.config.allowedItemTypes.includes(data.itemType);
 
-			return !isOccupied && isAllowed;
+			return !isOccupied;
 		},
 		[
-			canvas.config.allowedItemTypes,
 			canvas.config.columns,
 			canvas.config.rows,
 			placedItemsByKey,
+			state.inventory.groups,
 		],
 	);
 
@@ -449,7 +474,7 @@ export const PlayCanvas = ({
 					return true;
 				}
 
-				if (!canPlaceItemAt(data, target)) {
+				if (!canPlaceItemAt(data, target, canvasKey)) {
 					return false;
 				}
 
@@ -468,7 +493,7 @@ export const PlayCanvas = ({
 				return true;
 			}
 
-			if (!canPlaceItemAt(data, target)) {
+			if (!canPlaceItemAt(data, target, canvasKey)) {
 				return false;
 			}
 
@@ -484,7 +509,7 @@ export const PlayCanvas = ({
 
 			return true;
 		},
-		[canPlaceItemAt, dispatch, getSwapTarget, stateKey],
+		[canPlaceItemAt, dispatch, getSwapTarget, stateKey, canvasKey],
 	);
 
 	callbacksRef.current = { canPlaceItemAt, placeOrRepositionItem };
@@ -493,6 +518,7 @@ export const PlayCanvas = ({
 		ensureGsapPlugins();
 	}, []);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: targetCanvasKeyRef is a ref and doesn't need to be in deps
 	useLayoutEffect(() => {
 		if (!canvasRef.current || !blockWidth || !blockHeight) {
 			return;
@@ -559,11 +585,11 @@ export const PlayCanvas = ({
 							itemName: placedItem.type,
 						},
 						sourceCanvasKey: canvasKey,
-						targetCanvasKey: canvasKey,
 						element: el,
 						initialRect: rect,
 						pointerOffset,
 					});
+					targetCanvasKeyRef.current = canvasKey;
 
 					el.style.opacity = "0";
 				},
@@ -628,10 +654,45 @@ export const PlayCanvas = ({
 					});
 
 					const dragSnapshot = activeDragRef.current;
+					const targetCanvasKey = targetCanvasKeyRef.current;
+					const sourceCanvasKey = dragSnapshot?.sourceCanvasKey ?? canvasKey;
+					const isCrossCanvas =
+						targetCanvasKey && targetCanvasKey !== sourceCanvasKey;
 
-					setActiveDrag(null);
-					setDragPreview(null);
-					setHoveredBlock(null);
+					const finishDrag = (restoreOpacity = true) => {
+						setActiveDrag(null);
+						setDragPreview(null);
+						setHoveredBlock(null);
+						setDraggingItemId(null);
+						// Reset targetCanvasKeyRef when drag ends
+						targetCanvasKeyRef.current = undefined;
+						if (restoreOpacity) {
+							el.style.opacity = "1";
+						}
+					};
+
+					const animateProxyTo = (
+						targetX: number,
+						targetY: number,
+						targetWidth: number,
+						targetHeight: number,
+						onComplete: () => void,
+					) => {
+						if (!proxyRef.current) {
+							onComplete();
+							return;
+						}
+
+						gsap.to(proxyRef.current, {
+							x: targetX,
+							y: targetY,
+							width: targetWidth,
+							height: targetHeight,
+							duration: 0.2,
+							ease: "power2.out",
+							onComplete,
+						});
+					};
 
 					if (isOverInventory) {
 						dispatch({
@@ -642,16 +703,10 @@ export const PlayCanvas = ({
 								stateKey,
 							},
 						});
-						setDraggingItemId(null);
+						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+						finishDrag(false);
 						return;
 					}
-
-					el.style.opacity = "1";
-
-					const targetCanvasKey = dragSnapshot?.targetCanvasKey;
-					const sourceCanvasKey = dragSnapshot?.sourceCanvasKey ?? canvasKey;
-					const isCrossCanvas =
-						targetCanvasKey && targetCanvasKey !== sourceCanvasKey;
 
 					if (isCrossCanvas && state.canvases) {
 						const targetCanvas = state.canvases[targetCanvasKey];
@@ -724,16 +779,24 @@ export const PlayCanvas = ({
 									});
 								}
 								gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-								setDraggingItemId(null);
+								finishDrag();
 								return;
 							}
 						}
 
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-						setDraggingItemId(null);
+						finishDrag();
 						return;
 					}
 
+					const canvasElement = canvasRef.current;
+					if (!canvasElement) {
+						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+						finishDrag();
+						return;
+					}
+
+					const canvasRect = canvasElement.getBoundingClientRect();
 					const centerX = startX + this.x + blockWidth / 2;
 					const centerY = startY + this.y + blockHeight / 2;
 					const { blockX, blockY } = convertPixelToBlock(
@@ -750,7 +813,11 @@ export const PlayCanvas = ({
 
 					if (collidingElement && !swapTarget) {
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-						setDraggingItemId(null);
+						const originX = canvasRect.left + placedItem.blockX * stepX;
+						const originY = canvasRect.top + placedItem.blockY * stepY;
+						animateProxyTo(originX, originY, blockWidth, blockHeight, () => {
+							finishDrag();
+						});
 						return;
 					}
 
@@ -758,13 +825,22 @@ export const PlayCanvas = ({
 						blockX,
 						blockY,
 					});
-
-					gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-					setDraggingItemId(null);
-
 					if (!placed) {
-						el.style.opacity = "1";
+						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+						const originX = canvasRect.left + placedItem.blockX * stepX;
+						const originY = canvasRect.top + placedItem.blockY * stepY;
+						animateProxyTo(originX, originY, blockWidth, blockHeight, () => {
+							finishDrag();
+						});
+						return;
 					}
+
+					const targetX = canvasRect.left + blockX * stepX;
+					const targetY = canvasRect.top + blockY * stepY;
+					gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
+					animateProxyTo(targetX, targetY, blockWidth, blockHeight, () => {
+						finishDrag();
+					});
 				},
 			});
 
@@ -780,12 +856,14 @@ export const PlayCanvas = ({
 	}, [
 		blockHeight,
 		blockWidth,
+		canPlaceItemAt,
 		canvas.placedItems,
 		getSwapTarget,
 		dispatch,
 		gridMetrics,
 		isItemClickable,
 		onPlacedItemClick,
+		proxyRef,
 		setActiveDrag,
 		state.canvases,
 		canvasKey,
@@ -796,6 +874,7 @@ export const PlayCanvas = ({
 		canvas.config.rows,
 	]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: targetCanvasKeyRef is a ref and doesn't need to be in deps
 	useEffect(() => {
 		if (
 			!activeDrag ||
@@ -813,6 +892,13 @@ export const PlayCanvas = ({
 			const rect = canvasElement.getBoundingClientRect();
 			const x = event.clientX - rect.left;
 			const y = event.clientY - rect.top;
+			const isInside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+			// Update targetCanvasKeyRef for inventory drags so drops work correctly
+			// This is especially important for conditionally rendered canvases
+			// Only set when inside - don't clear when outside (let another canvas handle it)
+			if (isInside) {
+				targetCanvasKeyRef.current = canvasKey;
+			}
 
 			if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
 				setDragPreview(null);
@@ -838,7 +924,11 @@ export const PlayCanvas = ({
 				lastBlockX = blockX;
 				lastBlockY = blockY;
 
-				const valid = canPlaceItemAt(activeDrag.data, { blockX, blockY });
+				const valid = canPlaceItemAt(
+					activeDrag.data,
+					{ blockX, blockY },
+					canvasKey,
+				);
 				setHoveredBlock({ x: blockX, y: blockY });
 				setDragPreview({
 					itemId: activeDrag.data.itemId,
@@ -855,7 +945,13 @@ export const PlayCanvas = ({
 		};
 
 		const handlePointerUp = (event: PointerEvent) => {
-			const targetCanvasKey = activeDrag.targetCanvasKey;
+			const targetCanvasKey = targetCanvasKeyRef.current;
+			console.log(
+				"handlePointerUp targetCanvasKeyRef",
+				targetCanvasKey,
+				"canvasKey",
+				canvasKey,
+			);
 			if (targetCanvasKey && targetCanvasKey !== canvasKey) {
 				return;
 			}
@@ -868,7 +964,9 @@ export const PlayCanvas = ({
 				x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
 			const { blockX, blockY } = convertPixelToBlock(x, y, gridMetrics);
 			const canPlace =
-				isInsideCanvas && canPlaceItemAt(activeDrag.data, { blockX, blockY });
+				isInsideCanvas &&
+				canPlaceItemAt(activeDrag.data, { blockX, blockY }, canvasKey);
+			console.log("handlePointerUp canPlace:", canPlace, canvasKey);
 
 			if (canPlace && proxyRef.current) {
 				const targetX = rect.left + blockX * stepX;
@@ -886,12 +984,16 @@ export const PlayCanvas = ({
 						setActiveDrag(null);
 						setDragPreview(null);
 						setHoveredBlock(null);
+						// Reset targetCanvasKeyRef after placing item from inventory
+						targetCanvasKeyRef.current = undefined;
 					},
 				});
 			} else {
 				setActiveDrag(null);
 				setDragPreview(null);
 				setHoveredBlock(null);
+				// Reset targetCanvasKeyRef when drag ends
+				targetCanvasKeyRef.current = undefined;
 			}
 		};
 

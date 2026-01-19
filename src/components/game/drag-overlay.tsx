@@ -17,7 +17,10 @@ export const DragOverlay = ({
 }: DragOverlayProps) => {
 	const { activeDrag, proxyRef } = useDragContext();
 	const slotSize = useInventorySlotSize();
-	const slotSizeRef = useRef({ width: slotSize.width, height: slotSize.height });
+	const slotSizeRef = useRef({
+		width: slotSize.width,
+		height: slotSize.height,
+	});
 	const [isVisible, setIsVisible] = useState(false);
 	const [size, setSize] = useState({ width: 0, height: 0 });
 	const initializedRef = useRef(false);
@@ -26,7 +29,7 @@ export const DragOverlay = ({
 	// Initialize slot size ref once on mount
 	useEffect(() => {
 		slotSizeRef.current = { width: slotSize.width, height: slotSize.height };
-	}, []);
+	}, [slotSize.height, slotSize.width]);
 
 	useEffect(() => {
 		if (!activeDrag) {
@@ -83,7 +86,7 @@ export const DragOverlay = ({
 
 		window.addEventListener("pointermove", handlePointerMove);
 		return () => window.removeEventListener("pointermove", handlePointerMove);
-	}, [activeDrag?.source, activeDrag?.data.itemId, proxyRef]);
+	}, [activeDrag, proxyRef]);
 
 	if (!isVisible || !activeDrag) {
 		return null;

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as QuestionsNetworkingIndexRouteImport } from './routes/questions/networking/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as QuestionsNetworkingWebserverSslIndexRouteImport } from './routes/questions/networking/webserver-ssl/index'
 import { Route as QuestionsNetworkingInternetIndexRouteImport } from './routes/questions/networking/internet/index'
 import { Route as QuestionsNetworkingDhcpIndexRouteImport } from './routes/questions/networking/dhcp/index'
 
@@ -31,6 +32,12 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuestionsNetworkingWebserverSslIndexRoute =
+  QuestionsNetworkingWebserverSslIndexRouteImport.update({
+    id: '/questions/networking/webserver-ssl/',
+    path: '/questions/networking/webserver-ssl/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const QuestionsNetworkingInternetIndexRoute =
   QuestionsNetworkingInternetIndexRouteImport.update({
     id: '/questions/networking/internet/',
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/questions/networking': typeof QuestionsNetworkingIndexRoute
   '/questions/networking/dhcp': typeof QuestionsNetworkingDhcpIndexRoute
   '/questions/networking/internet': typeof QuestionsNetworkingInternetIndexRoute
+  '/questions/networking/webserver-ssl': typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -57,6 +65,7 @@ export interface FileRoutesByTo {
   '/questions/networking': typeof QuestionsNetworkingIndexRoute
   '/questions/networking/dhcp': typeof QuestionsNetworkingDhcpIndexRoute
   '/questions/networking/internet': typeof QuestionsNetworkingInternetIndexRoute
+  '/questions/networking/webserver-ssl': typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -65,6 +74,7 @@ export interface FileRoutesById {
   '/questions/networking/': typeof QuestionsNetworkingIndexRoute
   '/questions/networking/dhcp/': typeof QuestionsNetworkingDhcpIndexRoute
   '/questions/networking/internet/': typeof QuestionsNetworkingInternetIndexRoute
+  '/questions/networking/webserver-ssl/': typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -74,6 +84,7 @@ export interface FileRouteTypes {
     | '/questions/networking'
     | '/questions/networking/dhcp'
     | '/questions/networking/internet'
+    | '/questions/networking/webserver-ssl'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -81,6 +92,7 @@ export interface FileRouteTypes {
     | '/questions/networking'
     | '/questions/networking/dhcp'
     | '/questions/networking/internet'
+    | '/questions/networking/webserver-ssl'
   id:
     | '__root__'
     | '/'
@@ -88,6 +100,7 @@ export interface FileRouteTypes {
     | '/questions/networking/'
     | '/questions/networking/dhcp/'
     | '/questions/networking/internet/'
+    | '/questions/networking/webserver-ssl/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -96,6 +109,7 @@ export interface RootRouteChildren {
   QuestionsNetworkingIndexRoute: typeof QuestionsNetworkingIndexRoute
   QuestionsNetworkingDhcpIndexRoute: typeof QuestionsNetworkingDhcpIndexRoute
   QuestionsNetworkingInternetIndexRoute: typeof QuestionsNetworkingInternetIndexRoute
+  QuestionsNetworkingWebserverSslIndexRoute: typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -121,6 +135,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/questions/networking/webserver-ssl/': {
+      id: '/questions/networking/webserver-ssl/'
+      path: '/questions/networking/webserver-ssl'
+      fullPath: '/questions/networking/webserver-ssl'
+      preLoaderRoute: typeof QuestionsNetworkingWebserverSslIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/questions/networking/internet/': {
       id: '/questions/networking/internet/'
       path: '/questions/networking/internet'
@@ -144,6 +165,8 @@ const rootRouteChildren: RootRouteChildren = {
   QuestionsNetworkingIndexRoute: QuestionsNetworkingIndexRoute,
   QuestionsNetworkingDhcpIndexRoute: QuestionsNetworkingDhcpIndexRoute,
   QuestionsNetworkingInternetIndexRoute: QuestionsNetworkingInternetIndexRoute,
+  QuestionsNetworkingWebserverSslIndexRoute:
+    QuestionsNetworkingWebserverSslIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
