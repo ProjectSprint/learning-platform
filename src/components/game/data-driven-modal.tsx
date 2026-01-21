@@ -256,6 +256,12 @@ export const DataDrivenModal = ({ modal, onClose }: DataDrivenModalProps) => {
 						{block.text}
 					</Text>
 				);
+			case "link":
+				return (
+					<Box key={block.id ?? `link-${index}`}>
+						<HelpLink text={block.text} href={block.href} />
+					</Box>
+				);
 			case "field":
 				return renderField(block.field);
 		}

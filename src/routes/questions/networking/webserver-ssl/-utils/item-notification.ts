@@ -1,4 +1,4 @@
-// Item label and status message formatters for the webserver-ssl question
+// Item label and status notifications for the webserver-ssl question
 
 import type { PlacedItem } from "@/components/game/game-provider";
 

@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as QuestionsNetworkingRouteRouteImport } from './routes/questions/networking/route'
 import { Route as QuestionsNetworkingIndexRouteImport } from './routes/questions/networking/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as QuestionsNetworkingWebserverSslIndexRouteImport } from './routes/questions/networking/webserver-ssl/index'
+import { Route as QuestionsNetworkingTcpIndexRouteImport } from './routes/questions/networking/tcp/index'
 import { Route as QuestionsNetworkingInternetIndexRouteImport } from './routes/questions/networking/internet/index'
 import { Route as QuestionsNetworkingDhcpIndexRouteImport } from './routes/questions/networking/dhcp/index'
 
@@ -21,11 +23,17 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuestionsNetworkingRouteRoute =
+  QuestionsNetworkingRouteRouteImport.update({
+    id: '/questions/networking',
+    path: '/questions/networking',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const QuestionsNetworkingIndexRoute =
   QuestionsNetworkingIndexRouteImport.update({
-    id: '/questions/networking/',
-    path: '/questions/networking/',
-    getParentRoute: () => rootRouteImport,
+    id: '/',
+    path: '/',
+    getParentRoute: () => QuestionsNetworkingRouteRoute,
   } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -34,29 +42,37 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 } as any)
 const QuestionsNetworkingWebserverSslIndexRoute =
   QuestionsNetworkingWebserverSslIndexRouteImport.update({
-    id: '/questions/networking/webserver-ssl/',
-    path: '/questions/networking/webserver-ssl/',
-    getParentRoute: () => rootRouteImport,
+    id: '/webserver-ssl/',
+    path: '/webserver-ssl/',
+    getParentRoute: () => QuestionsNetworkingRouteRoute,
+  } as any)
+const QuestionsNetworkingTcpIndexRoute =
+  QuestionsNetworkingTcpIndexRouteImport.update({
+    id: '/tcp/',
+    path: '/tcp/',
+    getParentRoute: () => QuestionsNetworkingRouteRoute,
   } as any)
 const QuestionsNetworkingInternetIndexRoute =
   QuestionsNetworkingInternetIndexRouteImport.update({
-    id: '/questions/networking/internet/',
-    path: '/questions/networking/internet/',
-    getParentRoute: () => rootRouteImport,
+    id: '/internet/',
+    path: '/internet/',
+    getParentRoute: () => QuestionsNetworkingRouteRoute,
   } as any)
 const QuestionsNetworkingDhcpIndexRoute =
   QuestionsNetworkingDhcpIndexRouteImport.update({
-    id: '/questions/networking/dhcp/',
-    path: '/questions/networking/dhcp/',
-    getParentRoute: () => rootRouteImport,
+    id: '/dhcp/',
+    path: '/dhcp/',
+    getParentRoute: () => QuestionsNetworkingRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/questions/networking': typeof QuestionsNetworkingRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/questions/networking': typeof QuestionsNetworkingIndexRoute
+  '/questions/networking/': typeof QuestionsNetworkingIndexRoute
   '/questions/networking/dhcp': typeof QuestionsNetworkingDhcpIndexRoute
   '/questions/networking/internet': typeof QuestionsNetworkingInternetIndexRoute
+  '/questions/networking/tcp': typeof QuestionsNetworkingTcpIndexRoute
   '/questions/networking/webserver-ssl': typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 export interface FileRoutesByTo {
@@ -65,25 +81,30 @@ export interface FileRoutesByTo {
   '/questions/networking': typeof QuestionsNetworkingIndexRoute
   '/questions/networking/dhcp': typeof QuestionsNetworkingDhcpIndexRoute
   '/questions/networking/internet': typeof QuestionsNetworkingInternetIndexRoute
+  '/questions/networking/tcp': typeof QuestionsNetworkingTcpIndexRoute
   '/questions/networking/webserver-ssl': typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/questions/networking': typeof QuestionsNetworkingRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/questions/networking/': typeof QuestionsNetworkingIndexRoute
   '/questions/networking/dhcp/': typeof QuestionsNetworkingDhcpIndexRoute
   '/questions/networking/internet/': typeof QuestionsNetworkingInternetIndexRoute
+  '/questions/networking/tcp/': typeof QuestionsNetworkingTcpIndexRoute
   '/questions/networking/webserver-ssl/': typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/api/auth/$'
     | '/questions/networking'
+    | '/api/auth/$'
+    | '/questions/networking/'
     | '/questions/networking/dhcp'
     | '/questions/networking/internet'
+    | '/questions/networking/tcp'
     | '/questions/networking/webserver-ssl'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -92,24 +113,24 @@ export interface FileRouteTypes {
     | '/questions/networking'
     | '/questions/networking/dhcp'
     | '/questions/networking/internet'
+    | '/questions/networking/tcp'
     | '/questions/networking/webserver-ssl'
   id:
     | '__root__'
     | '/'
+    | '/questions/networking'
     | '/api/auth/$'
     | '/questions/networking/'
     | '/questions/networking/dhcp/'
     | '/questions/networking/internet/'
+    | '/questions/networking/tcp/'
     | '/questions/networking/webserver-ssl/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  QuestionsNetworkingRouteRoute: typeof QuestionsNetworkingRouteRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  QuestionsNetworkingIndexRoute: typeof QuestionsNetworkingIndexRoute
-  QuestionsNetworkingDhcpIndexRoute: typeof QuestionsNetworkingDhcpIndexRoute
-  QuestionsNetworkingInternetIndexRoute: typeof QuestionsNetworkingInternetIndexRoute
-  QuestionsNetworkingWebserverSslIndexRoute: typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -121,12 +142,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/questions/networking/': {
-      id: '/questions/networking/'
+    '/questions/networking': {
+      id: '/questions/networking'
       path: '/questions/networking'
       fullPath: '/questions/networking'
-      preLoaderRoute: typeof QuestionsNetworkingIndexRouteImport
+      preLoaderRoute: typeof QuestionsNetworkingRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/questions/networking/': {
+      id: '/questions/networking/'
+      path: '/'
+      fullPath: '/questions/networking/'
+      preLoaderRoute: typeof QuestionsNetworkingIndexRouteImport
+      parentRoute: typeof QuestionsNetworkingRouteRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -137,36 +165,63 @@ declare module '@tanstack/react-router' {
     }
     '/questions/networking/webserver-ssl/': {
       id: '/questions/networking/webserver-ssl/'
-      path: '/questions/networking/webserver-ssl'
+      path: '/webserver-ssl'
       fullPath: '/questions/networking/webserver-ssl'
       preLoaderRoute: typeof QuestionsNetworkingWebserverSslIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof QuestionsNetworkingRouteRoute
+    }
+    '/questions/networking/tcp/': {
+      id: '/questions/networking/tcp/'
+      path: '/tcp'
+      fullPath: '/questions/networking/tcp'
+      preLoaderRoute: typeof QuestionsNetworkingTcpIndexRouteImport
+      parentRoute: typeof QuestionsNetworkingRouteRoute
     }
     '/questions/networking/internet/': {
       id: '/questions/networking/internet/'
-      path: '/questions/networking/internet'
+      path: '/internet'
       fullPath: '/questions/networking/internet'
       preLoaderRoute: typeof QuestionsNetworkingInternetIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof QuestionsNetworkingRouteRoute
     }
     '/questions/networking/dhcp/': {
       id: '/questions/networking/dhcp/'
-      path: '/questions/networking/dhcp'
+      path: '/dhcp'
       fullPath: '/questions/networking/dhcp'
       preLoaderRoute: typeof QuestionsNetworkingDhcpIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof QuestionsNetworkingRouteRoute
     }
   }
 }
 
+interface QuestionsNetworkingRouteRouteChildren {
+  QuestionsNetworkingIndexRoute: typeof QuestionsNetworkingIndexRoute
+  QuestionsNetworkingDhcpIndexRoute: typeof QuestionsNetworkingDhcpIndexRoute
+  QuestionsNetworkingInternetIndexRoute: typeof QuestionsNetworkingInternetIndexRoute
+  QuestionsNetworkingTcpIndexRoute: typeof QuestionsNetworkingTcpIndexRoute
+  QuestionsNetworkingWebserverSslIndexRoute: typeof QuestionsNetworkingWebserverSslIndexRoute
+}
+
+const QuestionsNetworkingRouteRouteChildren: QuestionsNetworkingRouteRouteChildren =
+  {
+    QuestionsNetworkingIndexRoute: QuestionsNetworkingIndexRoute,
+    QuestionsNetworkingDhcpIndexRoute: QuestionsNetworkingDhcpIndexRoute,
+    QuestionsNetworkingInternetIndexRoute:
+      QuestionsNetworkingInternetIndexRoute,
+    QuestionsNetworkingTcpIndexRoute: QuestionsNetworkingTcpIndexRoute,
+    QuestionsNetworkingWebserverSslIndexRoute:
+      QuestionsNetworkingWebserverSslIndexRoute,
+  }
+
+const QuestionsNetworkingRouteRouteWithChildren =
+  QuestionsNetworkingRouteRoute._addFileChildren(
+    QuestionsNetworkingRouteRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  QuestionsNetworkingRouteRoute: QuestionsNetworkingRouteRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  QuestionsNetworkingIndexRoute: QuestionsNetworkingIndexRoute,
-  QuestionsNetworkingDhcpIndexRoute: QuestionsNetworkingDhcpIndexRoute,
-  QuestionsNetworkingInternetIndexRoute: QuestionsNetworkingInternetIndexRoute,
-  QuestionsNetworkingWebserverSslIndexRoute:
-    QuestionsNetworkingWebserverSslIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

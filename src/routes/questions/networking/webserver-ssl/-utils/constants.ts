@@ -4,6 +4,7 @@
 import type {
 	CanvasConfig,
 	InventoryItem,
+	TerminalEntry,
 } from "@/components/game/game-provider";
 
 export const QUESTION_ID = "webserver-ssl";
@@ -59,6 +60,56 @@ export const CANVAS_CONFIGS: Record<WebSslCanvasKey, CanvasConfig> = {
 
 export const DEFAULT_DOMAIN = "example.com";
 export const DEFAULT_INDEX_HTML = "/var/www/html/index.html";
+export const TERMINAL_INTRO_ENTRIES: TerminalEntry[] = [
+	{
+		id: "intro-ssl-1",
+		type: "output",
+		content: "Available commands:",
+		timestamp: 0,
+	},
+	{
+		id: "intro-ssl-2",
+		type: "output",
+		content: `- curl http://${DEFAULT_DOMAIN}`,
+		timestamp: 1,
+	},
+	{
+		id: "intro-ssl-3",
+		type: "output",
+		content: `- curl https://${DEFAULT_DOMAIN}`,
+		timestamp: 2,
+	},
+	{
+		id: "intro-ssl-4",
+		type: "output",
+		content: `- curl -v https://${DEFAULT_DOMAIN}`,
+		timestamp: 3,
+	},
+	{
+		id: "intro-ssl-5",
+		type: "output",
+		content: `- curl -I https://${DEFAULT_DOMAIN}`,
+		timestamp: 4,
+	},
+	{
+		id: "intro-ssl-6",
+		type: "output",
+		content: `- openssl s_client https://${DEFAULT_DOMAIN}`,
+		timestamp: 5,
+	},
+	{
+		id: "intro-ssl-7",
+		type: "output",
+		content: "- help",
+		timestamp: 6,
+	},
+	{
+		id: "intro-ssl-8",
+		type: "output",
+		content: "- clear",
+		timestamp: 7,
+	},
+];
 
 export const INDEX_HTML_CONTENT = `<!DOCTYPE html>
 <html>

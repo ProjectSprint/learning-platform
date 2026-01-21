@@ -1,5 +1,5 @@
-// Item label and status message formatters for the networking question
-// These are question-specific implementations that can be passed to PlayCanvas
+// Item label and status notifications for the networking question
+// These are question-specific helpers passed to PlayCanvas
 
 import type { PlacedItem } from "@/components/game/game-provider";
 

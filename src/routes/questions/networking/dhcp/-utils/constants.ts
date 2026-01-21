@@ -4,6 +4,7 @@
 import type {
 	CanvasConfig,
 	InventoryItem,
+	TerminalEntry,
 } from "@/components/game/game-provider";
 
 export const QUESTION_ID = "networking";
@@ -12,6 +13,26 @@ export const QUESTION_DESCRIPTION =
 	"Try to connect two of this PC using Router!";
 export const TERMINAL_PROMPT =
 	"How can you check that PC-1 is connected to PC-2?";
+export const TERMINAL_INTRO_ENTRIES: TerminalEntry[] = [
+	{
+		id: "intro-dhcp-1",
+		type: "output",
+		content: "Available commands:",
+		timestamp: 0,
+	},
+	{
+		id: "intro-dhcp-2",
+		type: "output",
+		content: "- ping pc-2",
+		timestamp: 1,
+	},
+	{
+		id: "intro-dhcp-3",
+		type: "output",
+		content: "- ping <pc-2-ip>",
+		timestamp: 2,
+	},
+];
 
 // Initial inventory items available for the networking question
 export const INVENTORY_ITEMS: InventoryItem[] = [

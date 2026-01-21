@@ -256,11 +256,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasPcIp) {
 				desiredStatus = "error";
-			} else if (
-				!network.routerWanConnectedToIgw ||
-				!network.igw ||
-				!network.internet
-			) {
+			} else if (!googleReachable) {
 				desiredStatus = "warning";
 			} else {
 				desiredStatus = "success";

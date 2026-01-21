@@ -34,7 +34,7 @@ Connect two computers to a router, configure DHCP, and verify connectivity using
   - Drag source only, no validation and no state mutations.
 - PlayCanvas
   - Handles drop targets, emits placement and connection actions.
-- TerminalPanel
+- TerminalLayout
   - Captures input, dispatches SUBMIT_COMMAND, renders history from state.
 - OverlayLayer
   - Renders configuration modals and hint toasts from state.overlay.
@@ -440,7 +440,7 @@ Rule H4 | Accessibility + reliability
 - Use typed actions and a single reducer entry point for all state mutations.
 
 ### Usability and accessibility
-- Ensure keyboard-only interaction paths exist (InventoryPanel, PlayCanvas, TerminalPanel).
+- Ensure keyboard-only interaction paths exist (InventoryPanel, PlayCanvas, TerminalLayout).
 - Provide clear focus states and ARIA roles for terminal, modals, and hint toasts.
 - Keep error copy short, specific, and non-punitive.
 

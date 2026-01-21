@@ -1,47 +1,15 @@
 import { Box, Button, Flex, Text } from "@chakra-ui/react";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
-import { type ModuleConfig, ModuleEngine } from "@/components/module";
-import { DhcpQuestion } from "./dhcp/-page";
-import { InternetQuestion } from "./internet/-page";
-import { WebserverSslQuestion } from "./webserver-ssl/-page";
-
-const NETWORKING_MODULE: ModuleConfig = {
-   id: "networking-basics",
-   title: "Networking Basics",
-   questions: [
-      { id: "webserver-ssl", component: WebserverSslQuestion },
-      { id: "internet-gateway", component: InternetQuestion },
-      { id: "dhcp-basics", component: DhcpQuestion },
-   ],
-};
+import { getFirstQuestionPath } from "./-utils/module-progress";
 
 export const NetworkingModulePage = () => {
    const navigate = useNavigate();
-   const [started, setStarted] = useState(false);
 
    const handlePlay = useCallback(() => {
-      setStarted(true);
-   }, []);
-
-   const handleExit = useCallback(() => {
-      void navigate({ to: "/" });
+      void navigate({ to: getFirstQuestionPath() });
    }, [navigate]);
-
-   const handleComplete = useCallback(() => {
-      void navigate({ to: "/" });
-   }, [navigate]);
-
-   if (started) {
-      return (
-         <ModuleEngine
-            config={NETWORKING_MODULE}
-            onExit={handleExit}
-            onComplete={handleComplete}
-         />
-      );
-   }
 
    return (
       <Box
@@ -68,6 +36,9 @@ export const NetworkingModulePage = () => {
                   </Text>
                   <Text as="li" mb={1}>
                      Verify network connectivity using the ping command
+                  </Text>
+                  <Text as="li" mb={1}>
+                     Build reliable delivery with TCP sequence numbers and ACKs
                   </Text>
                   <Text as="li" mb={1}>
                      Secure your website with HTTPS and SSL certificates

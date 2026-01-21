@@ -16,7 +16,10 @@ import {
 import { GameShell } from "@/components/game/game-shell";
 import { InventoryPanel } from "@/components/game/inventory-panel";
 import { PlayCanvas } from "@/components/game/play-canvas";
-import { TerminalPanel } from "@/components/game/terminal-panel";
+import { TerminalLayout } from "@/components/game/terminal-layout";
+import { TerminalInput } from "@/components/game/terminal-input";
+import { TerminalView } from "@/components/game/terminal-view";
+import { useTerminalInput } from "@/components/game/use-terminal-input";
 import type { QuestionProps } from "@/components/module";
 
 import {
@@ -28,6 +31,7 @@ import {
    QUESTION_TITLE,
    SSL_ITEMS_INVENTORY,
    SSL_SETUP_INVENTORY_ITEMS,
+   TERMINAL_INTRO_ENTRIES,
    TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
@@ -43,7 +47,10 @@ import {
    buildWebserver443StatusModal,
    buildWebserver80StatusModal,
 } from "./-utils/modal-builders";
-import { getSslItemLabel, getSslStatusMessage } from "./-utils/item-formatters";
+import {
+   getSslItemLabel,
+   getSslStatusMessage,
+} from "./-utils/item-notification";
 import { useSslState } from "./-utils/use-ssl-state";
 import { useSslTerminal } from "./-utils/use-ssl-terminal";
 
@@ -62,10 +69,12 @@ const WebserverSslGame = ({
 }) => {
    const dispatch = useGameDispatch();
    const state = useGameState();
-	const initializedRef = useRef(false);
-	const [showTlsModal, setShowTlsModal] = useState(false);
-	const [prevSecureState, setPrevSecureState] = useState(false);
-	const [sslCanvasesUnlocked, setSslCanvasesUnlocked] = useState(false);
+   const terminalInput = useTerminalInput();
+   const isCompleted = state.question.status === "completed";
+   const initializedRef = useRef(false);
+   const [showTlsModal, setShowTlsModal] = useState(false);
+   const [prevSecureState, setPrevSecureState] = useState(false);
+   const [sslCanvasesUnlocked, setSslCanvasesUnlocked] = useState(false);
 
    // Track which inventory groups have been shown to avoid redundant dispatches
    const inventoryShownRef = useRef({
@@ -114,7 +123,7 @@ const WebserverSslGame = ({
             terminal: {
                visible: false,
                prompt: TERMINAL_PROMPT,
-               history: [],
+               history: TERMINAL_INTRO_ENTRIES,
             },
             phase: "setup",
             questionStatus: "in_progress",
@@ -146,13 +155,13 @@ const WebserverSslGame = ({
 
       let desiredPhase: GamePhase = "setup";
 
-		// setup -> playing: after browser + port-80 configured
-		if (sslState.httpReady && sslState.browserStatus === "warning") {
-			desiredPhase = "playing";
-			if (!sslCanvasesUnlocked) {
-				setSslCanvasesUnlocked(true);
-			}
-		}
+      // setup -> playing: after browser + port-80 configured
+      if (sslState.httpReady && sslState.browserStatus === "warning") {
+         desiredPhase = "playing";
+         if (!sslCanvasesUnlocked) {
+            setSslCanvasesUnlocked(true);
+         }
+      }
 
       // Show SSL Setup inventory when HTTP works
       if (sslState.httpReady && sslState.browserStatus === "warning") {
@@ -180,18 +189,18 @@ const WebserverSslGame = ({
       if (
          sslState.httpsReady &&
          sslState.hasRedirect &&
-			sslState.browserStatus === "success"
-		) {
-			desiredPhase = "terminal";
-		}
+         sslState.browserStatus === "success"
+      ) {
+         desiredPhase = "terminal";
+      }
 
-		if (sslCanvasesUnlocked && desiredPhase === "setup") {
-			desiredPhase = state.phase;
-		}
+      if (sslCanvasesUnlocked && desiredPhase === "setup") {
+         desiredPhase = state.phase;
+      }
 
-		if (state.phase !== desiredPhase) {
-			dispatch({ type: "SET_PHASE", payload: { phase: desiredPhase } });
-		}
+      if (state.phase !== desiredPhase) {
+         dispatch({ type: "SET_PHASE", payload: { phase: desiredPhase } });
+      }
    }, [
       dispatch,
       state.phase,
@@ -202,7 +211,7 @@ const WebserverSslGame = ({
       sslState.httpsReady,
       sslState.hasRedirect,
       sslCanvasesUnlocked,
-	]);
+   ]);
 
    // Show TLS handshake modal when browser transitions to secure
    useEffect(() => {
@@ -418,16 +427,16 @@ const WebserverSslGame = ({
             return true;
          }
          // let's encrypt and port-443 appear when HTTP works
-		if (
-			(key === "letsencrypt" || key === "port-443") &&
-			(sslState.httpReady || sslCanvasesUnlocked)
-		) {
-			return true;
-		}
-		return false;
-	},
-	[sslState.httpReady, sslCanvasesUnlocked],
-	);
+         if (
+            (key === "letsencrypt" || key === "port-443") &&
+            (sslState.httpReady || sslCanvasesUnlocked)
+         ) {
+            return true;
+         }
+         return false;
+      },
+      [sslState.httpReady, sslCanvasesUnlocked],
+   );
 
    // Canvas title mapping
    const getCanvasTitle = useCallback((key: string) => {
@@ -435,11 +444,11 @@ const WebserverSslGame = ({
          case "browser":
             return "Browser";
          case "port-80":
-            return "Port 80 (HTTP)";
+            return "HTTP Webserver";
          case "letsencrypt":
             return "Let's Encrypt";
          case "port-443":
-            return "Port 443 (HTTPS)";
+            return "HTTPS Webserver";
          default:
             return key;
       }
@@ -523,7 +532,27 @@ const WebserverSslGame = ({
                </Box>
             )}
 
-            <TerminalPanel />
+            <TerminalLayout
+               visible={state.terminal.visible}
+               focusRef={terminalInput.inputRef}
+               view={
+                  <TerminalView
+                     history={state.terminal.history}
+                     prompt={state.terminal.prompt}
+                     isCompleted={isCompleted}
+                  />
+               }
+               input={
+                  <TerminalInput
+                     value={terminalInput.value}
+                     onChange={terminalInput.onChange}
+                     onKeyDown={terminalInput.onKeyDown}
+                     inputRef={terminalInput.inputRef}
+                     placeholder={isCompleted ? "Terminal disabled" : "Type a command"}
+                     disabled={isCompleted}
+                  />
+               }
+            />
          </Flex>
       </GameShell>
    );

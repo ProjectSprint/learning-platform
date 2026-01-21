@@ -28,6 +28,9 @@ const config = defineConfig({
 			},
 		}),
 	],
+	server: {
+		allowedHosts: ["zpvo51.tunnel.pyjam.as"],
+	},
 });
 
 export default config;

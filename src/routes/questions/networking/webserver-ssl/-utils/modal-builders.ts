@@ -302,7 +302,7 @@ export const buildCertificateRequestModal = (
 			label: "Issue Certificate",
 			variant: "primary",
 			validate: true,
-			closesModal: false,
+			closesModal: true,
 			onClick: async ({ values, dispatch }: ModalActionContext): Promise<void> => {
 				const domain = String(values.domain ?? "").trim();
 

@@ -84,6 +84,12 @@ export type ModalContentBlock =
 			text: string;
 	  }
 	| {
+			kind: "link";
+			id?: string;
+			text: string;
+			href: string;
+	  }
+	| {
 			kind: "field";
 			field: ModalField;
 	  };

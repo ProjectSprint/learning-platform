@@ -1,16 +1,15 @@
-# TerminalPanel — Specification
+# TerminalLayout — Specification
 
-The **TerminalPanel** provides a command-line interface for answering questions.
-It handles input/output display only — no command validation.
+The **TerminalLayout** provides the bottom-docked container for terminal UI.
+It accepts **TerminalView** and **TerminalInput** as injected children so you can swap or omit them.
 
 ---
 
 ## Responsibility
 
-- Display terminal prompt and history
-- Capture user input
-- Submit commands to game logic
-- Display command output
+- Display terminal prompt and history (TerminalView)
+- Capture user input (TerminalInput, optional)
+- Provide a reusable docked container (TerminalLayout)
 
 ---
 

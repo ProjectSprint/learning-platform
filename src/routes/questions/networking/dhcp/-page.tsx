@@ -11,7 +11,10 @@ import {
 import { GameShell } from "@/components/game/game-shell";
 import { InventoryPanel } from "@/components/game/inventory-panel";
 import { PlayCanvas } from "@/components/game/play-canvas";
-import { TerminalPanel } from "@/components/game/terminal-panel";
+import { TerminalLayout } from "@/components/game/terminal-layout";
+import { TerminalInput } from "@/components/game/terminal-input";
+import { TerminalView } from "@/components/game/terminal-view";
+import { useTerminalInput } from "@/components/game/use-terminal-input";
 import type { QuestionProps } from "@/components/module";
 
 import {
@@ -20,6 +23,7 @@ import {
    QUESTION_DESCRIPTION,
    QUESTION_ID,
    QUESTION_TITLE,
+   TERMINAL_INTRO_ENTRIES,
    TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
@@ -27,7 +31,7 @@ import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
    getNetworkingItemLabel,
    getNetworkingStatusMessage,
-} from "./-utils/item-formatters";
+} from "./-utils/item-notification";
 import {
    buildPcConfigModal,
    buildRouterConfigModal,
@@ -51,6 +55,8 @@ const NetworkingGame = ({
    const dispatch = useGameDispatch();
    const state = useGameState();
    const initializedRef = useRef(false);
+   const terminalInput = useTerminalInput();
+   const isCompleted = state.question.status === "completed";
 
    useEffect(() => {
       if (initializedRef.current) {
@@ -68,7 +74,7 @@ const NetworkingGame = ({
                terminal: {
                   visible: false,
                   prompt: TERMINAL_PROMPT,
-                  history: [],
+                  history: TERMINAL_INTRO_ENTRIES,
                },
                phase: "setup",
                questionStatus: "in_progress",
@@ -227,7 +233,27 @@ const NetworkingGame = ({
                </Box>
             )}
 
-            <TerminalPanel />
+         <TerminalLayout
+            visible={state.terminal.visible}
+            focusRef={terminalInput.inputRef}
+            view={
+               <TerminalView
+                  history={state.terminal.history}
+                  prompt={state.terminal.prompt}
+                  isCompleted={isCompleted}
+               />
+            }
+            input={
+               <TerminalInput
+                  value={terminalInput.value}
+                  onChange={terminalInput.onChange}
+                  onKeyDown={terminalInput.onKeyDown}
+                  inputRef={terminalInput.inputRef}
+                  placeholder={isCompleted ? "Terminal disabled" : "Type a command"}
+                  disabled={isCompleted}
+               />
+            }
+         />
          </Flex>
       </GameShell>
    );

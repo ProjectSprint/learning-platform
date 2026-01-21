@@ -4,6 +4,7 @@
 import type {
 	CanvasConfig,
 	InventoryItem,
+	TerminalEntry,
 } from "@/components/game/game-provider";
 
 export const QUESTION_ID = "internet-gateway";
@@ -12,6 +13,39 @@ export const QUESTION_DESCRIPTION =
 	"Now you can setup a router, but you can't reach Google yet. Connect to your ISP and configure the router to access the internet!";
 export const TERMINAL_PROMPT =
 	"Your network is configured! Can you verify that you can reach Google?";
+export const GOOGLE_IP = "142.250.80.46";
+export const TERMINAL_INTRO_ENTRIES: TerminalEntry[] = [
+	{
+		id: "intro-internet-1",
+		type: "output",
+		content: "Available commands:",
+		timestamp: 0,
+	},
+	{
+		id: "intro-internet-2",
+		type: "output",
+		content: "- ifconfig",
+		timestamp: 1,
+	},
+	{
+		id: "intro-internet-3",
+		type: "output",
+		content: "- nslookup google.com",
+		timestamp: 2,
+	},
+	{
+		id: "intro-internet-4",
+		type: "output",
+		content: "- ping google.com",
+		timestamp: 3,
+	},
+	{
+		id: "intro-internet-5",
+		type: "output",
+		content: `- ping ${GOOGLE_IP}`,
+		timestamp: 4,
+	},
+];
 
 // Canvas keys for allowedPlaces
 export type InternetCanvasKey =
@@ -168,4 +202,3 @@ export const VALID_PPPOE_CREDENTIALS = {
 } as const;
 
 // Google's IP address for ping verification
-export const GOOGLE_IP = "142.250.80.46";

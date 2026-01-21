@@ -1,8 +1,8 @@
 // Terminal command handler for the webserver-ssl question
 // Supports curl and openssl commands for testing HTTP and HTTPS
 
-import { useCallback } from "react";
-import { useGameDispatch } from "@/components/game/game-provider";
+import { useCallback, useMemo } from "react";
+import { useAllCanvases, useGameDispatch } from "@/components/game/game-provider";
 import type { TerminalCommandHelpers } from "@/components/game/engines/terminal/use-terminal-engine";
 import { INDEX_HTML_CONTENT } from "./constants";
 import { isPort443Complete, isPort80Complete, isPort80RedirectConfigured } from "./ssl-utils";
@@ -23,17 +23,23 @@ export const useSslTerminal = ({
 	onQuestionComplete,
 }: UseSslTerminalArgs) => {
 	const dispatch = useGameDispatch();
+	const canvases = useAllCanvases();
+	const port80Canvas = useMemo(
+		() => canvases["port-80"] as CanvasState | undefined,
+		[canvases],
+	);
+	const port443Canvas = useMemo(
+		() => canvases["port-443"] as CanvasState | undefined,
+		[canvases],
+	);
 
 	return useCallback(
-		(input: string, helpers: TerminalCommandHelpers, state?: Record<string, unknown>) => {
+		(input: string, helpers: TerminalCommandHelpers) => {
 			const trimmedInput = input.trim();
 			if (trimmedInput.length === 0) return;
 
 			const tokens = trimmedInput.split(/\s+/);
 			const command = tokens[0]?.toLowerCase();
-
-			const port80Canvas = state?.["port-80"] as CanvasState | undefined;
-			const port443Canvas = state?.["port-443"] as CanvasState | undefined;
 
 			const getDomain = () => port80Domain || certificateDomain || "example.com";
 
@@ -238,6 +244,14 @@ export const useSslTerminal = ({
 
 			helpers.writeOutput(`Unknown command: ${command}. Type 'help' for available commands.`, "error");
 		},
-		[hasRedirect, port80Domain, certificateDomain, dispatch, onQuestionComplete],
+		[
+			hasRedirect,
+			port80Domain,
+			certificateDomain,
+			dispatch,
+			onQuestionComplete,
+			port80Canvas,
+			port443Canvas,
+		],
 	);
 };

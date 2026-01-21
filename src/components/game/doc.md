@@ -68,7 +68,9 @@ GameProvider
     │   ├── PlacedItem (×n)
     │   └── Connection (×n)
     │
-    ├── TerminalPanel
+    ├── TerminalLayout
+    ├── TerminalView
+    ├── TerminalInput
     │
     └── OverlayLayer
         ├── ConfigModal
@@ -124,7 +126,9 @@ GameProvider
 | GameLayout      | [game-layout.md](./game-layout.md)          | Structural layout, modularity     |
 | InventoryPanel  | [inventory-panel.md](./inventory-panel.md)  | Drag source, item list            |
 | PlayCanvas      | [canvas-blocks.md](./canvas-blocks.md)      | Drop target, grid, connections    |
-| TerminalPanel   | [terminal-panel.md](./terminal-panel.md)    | Command input, output display     |
+| TerminalLayout  | [terminal-panel.md](./terminal-panel.md)    | Terminal shell with view + input  |
+| TerminalView    | [terminal-panel.md](./terminal-panel.md)    | Terminal history display          |
+| TerminalInput   | [terminal-panel.md](./terminal-panel.md)    | Terminal input line               |
 | OverlayLayer    | [overlay-layer.md](./overlay-layer.md)      | Modals, toasts, hints             |
 
 ---
