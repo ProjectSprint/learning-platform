@@ -2,7 +2,6 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
-   type GamePhase,
    GameProvider,
    type PlacedItem,
    useGameDispatch,
@@ -16,11 +15,15 @@ import { TerminalInput } from "@/components/game/terminal-input";
 import { TerminalView } from "@/components/game/terminal-view";
 import { useTerminalInput } from "@/components/game/use-terminal-input";
 import type { QuestionProps } from "@/components/module";
+import {
+   type ConditionContext,
+   type QuestionSpec,
+   resolvePhase,
+} from "@/components/game/question-ast";
 
 import {
    CANVAS_CONFIGS,
    CANVAS_ORDER,
-   type InternetCanvasKey,
    INVENTORY_ITEMS,
    QUESTION_DESCRIPTION,
    QUESTION_ID,
@@ -46,15 +49,59 @@ import {
 import { useInternetState } from "./-utils/use-internet-state";
 import { useInternetTerminal } from "./-utils/use-internet-terminal";
 
-const CANVAS_TITLES: Record<InternetCanvasKey, string> = {
-   local: "Local",
-   "conn-1": "Connector",
-   router: "Router",
-   "conn-2": "Connector",
-   internet: "Internet",
-};
+type InternetConditionKey =
+   | "questionStatus"
+   | "dragStatus"
+   | "allDevicesPlaced";
 
-const getCanvasTitle = (key: InternetCanvasKey) => CANVAS_TITLES[key];
+const INTERNET_SPEC_BASE: Omit<QuestionSpec<InternetConditionKey>, "handlers"> = {
+   meta: {
+      id: QUESTION_ID,
+      title: QUESTION_TITLE,
+      description: QUESTION_DESCRIPTION,
+   },
+   init: {
+      kind: "multi",
+      payload: {
+         questionId: QUESTION_ID,
+         canvases: CANVAS_CONFIGS,
+         inventory: INVENTORY_ITEMS,
+         terminal: {
+            visible: false,
+            prompt: TERMINAL_PROMPT,
+            history: TERMINAL_INTRO_ENTRIES,
+         },
+         phase: "setup",
+         questionStatus: "in_progress",
+      },
+   },
+   phaseRules: [
+      {
+         kind: "set",
+         when: { kind: "eq", key: "questionStatus", value: "completed" },
+         to: "completed",
+      },
+      {
+         kind: "set",
+         when: { kind: "eq", key: "dragStatus", value: "finished" },
+         to: "terminal",
+      },
+      {
+         kind: "set",
+         when: { kind: "eq", key: "dragStatus", value: "started" },
+         to: "playing",
+      },
+      {
+         kind: "set",
+         when: { kind: "eq", key: "allDevicesPlaced", value: true },
+         to: "configuring",
+      },
+   ],
+   labels: {
+      getItemLabel: getInternetItemLabel,
+      getStatusMessage: getInternetStatusMessage,
+   },
+};
 
 export const InternetQuestion = ({ onQuestionComplete }: QuestionProps) => {
    return (
@@ -74,33 +121,111 @@ const InternetGame = ({
    const initializedRef = useRef(false);
    const terminalInput = useTerminalInput();
    const isCompleted = state.question.status === "completed";
-
-   useEffect(() => {
-      if (initializedRef.current) {
-         return;
-      }
-
-      initializedRef.current = true;
-      dispatch({
-         type: "INIT_MULTI_CANVAS",
-         payload: {
-            questionId: QUESTION_ID,
-            canvases: CANVAS_CONFIGS,
-            inventory: INVENTORY_ITEMS,
-            terminal: {
-               visible: false,
-               prompt: TERMINAL_PROMPT,
-               history: TERMINAL_INTRO_ENTRIES,
-            },
-            phase: "setup",
-            questionStatus: "in_progress",
-         },
-      });
-   }, [dispatch]);
-
    const dragEngine = useDragEngine();
-
    const internetState = useInternetState({ dragEngine });
+   const placedItemById = useMemo(() => {
+      const map = new Map<string, PlacedItem>();
+      for (const entry of internetState.placedItems) {
+         map.set(entry.id, entry);
+      }
+      return map;
+   }, [internetState.placedItems]);
+
+   const itemClickHandlers = useMemo(
+      () => ({
+         "router-lan": ({ item }: { item: PlacedItem }) => {
+            const placedItem = placedItemById.get(item.id);
+            const currentConfig = placedItem?.data ?? {};
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildRouterLanConfigModal(item.id, currentConfig),
+            });
+         },
+         "router-nat": ({ item }: { item: PlacedItem }) => {
+            const placedItem = placedItemById.get(item.id);
+            const currentConfig = placedItem?.data ?? {};
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildRouterNatConfigModal(item.id, currentConfig),
+            });
+         },
+         "router-wan": ({ item }: { item: PlacedItem }) => {
+            const placedItem = placedItemById.get(item.id);
+            const currentConfig = placedItem?.data ?? {};
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildRouterWanConfigModal(item.id, currentConfig),
+            });
+         },
+         pc: ({ item }: { item: PlacedItem }) => {
+            const placedItem = placedItemById.get(item.id);
+            const currentConfig = placedItem?.data ?? {};
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildPcStatusModal(item.id, {
+                  ip:
+                     typeof currentConfig.ip === "string"
+                        ? currentConfig.ip
+                        : undefined,
+                  status: internetState.googleReachable
+                     ? "Connected to internet"
+                     : "Waiting for connection",
+               }),
+            });
+         },
+         igw: ({ item }: { item: PlacedItem }) => {
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildIgwStatusModal(item.id, {
+                  status: internetState.hasValidPppoeCredentials
+                     ? "Authenticated"
+                     : "Waiting for authentication",
+               }),
+            });
+         },
+         dns: ({ item }: { item: PlacedItem }) => {
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildDnsStatusModal(item.id, {
+                  ip: internetState.dnsServer ?? undefined,
+                  status: internetState.hasValidDnsServer ? "Active" : "Unreachable",
+               }),
+            });
+         },
+         google: ({ item }: { item: PlacedItem }) => {
+            let reason: string | undefined;
+            if (!internetState.hasValidDnsServer) {
+               reason = "DNS not configured";
+            } else if (!internetState.natEnabled) {
+               reason = "NAT disabled";
+            } else if (!internetState.hasValidPppoeCredentials) {
+               reason = "WAN not connected";
+            }
+
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildGoogleStatusModal(item.id, {
+                  domain: "google.com",
+                  ip: internetState.googleReachable
+                     ? internetState.googleIp
+                     : undefined,
+                  status: internetState.googleReachable ? "Reachable" : "Unreachable",
+                  reason,
+               }),
+            });
+         },
+      }),
+      [
+         dispatch,
+         internetState.dnsServer,
+         internetState.googleIp,
+         internetState.googleReachable,
+         internetState.hasValidDnsServer,
+         internetState.hasValidPppoeCredentials,
+         internetState.natEnabled,
+         placedItemById,
+      ],
+   );
 
    const handleInternetCommand = useInternetTerminal({
       pcIp: internetState.pcIp,
@@ -114,34 +239,62 @@ const InternetGame = ({
       onCommand: handleInternetCommand,
    });
 
+   const spec = useMemo<QuestionSpec<InternetConditionKey>>(
+      () => ({
+         ...INTERNET_SPEC_BASE,
+         handlers: {
+            onCommand: handleInternetCommand,
+            onItemClickByType: itemClickHandlers,
+            isItemClickableByType: {
+               "router-lan": true,
+               "router-nat": true,
+               "router-wan": true,
+               pc: true,
+               igw: true,
+               dns: true,
+               google: true,
+            },
+         },
+      }),
+      [handleInternetCommand, itemClickHandlers],
+   );
+
    useEffect(() => {
-      let desiredPhase: GamePhase = "setup";
-
-      if (internetState.allDevicesPlaced) {
-         desiredPhase = "configuring";
+      if (initializedRef.current) {
+         return;
       }
 
-      if (dragEngine.progress.status === "started") {
-         desiredPhase = "playing";
-      }
+      initializedRef.current = true;
+      dispatch({
+         type: "INIT_MULTI_CANVAS",
+         payload: spec.init.payload,
+      });
+   }, [dispatch, spec.init.payload]);
 
-      if (dragEngine.progress.status === "finished") {
-         desiredPhase = "terminal";
-      }
+   useEffect(() => {
+      const context: ConditionContext<InternetConditionKey> = {
+         dragStatus: dragEngine.progress.status,
+         questionStatus: state.question.status,
+         allDevicesPlaced: internetState.allDevicesPlaced,
+      };
 
-      if (state.question.status === "completed") {
-         desiredPhase = "completed";
-      }
+      const resolved = resolvePhase(
+         spec.phaseRules,
+         context,
+         state.phase,
+         "setup",
+      );
 
-      if (state.phase !== desiredPhase) {
-         dispatch({ type: "SET_PHASE", payload: { phase: desiredPhase } });
+      if (state.phase !== resolved.nextPhase) {
+         dispatch({ type: "SET_PHASE", payload: { phase: resolved.nextPhase } });
       }
    }, [
       dispatch,
-      state.phase,
-      state.question.status,
       dragEngine.progress.status,
       internetState.allDevicesPlaced,
+      spec.phaseRules,
+      state.phase,
+      state.question.status,
    ]);
 
    const contextualHint = useMemo(
@@ -210,131 +363,23 @@ const InternetGame = ({
       ],
    );
 
-   const placedItemById = useMemo(() => {
-      const map = new Map<string, PlacedItem>();
-      for (const entry of internetState.placedItems) {
-         map.set(entry.id, entry);
-      }
-      return map;
-   }, [internetState.placedItems]);
-
    const handlePlacedItemClick = useCallback(
       (item: PlacedItem) => {
-         const placedItem = placedItemById.get(item.id);
-         const currentConfig = placedItem?.data ?? {};
-
-         if (item.type === "router-lan") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildRouterLanConfigModal(item.id, currentConfig),
-            });
-            return;
-         }
-
-         if (item.type === "router-nat") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildRouterNatConfigModal(item.id, currentConfig),
-            });
-            return;
-         }
-
-         if (item.type === "router-wan") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildRouterWanConfigModal(item.id, currentConfig),
-            });
-            return;
-         }
-
-         if (item.type === "pc") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildPcStatusModal(item.id, {
-                  ip:
-                     typeof currentConfig.ip === "string"
-                        ? currentConfig.ip
-                        : undefined,
-                  status: internetState.googleReachable
-                     ? "Connected to internet"
-                     : "Waiting for connection",
-               }),
-            });
-            return;
-         }
-
-         if (item.type === "igw") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildIgwStatusModal(item.id, {
-                  status: internetState.hasValidPppoeCredentials
-                     ? "Authenticated"
-                     : "Waiting for authentication",
-               }),
-            });
-            return;
-         }
-
-         if (item.type === "dns") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildDnsStatusModal(item.id, {
-                  ip: internetState.dnsServer ?? undefined,
-                  status: internetState.hasValidDnsServer ? "Active" : "Unreachable",
-               }),
-            });
-            return;
-         }
-
-         if (item.type === "google") {
-            let reason: string | undefined;
-            if (!internetState.hasValidDnsServer) {
-               reason = "DNS not configured";
-            } else if (!internetState.natEnabled) {
-               reason = "NAT disabled";
-            } else if (!internetState.hasValidPppoeCredentials) {
-               reason = "WAN not connected";
-            }
-
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildGoogleStatusModal(item.id, {
-                  domain: "google.com",
-                  ip: internetState.googleReachable
-                     ? internetState.googleIp
-                     : undefined,
-                  status: internetState.googleReachable ? "Reachable" : "Unreachable",
-                  reason,
-               }),
-            });
+         const handler = spec.handlers.onItemClickByType[item.type];
+         if (handler) {
+            handler({ item });
          }
       },
-      [
-         dispatch,
-         internetState.googleReachable,
-         internetState.hasValidPppoeCredentials,
-         internetState.dnsServer,
-         internetState.hasValidDnsServer,
-         internetState.natEnabled,
-         internetState.googleIp,
-         placedItemById,
-      ],
+      [spec.handlers.onItemClickByType],
    );
 
    const isItemClickable = useCallback(
-      (item: PlacedItem) =>
-         item.type === "router-lan" ||
-         item.type === "router-nat" ||
-         item.type === "router-wan" ||
-         item.type === "pc" ||
-         item.type === "igw" ||
-         item.type === "dns" ||
-         item.type === "google",
-      [],
+      (item: PlacedItem) => spec.handlers.isItemClickableByType[item.type] === true,
+      [spec.handlers.isItemClickableByType],
    );
 
    return (
-      <GameShell getItemLabel={getInternetItemLabel}>
+      <GameShell getItemLabel={spec.labels.getItemLabel}>
          <Flex
             direction="column"
             px={{ base: 2, md: 12, lg: 24 }}
@@ -360,7 +405,7 @@ const InternetGame = ({
             >
                {CANVAS_ORDER.map((key) => {
                   const config = CANVAS_CONFIGS[key];
-                  const title = getCanvasTitle(key);
+                  const title = config.title ?? key;
 
                   return (
                      <Box
@@ -372,8 +417,8 @@ const InternetGame = ({
                         <PlayCanvas
                            stateKey={key}
                            title={title}
-                           getItemLabel={getInternetItemLabel}
-                           getStatusMessage={getInternetStatusMessage}
+                           getItemLabel={spec.labels.getItemLabel}
+                           getStatusMessage={spec.labels.getStatusMessage}
                            onPlacedItemClick={handlePlacedItemClick}
                            isItemClickable={isItemClickable}
                         />

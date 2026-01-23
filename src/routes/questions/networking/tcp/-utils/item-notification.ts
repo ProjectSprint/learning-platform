@@ -26,13 +26,6 @@ const flagStateMessages: Record<string, TcpStateLabel> = {
 };
 
 
-const getPacketLabel = (seq?: number, seqEnabled?: boolean) => {
-	if (seqEnabled && typeof seq === "number") {
-		return `Packet #${seq}`;
-	}
-	return "Fragment";
-};
-
 /**
  * Get display label for an item type.
  */

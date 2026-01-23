@@ -150,13 +150,15 @@ export const CANVAS_ORDER: InternetCanvasKey[] = [
 export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	local: {
 		id: "internet-local",
-		stateKey: "local",
+		title: "Local",
+		stateKey: "client",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
 	},
 	"conn-1": {
 		id: "internet-conn-1",
+		title: "Connector",
 		stateKey: "conn-1",
 		columns: 1,
 		rows: 1,
@@ -164,6 +166,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	},
 	router: {
 		id: "internet-router",
+		title: "Router",
 		stateKey: "router",
 		columns: 3,
 		rows: 1,
@@ -171,6 +174,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	},
 	"conn-2": {
 		id: "internet-conn-2",
+		title: "Connector",
 		stateKey: "conn-2",
 		columns: 1,
 		rows: 1,
@@ -178,6 +182,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	},
 	internet: {
 		id: "internet-external",
+		title: "Internet",
 		stateKey: "internet",
 		columns: 4,
 		rows: 1,

@@ -7,7 +7,7 @@ export type TerminalInputProps = {
 	onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
 	placeholder?: string;
 	disabled?: boolean;
-	inputRef?: RefObject<HTMLInputElement>;
+	inputRef?: RefObject<HTMLInputElement | null>;
 	inputProps?: InputProps;
 };
 

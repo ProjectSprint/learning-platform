@@ -17,7 +17,7 @@ type TerminalInputController = {
 	value: string;
 	onChange: (value: string) => void;
 	onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
-	inputRef: RefObject<HTMLInputElement>;
+	inputRef: RefObject<HTMLInputElement | null>;
 };
 
 export const useTerminalInput = (): TerminalInputController => {

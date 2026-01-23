@@ -12,24 +12,12 @@ export const TERMINAL_PROMPT =
 
 export type TcpCanvasKey = "splitter" | "internet" | "server";
 
-const getCanvasTitle = (key: string) => {
-	switch (key) {
-		case "splitter":
-			return "Content Splitter";
-		case "internet":
-			return "Internet";
-		case "server":
-			return "Server";
-		default:
-			return key;
-	}
-};
-
 export const CANVAS_ORDER: TcpCanvasKey[] = ["splitter", "internet", "server"];
 
 export const CANVAS_CONFIGS: Record<TcpCanvasKey, CanvasConfig> = {
 	splitter: {
 		id: "tcp-splitter",
+		title: "Content Splitter",
 		stateKey: "splitter",
 		columns: 1,
 		rows: 1,
@@ -37,6 +25,7 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, CanvasConfig> = {
 	},
 	internet: {
 		id: "tcp-internet",
+		title: "Internet",
 		stateKey: "internet",
 		columns: 3,
 		rows: 1,
@@ -44,6 +33,7 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, CanvasConfig> = {
 	},
 	server: {
 		id: "tcp-server",
+		title: "Server",
 		stateKey: "server",
 		columns: 3,
 		rows: 4,

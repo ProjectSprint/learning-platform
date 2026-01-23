@@ -2,7 +2,6 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
-   type GamePhase,
    GameProvider,
    type PlacedItem,
    useGameDispatch,
@@ -16,6 +15,11 @@ import { TerminalInput } from "@/components/game/terminal-input";
 import { TerminalView } from "@/components/game/terminal-view";
 import { useTerminalInput } from "@/components/game/use-terminal-input";
 import type { QuestionProps } from "@/components/module";
+import {
+   type ConditionContext,
+   type QuestionSpec,
+   resolvePhase,
+} from "@/components/game/question-ast";
 
 import {
    CANVAS_CONFIG,
@@ -39,6 +43,52 @@ import {
 import { useNetworkState } from "./-utils/use-network-state";
 import { useNetworkingTerminal } from "./-utils/use-networking-terminal";
 
+type DhcpConditionKey = "dragStatus" | "questionStatus";
+
+const DHCP_SPEC_BASE: Omit<QuestionSpec<DhcpConditionKey>, "handlers"> = {
+   meta: {
+      id: QUESTION_ID,
+      title: QUESTION_TITLE,
+      description: QUESTION_DESCRIPTION,
+   },
+   init: {
+      kind: "multi",
+      payload: {
+         questionId: QUESTION_ID,
+         canvases: { [CANVAS_CONFIG.id]: CANVAS_CONFIG },
+         inventory: INVENTORY_ITEMS,
+         terminal: {
+            visible: false,
+            prompt: TERMINAL_PROMPT,
+            history: TERMINAL_INTRO_ENTRIES,
+         },
+         phase: "setup",
+         questionStatus: "in_progress",
+      },
+   },
+   phaseRules: [
+      {
+         kind: "set",
+         when: { kind: "eq", key: "questionStatus", value: "completed" },
+         to: "completed",
+      },
+      {
+         kind: "set",
+         when: { kind: "eq", key: "dragStatus", value: "finished" },
+         to: "terminal",
+      },
+      {
+         kind: "set",
+         when: { kind: "eq", key: "dragStatus", value: "started" },
+         to: "playing",
+      },
+   ],
+   labels: {
+      getItemLabel: getNetworkingItemLabel,
+      getStatusMessage: getNetworkingStatusMessage,
+   },
+};
+
 export const DhcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
    return (
       <GameProvider>
@@ -57,34 +107,7 @@ const NetworkingGame = ({
    const initializedRef = useRef(false);
    const terminalInput = useTerminalInput();
    const isCompleted = state.question.status === "completed";
-
-   useEffect(() => {
-      if (initializedRef.current) {
-         return;
-      }
-
-      initializedRef.current = true;
-      dispatch({
-         type: "INIT_QUESTION",
-         payload: {
-            questionId: QUESTION_ID,
-            config: {
-               canvas: CANVAS_CONFIG,
-               inventory: INVENTORY_ITEMS,
-               terminal: {
-                  visible: false,
-                  prompt: TERMINAL_PROMPT,
-                  history: TERMINAL_INTRO_ENTRIES,
-               },
-               phase: "setup",
-               questionStatus: "in_progress",
-            },
-         },
-      });
-   }, [dispatch]);
-
    const dragEngine = useDragEngine();
-
    const networkState = useNetworkState({ dragEngine });
 
    const handleNetworkingCommand = useNetworkingTerminal({
@@ -96,29 +119,77 @@ const NetworkingGame = ({
       onCommand: handleNetworkingCommand,
    });
 
+   const itemClickHandlers = useMemo(
+      () => ({
+         router: ({ item }: { item: PlacedItem }) => {
+            const placedItem = state.canvas.placedItems.find(
+               (entry) => entry.id === item.id,
+            );
+            const currentConfig = placedItem?.data ?? {};
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildRouterConfigModal(item.id, currentConfig),
+            });
+         },
+         pc: ({ item }: { item: PlacedItem }) => {
+            const placedItem = state.canvas.placedItems.find(
+               (entry) => entry.id === item.id,
+            );
+            const currentConfig = placedItem?.data ?? {};
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildPcConfigModal(item.id, currentConfig),
+            });
+         },
+      }),
+      [dispatch, state.canvas.placedItems],
+   );
+
+   const spec = useMemo<QuestionSpec<DhcpConditionKey>>(
+      () => ({
+         ...DHCP_SPEC_BASE,
+         handlers: {
+            onCommand: handleNetworkingCommand,
+            onItemClickByType: itemClickHandlers,
+            isItemClickableByType: { router: true, pc: true },
+         },
+      }),
+      [handleNetworkingCommand, itemClickHandlers],
+   );
+
    useEffect(() => {
-      let desiredPhase: GamePhase = "setup";
-
-      if (dragEngine.progress.status === "started") {
-         desiredPhase = "playing";
+      if (initializedRef.current) {
+         return;
       }
 
-      if (dragEngine.progress.status === "finished") {
-         desiredPhase = "terminal";
-      }
+      initializedRef.current = true;
+      dispatch({
+         type: "INIT_MULTI_CANVAS",
+         payload: spec.init.payload,
+      });
+   }, [dispatch, spec.init.payload]);
 
-      if (state.question.status === "completed") {
-         desiredPhase = "completed";
-      }
+   useEffect(() => {
+      const context: ConditionContext<DhcpConditionKey> = {
+         dragStatus: dragEngine.progress.status,
+         questionStatus: state.question.status,
+      };
+      const resolved = resolvePhase(
+         spec.phaseRules,
+         context,
+         state.phase,
+         "setup",
+      );
 
-      if (state.phase !== desiredPhase) {
-         dispatch({ type: "SET_PHASE", payload: { phase: desiredPhase } });
+      if (state.phase !== resolved.nextPhase) {
+         dispatch({ type: "SET_PHASE", payload: { phase: resolved.nextPhase } });
       }
    }, [
       dispatch,
+      dragEngine.progress.status,
+      spec.phaseRules,
       state.phase,
       state.question.status,
-      dragEngine.progress.status,
    ]);
 
    const contextualHint = useMemo(
@@ -157,34 +228,21 @@ const NetworkingGame = ({
 
    const handlePlacedItemClick = useCallback(
       (item: PlacedItem) => {
-         const placedItem = state.canvas.placedItems.find((p) => p.id === item.id);
-         const currentConfig = placedItem?.data ?? {};
-
-         if (item.type === "router") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildRouterConfigModal(item.id, currentConfig),
-            });
-            return;
-         }
-
-         if (item.type === "pc") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildPcConfigModal(item.id, currentConfig),
-            });
+         const handler = spec.handlers.onItemClickByType[item.type];
+         if (handler) {
+            handler({ item });
          }
       },
-      [dispatch, state.canvas.placedItems],
+      [spec.handlers.onItemClickByType],
    );
 
    const isItemClickable = useCallback(
-      (item: PlacedItem) => item.type === "router" || item.type === "pc",
-      [],
+      (item: PlacedItem) => spec.handlers.isItemClickableByType[item.type] === true,
+      [spec.handlers.isItemClickableByType],
    );
 
    return (
-      <GameShell getItemLabel={getNetworkingItemLabel}>
+      <GameShell getItemLabel={spec.labels.getItemLabel}>
          <Flex
             direction="column"
             px={{ base: 4, md: 12, lg: 24 }}
@@ -205,8 +263,8 @@ const NetworkingGame = ({
 
             <Box flex="1">
                <PlayCanvas
-                  getItemLabel={getNetworkingItemLabel}
-                  getStatusMessage={getNetworkingStatusMessage}
+                  getItemLabel={spec.labels.getItemLabel}
+                  getStatusMessage={spec.labels.getStatusMessage}
                   onPlacedItemClick={handlePlacedItemClick}
                   isItemClickable={isItemClickable}
                />

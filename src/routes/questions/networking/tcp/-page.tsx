@@ -17,6 +17,11 @@ import { TerminalView } from "@/components/game/terminal-view";
 import { useTerminalInput } from "@/components/game/use-terminal-input";
 import type { QuestionProps } from "@/components/module";
 import { useTerminalEngine } from "@/components/game/engines";
+import {
+	type ConditionContext,
+	type QuestionSpec,
+	resolvePhase,
+} from "@/components/game/question-ast";
 
 import {
    CANVAS_CONFIGS,
@@ -38,9 +43,11 @@ import { buildSuccessModal } from "./-utils/modal-builders";
 import { useTcpState } from "./-utils/use-tcp-state";
 import { useTcpTerminal } from "./-utils/use-tcp-terminal";
 
+type TcpConditionKey = "questionStatus" | "terminalPhase";
+
 export const TcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
-   return (
-      <GameProvider>
+	return (
+		<GameProvider>
          <TcpGame onQuestionComplete={onQuestionComplete} />
       </GameProvider>
    );
@@ -58,13 +65,13 @@ const TcpGame = ({
    const [tunnelActive, setTunnelActive] = useState(false);
    const terminalInput = useTerminalInput();
    const isCompleted = state.question.status === "completed";
-   const successShownRef = useRef(false);
+	const successShownRef = useRef(false);
 
-   const inventoryGroups = useMemo<InventoryGroupConfig[]>(
-      () => [
-         {
-            id: INVENTORY_GROUP_IDS.files,
-            title: "Files",
+	const inventoryGroups = useMemo<InventoryGroupConfig[]>(
+		() => [
+			{
+				id: INVENTORY_GROUP_IDS.files,
+				title: "Files",
             visible: true,
             items: FILE_INVENTORY_ITEMS,
          },
@@ -88,40 +95,76 @@ const TcpGame = ({
          },
       ],
       [],
-   );
+	);
 
-   useEffect(() => {
-      if (initializedRef.current) return;
+	const tcpState = useTcpState();
+	const showCommandTerminal =
+		state.phase === "terminal" || state.phase === "completed";
 
-      initializedRef.current = true;
-      dispatch({
-         type: "INIT_MULTI_CANVAS",
-         payload: {
-            questionId: QUESTION_ID,
-            canvases: CANVAS_CONFIGS,
-            inventoryGroups,
-            terminal: {
-               visible: false,
-               prompt: TERMINAL_PROMPT,
-               history: [],
-            },
-            phase: "setup",
-            questionStatus: "in_progress",
-         },
-      });
-   }, [dispatch, inventoryGroups]);
+	const handleCommand = useTcpTerminal({
+		onQuestionComplete,
+	});
 
-   const tcpState = useTcpState();
-   const showCommandTerminal =
-      state.phase === "terminal" || state.phase === "completed";
+	useTerminalEngine({
+		onCommand: handleCommand,
+	});
 
-   const handleCommand = useTcpTerminal({
-      onQuestionComplete,
-   });
+	const spec = useMemo<QuestionSpec<TcpConditionKey>>(
+		() => ({
+			meta: {
+				id: QUESTION_ID,
+				title: QUESTION_TITLE,
+				description: QUESTION_DESCRIPTION,
+			},
+			init: {
+				kind: "multi",
+				payload: {
+					questionId: QUESTION_ID,
+					canvases: CANVAS_CONFIGS,
+					inventoryGroups,
+					terminal: {
+						visible: false,
+						prompt: TERMINAL_PROMPT,
+						history: [],
+					},
+					phase: "setup",
+					questionStatus: "in_progress",
+				},
+			},
+			phaseRules: [
+				{
+					kind: "set",
+					when: { kind: "eq", key: "questionStatus", value: "completed" },
+					to: "completed",
+				},
+				{
+					kind: "set",
+					when: { kind: "flag", key: "terminalPhase", is: true },
+					to: "terminal",
+				},
+			],
+			labels: {
+				getItemLabel: getTcpItemLabel,
+				getStatusMessage: getTcpStatusMessage,
+			},
+			handlers: {
+				onCommand: handleCommand,
+				onItemClickByType: {},
+				isItemClickableByType: {},
+			},
+		}),
+		[handleCommand, inventoryGroups],
+	);
 
-   useTerminalEngine({
-      onCommand: handleCommand,
-   });
+	useEffect(() => {
+		if (initializedRef.current) return;
+
+		initializedRef.current = true;
+		dispatch({
+			type: "INIT_MULTI_CANVAS",
+			payload: spec.init.payload,
+		});
+	}, [dispatch, spec.init.payload]);
 
    useEffect(() => {
       if (tcpState.connectionActive) {
@@ -138,28 +181,33 @@ const TcpGame = ({
       return undefined;
    }, [tcpState.connectionActive, tunnelVisible]);
 
-   useEffect(() => {
-      let desiredPhase: GamePhase = tcpState.hasStarted ? "playing" : "setup";
+	useEffect(() => {
+		const basePhase: GamePhase = tcpState.hasStarted ? "playing" : "setup";
+		const context: ConditionContext<TcpConditionKey> = {
+			questionStatus: state.question.status,
+			terminalPhase:
+				tcpState.phase === "terminal" || tcpState.connectionClosed,
+		};
 
-      if (tcpState.phase === "terminal" || tcpState.connectionClosed) {
-         desiredPhase = "terminal";
-      }
+		const resolved = resolvePhase(
+			spec.phaseRules,
+			context,
+			state.phase,
+			basePhase,
+		);
 
-      if (state.question.status === "completed") {
-         desiredPhase = "completed";
-      }
-
-      if (state.phase !== desiredPhase) {
-         dispatch({ type: "SET_PHASE", payload: { phase: desiredPhase } });
-      }
-   }, [
-      dispatch,
-      state.phase,
-      state.question.status,
-      tcpState.connectionClosed,
-      tcpState.hasStarted,
-      tcpState.phase,
-   ]);
+		if (state.phase !== resolved.nextPhase) {
+			dispatch({ type: "SET_PHASE", payload: { phase: resolved.nextPhase } });
+		}
+	}, [
+		dispatch,
+		spec.phaseRules,
+		state.phase,
+		state.question.status,
+		tcpState.connectionClosed,
+		tcpState.hasStarted,
+		tcpState.phase,
+	]);
 
    useEffect(() => {
       if (successShownRef.current) return;
@@ -203,21 +251,8 @@ const TcpGame = ({
       ],
    );
 
-   const getCanvasTitle = (key: string) => {
-      switch (key) {
-         case "splitter":
-            return "Content Splitter";
-         case "internet":
-            return "Internet";
-         case "server":
-            return "Server";
-         default:
-            return key;
-      }
-   };
-
-   return (
-      <GameShell getItemLabel={getTcpItemLabel}>
+	return (
+		<GameShell getItemLabel={spec.labels.getItemLabel}>
          <Flex
             direction="column"
             px={{ base: 2, md: 12, lg: 24 }}
@@ -248,19 +283,19 @@ const TcpGame = ({
                      return null;
                   }
 
-                  return (
-                     <Box
-                        key={key}
-                        flexGrow={config.columns}
-                        flexBasis={0}
-                        minW={{ base: "100%", xl: "0" }}
-                     >
-                        <PlayCanvas
-                           stateKey={key}
-                           title={getCanvasTitle(key)}
-                           getItemLabel={getTcpItemLabel}
-                           getStatusMessage={getTcpStatusMessage}
-                        />
+					return (
+						<Box
+							key={key}
+							flexGrow={config.columns}
+							flexBasis={0}
+							minW={{ base: "100%", xl: "0" }}
+						>
+							<PlayCanvas
+								stateKey={key}
+								title={config.title ?? key}
+								getItemLabel={spec.labels.getItemLabel}
+								getStatusMessage={spec.labels.getStatusMessage}
+							/>
                         {key === "server" && (
                            <Box
                               mt={2}

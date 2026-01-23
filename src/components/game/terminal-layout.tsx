@@ -8,7 +8,7 @@ type TerminalLayoutProps = {
 	input?: ReactNode;
 	title?: string;
 	height?: string;
-	focusRef?: RefObject<HTMLElement>;
+	focusRef?: RefObject<HTMLElement | null>;
 };
 
 export const TerminalLayout = ({

@@ -1,7 +1,6 @@
 // Main question component for webserver-ssl
 // Handles game logic, canvas visibility, and transitions
 
-import type { GamePhase } from "@/components/game/game-provider";
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -21,6 +20,12 @@ import { TerminalInput } from "@/components/game/terminal-input";
 import { TerminalView } from "@/components/game/terminal-view";
 import { useTerminalInput } from "@/components/game/use-terminal-input";
 import type { QuestionProps } from "@/components/module";
+import {
+   type ConditionContext,
+   type QuestionSpec,
+   resolvePhase,
+   resolveVisibility,
+} from "@/components/game/question-ast";
 
 import {
    BASIC_INVENTORY_ITEMS,
@@ -53,6 +58,15 @@ import {
 } from "./-utils/item-notification";
 import { useSslState } from "./-utils/use-ssl-state";
 import { useSslTerminal } from "./-utils/use-ssl-terminal";
+
+type WebserverSslConditionKey =
+   | "questionStatus"
+   | "httpReady"
+   | "httpsReady"
+   | "hasRedirect"
+   | "browserStatus"
+   | "certificateIssued"
+   | "sslUnlocked";
 
 export const WebserverSslQuestion = ({ onQuestionComplete }: QuestionProps) => {
    return (
@@ -107,30 +121,6 @@ const WebserverSslGame = ({
       [],
    );
 
-   // Initialize multi-canvas question
-   useEffect(() => {
-      if (initializedRef.current) {
-         return;
-      }
-
-      initializedRef.current = true;
-      dispatch({
-         type: "INIT_MULTI_CANVAS",
-         payload: {
-            questionId: QUESTION_ID,
-            canvases: CANVAS_CONFIGS,
-            inventoryGroups,
-            terminal: {
-               visible: false,
-               prompt: TERMINAL_PROMPT,
-               history: TERMINAL_INTRO_ENTRIES,
-            },
-            phase: "setup",
-            questionStatus: "in_progress",
-         },
-      });
-   }, [dispatch]); // inventoryGroups only depends on constants
-
    const dragEngine = useDragEngine();
 
    // Get SSL game state
@@ -148,35 +138,295 @@ const WebserverSslGame = ({
       onCommand: handleCommand,
    });
 
+   const itemClickHandlers = useMemo(
+      () => ({
+         browser: ({ item }: { item: PlacedItem }) => {
+            const url = item.data?.url as string | undefined;
+            const connection = item.data?.connection as string | undefined;
+            const port = item.data?.port as string | undefined;
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildBrowserStatusModal(
+                  item.id,
+                  { url, connection, port },
+                  showTlsModal && sslState.browserStatus === "success",
+               ),
+            });
+         },
+         "webserver-80": ({ item }: { item: PlacedItem }) => {
+            const status = item.data?.state as string | undefined;
+            const domain = item.data?.domain as string | undefined;
+            const servingFile = item.data?.servingFile as string | undefined;
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildWebserver80StatusModal(item.id, {
+                  status,
+                  domain,
+                  servingFile,
+               }),
+            });
+         },
+         "webserver-443": ({ item }: { item: PlacedItem }) => {
+            const status = item.data?.state as string | undefined;
+            const domain = item.data?.domain as string | undefined;
+            const privateKey = item.data?.privateKey as string | undefined;
+            const certificate = item.data?.certificate as string | undefined;
+            const servingFile = item.data?.servingFile as string | undefined;
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildWebserver443StatusModal(item.id, {
+                  status,
+                  domain,
+                  privateKey,
+                  certificate,
+                  servingFile,
+               }),
+            });
+         },
+         "domain-ssl": ({ item }: { item: PlacedItem }) => {
+            const isInLetsencrypt = sslState.letsencryptCanvas?.placedItems.some(
+               (entry) => entry.id === item.id,
+            );
+
+            if (!isInLetsencrypt) {
+               return;
+            }
+
+            const currentDomain =
+               typeof item.data?.domain === "string"
+                  ? item.data.domain
+                  : sslState.port80Domain;
+            const certificateIssued = !!sslState.certificateIssued;
+
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildCertificateRequestModal(
+                  item.id,
+                  currentDomain || "",
+                  certificateIssued,
+                  { domain: sslState.port80Domain },
+               ),
+            });
+         },
+         "private-key": ({ item }: { item: PlacedItem }) => {
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildPrivateKeyInfoModal(item.id, true),
+            });
+         },
+         certificate: ({ item }: { item: PlacedItem }) => {
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildCertificateInfoModal(
+                  item.id,
+                  sslState.port443SslStatus.hasCertificate,
+               ),
+            });
+         },
+         "redirect-to-https": ({ item }: { item: PlacedItem }) => {
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildRedirectInfoModal(item.id),
+            });
+         },
+         "index-html": ({ item }: { item: PlacedItem }) => {
+            dispatch({
+               type: "OPEN_MODAL",
+               payload: buildIndexHtmlViewModal(item.id),
+            });
+         },
+      }),
+      [
+         dispatch,
+         showTlsModal,
+         sslState.browserStatus,
+         sslState.certificateIssued,
+         sslState.letsencryptCanvas,
+         sslState.port443SslStatus.hasCertificate,
+         sslState.port80Domain,
+      ],
+   );
+
+   const spec = useMemo<QuestionSpec<WebserverSslConditionKey>>(
+      () => ({
+         meta: {
+            id: QUESTION_ID,
+            title: QUESTION_TITLE,
+            description: QUESTION_DESCRIPTION,
+         },
+         init: {
+            kind: "multi",
+            payload: {
+               questionId: QUESTION_ID,
+               canvases: CANVAS_CONFIGS,
+               inventoryGroups,
+               terminal: {
+                  visible: false,
+                  prompt: TERMINAL_PROMPT,
+                  history: TERMINAL_INTRO_ENTRIES,
+               },
+               phase: "setup",
+               questionStatus: "in_progress",
+            },
+         },
+         phaseRules: [
+            {
+               kind: "set",
+               when: { kind: "eq", key: "questionStatus", value: "completed" },
+               to: "completed",
+            },
+            {
+               kind: "set",
+               when: {
+                  kind: "and",
+                  all: [
+                     { kind: "flag", key: "httpsReady", is: true },
+                     { kind: "flag", key: "hasRedirect", is: true },
+                     { kind: "eq", key: "browserStatus", value: "success" },
+                  ],
+               },
+               to: "terminal",
+            },
+            {
+               kind: "set",
+               when: {
+                  kind: "and",
+                  all: [
+                     { kind: "flag", key: "httpReady", is: true },
+                     { kind: "eq", key: "browserStatus", value: "warning" },
+                  ],
+               },
+               to: "playing",
+            },
+         ],
+         inventoryRules: [
+            {
+               kind: "show-group",
+               groupId: "ssl-setup",
+               when: {
+                  kind: "and",
+                  all: [
+                     { kind: "flag", key: "httpReady", is: true },
+                     { kind: "eq", key: "browserStatus", value: "warning" },
+                  ],
+               },
+            },
+            {
+               kind: "show-group",
+               groupId: "ssl-items",
+               when: { kind: "flag", key: "certificateIssued", is: true },
+            },
+         ],
+         canvasRules: [
+            {
+               kind: "show",
+               canvasKey: "letsencrypt",
+               when: {
+                  kind: "or",
+                  any: [
+                     { kind: "flag", key: "httpReady", is: true },
+                     { kind: "flag", key: "sslUnlocked", is: true },
+                  ],
+               },
+            },
+            {
+               kind: "show",
+               canvasKey: "port-443",
+               when: {
+                  kind: "or",
+                  any: [
+                     { kind: "flag", key: "httpReady", is: true },
+                     { kind: "flag", key: "sslUnlocked", is: true },
+                  ],
+               },
+            },
+         ],
+         labels: {
+            getItemLabel: getSslItemLabel,
+            getStatusMessage: getSslStatusMessage,
+         },
+         handlers: {
+            onCommand: handleCommand,
+            onItemClickByType: itemClickHandlers,
+            isItemClickableByType: {
+               browser: true,
+               "webserver-80": true,
+               "webserver-443": true,
+               domain: true,
+               "domain-ssl": true,
+               "private-key": true,
+               certificate: true,
+               "redirect-to-https": true,
+               "index-html": true,
+            },
+         },
+      }),
+      [handleCommand, inventoryGroups, itemClickHandlers],
+   );
+
+   // Initialize multi-canvas question
+   useEffect(() => {
+      if (initializedRef.current) {
+         return;
+      }
+
+      initializedRef.current = true;
+      dispatch({
+         type: "INIT_MULTI_CANVAS",
+         payload: spec.init.payload,
+      });
+   }, [dispatch, spec.init.payload]); // inventoryGroups only depends on constants
+
    // Phase transitions and inventory group visibility
    useEffect(() => {
       if (!dragEngine) return;
       if (state.question.status === "completed") return;
 
-      let desiredPhase: GamePhase = "setup";
+      const context: ConditionContext<WebserverSslConditionKey> = {
+         questionStatus: state.question.status,
+         httpReady: sslState.httpReady,
+         httpsReady: sslState.httpsReady,
+         hasRedirect: sslState.hasRedirect,
+         browserStatus: sslState.browserStatus,
+         certificateIssued: sslState.certificateIssued,
+         sslUnlocked: sslCanvasesUnlocked,
+      };
 
-      // setup -> playing: after browser + port-80 configured
+      const resolved = resolvePhase(
+         spec.phaseRules,
+         context,
+         state.phase,
+         "setup",
+      );
+
       if (sslState.httpReady && sslState.browserStatus === "warning") {
-         desiredPhase = "playing";
          if (!sslCanvasesUnlocked) {
             setSslCanvasesUnlocked(true);
          }
       }
 
-      // Show SSL Setup inventory when HTTP works
-      if (sslState.httpReady && sslState.browserStatus === "warning") {
-         if (!inventoryShownRef.current["ssl-setup"]) {
+      if (spec.inventoryRules) {
+         const shouldShowSslSetup = resolveVisibility(
+            spec.inventoryRules,
+            context,
+            "ssl-setup",
+            inventoryShownRef.current["ssl-setup"],
+         );
+         if (shouldShowSslSetup && !inventoryShownRef.current["ssl-setup"]) {
             inventoryShownRef.current["ssl-setup"] = true;
             dispatch({
                type: "UPDATE_INVENTORY_GROUP",
                payload: { id: "ssl-setup", visible: true },
             });
          }
-      }
 
-      // Show SSL items when certificate is issued
-      if (sslState.certificateIssued) {
-         if (!inventoryShownRef.current["ssl-items"]) {
+         const shouldShowSslItems = resolveVisibility(
+            spec.inventoryRules,
+            context,
+            "ssl-items",
+            inventoryShownRef.current["ssl-items"],
+         );
+         if (shouldShowSslItems && !inventoryShownRef.current["ssl-items"]) {
             inventoryShownRef.current["ssl-items"] = true;
             dispatch({
                type: "UPDATE_INVENTORY_GROUP",
@@ -185,15 +435,7 @@ const WebserverSslGame = ({
          }
       }
 
-      // playing -> terminal: when HTTPS is ready and redirect is configured
-      if (
-         sslState.httpsReady &&
-         sslState.hasRedirect &&
-         sslState.browserStatus === "success"
-      ) {
-         desiredPhase = "terminal";
-      }
-
+      let desiredPhase = resolved.nextPhase;
       if (sslCanvasesUnlocked && desiredPhase === "setup") {
          desiredPhase = state.phase;
       }
@@ -203,6 +445,8 @@ const WebserverSslGame = ({
       }
    }, [
       dispatch,
+      spec.inventoryRules,
+      spec.phaseRules,
       state.phase,
       state.question.status,
       sslState.httpReady,
@@ -211,6 +455,7 @@ const WebserverSslGame = ({
       sslState.httpsReady,
       sslState.hasRedirect,
       sslCanvasesUnlocked,
+      dragEngine,
    ]);
 
    // Show TLS handshake modal when browser transitions to secure
@@ -273,189 +518,55 @@ const WebserverSslGame = ({
    // Item click handler
    const handlePlacedItemClick = useCallback(
       (item: PlacedItem) => {
-         // Browser click - show status
-         if (item.type === "browser") {
-            const url = item.data?.url as string | undefined;
-            const connection = item.data?.connection as string | undefined;
-            const port = item.data?.port as string | undefined;
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildBrowserStatusModal(
-                  item.id,
-                  { url, connection, port },
-                  showTlsModal && sslState.browserStatus === "success",
-               ),
-            });
-            return;
-         }
-
-         // Webserver 80 click - show status
-         if (item.type === "webserver-80") {
-            const status = item.data?.state as string | undefined;
-            const domain = item.data?.domain as string | undefined;
-            const servingFile = item.data?.servingFile as string | undefined;
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildWebserver80StatusModal(item.id, {
-                  status,
-                  domain,
-                  servingFile,
-               }),
-            });
-            return;
-         }
-
-         // Webserver 443 click - show status
-         if (item.type === "webserver-443") {
-            const status = item.data?.state as string | undefined;
-            const domain = item.data?.domain as string | undefined;
-            const privateKey = item.data?.privateKey as string | undefined;
-            const certificate = item.data?.certificate as string | undefined;
-            const servingFile = item.data?.servingFile as string | undefined;
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildWebserver443StatusModal(item.id, {
-                  status,
-                  domain,
-                  privateKey,
-                  certificate,
-                  servingFile,
-               }),
-            });
-            return;
-         }
-
-         // Domain (SSL) click - show certificate request modal if in letsencrypt canvas
-         if (item.type === "domain-ssl") {
-            // Check if this domain is in the letsencrypt canvas
-            const isInLetsencrypt = sslState.letsencryptCanvas?.placedItems.some(
-               (i) => i.id === item.id,
-            );
-
-            if (isInLetsencrypt) {
-               const currentDomain =
-                  typeof item.data?.domain === "string"
-                     ? item.data.domain
-                     : sslState.port80Domain;
-               const certificateIssued = !!sslState.certificateIssued;
-
-               dispatch({
-                  type: "OPEN_MODAL",
-                  payload: buildCertificateRequestModal(
-                     item.id,
-                     currentDomain || "",
-                     certificateIssued,
-                     { domain: sslState.port80Domain },
-                  ),
-               });
-               return;
-            }
-         }
-
-         // Private key click - show info
-         if (item.type === "private-key") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildPrivateKeyInfoModal(item.id, true),
-            });
-            return;
-         }
-
-         // Certificate click - show info
-         if (item.type === "certificate") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildCertificateInfoModal(
-                  item.id,
-                  sslState.port443SslStatus.hasCertificate,
-               ),
-            });
-            return;
-         }
-
-         // Redirect click - show info
-         if (item.type === "redirect-to-https") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildRedirectInfoModal(item.id),
-            });
-            return;
-         }
-
-         // index.html click - show content
-         if (item.type === "index-html") {
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildIndexHtmlViewModal(item.id),
-            });
-            return;
+         const handler = spec.handlers.onItemClickByType[item.type];
+         if (handler) {
+            handler({ item });
          }
       },
-      [
-         dispatch,
-         showTlsModal,
-         sslState.browserStatus,
-         sslState.port80Domain,
-         sslState.port443SslStatus,
-         sslState.certificateIssued,
-         sslState.letsencryptCanvas,
-      ],
+      [spec.handlers.onItemClickByType],
    );
 
    // Check if item is clickable
    const isItemClickable = useCallback(
       (item: PlacedItem) =>
-         [
-            "browser",
-            "webserver-80",
-            "webserver-443",
-            "domain",
-            "domain-ssl",
-            "private-key",
-            "certificate",
-            "redirect-to-https",
-            "index-html",
-         ].includes(item.type),
-      [],
+         spec.handlers.isItemClickableByType[item.type] === true,
+      [spec.handlers.isItemClickableByType],
    );
 
    // Canvas visibility logic
    const shouldShowCanvas = useCallback(
       (key: string) => {
-         // browser and port-80 always visible
-         if (key === "browser" || key === "port-80") {
-            return true;
+         const context: ConditionContext<WebserverSslConditionKey> = {
+            questionStatus: state.question.status,
+            httpReady: sslState.httpReady,
+            httpsReady: sslState.httpsReady,
+            hasRedirect: sslState.hasRedirect,
+            browserStatus: sslState.browserStatus,
+            certificateIssued: sslState.certificateIssued,
+            sslUnlocked: sslCanvasesUnlocked,
+         };
+
+         const defaultVisible = key === "browser" || key === "port-80";
+         if (!spec.canvasRules) {
+            return defaultVisible;
          }
-         // let's encrypt and port-443 appear when HTTP works
-         if (
-            (key === "letsencrypt" || key === "port-443") &&
-            (sslState.httpReady || sslCanvasesUnlocked)
-         ) {
-            return true;
-         }
-         return false;
+
+         return resolveVisibility(spec.canvasRules, context, key, defaultVisible);
       },
-      [sslState.httpReady, sslCanvasesUnlocked],
+      [
+         spec.canvasRules,
+         sslCanvasesUnlocked,
+         sslState.browserStatus,
+         sslState.certificateIssued,
+         sslState.hasRedirect,
+         sslState.httpReady,
+         sslState.httpsReady,
+         state.question.status,
+      ],
    );
 
-   // Canvas title mapping
-   const getCanvasTitle = useCallback((key: string) => {
-      switch (key) {
-         case "browser":
-            return "Browser";
-         case "port-80":
-            return "HTTP Webserver";
-         case "letsencrypt":
-            return "Let's Encrypt";
-         case "port-443":
-            return "HTTPS Webserver";
-         default:
-            return key;
-      }
-   }, []);
-
-   return (
-      <GameShell getItemLabel={getSslItemLabel}>
+	return (
+		<GameShell getItemLabel={spec.labels.getItemLabel}>
          <Flex
             direction="column"
             px={{ base: 2, md: 12, lg: 24 }}
@@ -498,14 +609,14 @@ const WebserverSslGame = ({
                         flexBasis={0}
                         minW={{ base: "100%", xl: "0" }}
                      >
-                        <PlayCanvas
-                           stateKey={stateKey}
-                           title={getCanvasTitle(key)}
-                           getItemLabel={getSslItemLabel}
-                           getStatusMessage={getSslStatusMessage}
-                           onPlacedItemClick={handlePlacedItemClick}
-                           isItemClickable={isItemClickable}
-                        />
+						<PlayCanvas
+							stateKey={stateKey}
+							title={config.title ?? key}
+							getItemLabel={spec.labels.getItemLabel}
+							getStatusMessage={spec.labels.getStatusMessage}
+							onPlacedItemClick={handlePlacedItemClick}
+							isItemClickable={isItemClickable}
+						/>
                      </Box>
                   );
                })}

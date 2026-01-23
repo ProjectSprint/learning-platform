@@ -1,4 +1,4 @@
-import { Box, Flex, Text, type BoxProps } from "@chakra-ui/react";
+import { Box, type BoxProps, Flex, Text } from "@chakra-ui/react";
 import { memo, useEffect, useMemo, useRef } from "react";
 
 import type { TerminalEntry } from "./game-provider";
@@ -16,23 +16,23 @@ const entryStyles: Record<
 
 const TerminalEntryRow = memo(
 	({ entry, entryPrefix }: { entry: TerminalEntry; entryPrefix?: string }) => {
-	const styles = entryStyles[entry.type];
-	const content = entryPrefix
-		? `${entryPrefix}${entry.content}`
-		: entry.type === "input"
-			? `> ${entry.content}`
-			: entry.content;
+		const styles = entryStyles[entry.type];
+		const content = entryPrefix
+			? `${entryPrefix}${entry.content}`
+			: entry.type === "input"
+				? `> ${entry.content}`
+				: entry.content;
 
-	return (
-		<Text
-			fontSize="sm"
-			color={styles.color}
-			fontStyle={styles.fontStyle}
-			fontWeight={styles.fontWeight}
-		>
-			{content}
-		</Text>
-	);
+		return (
+			<Text
+				fontSize="sm"
+				color={styles.color}
+				fontStyle={styles.fontStyle}
+				fontWeight={styles.fontWeight}
+			>
+				{content}
+			</Text>
+		);
 	},
 );
 

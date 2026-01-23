@@ -124,7 +124,7 @@ function getCanvasState(state: GameState, stateKey?: string): CanvasState {
 
 | Action                  | Payload                          | Effect                              |
 | ----------------------- | -------------------------------- | ----------------------------------- |
-| `INIT_QUESTION`         | `{ questionId, config }`         | Initialize state for question       |
+| `INIT_MULTI_CANVAS`     | `{ questionId, canvases, ... }`  | Initialize state for question       |
 | `ADD_INVENTORY_GROUP`   | `{ group }`                      | Add a new inventory group           |
 | `UPDATE_INVENTORY_GROUP`| `{ id, title?, visible?, items? }`| Update group metadata or items      |
 | `REMOVE_INVENTORY_GROUP`| `{ id }`                         | Remove an inventory group           |
@@ -177,7 +177,7 @@ dispatch({ type: "PURGE_ITEMS", payload: { itemIds: ["le-private-key", "le-publi
      ┌────────┐
      │  INIT  │
      └────┬───┘
-          │ INIT_QUESTION
+          │ INIT_MULTI_CANVAS
           ▼
      ┌────────┐
      │ SETUP  │◄────────────────────────┐
