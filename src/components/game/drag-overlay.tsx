@@ -59,21 +59,27 @@ export const DragOverlay = ({
 		setIsVisible(true);
 
 		const initializePosition = () => {
-			if (proxyRef.current && !initializedRef.current) {
-				const pointerX = activeDrag.pointerOffset?.x ?? initialRect.width / 2;
-				const pointerY = activeDrag.pointerOffset?.y ?? initialRect.height / 2;
-
-				gsap.set(proxyRef.current, {
-					x: initialRect.left + pointerX - pointerOffsetRef.current.x,
-					y: initialRect.top + pointerY - pointerOffsetRef.current.y,
-					width: targetWidth,
-					height: targetHeight,
-				});
-				initializedRef.current = true;
+			if (!proxyRef.current || initializedRef.current) {
+				return;
 			}
+
+			const pointerX = activeDrag.pointerOffset?.x ?? initialRect.width / 2;
+			const pointerY = activeDrag.pointerOffset?.y ?? initialRect.height / 2;
+
+			gsap.set(proxyRef.current, {
+				x: initialRect.left + pointerX - pointerOffsetRef.current.x,
+				y: initialRect.top + pointerY - pointerOffsetRef.current.y,
+				width: targetWidth,
+				height: targetHeight,
+			});
+			initializedRef.current = true;
 		};
 
-		requestAnimationFrame(initializePosition);
+		if (proxyRef.current) {
+			initializePosition();
+		} else {
+			requestAnimationFrame(initializePosition);
+		}
 
 		const handlePointerMove = (event: PointerEvent) => {
 			if (proxyRef.current) {
@@ -94,6 +100,17 @@ export const DragOverlay = ({
 
 	const label =
 		activeDrag.data.itemName ?? getItemLabel(activeDrag.data.itemType);
+	const initialRect = activeDrag.initialRect;
+	const pointerX =
+		activeDrag.pointerOffset?.x ?? (initialRect ? initialRect.width / 2 : 0);
+	const pointerY =
+		activeDrag.pointerOffset?.y ?? (initialRect ? initialRect.height / 2 : 0);
+	const initialX = initialRect
+		? initialRect.left + pointerX - pointerOffsetRef.current.x
+		: 0;
+	const initialY = initialRect
+		? initialRect.top + pointerY - pointerOffsetRef.current.y
+		: 0;
 
 	return (
 		<Box
@@ -113,6 +130,7 @@ export const DragOverlay = ({
 			pointerEvents="none"
 			zIndex={9999}
 			boxShadow="0 4px 20px rgba(0, 0, 0, 0.3)"
+			style={{ transform: `translate3d(${initialX}px, ${initialY}px, 0)` }}
 		>
 			<Text fontSize="sm" fontWeight="bold" color="gray.100">
 				{label}

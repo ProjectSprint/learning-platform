@@ -224,8 +224,13 @@ export const PlayCanvas = ({
 }: PlayCanvasProps) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
-	const { activeDrag, setActiveDrag, proxyRef, targetCanvasKeyRef } =
-		useDragContext();
+	const {
+		activeDrag,
+		setActiveDrag,
+		proxyRef,
+		targetCanvasKeyRef,
+		setLastDropResult,
+	} = useDragContext();
 	const canvas = stateKey
 		? (state.canvases?.[stateKey] ?? state.canvas)
 		: state.canvas;
@@ -966,6 +971,7 @@ export const PlayCanvas = ({
 					ease: "power2.out",
 					onComplete: () => {
 						placeOrRepositionItem(activeDrag.data, { blockX, blockY });
+						setLastDropResult({ source: "inventory", placed: true });
 						setActiveDrag(null);
 						setDragPreview(null);
 						setHoveredBlock(null);
@@ -974,6 +980,7 @@ export const PlayCanvas = ({
 					},
 				});
 			} else {
+				setLastDropResult({ source: "inventory", placed: false });
 				setActiveDrag(null);
 				setDragPreview(null);
 				setHoveredBlock(null);
@@ -1001,6 +1008,7 @@ export const PlayCanvas = ({
 		placeOrRepositionItem,
 		proxyRef,
 		setActiveDrag,
+		setLastDropResult,
 		stepX,
 		stepY,
 	]);

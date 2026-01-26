@@ -3,7 +3,6 @@ import type {
 	CanvasConfig,
 	GamePhase,
 	InventoryGroupConfig,
-	InventoryItem,
 	PlacedItem,
 	QuestionStatus,
 	TerminalState,
@@ -30,7 +29,6 @@ export type InitSpec = { kind: "multi"; payload: MultiInitPayload };
 export type MultiInitPayload = {
 	questionId: string;
 	canvases: Record<string, CanvasConfig>;
-	inventory?: InventoryItem[];
 	inventoryGroups?: InventoryGroupConfig[];
 	terminal?: Partial<TerminalState>;
 	phase?: GamePhase;

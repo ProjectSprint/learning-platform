@@ -8,7 +8,7 @@ import {
    useGameState,
 } from "@/components/game/game-provider";
 import { GameShell } from "@/components/game/game-shell";
-import { InventoryPanel } from "@/components/game/inventory-panel";
+import { InventoryDrawer } from "@/components/game/inventory-drawer";
 import { PlayCanvas } from "@/components/game/play-canvas";
 import { TerminalLayout } from "@/components/game/terminal-layout";
 import { TerminalInput } from "@/components/game/terminal-input";
@@ -23,7 +23,7 @@ import {
 
 import {
    CANVAS_CONFIG,
-   INVENTORY_ITEMS,
+   INVENTORY_GROUPS,
    QUESTION_DESCRIPTION,
    QUESTION_ID,
    QUESTION_TITLE,
@@ -56,7 +56,7 @@ const DHCP_SPEC_BASE: Omit<QuestionSpec<DhcpConditionKey>, "handlers"> = {
       payload: {
          questionId: QUESTION_ID,
          canvases: { [CANVAS_CONFIG.id]: CANVAS_CONFIG },
-         inventory: INVENTORY_ITEMS,
+         inventoryGroups: INVENTORY_GROUPS,
          terminal: {
             visible: false,
             prompt: TERMINAL_PROMPT,
@@ -270,9 +270,7 @@ const NetworkingGame = ({
                />
             </Box>
 
-            <Box alignSelf="center" my={4}>
-               <InventoryPanel tooltips={INVENTORY_TOOLTIPS} />
-            </Box>
+            <InventoryDrawer tooltips={INVENTORY_TOOLTIPS} />
 
             {contextualHint && (
                <Box

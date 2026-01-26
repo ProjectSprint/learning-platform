@@ -9,7 +9,7 @@ import {
    type InventoryGroupConfig,
 } from "@/components/game/game-provider";
 import { GameShell } from "@/components/game/game-shell";
-import { InventoryPanel } from "@/components/game/inventory-panel";
+import { InventoryDrawer } from "@/components/game/inventory-drawer";
 import { PlayCanvas } from "@/components/game/play-canvas";
 import { TerminalLayout } from "@/components/game/terminal-layout";
 import { TerminalInput } from "@/components/game/terminal-input";
@@ -373,9 +373,7 @@ const TcpGame = ({
                </Box>
             )}
 
-            <Box alignSelf="center" my={4}>
-               <InventoryPanel tooltips={INVENTORY_TOOLTIPS} />
-            </Box>
+			<InventoryDrawer tooltips={INVENTORY_TOOLTIPS} />
 
             {contextualHint && (
                <Box

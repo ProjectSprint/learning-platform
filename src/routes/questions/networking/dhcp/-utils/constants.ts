@@ -3,6 +3,7 @@
 
 import type {
 	CanvasConfig,
+	InventoryGroupConfig,
 	InventoryItem,
 	TerminalEntry,
 } from "@/components/game/game-provider";
@@ -75,6 +76,15 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		allowedPlaces: ["inventory", "networking-canvas"],
 		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
 		behavior: "connectable",
+	},
+];
+
+export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
+	{
+		id: "default",
+		title: "Inventory",
+		visible: true,
+		items: INVENTORY_ITEMS,
 	},
 ];
 

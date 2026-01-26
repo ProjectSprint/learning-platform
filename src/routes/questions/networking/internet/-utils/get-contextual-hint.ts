@@ -89,10 +89,6 @@ export const getContextualHint = (state: InternetNetworkState): string => {
 		googleReachable,
 	} = state;
 
-	if (placedItems.length > 1 && !isCorrectOrder(placedItems)) {
-		return "❌ Devices must be connected in order: PC → Cable → Router LAN → Router NAT → Router WAN → Fiber → IGW → Internet → DNS → Google";
-	}
-
 	if (routerWanConfigured && !dnsServer) {
 		return "⚠️ You're connected to the internet but can't resolve domain names - set a DNS server in Router LAN";
 	}
@@ -175,6 +171,10 @@ export const getContextualHint = (state: InternetNetworkState): string => {
 
 	if (routerNatSettingsOpen && !natEnabled) {
 		return "Enable NAT so your private IP can reach the internet";
+	}
+
+	if (placedItems.length > 1 && !isCorrectOrder(placedItems)) {
+		return "❌ Devices must be connected in order: PC → Cable → Router LAN → Router NAT → Router WAN → Fiber → IGW → Internet → DNS → Google";
 	}
 
 	if (

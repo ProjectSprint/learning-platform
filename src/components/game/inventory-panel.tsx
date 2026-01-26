@@ -100,7 +100,7 @@ export type InventoryPanelProps = {
 
 export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 	const { inventory, canvases, canvas } = useGameState();
-	const { activeDrag, setActiveDrag } = useDragContext();
+	const { activeDrag, setActiveDrag, setLastDropResult } = useDragContext();
 	const slotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const slotSize = useInventorySlotSize();
 	const visibleGroups = useMemo(
@@ -128,6 +128,7 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 			const target = event.currentTarget;
 			const rect = target.getBoundingClientRect();
 
+			setLastDropResult(null);
 			setActiveDrag({
 				source: "inventory",
 				data: {
@@ -139,7 +140,7 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 				initialRect: rect,
 			});
 		},
-		[setActiveDrag],
+		[setActiveDrag, setLastDropResult],
 	);
 
 	const setSlotRef = useCallback(

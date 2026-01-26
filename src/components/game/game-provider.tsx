@@ -168,17 +168,16 @@ export type GameState = {
 
 export type GameAction =
 	| {
-			type: "INIT_MULTI_CANVAS";
-			payload: {
-				questionId: string;
-				canvases: Record<string, CanvasConfig>;
-				inventory?: InventoryItem[];
-				inventoryGroups?: InventoryGroupConfig[];
-				terminal?: Partial<TerminalState>;
-				phase?: GamePhase;
-				questionStatus?: QuestionStatus;
-			};
-	  }
+		type: "INIT_MULTI_CANVAS";
+		payload: {
+			questionId: string;
+			canvases: Record<string, CanvasConfig>;
+			inventoryGroups?: InventoryGroupConfig[];
+			terminal?: Partial<TerminalState>;
+			phase?: GamePhase;
+			questionStatus?: QuestionStatus;
+		};
+	}
 	| {
 			type: "ADD_INVENTORY_GROUP";
 			payload: { group: InventoryGroupConfig };
@@ -465,7 +464,6 @@ const normalizeInventoryGroup = (
 };
 
 const normalizeInventoryGroups = (
-	inventoryItems: InventoryItem[] | undefined,
 	inventoryGroups: InventoryGroupConfig[] | undefined,
 ): InventoryGroup[] => {
 	const usedIds = new Set<string>();
@@ -481,36 +479,6 @@ const normalizeInventoryGroups = (
 				continue;
 			}
 			groups.push(normalized);
-		}
-	}
-
-	const legacyItems = normalizeInventory(inventoryItems ?? []).filter(
-		(item) => {
-			if (usedIds.has(item.id)) {
-				return false;
-			}
-			usedIds.add(item.id);
-			return true;
-		},
-	);
-
-	if (legacyItems.length > 0) {
-		const defaultIndex = groups.findIndex(
-			(group) => group.id === DEFAULT_INVENTORY_GROUP_ID,
-		);
-		if (defaultIndex >= 0) {
-			const target = groups[defaultIndex];
-			groups[defaultIndex] = {
-				...target,
-				items: [...target.items, ...legacyItems],
-			};
-		} else {
-			groups.push({
-				id: DEFAULT_INVENTORY_GROUP_ID,
-				title: DEFAULT_INVENTORY_TITLE,
-				visible: true,
-				items: legacyItems,
-			});
 		}
 	}
 
@@ -833,10 +801,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 				normalizedCanvases.push({ key: resolvedKey, config: canvasConfig });
 			}
 
-			let inventoryGroups = normalizeInventoryGroups(
-				config.inventory,
-				config.inventoryGroups,
-			);
+		let inventoryGroups = normalizeInventoryGroups(config.inventoryGroups);
 			const nextCanvases: Record<string, CanvasState> = {};
 
 			for (const entry of normalizedCanvases) {

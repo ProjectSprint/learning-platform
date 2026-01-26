@@ -3,6 +3,7 @@
 
 import type {
 	CanvasConfig,
+	InventoryGroupConfig,
 	InventoryItem,
 	TerminalEntry,
 } from "@/components/game/game-provider";
@@ -139,6 +140,15 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 	},
 ];
 
+export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
+	{
+		id: "default",
+		title: "Inventory",
+		visible: true,
+		items: INVENTORY_ITEMS,
+	},
+];
+
 export const CANVAS_ORDER: InternetCanvasKey[] = [
 	"local",
 	"conn-1",
@@ -150,7 +160,7 @@ export const CANVAS_ORDER: InternetCanvasKey[] = [
 export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	local: {
 		id: "internet-local",
-		title: "Local",
+		title: "Client",
 		stateKey: "client",
 		columns: 1,
 		rows: 1,
