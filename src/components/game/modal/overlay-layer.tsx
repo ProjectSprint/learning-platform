@@ -2,7 +2,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { type MouseEvent, Suspense, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useGameDispatch, useGameState } from "../game-provider";
-import { DataDrivenModal } from "./data-driven-modal";
+import { Modal } from "./modal";
 
 const getFocusableElements = (container: HTMLElement) =>
 	Array.from(
@@ -175,7 +175,7 @@ export const OverlayLayer = () => {
 								</Flex>
 							}
 						>
-							<DataDrivenModal modal={activeModal} onClose={handleClose} />
+							<Modal modal={activeModal} onClose={handleClose} />
 						</Suspense>
 					</Box>
 				</Box>

@@ -18,12 +18,12 @@ import type {
 	ModalInstance,
 } from "./types";
 
-type DataDrivenModalProps = {
+type ModalProps = {
 	modal: ModalInstance;
 	onClose: () => void;
 };
 
-export const DataDrivenModal = ({ modal, onClose }: DataDrivenModalProps) => {
+export const Modal = ({ modal, onClose }: ModalProps) => {
 	const dispatch = useGameDispatch();
 
 	const initialValues = useMemo(() => {
