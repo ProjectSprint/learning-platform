@@ -101,7 +101,7 @@ export const getSslStatusMessage = (
 	// index.html status
 	if (type === "index-html") {
 		if (canvasId === "port-80" && status === "warning") {
-			return "I'm shouldn't be here!";
+			return "I shouldn't be here!";
 		}
 		return null;
 	}
