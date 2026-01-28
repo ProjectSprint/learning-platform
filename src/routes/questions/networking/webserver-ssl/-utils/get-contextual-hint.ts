@@ -2,7 +2,7 @@
 // Hints change based on game progress to guide the user
 
 import type { CanvasState } from "@/components/game/game-provider";
-import { isPort443Complete, isPort80Complete, isPort80RedirectConfigured } from "./ssl-utils";
+import { isPort443Complete, isPort80RedirectConfigured } from "./ssl-utils";
 
 interface SslGameState {
 	browserCanvas: CanvasState | undefined;
@@ -37,9 +37,6 @@ export const getContextualHint = (state: SslGameState): string => {
 	const letsencryptItems = letsencryptCanvas?.placedItems.map((i) => i.type) ?? [];
 	const port443Items = port443Canvas?.placedItems.map((i) => i.type) ?? [];
 
-	// Determine if browser is clickable (port-80 has content)
-	const port80Complete = isPort80Complete(port80Canvas);
-
 	// Early game - drag browser
 	if (browserItems === 0) {
 		return "Drag the Browser to the first canvas";
@@ -63,11 +60,6 @@ export const getContextualHint = (state: SslGameState): string => {
 		!port80Items.includes("redirect-to-https")
 	) {
 		return "Add index.html so your webserver has something to serve";
-	}
-
-	// Port 80 is complete
-	if (port80Complete && !isPort80RedirectConfigured(port80Canvas)) {
-		return "Click the Browser to see your website!";
 	}
 
 	// Browser shows not secure - show new canvases
@@ -124,7 +116,7 @@ export const getContextualHint = (state: SslGameState): string => {
 
 	// Port 443 complete - HTTPS is ready
 	if (isPort443Complete(port443Canvas) && !isPort80RedirectConfigured(port80Canvas)) {
-		return "🔒 HTTPS is ready! But visitors might still go to HTTP...";
+		return "🔒 HTTPS is ready! Add the redirect on Port 80 so visitors land on HTTPS.";
 	}
 
 	// Redirect available in inventory
@@ -134,10 +126,7 @@ export const getContextualHint = (state: SslGameState): string => {
 
 	// Redirect placed on port 80
 	if (isPort80RedirectConfigured(port80Canvas) && isPort443Complete(port443Canvas)) {
-		if (browserStatus !== "success") {
-			return "🎉 Perfect! Click the Browser to see the secure connection";
-		}
-		return "🎉 Your website is now secure with HTTPS! Click the browser to see the TLS handshake.";
+		return "🎉 HTTPS is fully configured! Use the terminal to verify with curl/openssl.";
 	}
 
 	return "";

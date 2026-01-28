@@ -44,7 +44,6 @@ import {
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
-   buildBrowserStatusModal,
    buildCertificateInfoModal,
    buildCertificateRequestModal,
    buildIndexHtmlViewModal,
@@ -88,7 +87,6 @@ const WebserverSslGame = ({
    const terminalInput = useTerminalInput();
    const isCompleted = state.question.status === "completed";
    const initializedRef = useRef(false);
-   const [showTlsModal, setShowTlsModal] = useState(false);
    const [prevSecureState, setPrevSecureState] = useState(false);
    const [sslCanvasesUnlocked, setSslCanvasesUnlocked] = useState(false);
 
@@ -142,19 +140,6 @@ const WebserverSslGame = ({
 
    const itemClickHandlers = useMemo(
       () => ({
-         browser: ({ item }: { item: PlacedItem }) => {
-            const url = item.data?.url as string | undefined;
-            const connection = item.data?.connection as string | undefined;
-            const port = item.data?.port as string | undefined;
-            dispatch({
-               type: "OPEN_MODAL",
-               payload: buildBrowserStatusModal(
-                  item.id,
-                  { url, connection, port },
-                  showTlsModal && sslState.browserStatus === "success",
-               ),
-            });
-         },
          "webserver-80": ({ item }: { item: PlacedItem }) => {
             const status = item.data?.state as string | undefined;
             const domain = item.data?.domain as string | undefined;
@@ -240,8 +225,6 @@ const WebserverSslGame = ({
       }),
       [
          dispatch,
-         showTlsModal,
-         sslState.browserStatus,
          sslState.certificateIssued,
          sslState.letsencryptCanvas,
          sslState.port443SslStatus.hasCertificate,
@@ -351,7 +334,6 @@ const WebserverSslGame = ({
             onCommand: handleCommand,
             onItemClickByType: itemClickHandlers,
             isItemClickableByType: {
-               browser: true,
                "webserver-80": true,
                "webserver-443": true,
                domain: true,
@@ -472,7 +454,6 @@ const WebserverSslGame = ({
             type: "OPEN_MODAL",
             payload: buildTlsHandshakeModal(),
          });
-         setShowTlsModal(true);
       }
       setPrevSecureState(
          sslState.browserStatus === "success" &&
