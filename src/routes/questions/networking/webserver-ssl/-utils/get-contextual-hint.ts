@@ -76,13 +76,13 @@ export const getContextualHint = (state: SslGameState): string => {
 		if (letsencryptItems.length === 0) {
 			return "⚠️ Your site works but it's not secure! New canvases have appeared...";
 		}
-		return "Drag the Domain (SSL) to the Let's Encrypt canvas to get a certificate";
+		return "Drag the Domain to the Let's Encrypt canvas to get a certificate";
 	}
 
 	// Domain in letsencrypt but certificate not issued
-	if (letsencryptItems.includes("domain-ssl") && !certificateIssued) {
+	if (letsencryptItems.includes("domain") && !certificateIssued) {
 		if (!letsencryptModalOpen) {
-			return "Click the Domain (SSL) in the Let's Encrypt canvas to request a certificate";
+			return "Click the Domain in the Let's Encrypt canvas to request a certificate";
 		}
 		return "Enter your domain name (e.g., example.com)";
 	}

@@ -106,12 +106,12 @@ export const getDomainFromCanvas = (canvas: CanvasState | undefined): string | u
 };
 
 /**
- * Get certificate domain from letsencrypt canvas (domain-ssl item)
+ * Get certificate domain from letsencrypt canvas (domain item)
  */
 export const getCertificateDomain = (canvas: CanvasState | undefined): string | undefined => {
 	if (!canvas) return undefined;
-	// The certificate domain is stored on the SSL domain item in the letsencrypt canvas
-	const domainItem = canvas.placedItems.find((item) => item.type === "domain-ssl");
+	// The certificate domain is stored on the domain item in the letsencrypt canvas
+	const domainItem = canvas.placedItems.find((item) => item.type === "domain");
 	if (domainItem && typeof domainItem.data?.certificateDomain === "string") {
 		return domainItem.data.certificateDomain;
 	}

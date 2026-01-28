@@ -15,8 +15,6 @@ export const getSslItemLabel = (itemType: string): string => {
 			return "Webserver (HTTPS)";
 		case "domain":
 			return "Domain";
-		case "domain-ssl":
-			return "Domain";
 		case "index-html":
 			return "index.html";
 		case "private-key":
@@ -89,18 +87,18 @@ export const getSslStatusMessage = (
 
 	// Domain status
 	if (type === "domain") {
-		return "example.com";
-	}
-
-	// Domain (SSL) status
-	if (type === "domain-ssl") {
-		if (status === "success") {
-			return "Configured";
-		}
-		if (status === "error") {
+		if (canvasId === "letsencrypt") {
+			if (status === "success") {
+				return "Configured";
+			}
+			if (status === "error") {
+				return "Needs Issuing";
+			}
 			return "Needs Issuing";
 		}
-		return "Needs Issuing";
+		const domain =
+			typeof data?.domain === "string" ? data.domain : "example.com";
+		return domain;
 	}
 
 	// index.html status

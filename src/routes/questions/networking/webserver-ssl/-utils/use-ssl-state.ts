@@ -70,7 +70,7 @@ export const useSslState = () => {
 	// Port 80 domain
 	const port80Domain = useMemo(() => getDomainFromCanvas(port80Canvas), [port80Canvas]);
 
-	// Certificate domain from letsencrypt canvas (domain-ssl item)
+	// Certificate domain from letsencrypt canvas (domain item)
 	const certificateDomain = useMemo(
 		() => getCertificateDomain(letsencryptCanvas),
 		[letsencryptCanvas],
@@ -88,7 +88,7 @@ export const useSslState = () => {
 	// Certificate issued
 	const certificateIssued = useMemo(() => {
 		const domainItem = letsencryptCanvas?.placedItems.find(
-			(i) => i.type === "domain-ssl",
+			(i) => i.type === "domain",
 		);
 		return !!domainItem?.data?.certificateIssued;
 	}, [letsencryptCanvas]);
@@ -97,7 +97,7 @@ export const useSslState = () => {
 	useEffect(() => {
 		if (!letsencryptCanvas) return;
 		const domainItem = letsencryptCanvas.placedItems.find(
-			(item) => item.type === "domain-ssl",
+			(item) => item.type === "domain",
 		);
 		if (!domainItem) return;
 
@@ -327,7 +327,7 @@ export const useSslState = () => {
 	useEffect(() => {
 		if (letsencryptCanvas) {
 			const domainItem = letsencryptCanvas.placedItems.find(
-				(item) => item.type === "domain-ssl",
+				(item) => item.type === "domain",
 			);
 			if (!domainItem) {
 				// Reset certificateIssued state in the canvas config if applicable

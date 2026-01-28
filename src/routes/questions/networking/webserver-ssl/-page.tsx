@@ -185,7 +185,7 @@ const WebserverSslGame = ({
                }),
             });
          },
-         "domain-ssl": ({ item }: { item: PlacedItem }) => {
+         domain: ({ item }: { item: PlacedItem }) => {
             const isInLetsencrypt = sslState.letsencryptCanvas?.placedItems.some(
                (entry) => entry.id === item.id,
             );
@@ -355,7 +355,6 @@ const WebserverSslGame = ({
                "webserver-80": true,
                "webserver-443": true,
                domain: true,
-               "domain-ssl": true,
                "private-key": true,
                certificate: true,
                "redirect-to-https": true,

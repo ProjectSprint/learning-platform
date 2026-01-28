@@ -192,7 +192,7 @@ export const SSL_SETUP_INVENTORY_ITEMS: InventoryItem[] = [
 	},
 	{
 		id: "domain-3",
-		type: "domain-ssl",
+		type: "domain",
 		name: "Domain",
 		allowedPlaces: ["inventory", "port-80", "port-443", "letsencrypt"],
 		icon: { icon: "mdi:domain" },
