@@ -15,6 +15,7 @@ import type {
 	PlacedItem,
 	SharedZoneItem,
 } from "../types";
+import { createId } from "../utils/ids";
 import { createCanvasState } from "./canvas-state";
 
 const defaultCanvasConfig: CanvasConfig = {
@@ -226,7 +227,7 @@ export const coreReducer = (
 		}
 		case "SET_SHARED_DATA": {
 			const nextItem: SharedZoneItem = {
-				id: crypto.randomUUID(),
+				id: createId(),
 				key: action.payload.key,
 				value: action.payload.value,
 				sourceCanvasId: action.payload.sourceCanvasId,

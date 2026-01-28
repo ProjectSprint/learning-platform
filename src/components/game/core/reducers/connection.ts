@@ -7,6 +7,7 @@ import type {
 	CrossCanvasConnection,
 	GameState,
 } from "../types";
+import { createId } from "../utils/ids";
 import { resolveCanvasState, updateCanvasState } from "./canvas-state";
 
 const isItemOnCanvas = (
@@ -138,7 +139,7 @@ export const connectionReducer = (
 			}
 
 			const nextConnection: CrossCanvasConnection = {
-				id: crypto.randomUUID(),
+				id: createId(),
 				type: "cable",
 				from,
 				to,
