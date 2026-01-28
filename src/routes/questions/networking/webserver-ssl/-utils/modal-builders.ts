@@ -329,6 +329,16 @@ export const buildCertificateRequestModal = (
 					},
 				});
 
+				// Persist certificate issuance for future placements
+				dispatch({
+					type: "SET_SHARED_DATA",
+					payload: {
+						key: "ssl-certificate",
+						value: { issued: true, domain },
+						sourceCanvasId: "letsencrypt",
+					},
+				});
+
 				// Show SSL items inventory
 				dispatch({
 					type: "UPDATE_INVENTORY_GROUP",

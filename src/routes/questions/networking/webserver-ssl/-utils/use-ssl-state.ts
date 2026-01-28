@@ -71,9 +71,23 @@ export const useSslState = () => {
 	const port80Domain = useMemo(() => getDomainFromCanvas(port80Canvas), [port80Canvas]);
 
 	// Certificate domain from letsencrypt canvas (domain item)
+	const certificateShared = useMemo(() => {
+		const entry = Object.values(state.sharedZone.items).find(
+			(item) => item.key === "ssl-certificate",
+		);
+		if (!entry || typeof entry.value !== "object" || entry.value === null) {
+			return null;
+		}
+		const value = entry.value as { issued?: boolean; domain?: string };
+		return {
+			issued: value.issued === true,
+			domain: typeof value.domain === "string" ? value.domain : undefined,
+		};
+	}, [state.sharedZone.items]);
+
 	const certificateDomain = useMemo(
-		() => getCertificateDomain(letsencryptCanvas),
-		[letsencryptCanvas],
+		() => certificateShared?.domain ?? getCertificateDomain(letsencryptCanvas),
+		[certificateShared, letsencryptCanvas],
 	);
 
 	// HTTP ready - Port 80 is configured
@@ -87,11 +101,14 @@ export const useSslState = () => {
 
 	// Certificate issued
 	const certificateIssued = useMemo(() => {
+		if (certificateShared?.issued) {
+			return true;
+		}
 		const domainItem = letsencryptCanvas?.placedItems.find(
 			(i) => i.type === "domain",
 		);
 		return !!domainItem?.data?.certificateIssued;
-	}, [letsencryptCanvas]);
+	}, [certificateShared, letsencryptCanvas]);
 
 	// Sync SSL domain status with certificate issuance
 	useEffect(() => {
