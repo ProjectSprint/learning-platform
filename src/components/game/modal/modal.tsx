@@ -1,318 +1,186 @@
-import {
-	Box,
-	Button,
-	Checkbox,
-	Flex,
-	Input,
-	Text,
-	Textarea,
-} from "@chakra-ui/react";
-import { useMemo, useState } from "react";
+import { Box, Flex, Text } from "@chakra-ui/react";
+import { type MouseEvent, Suspense, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useGameDispatch, useGameState } from "../game-provider";
+import { ModalInstanceView } from "./modal-instance";
 
-import { useGameDispatch } from "../game-provider";
-import { HelpLink } from "../help";
-import type {
-	ModalAction,
-	ModalContentBlock,
-	ModalField,
-	ModalInstance,
-} from "./types";
+const getFocusableElements = (container: HTMLElement) =>
+	Array.from(
+		container.querySelectorAll<HTMLElement>(
+			'a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])',
+		),
+	).filter(
+		(element) =>
+			!element.hasAttribute("disabled") && !element.getAttribute("aria-hidden"),
+	);
 
-type ModalProps = {
-	instance: ModalInstance;
-	onClose: () => void;
-};
-
-export const Modal = ({ instance, onClose }: ModalProps) => {
+export const Modal = () => {
+	const { overlay } = useGameState();
 	const dispatch = useGameDispatch();
+	const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+	const modalRef = useRef<HTMLDivElement | null>(null);
+	const lastActiveRef = useRef<HTMLElement | null>(null);
 
-	const initialValues = useMemo(() => {
-		const values: Record<string, unknown> = {
-			...(instance.initialValues ?? {}),
+	const activeModal = overlay.activeModal;
+
+	useEffect(() => {
+		if (typeof document === "undefined") {
+			return;
+		}
+
+		let container = document.getElementById("overlay-portal");
+		if (!container) {
+			container = document.createElement("div");
+			container.id = "overlay-portal";
+			document.body.appendChild(container);
+		}
+		setPortalTarget(container);
+
+		return () => {
+			setPortalTarget(null);
 		};
+	}, []);
 
-		for (const block of instance.content) {
-			if (block.kind === "field") {
-				const field = block.field;
-				if (values[field.id] !== undefined) {
-					continue;
-				}
-
-				if (field.kind === "checkbox") {
-					values[field.id] = field.defaultValue ?? false;
-				} else if (field.kind === "readonly") {
-					values[field.id] = field.value;
-				} else {
-					values[field.id] = field.defaultValue ?? "";
-				}
+	useEffect(() => {
+		if (!activeModal) {
+			if (lastActiveRef.current) {
+				lastActiveRef.current.focus();
 			}
+			return;
 		}
-		return values;
-	}, [instance.content, instance.initialValues]);
 
-	const [values, setValues] = useState<Record<string, unknown>>(initialValues);
-	const [errors, setErrors] = useState<Record<string, string | null>>({});
-
-	const setFieldValue = (fieldId: string, value: unknown) => {
-		setValues((prev) => ({ ...prev, [fieldId]: value }));
-		setErrors((prev) => ({ ...prev, [fieldId]: null }));
-	};
-
-	const runValidation = () => {
-		const nextErrors: Record<string, string | null> = {};
-
-		for (const block of instance.content) {
-			if (block.kind !== "field") {
-				continue;
-			}
-
-			const field = block.field;
-			const value = values[field.id];
-
-			if (field.kind === "text" || field.kind === "textarea") {
-				const v = (value ?? "") as string;
-				if (field.validate) {
-					const error = field.validate(v, values);
-					if (error) {
-						nextErrors[field.id] = error;
-					}
-				}
-			} else if (field.kind === "select") {
-				const v = (value ?? "") as string;
-				if (field.validate) {
-					const error = field.validate(v, values);
-					if (error) {
-						nextErrors[field.id] = error;
-					}
-				}
+		if (typeof document !== "undefined") {
+			const activeElement = document.activeElement;
+			if (activeElement instanceof HTMLElement) {
+				lastActiveRef.current = activeElement;
 			}
 		}
 
-		setErrors(nextErrors);
-		return Object.values(nextErrors).some(Boolean);
-	};
+		modalRef.current?.focus();
+	}, [activeModal]);
 
-	const handleActionClick = async (action: ModalAction) => {
-		const shouldValidate = action.validate ?? true;
+	useEffect(() => {
+		if (!activeModal || !modalRef.current) {
+			return;
+		}
 
-		if (shouldValidate) {
-			const hasErrors = runValidation();
-			if (hasErrors) {
+		const container = modalRef.current;
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== "Tab") {
 				return;
 			}
+
+			const focusable = getFocusableElements(container);
+			if (focusable.length === 0) {
+				return;
+			}
+
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last.focus();
+				return;
+			}
+
+			if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first.focus();
+			}
+		};
+
+		container.addEventListener("keydown", handleKeyDown);
+		return () => {
+			container.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [activeModal]);
+
+	useEffect(() => {
+		if (!activeModal) {
+			return;
 		}
 
-		if (action.onClick) {
-			await action.onClick({
-				values,
-				close: onClose,
-				dispatch,
-			});
-		}
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== "Escape") {
+				return;
+			}
 
-		if (action.closesModal ?? true) {
-			onClose();
+			if (activeModal.blocking) {
+				return;
+			}
+
+			dispatch({ type: "CLOSE_MODAL" });
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [activeModal, dispatch]);
+
+	const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
+		if (event.target !== event.currentTarget) {
+			return;
 		}
+		if (activeModal?.blocking) {
+			return;
+		}
+		dispatch({ type: "CLOSE_MODAL" });
 	};
 
-	const renderField = (field: ModalField) => {
-		switch (field.kind) {
-			case "text": {
-				const value = (values[field.id] ?? "") as string;
-				const error = errors[field.id] ?? null;
+	if (!portalTarget) {
+		return null;
+	}
 
-				return (
-					<Box key={field.id}>
-						<Text fontSize="sm" mb={2}>
-							{field.label}
-						</Text>
-						<Input
-							value={value}
-							onChange={(e) => setFieldValue(field.id, e.target.value)}
-							placeholder={field.placeholder}
-							size="sm"
-							bg="gray.800"
-							borderColor="gray.700"
-							fontFamily="mono"
-						/>
-						{field.helpLink && (
-							<Box mt={1}>
-								<HelpLink
-									text={field.helpLink.label}
-									href={field.helpLink.href}
-								/>
-							</Box>
-						)}
-						{field.helpText && !error && (
-							<Text fontSize="xs" color="gray.400" mt={1}>
-								{field.helpText}
-							</Text>
-						)}
-						{error && (
-							<Text fontSize="xs" color="red.300" mt={1}>
-								{error}
-							</Text>
-						)}
-					</Box>
-				);
-			}
-			case "textarea": {
-				const value = (values[field.id] ?? "") as string;
-				const error = errors[field.id] ?? null;
+	if (!activeModal) {
+		return null;
+	}
 
-				return (
-					<Box key={field.id}>
-						<Text fontSize="sm" mb={2}>
-							{field.label}
-						</Text>
-						<Textarea
-							value={value}
-							onChange={(e) => setFieldValue(field.id, e.target.value)}
-							placeholder={field.placeholder}
-							size="sm"
-							bg="gray.800"
-							borderColor="gray.700"
-							fontFamily="mono"
-							rows={3}
-						/>
-						{field.helpLink && (
-							<Box mt={1}>
-								<HelpLink
-									text={field.helpLink.label}
-									href={field.helpLink.href}
-								/>
-							</Box>
-						)}
-						{field.helpText && !error && (
-							<Text fontSize="xs" color="gray.400" mt={1}>
-								{field.helpText}
-							</Text>
-						)}
-						{error && (
-							<Text fontSize="xs" color="red.300" mt={1}>
-								{error}
-							</Text>
-						)}
-					</Box>
-				);
-			}
-			case "checkbox": {
-				const checked = !!values[field.id];
-				return (
-					<Box key={field.id}>
-						<Checkbox.Root
-							checked={checked}
-							onCheckedChange={(details) =>
-								setFieldValue(field.id, details.checked === true)
+	const handleClose = () => dispatch({ type: "CLOSE_MODAL" });
+
+	return createPortal(
+		<Box position="fixed" inset="0" zIndex={10000} pointerEvents="none">
+			{activeModal && (
+				<Box
+					position="absolute"
+					inset="0"
+					bg="rgba(0, 0, 0, 0.6)"
+					display="flex"
+					alignItems="center"
+					justifyContent="center"
+					pointerEvents="auto"
+					onClick={handleBackdropClick}
+				>
+					<Box
+						ref={modalRef}
+						tabIndex={-1}
+						role="dialog"
+						aria-modal="true"
+						bg="gray.900"
+						color="gray.100"
+						border="1px solid"
+						borderColor="gray.700"
+						borderRadius="lg"
+						p={6}
+						width="min(460px, 92vw)"
+						boxShadow="xl"
+					>
+						<Suspense
+							fallback={
+								<Flex align="center" justify="center" minHeight="120px">
+									<Text fontSize="sm" color="gray.300">
+										Loading...
+									</Text>
+								</Flex>
 							}
-							colorPalette="green"
-							size="sm"
 						>
-							<Checkbox.HiddenInput />
-							<Checkbox.Control>
-								<Checkbox.Indicator />
-							</Checkbox.Control>
-							<Checkbox.Label>{field.label}</Checkbox.Label>
-						</Checkbox.Root>
-						{field.helpLink && (
-							<Box mt={1}>
-								<HelpLink
-									text={field.helpLink.label}
-									href={field.helpLink.href}
-								/>
-							</Box>
-						)}
+							<ModalInstanceView instance={activeModal} onClose={handleClose} />
+						</Suspense>
 					</Box>
-				);
-			}
-			case "readonly": {
-				return (
-					<Box key={field.id}>
-						{field.label && (
-							<Text fontSize="sm" mb={1} color="gray.400">
-								{field.label}
-							</Text>
-						)}
-						<Text fontSize="sm" fontFamily="mono">
-							{field.value}
-						</Text>
-					</Box>
-				);
-			}
-			case "select": {
-				// TODO: Implement select field when needed
-				return null;
-			}
-		}
-	};
-
-	const renderContentBlock = (block: ModalContentBlock, index: number) => {
-		switch (block.kind) {
-			case "text":
-				return (
-					<Text
-						key={block.id ?? `text-${index}`}
-						fontSize="sm"
-						color="gray.300"
-					>
-						{block.text}
-					</Text>
-				);
-			case "link":
-				return (
-					<Box key={block.id ?? `link-${index}`}>
-						<HelpLink text={block.text} href={block.href} />
-					</Box>
-				);
-			case "field":
-				return renderField(block.field);
-		}
-	};
-
-	const getButtonVariant = (variant?: string) => {
-		switch (variant) {
-			case "ghost":
-			case "secondary":
-				return "ghost";
-			case "danger":
-				return "outline";
-			default:
-				return "solid";
-		}
-	};
-
-	const getButtonColorPalette = (variant?: string) => {
-		switch (variant) {
-			case "danger":
-				return "red";
-			default:
-				return "green";
-		}
-	};
-
-	return (
-		<Box display="flex" flexDirection="column" gap={4}>
-			{instance.title && (
-				<Text fontSize="lg" fontWeight="bold">
-					{instance.title}
-				</Text>
+				</Box>
 			)}
-
-			{instance.content.map((block, index) => renderContentBlock(block, index))}
-
-			<Flex justify="flex-end" gap={2} mt={2}>
-				{instance.actions.map((action) => (
-					<Button
-						key={action.id}
-						size="sm"
-						variant={getButtonVariant(action.variant)}
-						colorPalette={getButtonColorPalette(action.variant)}
-						onClick={() => void handleActionClick(action)}
-					>
-						{action.label}
-					</Button>
-				))}
-			</Flex>
-		</Box>
+		</Box>,
+		portalTarget,
 	);
 };

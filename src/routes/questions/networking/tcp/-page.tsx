@@ -10,7 +10,7 @@ import {
 } from "@/components/game/game-provider";
 import { PuzzleBoard } from "@/components/game/puzzle/board";
 import { InventoryDrawer } from "@/components/game/puzzle/inventory";
-import { OverlayLayer } from "@/components/game/modal";
+import { Modal } from "@/components/game/modal";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import {
 	TerminalInput,
@@ -426,7 +426,7 @@ const TcpGame = ({
                }
             />
          </Flex>
-			<OverlayLayer />
+			<Modal />
 			<DragOverlay getItemLabel={spec.labels.getItemLabel} />
 		</Box>
 		</DragProvider>

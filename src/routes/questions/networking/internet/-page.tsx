@@ -7,7 +7,7 @@ import {
    useGameDispatch,
    useGameState,
 } from "@/components/game/game-provider";
-import { OverlayLayer } from "@/components/game/modal";
+import { Modal } from "@/components/game/modal";
 import { PuzzleBoard } from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import { InventoryDrawer } from "@/components/game/puzzle/inventory";
@@ -476,7 +476,7 @@ const InternetGame = ({
                }
             />
          </Flex>
-         <OverlayLayer />
+         <Modal />
          <DragOverlay getItemLabel={spec.labels.getItemLabel} />
       </Box>
       </DragProvider>
