@@ -590,7 +590,6 @@ export const useTcpState = () => {
 			const fileLabel = lossScenarioRef.current ? "notes.txt" : "message.txt";
 			updateServerStatus(`📄 ${fileLabel} received successfully!`);
 			if (!lossScenarioRef.current) {
-				appendServerLog("📄 message.txt received successfully!");
 				appendServerLog("Waiting for notes.txt packets...");
 				updateInventoryGroup(INVENTORY_GROUP_IDS.split, {
 					visible: false,
