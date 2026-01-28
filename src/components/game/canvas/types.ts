@@ -1,7 +1,10 @@
 import type { PlacedItem } from "../core/types";
 
 export type ItemLabelGetter = (itemType: string) => string;
-export type StatusMessageGetter = (placedItem: PlacedItem) => string | null;
+export type StatusMessageGetter = (
+	placedItem: PlacedItem,
+	canvasId?: string,
+) => string | null;
 export type PlacedItemClickHandler = (placedItem: PlacedItem) => void;
 export type ItemClickableCheck = (placedItem: PlacedItem) => boolean;
 

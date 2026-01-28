@@ -390,6 +390,7 @@ export const PlayCanvas = ({
 						<PlacedItemCard
 							key={item.id}
 							item={item}
+							canvasId={resolvedCanvasId}
 							x={item.blockX * stepX}
 							y={item.blockY * stepY}
 							width={blockWidth}

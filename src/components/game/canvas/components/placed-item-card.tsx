@@ -7,6 +7,7 @@ import type { ItemLabelGetter, StatusMessageGetter } from "../types";
 
 type PlacedItemCardProps = {
 	item: PlacedItem;
+	canvasId?: string;
 	x: number;
 	y: number;
 	width: number;
@@ -20,6 +21,7 @@ type PlacedItemCardProps = {
 export const PlacedItemCard = memo(
 	({
 		item,
+		canvasId,
 		x,
 		y,
 		width,
@@ -30,7 +32,7 @@ export const PlacedItemCard = memo(
 		itemRef,
 	}: PlacedItemCardProps) => {
 		const label = getItemLabel(item.type);
-		const statusMessage = getStatusMessage(item);
+		const statusMessage = getStatusMessage(item, canvasId);
 		const iconInfo = item.icon;
 
 		const getStatusBadgeColor = () => {
