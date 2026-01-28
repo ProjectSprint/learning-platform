@@ -1,4 +1,4 @@
-import type { IconInfo } from "../../icons";
+import type { IconInfo } from "./icon";
 
 export type InventoryItem = {
 	id: string;

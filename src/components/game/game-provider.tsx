@@ -13,6 +13,7 @@ export type {
 	BlockStatus,
 	GamePhase,
 	GameState,
+	IconInfo,
 	InventoryGroup,
 	InventoryGroupConfig,
 	InventoryItem,

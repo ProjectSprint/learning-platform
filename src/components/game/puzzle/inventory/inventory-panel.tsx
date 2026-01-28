@@ -1,10 +1,9 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { useCallback, useMemo, useRef } from "react";
-import type { InventoryItem } from "../../game-provider";
+import type { IconInfo, InventoryItem } from "../../game-provider";
 import { useGameState } from "../../game-provider";
 import { InfoTooltip } from "../../help";
-import type { IconInfo } from "../../icons";
 import { useDragContext } from "../drag";
 
 export const useInventorySlotSize = () => {
