@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 
 export type NetworkingQuestionId =
 	| "tcp"
+	| "udp"
 	| "webserver-ssl"
 	| "dhcp"
 	| "internet";
@@ -32,6 +33,11 @@ export const NETWORKING_QUESTIONS: NetworkingQuestion[] = [
 		id: "tcp",
 		path: "/questions/networking/tcp",
 		title: "TCP Reliability",
+	},
+	{
+		id: "udp",
+		path: "/questions/networking/udp",
+		title: "UDP Streaming",
 	},
 ];
 

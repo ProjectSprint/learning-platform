@@ -41,6 +41,9 @@ export const NetworkingModulePage = () => {
                      Build reliable delivery with TCP sequence numbers and ACKs
                   </Text>
                   <Text as="li" mb={1}>
+                     Stream video with UDP fire-and-forget delivery
+                  </Text>
+                  <Text as="li" mb={1}>
                      Secure your website with HTTPS and SSL certificates
                   </Text>
                </Box>

@@ -14,6 +14,7 @@ import { Route as QuestionsNetworkingRouteRouteImport } from './routes/questions
 import { Route as QuestionsNetworkingIndexRouteImport } from './routes/questions/networking/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as QuestionsNetworkingWebserverSslIndexRouteImport } from './routes/questions/networking/webserver-ssl/index'
+import { Route as QuestionsNetworkingUdpIndexRouteImport } from './routes/questions/networking/udp/index'
 import { Route as QuestionsNetworkingTcpIndexRouteImport } from './routes/questions/networking/tcp/index'
 import { Route as QuestionsNetworkingInternetIndexRouteImport } from './routes/questions/networking/internet/index'
 import { Route as QuestionsNetworkingDhcpIndexRouteImport } from './routes/questions/networking/dhcp/index'
@@ -46,6 +47,12 @@ const QuestionsNetworkingWebserverSslIndexRoute =
     path: '/webserver-ssl/',
     getParentRoute: () => QuestionsNetworkingRouteRoute,
   } as any)
+const QuestionsNetworkingUdpIndexRoute =
+  QuestionsNetworkingUdpIndexRouteImport.update({
+    id: '/udp/',
+    path: '/udp/',
+    getParentRoute: () => QuestionsNetworkingRouteRoute,
+  } as any)
 const QuestionsNetworkingTcpIndexRoute =
   QuestionsNetworkingTcpIndexRouteImport.update({
     id: '/tcp/',
@@ -73,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/questions/networking/dhcp': typeof QuestionsNetworkingDhcpIndexRoute
   '/questions/networking/internet': typeof QuestionsNetworkingInternetIndexRoute
   '/questions/networking/tcp': typeof QuestionsNetworkingTcpIndexRoute
+  '/questions/networking/udp': typeof QuestionsNetworkingUdpIndexRoute
   '/questions/networking/webserver-ssl': typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 export interface FileRoutesByTo {
@@ -82,6 +90,7 @@ export interface FileRoutesByTo {
   '/questions/networking/dhcp': typeof QuestionsNetworkingDhcpIndexRoute
   '/questions/networking/internet': typeof QuestionsNetworkingInternetIndexRoute
   '/questions/networking/tcp': typeof QuestionsNetworkingTcpIndexRoute
+  '/questions/networking/udp': typeof QuestionsNetworkingUdpIndexRoute
   '/questions/networking/webserver-ssl': typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 export interface FileRoutesById {
@@ -93,6 +102,7 @@ export interface FileRoutesById {
   '/questions/networking/dhcp/': typeof QuestionsNetworkingDhcpIndexRoute
   '/questions/networking/internet/': typeof QuestionsNetworkingInternetIndexRoute
   '/questions/networking/tcp/': typeof QuestionsNetworkingTcpIndexRoute
+  '/questions/networking/udp/': typeof QuestionsNetworkingUdpIndexRoute
   '/questions/networking/webserver-ssl/': typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 export interface FileRouteTypes {
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/questions/networking/dhcp'
     | '/questions/networking/internet'
     | '/questions/networking/tcp'
+    | '/questions/networking/udp'
     | '/questions/networking/webserver-ssl'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/questions/networking/dhcp'
     | '/questions/networking/internet'
     | '/questions/networking/tcp'
+    | '/questions/networking/udp'
     | '/questions/networking/webserver-ssl'
   id:
     | '__root__'
@@ -124,6 +136,7 @@ export interface FileRouteTypes {
     | '/questions/networking/dhcp/'
     | '/questions/networking/internet/'
     | '/questions/networking/tcp/'
+    | '/questions/networking/udp/'
     | '/questions/networking/webserver-ssl/'
   fileRoutesById: FileRoutesById
 }
@@ -170,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuestionsNetworkingWebserverSslIndexRouteImport
       parentRoute: typeof QuestionsNetworkingRouteRoute
     }
+    '/questions/networking/udp/': {
+      id: '/questions/networking/udp/'
+      path: '/udp'
+      fullPath: '/questions/networking/udp'
+      preLoaderRoute: typeof QuestionsNetworkingUdpIndexRouteImport
+      parentRoute: typeof QuestionsNetworkingRouteRoute
+    }
     '/questions/networking/tcp/': {
       id: '/questions/networking/tcp/'
       path: '/tcp'
@@ -199,6 +219,7 @@ interface QuestionsNetworkingRouteRouteChildren {
   QuestionsNetworkingDhcpIndexRoute: typeof QuestionsNetworkingDhcpIndexRoute
   QuestionsNetworkingInternetIndexRoute: typeof QuestionsNetworkingInternetIndexRoute
   QuestionsNetworkingTcpIndexRoute: typeof QuestionsNetworkingTcpIndexRoute
+  QuestionsNetworkingUdpIndexRoute: typeof QuestionsNetworkingUdpIndexRoute
   QuestionsNetworkingWebserverSslIndexRoute: typeof QuestionsNetworkingWebserverSslIndexRoute
 }
 
@@ -209,6 +230,7 @@ const QuestionsNetworkingRouteRouteChildren: QuestionsNetworkingRouteRouteChildr
     QuestionsNetworkingInternetIndexRoute:
       QuestionsNetworkingInternetIndexRoute,
     QuestionsNetworkingTcpIndexRoute: QuestionsNetworkingTcpIndexRoute,
+    QuestionsNetworkingUdpIndexRoute: QuestionsNetworkingUdpIndexRoute,
     QuestionsNetworkingWebserverSslIndexRoute:
       QuestionsNetworkingWebserverSslIndexRoute,
   }
