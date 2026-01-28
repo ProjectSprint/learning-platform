@@ -98,7 +98,7 @@ export const useSslTerminal = ({
 						helpers.writeOutput("HTTP/1.1 301 Moved Permanently", "output");
 						helpers.writeOutput(`Location: https://${domain}/`, "output");
 						helpers.writeOutput("", "output");
-						helpers.writeOutput("Redirecting to HTTPS...", "hint");
+						helpers.writeOutput("301 redirected (use -L to follow)", "hint");
 					} else if (isHttpReady) {
 						if (verbose) {
 							helpers.writeOutput(`* Trying ${getDomain()}...`, "output");
