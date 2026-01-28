@@ -37,7 +37,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "PC-1",
 		allowedPlaces: ["inventory", "networking-canvas"],
 		icon: { icon: "twemoji:laptop-computer" },
-		behavior: "connectable",
 	},
 	{
 		id: "pc-2",
@@ -45,7 +44,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "PC-2",
 		allowedPlaces: ["inventory", "networking-canvas"],
 		icon: { icon: "twemoji:laptop-computer" },
-		behavior: "connectable",
 	},
 	{
 		id: "router-1",
@@ -53,7 +51,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Router",
 		allowedPlaces: ["inventory", "networking-canvas"],
 		icon: { icon: "streamline-flex-color:router-wifi-network" },
-		behavior: "connectable",
 	},
 	{
 		id: "cable-1",
@@ -61,7 +58,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Cable",
 		allowedPlaces: ["inventory", "networking-canvas"],
 		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
-		behavior: "connectable",
 	},
 	{
 		id: "cable-2",
@@ -69,7 +65,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Cable",
 		allowedPlaces: ["inventory", "networking-canvas"],
 		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
-		behavior: "connectable",
 	},
 ];
 

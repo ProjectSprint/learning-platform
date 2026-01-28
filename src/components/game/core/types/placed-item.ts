@@ -1,4 +1,4 @@
-import type { IconInfo, ItemBehavior } from "../../icons";
+import type { IconInfo } from "../../icons";
 
 export type PlacedItemStatus = "normal" | "warning" | "success" | "error";
 
@@ -10,6 +10,5 @@ export type PlacedItem = {
 	blockY: number;
 	status: PlacedItemStatus;
 	icon?: IconInfo;
-	behavior?: ItemBehavior;
 	data: Record<string, unknown>;
 };

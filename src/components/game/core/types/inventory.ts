@@ -1,4 +1,4 @@
-import type { IconInfo, ItemBehavior } from "../../icons";
+import type { IconInfo } from "../../icons";
 
 export type InventoryItem = {
 	id: string;
@@ -7,7 +7,6 @@ export type InventoryItem = {
 	allowedPlaces: string[];
 	quantity?: number;
 	icon?: IconInfo;
-	behavior?: ItemBehavior;
 	data?: Record<string, unknown>;
 	draggable?: boolean;
 	category?: string;

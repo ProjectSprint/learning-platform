@@ -57,7 +57,6 @@ export const puzzleReducer = (
 				blockY,
 				status: "normal",
 				icon: item.icon,
-				behavior: item.behavior,
 				data: item.data ?? {},
 			};
 

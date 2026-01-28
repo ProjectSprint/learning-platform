@@ -66,7 +66,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Ethernet Cable",
 		allowedPlaces: ["inventory", "conn-1"],
 		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
-		behavior: "connectable",
 	},
 	{
 		id: "fiber-1",
@@ -74,7 +73,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Fiber Cable",
 		allowedPlaces: ["inventory", "conn-2"],
 		icon: { icon: "mdi:fiber-smart-record", color: "#f97316" },
-		behavior: "connectable",
 	},
 	{
 		id: "pc-1",
@@ -82,7 +80,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "PC",
 		allowedPlaces: ["inventory", "local"],
 		icon: { icon: "twemoji:laptop-computer" },
-		behavior: "connectable",
 	},
 	{
 		id: "router-lan-1",
@@ -90,7 +87,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Router (LAN)",
 		allowedPlaces: ["inventory", "router"],
 		icon: { icon: "mdi:lan" },
-		behavior: "connectable",
 	},
 	{
 		id: "router-nat-1",
@@ -98,7 +94,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Router (NAT)",
 		allowedPlaces: ["inventory", "router"],
 		icon: { icon: "mdi:swap-horizontal" },
-		behavior: "connectable",
 	},
 	{
 		id: "router-wan-1",
@@ -106,7 +101,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Router (WAN)",
 		allowedPlaces: ["inventory", "router"],
 		icon: { icon: "mdi:wan" },
-		behavior: "connectable",
 	},
 	{
 		id: "igw-1",
@@ -114,7 +108,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Internet Gateway",
 		allowedPlaces: ["inventory", "igw"],
 		icon: { icon: "mdi:server-network" },
-		behavior: "connectable",
 		category: "bridge",
 	},
 	{
@@ -123,7 +116,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "DNS Server",
 		allowedPlaces: ["inventory", "dns"],
 		icon: { icon: "mdi:dns" },
-		behavior: "connectable",
 		category: "address",
 	},
 	{
@@ -132,7 +124,6 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		name: "Google",
 		allowedPlaces: ["inventory", "google"],
 		icon: { icon: "mdi:google" },
-		behavior: "connectable",
 		category: "server",
 	},
 ];

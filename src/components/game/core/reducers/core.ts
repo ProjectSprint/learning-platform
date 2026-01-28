@@ -129,7 +129,6 @@ const applyInitialPlacements = (
 			blockY: placement.blockY,
 			status: "normal",
 			icon: matchedItem?.icon,
-			behavior: matchedItem?.behavior,
 			data: matchedItem?.data ?? {},
 		});
 
