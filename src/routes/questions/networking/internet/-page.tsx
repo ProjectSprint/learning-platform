@@ -80,13 +80,8 @@ const INTERNET_SPEC_BASE: Omit<QuestionSpec<InternetConditionKey>, "handlers"> =
    phaseRules: [
       {
          kind: "set",
-         when: { kind: "eq", key: "questionStatus", value: "completed" },
-         to: "completed",
-      },
-      {
-         kind: "set",
-         when: { kind: "eq", key: "dragStatus", value: "finished" },
-         to: "terminal",
+         when: { kind: "eq", key: "allDevicesPlaced", value: true },
+         to: "configuring",
       },
       {
          kind: "set",
@@ -95,8 +90,13 @@ const INTERNET_SPEC_BASE: Omit<QuestionSpec<InternetConditionKey>, "handlers"> =
       },
       {
          kind: "set",
-         when: { kind: "eq", key: "allDevicesPlaced", value: true },
-         to: "configuring",
+         when: { kind: "eq", key: "dragStatus", value: "finished" },
+         to: "terminal",
+      },
+      {
+         kind: "set",
+         when: { kind: "eq", key: "questionStatus", value: "completed" },
+         to: "completed",
       },
    ],
    labels: {

@@ -21,7 +21,7 @@ You learned how:
 - **Router NAT** translates your private IP to the public IP
 - **DNS** resolves domain names (google.com) to IP addresses (142.250.80.46)
 
-Your ping traveled: PC → Router LAN → Router NAT → Router WAN → IGW → Internet → Google!`;
+Your request traveled: PC → Router LAN → Router NAT → Router WAN → IGW → Internet → Google!`;
 
 export const useInternetTerminal = ({
 	pcIp,
@@ -51,8 +51,8 @@ export const useInternetTerminal = ({
 				helpers.writeOutput("Available commands:", "output");
 				helpers.writeOutput("- ifconfig", "output");
 				helpers.writeOutput("- nslookup google.com", "output");
-				helpers.writeOutput("- ping google.com", "output");
-				helpers.writeOutput(`- ping ${GOOGLE_IP}`, "output");
+				helpers.writeOutput("- curl google.com", "output");
+				helpers.writeOutput(`- curl ${GOOGLE_IP}`, "output");
 				return;
 			}
 
@@ -92,10 +92,10 @@ export const useInternetTerminal = ({
 				return;
 			}
 
-			if (command === "ping") {
+			if (command === "curl") {
 				if (parts.length < 2) {
 					helpers.writeOutput(
-						"Error: Missing target. Usage: ping <hostname or IP>",
+						"Error: Missing target. Usage: curl <hostname or IP>",
 						"error",
 					);
 					return;
@@ -136,12 +136,12 @@ export const useInternetTerminal = ({
 
 				if (isDomainTarget) {
 					helpers.writeOutput(
-						`Resolving google.com... ${GOOGLE_IP}\nReply from ${GOOGLE_IP}: bytes=32 time=15ms TTL=117`,
+						`Resolving google.com... ${GOOGLE_IP}\nHTTP/1.1 200 OK\n\n<html>...google homepage...</html>`,
 						"output",
 					);
 				} else {
 					helpers.writeOutput(
-						`Reply from ${GOOGLE_IP}: bytes=32 time=15ms TTL=117`,
+						"HTTP/1.1 200 OK\n\n<html>...google homepage...</html>",
 						"output",
 					);
 				}

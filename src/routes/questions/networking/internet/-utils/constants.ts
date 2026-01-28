@@ -37,13 +37,13 @@ export const TERMINAL_INTRO_ENTRIES: TerminalEntry[] = [
 	{
 		id: "intro-internet-4",
 		type: "output",
-		content: "- ping google.com",
+		content: "- curl google.com",
 		timestamp: 3,
 	},
 	{
 		id: "intro-internet-5",
 		type: "output",
-		content: `- ping ${GOOGLE_IP}`,
+		content: `- curl ${GOOGLE_IP}`,
 		timestamp: 4,
 	},
 ];
@@ -231,4 +231,4 @@ export const VALID_PPPOE_CREDENTIALS = {
 	password: "telkom123",
 } as const;
 
-// Google's IP address for ping verification
+// Google's IP address for curl verification

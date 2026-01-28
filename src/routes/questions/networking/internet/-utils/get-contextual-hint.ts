@@ -176,7 +176,7 @@ export const getContextualHint = (state: InternetNetworkState): string => {
 		routerWanConfigured &&
 		googleReachable
 	) {
-		return "🎉 You're connected to the internet! Try pinging Google";
+		return "🎉 You're connected to the internet! Try curling Google";
 	}
 
 	return "";
