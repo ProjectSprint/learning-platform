@@ -305,17 +305,21 @@ export const useSslState = () => {
 			const indexHtmlInPort80 = port80Canvas.placedItems.find(
 				(item) => item.type === "index-html",
 			);
-			const webserver443 = port443Canvas.placedItems.find(
-				(item) => item.type === "webserver-443",
-			);
+			const port443Types = port443Canvas.placedItems.map((item) => item.type);
+			const hasWebserver443 = port443Types.includes("webserver-443");
+			const hasDomain = port443Types.includes("domain");
+			const hasPrivateKey = port443Types.includes("private-key");
+			const hasCertificate = port443Types.includes("certificate");
+			const httpsConfigured =
+				hasWebserver443 && hasDomain && hasPrivateKey && hasCertificate;
 
-			if (indexHtmlInPort80 && webserver443) {
+			if (indexHtmlInPort80 && httpsConfigured) {
 				// Set status to warning to show "I shouldn't be here"
 				if (indexHtmlInPort80.status !== "warning") {
 					dispatchConfig(indexHtmlInPort80.id, { status: "warning" });
 				}
-			} else if (indexHtmlInPort80 && !webserver443) {
-				// Reset status if webserver-443 is removed
+			} else if (indexHtmlInPort80) {
+				// Reset status if HTTPS isn't fully configured
 				if (indexHtmlInPort80.status === "warning") {
 					dispatchConfig(indexHtmlInPort80.id, { status: null });
 				}
