@@ -26,7 +26,7 @@ export const getNetworkingStatusMessage = (
 	placedItem: PlacedItem,
 ): string | null => {
 	if (placedItem.type === "router") {
-		if (placedItem.status === "warning") {
+		if (placedItem.status === "error") {
 			return "needs configuration";
 		}
 		if (placedItem.status === "success") {

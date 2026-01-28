@@ -292,7 +292,7 @@ export const buildRouterWanConfigModal = (
 	content: [
 		{
 			kind: "text",
-			text: "Enter your ISP credentials to establish an internet connection. You can find these credentials in the documentation provided by your Internet Service Provider.",
+			text: "Enter your ISP credentials to establish an internet connection. (re-enter the credential that's provided at the placeholder)",
 		},
 		{
 			kind: "field",

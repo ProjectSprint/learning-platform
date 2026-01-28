@@ -22,16 +22,10 @@ export const TERMINAL_INTRO_ENTRIES: TerminalEntry[] = [
 		timestamp: 0,
 	},
 	{
-		id: "intro-dhcp-2",
-		type: "output",
-		content: "- ping pc-2",
-		timestamp: 1,
-	},
-	{
 		id: "intro-dhcp-3",
 		type: "output",
 		content: "- ping <pc-2-ip>",
-		timestamp: 2,
+		timestamp: 1,
 	},
 ];
 
