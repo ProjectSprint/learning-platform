@@ -12,9 +12,10 @@ import {
    useGameDispatch,
    useGameState,
 } from "@/components/game/game-provider";
+import { OverlayLayer } from "@/components/game/modal";
 import { PuzzleBoard } from "@/components/game/puzzle/board";
+import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import { InventoryDrawer } from "@/components/game/puzzle/inventory";
-import { GameShell } from "@/components/game/shell";
 import {
 	TerminalInput,
 	TerminalLayout,
@@ -556,12 +557,21 @@ const WebserverSslGame = ({
    );
 
 	return (
-		<GameShell getItemLabel={spec.labels.getItemLabel}>
-         <Flex
-            direction="column"
-            px={{ base: 2, md: 12, lg: 24 }}
-            py={{ base: 2, md: 6 }}
-         >
+		<DragProvider>
+			<Box
+				as="main"
+				role="main"
+				display="flex"
+				flexDirection="column"
+				bg="gray.950"
+				color="gray.100"
+				position="relative"
+			>
+				<Flex
+					direction="column"
+					px={{ base: 2, md: 12, lg: 24 }}
+					py={{ base: 2, md: 6 }}
+				>
             <Box textAlign="left" mb={{ base: 2, md: 4 }} pb={{ base: 1, md: 0 }}>
                <Text
                   fontSize={{ base: "2xl", md: "4xl" }}
@@ -653,6 +663,9 @@ const WebserverSslGame = ({
                }
             />
          </Flex>
-      </GameShell>
+			<OverlayLayer />
+			<DragOverlay getItemLabel={spec.labels.getItemLabel} />
+		</Box>
+		</DragProvider>
    );
 };

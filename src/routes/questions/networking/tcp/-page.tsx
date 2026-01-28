@@ -10,7 +10,8 @@ import {
 } from "@/components/game/game-provider";
 import { PuzzleBoard } from "@/components/game/puzzle/board";
 import { InventoryDrawer } from "@/components/game/puzzle/inventory";
-import { GameShell } from "@/components/game/shell";
+import { OverlayLayer } from "@/components/game/modal";
+import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import {
 	TerminalInput,
 	TerminalLayout,
@@ -254,7 +255,16 @@ const TcpGame = ({
    );
 
 	return (
-		<GameShell getItemLabel={spec.labels.getItemLabel}>
+		<DragProvider>
+			<Box
+				as="main"
+				role="main"
+				display="flex"
+				flexDirection="column"
+				bg="gray.950"
+				color="gray.100"
+				position="relative"
+			>
          <Flex
             direction="column"
             px={{ base: 2, md: 12, lg: 24 }}
@@ -416,6 +426,9 @@ const TcpGame = ({
                }
             />
          </Flex>
-      </GameShell>
+			<OverlayLayer />
+			<DragOverlay getItemLabel={spec.labels.getItemLabel} />
+		</Box>
+		</DragProvider>
    );
 };
