@@ -87,14 +87,11 @@ export const getSslStatusMessage = (
 
 	// Domain status
 	if (type === "domain") {
-		if (canvasId === "letsencrypt") {
-			if (status === "success") {
-				return "Configured";
-			}
-			if (status === "error") {
-				return "Needs Issuing";
-			}
-			return "Needs Issuing";
+		if (status === "success") {
+			return "Configured";
+		}
+		if (status === "error" || status === "warning") {
+			return "Need Issuing";
 		}
 		const domain =
 			typeof data?.domain === "string" ? data.domain : "example.com";
