@@ -267,6 +267,7 @@ export const buildCertificateRequestModal = (
 	currentDomain: string,
 	certificateIssued: boolean,
 	port80CanvasConfig?: Record<string, unknown>,
+	onCertificateIssued?: (domain: string) => void,
 ): ModalInstance => {
 	// If certificate already issued, show status view
 	if (certificateIssued) {
@@ -329,15 +330,10 @@ export const buildCertificateRequestModal = (
 					},
 				});
 
-				// Persist certificate issuance for future placements
-				dispatch({
-					type: "SET_SHARED_DATA",
-					payload: {
-						key: "ssl-certificate",
-						value: { issued: true, domain },
-						sourcePuzzleId: "letsencrypt",
-					},
-				});
+				// Persist certificate issuance in question-local state
+				if (onCertificateIssued) {
+					onCertificateIssued(domain);
+				}
 
 				// Show SSL items inventory
 				dispatch({

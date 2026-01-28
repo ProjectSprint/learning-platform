@@ -57,6 +57,10 @@ import {
    getSslItemLabel,
    getSslStatusMessage,
 } from "./-utils/item-notification";
+import {
+   CertificateProvider,
+   useCertificateContext,
+} from "./-utils/certificate-context";
 import { useSslState } from "./-utils/use-ssl-state";
 import { useSslTerminal } from "./-utils/use-ssl-terminal";
 
@@ -72,7 +76,9 @@ type WebserverSslConditionKey =
 export const WebserverSslQuestion = ({ onQuestionComplete }: QuestionProps) => {
    return (
       <GameProvider>
-         <WebserverSslGame onQuestionComplete={onQuestionComplete} />
+         <CertificateProvider>
+            <WebserverSslGame onQuestionComplete={onQuestionComplete} />
+         </CertificateProvider>
       </GameProvider>
    );
 };
@@ -85,6 +91,7 @@ const WebserverSslGame = ({
    const dispatch = useGameDispatch();
    const state = useGameState();
    const terminalInput = useTerminalInput();
+   const { setCertificate } = useCertificateContext();
    const isCompleted = state.question.status === "completed";
    const initializedRef = useRef(false);
    const [prevSecureState, setPrevSecureState] = useState(false);
@@ -192,6 +199,7 @@ const WebserverSslGame = ({
                   currentDomain || "",
                   certificateIssued,
                   { domain: sslState.port80Domain },
+                  (domain) => setCertificate({ issued: true, domain }),
                ),
             });
          },

@@ -27,7 +27,6 @@ export type { ModalInstance, OverlayState } from "./modal";
 export type { PlacedItem, PlacedItemStatus } from "./placed-item";
 
 // Shared zone types
-export type { SharedZoneItem, SharedZoneState } from "./shared-zone";
 
 // Terminal types
 export type {

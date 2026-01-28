@@ -2,7 +2,6 @@ import type { CrossCanvasConnection } from "./connection";
 import type { InventoryGroup } from "./inventory";
 import type { OverlayState } from "./modal";
 import type { PuzzleState } from "./puzzle";
-import type { SharedZoneState } from "./shared-zone";
 import type { TerminalState } from "./terminal";
 
 export type GamePhase =
@@ -20,7 +19,6 @@ export type GameState = {
 	puzzle: PuzzleState;
 	puzzles?: Record<string, PuzzleState>;
 	crossConnections: CrossCanvasConnection[];
-	sharedZone: SharedZoneState;
 	terminal: TerminalState;
 	overlay: OverlayState;
 	question: { id: string; status: QuestionStatus };

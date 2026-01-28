@@ -26,8 +26,6 @@ export type {
 	PlacedItemStatus,
 	Placement,
 	QuestionStatus,
-	SharedZoneItem,
-	SharedZoneState,
 	TerminalEntry,
 	TerminalEntryType,
 	TerminalState,
@@ -35,7 +33,7 @@ export type {
 
 import type { GameAction } from "./core/actions";
 import { createDefaultState, gameReducer } from "./core/reducers";
-import type { PuzzleState, GameState, SharedZoneState } from "./core/types";
+import type { PuzzleState, GameState } from "./core/types";
 
 // Re-export findInventoryItem
 export { findInventoryItem } from "./validation/inventory";
@@ -99,7 +97,3 @@ export const useAllPuzzles = (): Record<string, PuzzleState> => {
 	return { [fallbackId]: state.puzzle };
 };
 
-export const useSharedZone = (): SharedZoneState => {
-	const state = useGameState();
-	return state.sharedZone;
-};

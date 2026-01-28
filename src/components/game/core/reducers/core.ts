@@ -13,9 +13,7 @@ import type {
 	InventoryGroup,
 	InventoryItem,
 	PlacedItem,
-	SharedZoneItem,
 } from "../types";
-import { createId } from "../utils/ids";
 import { createPuzzleState } from "./puzzle-state";
 
 const defaultPuzzleConfig: PuzzleConfig = {
@@ -39,7 +37,6 @@ export const createDefaultState = (): GameState => ({
 	},
 	puzzle: createPuzzleState(defaultPuzzleConfig),
 	crossConnections: [],
-	sharedZone: { items: {} },
 	terminal: {
 		visible: false,
 		prompt: "",
@@ -222,36 +219,6 @@ export const coreReducer = (
 				question: {
 					id: config.questionId,
 					status: config.questionStatus ?? "in_progress",
-				},
-			};
-		}
-		case "SET_SHARED_DATA": {
-			const nextItem: SharedZoneItem = {
-				id: createId(),
-				key: action.payload.key,
-				value: action.payload.value,
-				sourcePuzzleId: action.payload.sourcePuzzleId,
-				timestamp: Date.now(),
-			};
-
-			return {
-				...state,
-				sharedZone: {
-					items: {
-						...state.sharedZone.items,
-						[action.payload.key]: nextItem,
-					},
-				},
-			};
-		}
-		case "REMOVE_SHARED_DATA": {
-			const nextItems = { ...state.sharedZone.items };
-			delete nextItems[action.payload.key];
-
-			return {
-				...state,
-				sharedZone: {
-					items: nextItems,
 				},
 			};
 		}

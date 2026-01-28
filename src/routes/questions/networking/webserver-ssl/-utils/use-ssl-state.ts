@@ -7,6 +7,7 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import { useCertificateContext } from "./certificate-context";
 import { DEFAULT_DOMAIN, DEFAULT_INDEX_HTML } from "./constants";
 import {
 	getBrowserStatus,
@@ -21,6 +22,7 @@ export const useSslState = () => {
 	const state = useGameState();
 	const canvases = useAllPuzzles();
 	const dispatch = useGameDispatch();
+	const { certificate } = useCertificateContext();
 
 	// Canvas states
 	const browserCanvas = canvases.browser;
@@ -70,24 +72,10 @@ export const useSslState = () => {
 	// Port 80 domain
 	const port80Domain = useMemo(() => getDomainFromCanvas(port80Canvas), [port80Canvas]);
 
-	// Certificate domain from letsencrypt canvas (domain item)
-	const certificateShared = useMemo(() => {
-		const entry = Object.values(state.sharedZone.items).find(
-			(item) => item.key === "ssl-certificate",
-		);
-		if (!entry || typeof entry.value !== "object" || entry.value === null) {
-			return null;
-		}
-		const value = entry.value as { issued?: boolean; domain?: string };
-		return {
-			issued: value.issued === true,
-			domain: typeof value.domain === "string" ? value.domain : undefined,
-		};
-	}, [state.sharedZone.items]);
-
+	// Certificate domain from context or letsencrypt canvas (domain item)
 	const certificateDomain = useMemo(
-		() => certificateShared?.domain ?? getCertificateDomain(letsencryptCanvas),
-		[certificateShared, letsencryptCanvas],
+		() => certificate.domain ?? getCertificateDomain(letsencryptCanvas),
+		[certificate.domain, letsencryptCanvas],
 	);
 
 	// HTTP ready - Port 80 is configured
@@ -101,14 +89,14 @@ export const useSslState = () => {
 
 	// Certificate issued
 	const certificateIssued = useMemo(() => {
-		if (certificateShared?.issued) {
+		if (certificate.issued) {
 			return true;
 		}
 		const domainItem = letsencryptCanvas?.placedItems.find(
 			(i) => i.type === "domain",
 		);
 		return !!domainItem?.data?.certificateIssued;
-	}, [certificateShared, letsencryptCanvas]);
+	}, [certificate.issued, letsencryptCanvas]);
 
 	// Sync SSL domain status with certificate issuance
 	useEffect(() => {
