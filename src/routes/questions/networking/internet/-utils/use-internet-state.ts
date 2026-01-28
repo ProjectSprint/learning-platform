@@ -162,7 +162,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const pcIp =
 		typeof network.pc?.data?.ip === "string" ? network.pc.data.ip : null;
 
-	// Google reachability: all configured and all devices in correct order
+	// Google reachability: all configured and all devices placed
 	const googleReachable = allRoutersConfigured && network.isFullyConnected;
 
 	// Check if all devices are placed

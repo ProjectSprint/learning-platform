@@ -31,32 +31,6 @@ export interface InternetNetworkState {
 	googleReachable: boolean;
 }
 
-const EXPECTED_ORDER = [
-	"pc",
-	"cable",
-	"router-lan",
-	"router-nat",
-	"router-wan",
-	"fiber",
-	"igw",
-	"dns",
-	"google",
-];
-
-const isCorrectOrder = (placedItems: PlacedItem[]): boolean => {
-	const sorted = [...placedItems].sort((a, b) => a.blockX - b.blockX);
-	for (let i = 0; i < sorted.length; i++) {
-		const expectedIndex = EXPECTED_ORDER.indexOf(sorted[i].type);
-		if (i > 0) {
-			const prevExpectedIndex = EXPECTED_ORDER.indexOf(sorted[i - 1].type);
-			if (expectedIndex <= prevExpectedIndex) {
-				return false;
-			}
-		}
-	}
-	return true;
-};
-
 export const getContextualHint = (state: InternetNetworkState): string => {
 	const {
 		placedItems,
@@ -164,10 +138,6 @@ export const getContextualHint = (state: InternetNetworkState): string => {
 
 	if (routerNatSettingsOpen && !natEnabled) {
 		return "Enable NAT so your private IP can reach the internet";
-	}
-
-	if (placedItems.length > 1 && !isCorrectOrder(placedItems)) {
-		return "❌ Devices must be connected in order: PC → Cable → Router LAN → Router NAT → Router WAN → Fiber → IGW → DNS → Google";
 	}
 
 	if (

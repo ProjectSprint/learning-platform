@@ -87,18 +87,6 @@ export const validateIpRange = (
 	return { isValid: true };
 };
 
-const EXPECTED_ORDER = [
-	"pc",
-	"cable",
-	"router-lan",
-	"router-nat",
-	"router-wan",
-	"fiber",
-	"igw",
-	"dns",
-	"google",
-] as const;
-
 export interface InternetNetworkSnapshot {
 	pc: PlacedItem | undefined;
 	cable: PlacedItem | undefined;
@@ -151,38 +139,8 @@ export const buildInternetNetworkSnapshot = (
 
 	const placedDevices = devices.filter(Boolean) as PlacedItem[];
 
-	if (placedDevices.length !== EXPECTED_ORDER.length) {
+	if (placedDevices.length !== devices.length) {
 		isFullyConnected = false;
-	}
-
-	const sortedByX = [...placedDevices].sort((a, b) => a.blockX - b.blockX);
-
-	for (let i = 0; i < sortedByX.length; i++) {
-		const device = sortedByX[i];
-		const expectedType = EXPECTED_ORDER[i];
-
-		if (device.type !== expectedType) {
-			connectionErrors.push(
-				`Position ${i + 1}: Expected ${expectedType}, found ${device.type}`,
-			);
-			isFullyConnected = false;
-		}
-
-		if (i > 0) {
-			const prevDevice = sortedByX[i - 1];
-			if (device.blockX !== prevDevice.blockX + 1) {
-				connectionErrors.push(
-					`${device.type} is not adjacent to ${prevDevice.type}`,
-				);
-				isFullyConnected = false;
-			}
-			if (device.blockY !== prevDevice.blockY) {
-				connectionErrors.push(
-					`${device.type} is not on the same row as ${prevDevice.type}`,
-				);
-				isFullyConnected = false;
-			}
-		}
 	}
 
 	// Check if PC is connected to Router LAN via cable (adjacent: PC → Cable → Router LAN)
