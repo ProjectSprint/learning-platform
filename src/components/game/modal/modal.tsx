@@ -19,17 +19,19 @@ import type {
 } from "./types";
 
 type ModalProps = {
-	modal: ModalInstance;
+	instance: ModalInstance;
 	onClose: () => void;
 };
 
-export const Modal = ({ modal, onClose }: ModalProps) => {
+export const Modal = ({ instance, onClose }: ModalProps) => {
 	const dispatch = useGameDispatch();
 
 	const initialValues = useMemo(() => {
-		const values: Record<string, unknown> = { ...(modal.initialValues ?? {}) };
+		const values: Record<string, unknown> = {
+			...(instance.initialValues ?? {}),
+		};
 
-		for (const block of modal.content) {
+		for (const block of instance.content) {
 			if (block.kind === "field") {
 				const field = block.field;
 				if (values[field.id] !== undefined) {
@@ -46,7 +48,7 @@ export const Modal = ({ modal, onClose }: ModalProps) => {
 			}
 		}
 		return values;
-	}, [modal.content, modal.initialValues]);
+	}, [instance.content, instance.initialValues]);
 
 	const [values, setValues] = useState<Record<string, unknown>>(initialValues);
 	const [errors, setErrors] = useState<Record<string, string | null>>({});
@@ -59,7 +61,7 @@ export const Modal = ({ modal, onClose }: ModalProps) => {
 	const runValidation = () => {
 		const nextErrors: Record<string, string | null> = {};
 
-		for (const block of modal.content) {
+		for (const block of instance.content) {
 			if (block.kind !== "field") {
 				continue;
 			}
@@ -290,16 +292,16 @@ export const Modal = ({ modal, onClose }: ModalProps) => {
 
 	return (
 		<Box display="flex" flexDirection="column" gap={4}>
-			{modal.title && (
+			{instance.title && (
 				<Text fontSize="lg" fontWeight="bold">
-					{modal.title}
+					{instance.title}
 				</Text>
 			)}
 
-			{modal.content.map((block, index) => renderContentBlock(block, index))}
+			{instance.content.map((block, index) => renderContentBlock(block, index))}
 
 			<Flex justify="flex-end" gap={2} mt={2}>
-				{modal.actions.map((action) => (
+				{instance.actions.map((action) => (
 					<Button
 						key={action.id}
 						size="sm"

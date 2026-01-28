@@ -175,7 +175,7 @@ export const OverlayLayer = () => {
 								</Flex>
 							}
 						>
-							<Modal modal={activeModal} onClose={handleClose} />
+							<Modal instance={activeModal} onClose={handleClose} />
 						</Suspense>
 					</Box>
 				</Box>
