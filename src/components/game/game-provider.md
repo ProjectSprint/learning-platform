@@ -83,7 +83,7 @@ GameState
 │   └── connections: Connection[]
 │
 ├── canvases                        ◄── multi-canvas (optional)
-│   └── [stateKey: string]: CanvasState
+│   └── [canvasId: string]: CanvasState
 │
 ├── terminal
 │   ├── visible: boolean
@@ -105,16 +105,16 @@ GameState
 // Single canvas (most questions)
 state.canvas = { ... }
 
-// Multi-canvas (when stateKey is used)
+// Multi-canvas (when canvasId is used)
 state.canvases = {
   'left': { ... },
   'right': { ... },
 }
 
 // Helper to get canvas state
-function getCanvasState(state: GameState, stateKey?: string): CanvasState {
-  if (!stateKey) return state.canvas
-  return state.canvases?.[stateKey] ?? state.canvas
+function getCanvasState(state: GameState, canvasId?: string): CanvasState {
+  if (!canvasId) return state.canvas
+  return state.canvases?.[canvasId] ?? state.canvas
 }
 ```
 

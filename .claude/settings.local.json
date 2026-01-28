@@ -25,7 +25,17 @@
       "Bash(npx tsc --noEmit)",
       "Bash(npx:*)",
       "Bash(pnpm type-check)",
-      "Bash(pnpm lint)"
+      "Bash(pnpm lint)",
+      "Bash(tree:*)",
+      "WebSearch",
+      "Bash(npm run type-check:*)",
+      "WebFetch(domain:gsap.com)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(bd create:*)",
+      "Bash(git mv:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

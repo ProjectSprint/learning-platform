@@ -80,7 +80,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				payload: {
 					deviceId,
 					config,
-					stateKey: resolveCanvasKey(deviceId),
+					canvasId: resolveCanvasKey(deviceId),
 				},
 			});
 		},
@@ -211,7 +211,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					payload: {
 						deviceId: network.pc.id,
 						config: { ip: desiredIp },
-						stateKey: resolveCanvasKey(network.pc.id),
+						canvasId: resolveCanvasKey(network.pc.id),
 					},
 				});
 			}
@@ -228,7 +228,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					payload: {
 						deviceId: network.pc.id,
 						config: { ip: null },
-						stateKey: resolveCanvasKey(network.pc.id),
+						canvasId: resolveCanvasKey(network.pc.id),
 					},
 				});
 			}

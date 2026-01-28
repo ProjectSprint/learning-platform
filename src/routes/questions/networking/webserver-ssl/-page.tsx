@@ -12,20 +12,22 @@ import {
    useGameDispatch,
    useGameState,
 } from "@/components/game/game-provider";
-import { GameShell } from "@/components/game/game-shell";
-import { InventoryDrawer } from "@/components/game/inventory-drawer";
-import { PlayCanvas } from "@/components/game/play-canvas";
-import { TerminalLayout } from "@/components/game/terminal-layout";
-import { TerminalInput } from "@/components/game/terminal-input";
-import { TerminalView } from "@/components/game/terminal-view";
-import { useTerminalInput } from "@/components/game/use-terminal-input";
+import { PlayCanvas } from "@/components/game/canvas";
+import { InventoryDrawer } from "@/components/game/inventory";
+import { GameShell } from "@/components/game/shell";
+import {
+	TerminalInput,
+	TerminalLayout,
+	TerminalView,
+	useTerminalInput,
+} from "@/components/game/terminal";
 import type { QuestionProps } from "@/components/module";
 import {
    type ConditionContext,
    type QuestionSpec,
    resolvePhase,
    resolveVisibility,
-} from "@/components/game/question-ast";
+} from "@/components/game/question";
 
 import {
    BASIC_INVENTORY_ITEMS,
@@ -320,7 +322,7 @@ const WebserverSslGame = ({
          canvasRules: [
             {
                kind: "show",
-               canvasKey: "letsencrypt",
+               canvasId: "letsencrypt",
                when: {
                   kind: "or",
                   any: [
@@ -331,7 +333,7 @@ const WebserverSslGame = ({
             },
             {
                kind: "show",
-               canvasKey: "port-443",
+               canvasId: "port-443",
                when: {
                   kind: "or",
                   any: [
@@ -600,7 +602,7 @@ const WebserverSslGame = ({
                      return null;
                   }
 
-                  const stateKey = config.stateKey ?? key;
+                  const canvasId = config.canvasId ?? key;
 
                   return (
                      <Box
@@ -610,7 +612,7 @@ const WebserverSslGame = ({
                         minW={{ base: "100%", xl: "0" }}
                      >
 						<PlayCanvas
-							stateKey={stateKey}
+							canvasId={canvasId}
 							title={config.title ?? key}
 							getItemLabel={spec.labels.getItemLabel}
 							getStatusMessage={spec.labels.getStatusMessage}

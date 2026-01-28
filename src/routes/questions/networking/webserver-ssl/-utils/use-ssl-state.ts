@@ -40,7 +40,7 @@ export const useSslState = () => {
 						payload: {
 							deviceId,
 							config,
-							stateKey: key,
+							canvasId: key,
 						},
 					});
 					return;

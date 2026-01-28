@@ -35,7 +35,7 @@ export const getSslItemLabel = (itemType: string): string => {
  */
 export const getSslStatusMessage = (
 	placedItem: PlacedItem,
-	canvasKey?: string,
+	canvasId?: string,
 ): string | null => {
 	const { type, status, data } = placedItem;
 
@@ -65,7 +65,7 @@ export const getSslStatusMessage = (
 		}
 		if (status === "success") {
 			// Check if redirect is in the same canvas
-			if (canvasKey === "port-80") {
+			if (canvasId === "port-80") {
 				return "redirecting to HTTPS";
 			}
 			return "serving HTTP";
@@ -105,7 +105,7 @@ export const getSslStatusMessage = (
 
 	// index.html status
 	if (type === "index-html") {
-		if (canvasKey === "port-80" && status === "warning") {
+		if (canvasId === "port-80" && status === "warning") {
 			return "I shouldn't be here";
 		}
 		return null;

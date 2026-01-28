@@ -29,7 +29,7 @@ const config = defineConfig({
 		}),
 	],
 	server: {
-		allowedHosts: ["zpvo51.tunnel.pyjam.as"],
+		allowedHosts: ["learning.projectsprint.id"],
 	},
 });
 

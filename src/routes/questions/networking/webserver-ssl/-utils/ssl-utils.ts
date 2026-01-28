@@ -130,7 +130,7 @@ export const validateDomain = (domain: string): boolean => {
 /**
  * Check if an item type is allowed in a canvas
  */
-export const isItemTypeAllowed = (itemType: string, canvasKey: string): boolean => {
+export const isItemTypeAllowed = (itemType: string, canvasId: string): boolean => {
 	const errors: Record<string, string> = {
 		"private-key|port-80": "private-key",
 		"certificate|port-80": "certificate",
@@ -139,5 +139,5 @@ export const isItemTypeAllowed = (itemType: string, canvasKey: string): boolean 
 		"webserver-443|port-80": "webserver-443",
 	};
 
-	return Object.entries(errors).every(([key]) => !key.startsWith(`${itemType}|${canvasKey}`));
+	return Object.entries(errors).every(([key]) => !key.startsWith(`${itemType}|${canvasId}`));
 };

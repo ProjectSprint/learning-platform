@@ -148,7 +148,7 @@ export const getContextualHint = (state: SslGameState): string => {
  */
 export const getPlacementErrorHint = (
 	itemType: string,
-	canvasKey: string,
+	canvasId: string,
 ): string | null => {
 	const errors: Record<string, string> = {
 		"private-key|port-80": "❌ Private key is for HTTPS only - put it in Port 443",
@@ -158,6 +158,6 @@ export const getPlacementErrorHint = (
 		"webserver-443|port-80": "❌ This webserver is for HTTPS (port 443)",
 	};
 
-	const key = `${itemType}|${canvasKey}`;
+	const key = `${itemType}|${canvasId}`;
 	return errors[key] || null;
 };

@@ -8,20 +8,22 @@ import {
    type GamePhase,
    type InventoryGroupConfig,
 } from "@/components/game/game-provider";
-import { GameShell } from "@/components/game/game-shell";
-import { InventoryDrawer } from "@/components/game/inventory-drawer";
-import { PlayCanvas } from "@/components/game/play-canvas";
-import { TerminalLayout } from "@/components/game/terminal-layout";
-import { TerminalInput } from "@/components/game/terminal-input";
-import { TerminalView } from "@/components/game/terminal-view";
-import { useTerminalInput } from "@/components/game/use-terminal-input";
+import { PlayCanvas } from "@/components/game/canvas";
+import { InventoryDrawer } from "@/components/game/inventory";
+import { GameShell } from "@/components/game/shell";
+import {
+	TerminalInput,
+	TerminalLayout,
+	TerminalView,
+	useTerminalInput,
+} from "@/components/game/terminal";
 import type { QuestionProps } from "@/components/module";
 import { useTerminalEngine } from "@/components/game/engines";
 import {
 	type ConditionContext,
 	type QuestionSpec,
 	resolvePhase,
-} from "@/components/game/question-ast";
+} from "@/components/game/question";
 
 import {
    CANVAS_CONFIGS,
@@ -291,7 +293,7 @@ const TcpGame = ({
 							minW={{ base: "100%", xl: "0" }}
 						>
 							<PlayCanvas
-								stateKey={key}
+								canvasId={key}
 								title={config.title ?? key}
 								getItemLabel={spec.labels.getItemLabel}
 								getStatusMessage={spec.labels.getStatusMessage}

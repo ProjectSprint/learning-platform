@@ -1,6 +1,6 @@
 // Tooltip definitions for inventory items in the webserver-ssl question
 
-import type { TooltipInfo } from "@/components/game/inventory-panel";
+import type { TooltipInfo } from "@/components/game/inventory";
 
 export const INVENTORY_TOOLTIPS: Record<string, TooltipInfo> = {
 	browser: {

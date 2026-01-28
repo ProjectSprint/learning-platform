@@ -204,7 +204,7 @@ type CanvasConfig = {
   rows: number
 
   // Optional state namespace (for multi-canvas)
-  stateKey?: string               // defaults to 'canvas'
+  canvasId?: string               // defaults to 'canvas'
 
   // Optional constraints
   maxItems?: number                // limit total placed items
@@ -436,7 +436,7 @@ For questions that need multiple canvases (e.g., source/destination, before/afte
 │                                                                             │
 │   ┌─────────────────────────────┐   ┌─────────────────────────────┐        │
 │   │      CANVAS LEFT            │   │      CANVAS RIGHT           │        │
-│   │      stateKey: 'left'       │   │      stateKey: 'right'      │        │
+│   │      canvasId: 'left'       │   │      canvasId: 'right'      │        │
 │   │                             │   │                             │        │
 │   │   ┌───┐       ┌───┐        │   │   ┌───┐       ┌───┐        │        │
 │   │   │PC1│───────│ R │        │   │   │PC3│───────│ R │        │        │
@@ -453,10 +453,10 @@ For questions that need multiple canvases (e.g., source/destination, before/afte
 // Single canvas (default)
 <PlayCanvas config={config} />
 
-// Multi-canvas with stateKey
+// Multi-canvas with canvasId
 <Box display="flex" gap={4}>
-  <PlayCanvas config={{ ...config, stateKey: 'left' }} />
-  <PlayCanvas config={{ ...config, stateKey: 'right' }} />
+  <PlayCanvas config={{ ...config, canvasId: 'left' }} />
+  <PlayCanvas config={{ ...config, canvasId: 'right' }} />
 </Box>
 ```
 
@@ -473,14 +473,14 @@ state.canvases = {
 }
 ```
 
-### Actions with stateKey
+### Actions with canvasId
 
 ```ts
-// Without stateKey (default 'canvas')
+// Without canvasId (default 'canvas')
 dispatch({ type: 'PLACE_ITEM', payload: { ... } })
 
-// With stateKey
-dispatch({ type: 'PLACE_ITEM', payload: { stateKey: 'left', ... } })
+// With canvasId
+dispatch({ type: 'PLACE_ITEM', payload: { canvasId: 'left', ... } })
 ```
 
 ### Cross-Canvas Connections
@@ -500,7 +500,7 @@ dispatch({ type: 'PLACE_ITEM', payload: { stateKey: 'left', ... } })
 | Can blocks have different sizes?  | Yes, determined by units                      |
 | Connection rendering              | Direct line, sequential (no pathfinding)      |
 | Mobile touch support              | Same behavior as mouse                        |
-| Multi-canvas                      | Supported via optional `stateKey`             |
+| Multi-canvas                      | Supported via optional `canvasId`             |
 
 ---
 

@@ -8,7 +8,7 @@ import type {
 	ModalField,
 	ModalFieldValidator,
 	ModalInstance,
-} from "@/components/game/modal-types";
+} from "@/components/game/modal";
 import { DEFAULT_DOMAIN, INDEX_HTML_CONTENT, TLS_HANDSHAKE_STEPS } from "./constants";
 
 // Domain validator
@@ -325,7 +325,7 @@ export const buildCertificateRequestModal = (
 							verified: true,
 							certificateDomain: domain,
 						},
-						stateKey: "letsencrypt",
+						canvasId: "letsencrypt",
 					},
 				});
 

@@ -2,7 +2,7 @@ import type {
 	ModalAction,
 	ModalContentBlock,
 	ModalInstance,
-} from "@/components/game/modal-types";
+} from "@/components/game/modal";
 import { MTU_HELP_LINK } from "./constants";
 
 const closeAction = (): ModalAction => ({

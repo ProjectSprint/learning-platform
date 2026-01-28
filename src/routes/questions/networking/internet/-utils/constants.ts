@@ -160,7 +160,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	local: {
 		id: "internet-local",
 		title: "Client",
-		stateKey: "client",
+		canvasId: "client",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -168,7 +168,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	"conn-1": {
 		id: "internet-conn-1",
 		title: "Connector",
-		stateKey: "conn-1",
+		canvasId: "conn-1",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -176,7 +176,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	router: {
 		id: "internet-router",
 		title: "Router",
-		stateKey: "router",
+		canvasId: "router",
 		columns: 3,
 		rows: 1,
 		maxItems: 3,
@@ -184,7 +184,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	"conn-2": {
 		id: "internet-conn-2",
 		title: "Connector",
-		stateKey: "conn-2",
+		canvasId: "conn-2",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -192,7 +192,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	igw: {
 		id: "internet-igw",
 		title: "Internet Gateway",
-		stateKey: "igw",
+		canvasId: "igw",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -200,7 +200,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	dns: {
 		id: "internet-dns",
 		title: "DNS Server",
-		stateKey: "dns",
+		canvasId: "dns",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -208,7 +208,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	google: {
 		id: "internet-google",
 		title: "Google Server",
-		stateKey: "google",
+		canvasId: "google",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,

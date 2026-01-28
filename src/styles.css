@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+:root {
+  /* Swiss Design Colors */
+  --swiss-white: #FFFFFF;
+  --swiss-gray-light: #F5F5F5;
+  --swiss-text-primary: #0A0A0A;
+  --swiss-text-secondary: #525252;
+  --swiss-accent-red: #DC2626;
+  --swiss-accent-dark: #0F172A;
+
+  /* Swiss Design Typography */
+  --swiss-heading-lg: 72px;
+  --swiss-heading-md: 48px;
+  --swiss-body: 20px;
+  --swiss-label: 12px;
+  --swiss-letter-spacing-tight: -0.02em;
+  --swiss-letter-spacing-wide: 0.15em;
+}
+
 body {
   @apply m-0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
@@ -12,4 +30,33 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
+}
+
+/* Swiss Design Utility Classes */
+.swiss-heading-lg {
+  font-size: var(--swiss-heading-lg);
+  font-weight: 700;
+  letter-spacing: var(--swiss-letter-spacing-tight);
+  line-height: 1.1;
+}
+
+.swiss-heading-md {
+  font-size: var(--swiss-heading-md);
+  font-weight: 700;
+  letter-spacing: var(--swiss-letter-spacing-tight);
+  line-height: 1.1;
+}
+
+.swiss-label {
+  font-size: var(--swiss-label);
+  font-weight: 600;
+  letter-spacing: var(--swiss-letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --swiss-heading-lg: 48px;
+    --swiss-heading-md: 40px;
+  }
 }

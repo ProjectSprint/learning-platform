@@ -18,7 +18,7 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, CanvasConfig> = {
 	splitter: {
 		id: "tcp-splitter",
 		title: "Content Splitter",
-		stateKey: "splitter",
+		canvasId: "splitter",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -26,7 +26,7 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, CanvasConfig> = {
 	internet: {
 		id: "tcp-internet",
 		title: "Internet",
-		stateKey: "internet",
+		canvasId: "internet",
 		columns: 3,
 		rows: 1,
 		maxItems: 3,
@@ -34,7 +34,7 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, CanvasConfig> = {
 	server: {
 		id: "tcp-server",
 		title: "Server",
-		stateKey: "server",
+		canvasId: "server",
 		columns: 3,
 		rows: 4,
 		maxItems: 12,

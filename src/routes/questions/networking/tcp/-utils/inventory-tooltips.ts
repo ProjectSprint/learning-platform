@@ -1,4 +1,4 @@
-import type { TooltipInfo } from "@/components/game/inventory-panel";
+import type { TooltipInfo } from "@/components/game/inventory";
 
 export const INVENTORY_TOOLTIPS: Record<string, TooltipInfo> = {
 	"message-file": {

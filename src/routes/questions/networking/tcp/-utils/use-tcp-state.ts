@@ -206,13 +206,13 @@ export const useTcpState = () => {
 	const findItemLocationLatest = useCallback((itemId: string) => {
 		for (const [key, canvas] of Object.entries(canvasesRef.current)) {
 			const item = canvas.placedItems.find((entry) => entry.id === itemId);
-			if (item) return { stateKey: key, item };
+			if (item) return { canvasId: key, item };
 		}
 		return null;
 	}, []);
 
-	const findEmptyBlockLatest = useCallback((stateKey: string) => {
-		const canvas = canvasesRef.current[stateKey];
+	const findEmptyBlockLatest = useCallback((canvasId: string) => {
+		const canvas = canvasesRef.current[canvasId];
 		if (!canvas) return null;
 		for (let y = 0; y < canvas.blocks.length; y += 1) {
 			for (let x = 0; x < canvas.blocks[y].length; x += 1) {
@@ -225,17 +225,17 @@ export const useTcpState = () => {
 	}, []);
 
 	const removeItem = useCallback(
-		(item: PlacedItem, stateKey: string) => {
+		(item: PlacedItem, canvasId: string) => {
 			dispatch({
 				type: "REMOVE_ITEM",
-				payload: { stateKey, blockX: item.blockX, blockY: item.blockY },
+				payload: { canvasId, blockX: item.blockX, blockY: item.blockY },
 			});
 		},
 		[dispatch],
 	);
 
 	const updateItemIfNeeded = useCallback(
-		(item: PlacedItem, stateKey: string, updates: Record<string, unknown>) => {
+		(item: PlacedItem, canvasId: string, updates: Record<string, unknown>) => {
 			const nextStatus =
 				typeof updates.status === "string" ? updates.status : item.status;
 			const { status: _, ...dataUpdates } = updates;
@@ -255,7 +255,7 @@ export const useTcpState = () => {
 				payload: {
 					deviceId: item.id,
 					config: updates,
-					stateKey,
+					canvasId,
 				},
 			});
 		},
@@ -266,14 +266,14 @@ export const useTcpState = () => {
 		(itemId: string, targetCanvas: string) => {
 			const location = findItemLocationLatest(itemId);
 			if (!location) return false;
-			if (location.stateKey === targetCanvas) return true;
+			if (location.canvasId === targetCanvas) return true;
 			const target = findEmptyBlockLatest(targetCanvas);
 			if (!target) return false;
 			dispatch({
 				type: "TRANSFER_ITEM",
 				payload: {
 					itemId,
-					fromCanvas: location.stateKey,
+					fromCanvas: location.canvasId,
 					fromBlockX: location.item.blockX,
 					fromBlockY: location.item.blockY,
 					toCanvas: targetCanvas,
@@ -287,12 +287,12 @@ export const useTcpState = () => {
 	);
 
 	const placeItemOnCanvas = useCallback(
-		(itemId: string, stateKey: string) => {
-			const target = findEmptyBlockLatest(stateKey);
+		(itemId: string, canvasId: string) => {
+			const target = findEmptyBlockLatest(canvasId);
 			if (!target) return false;
 			dispatch({
 				type: "PLACE_ITEM",
-				payload: { itemId, stateKey, ...target },
+				payload: { itemId, canvasId, ...target },
 			});
 			return true;
 		},
@@ -513,15 +513,15 @@ export const useTcpState = () => {
 	}, [updateSplitInventory]);
 
 	const handleServerReject = useCallback(
-		(item: PlacedItem, stateKey: string) => {
+		(item: PlacedItem, canvasId: string) => {
 			updateServerStatus("Processing...");
-			updateItemIfNeeded(item, stateKey, {
+			updateItemIfNeeded(item, canvasId, {
 				status: "warning",
 				tcpState: "processing",
 			});
 
 			const processingTimer = setTimeout(() => {
-				updateItemIfNeeded(item, stateKey, {
+				updateItemIfNeeded(item, canvasId, {
 					status: "error",
 					tcpState: "rejected",
 				});
@@ -530,7 +530,7 @@ export const useTcpState = () => {
 				const rejectionTimer = setTimeout(() => {
 					const location = findItemLocationLatest(item.id);
 					if (location) {
-						removeItem(location.item, location.stateKey);
+						removeItem(location.item, location.canvasId);
 					}
 					updateServerStatus("🔴 Disconnected");
 
@@ -718,7 +718,7 @@ export const useTcpState = () => {
 	}, [registerTimer, releaseBufferedPackets]);
 
 	const handleSeqArrival = useCallback(
-		(item: PlacedItem, stateKey: string, seq: number) => {
+		(item: PlacedItem, canvasId: string, seq: number) => {
 			const sequences = getActiveSequences();
 			const received = receivedSeqsRef.current;
 			const waiting = waitingSeqsRef.current;
@@ -733,7 +733,7 @@ export const useTcpState = () => {
 					});
 				}
 				waiting.add(seq);
-				updateItemIfNeeded(item, stateKey, {
+				updateItemIfNeeded(item, canvasId, {
 					status: "warning",
 					tcpState: "buffered",
 				});
@@ -831,7 +831,7 @@ export const useTcpState = () => {
 		for (const item of allPackets) {
 			const location = findItemLocationLatest(item.id);
 			if (!location) continue;
-			updateItemIfNeeded(location.item, location.stateKey, {
+			updateItemIfNeeded(location.item, location.canvasId, {
 				seqEnabled: true,
 			});
 		}
@@ -860,7 +860,7 @@ export const useTcpState = () => {
 				const removeTimer = setTimeout(() => {
 					const location = findItemLocationLatest(item.id);
 					if (location) {
-						removeItem(location.item, location.stateKey);
+						removeItem(location.item, location.canvasId);
 					}
 				}, 300);
 				registerTimer(removeTimer);
@@ -889,7 +889,7 @@ export const useTcpState = () => {
 				const removeTimer = setTimeout(() => {
 					const location = findItemLocationLatest(item.id);
 					if (location) {
-						removeItem(location.item, location.stateKey);
+						removeItem(location.item, location.canvasId);
 					}
 				}, 300);
 				registerTimer(removeTimer);
@@ -928,8 +928,8 @@ export const useTcpState = () => {
 				const nextPhase = item.type === "notes-file" ? "notes" : "splitter";
 				const rejectTimer = setTimeout(() => {
 					const location = findItemLocationLatest(item.id);
-					if (location && location.stateKey === "internet") {
-						removeItem(location.item, location.stateKey);
+					if (location && location.canvasId === "internet") {
+						removeItem(location.item, location.canvasId);
 						setSplitterVisible(true);
 						setPhase(nextPhase);
 						if (!modalShownRef.current.mtu) {
@@ -956,14 +956,14 @@ export const useTcpState = () => {
 				});
 				const receiveTimer = setTimeout(() => {
 					const location = findItemLocationLatest(item.id);
-					if (!location || location.stateKey !== "internet") {
+					if (!location || location.canvasId !== "internet") {
 						return;
 					}
-					updateItemIfNeeded(location.item, location.stateKey, {
+					updateItemIfNeeded(location.item, location.canvasId, {
 						status: "success",
 						tcpState: "delivered",
 					});
-					removeItem(location.item, location.stateKey);
+					removeItem(location.item, location.canvasId);
 					updateServerStatus("🟡 SYN-ACK sent - waiting for ACK...");
 					ensureInventoryItems(
 						INVENTORY_GROUP_IDS.tcpTools,
@@ -1003,14 +1003,14 @@ export const useTcpState = () => {
 				});
 				const receiveTimer = setTimeout(() => {
 					const location = findItemLocationLatest(item.id);
-					if (!location || location.stateKey !== "internet") {
+					if (!location || location.canvasId !== "internet") {
 						return;
 					}
-					updateItemIfNeeded(location.item, location.stateKey, {
+					updateItemIfNeeded(location.item, location.canvasId, {
 						status: "success",
 						tcpState: "delivered",
 					});
-					removeItem(location.item, location.stateKey);
+					removeItem(location.item, location.canvasId);
 				}, INTERNET_TRAVEL_MS);
 				registerTimer(receiveTimer);
 				continue;
@@ -1040,7 +1040,7 @@ export const useTcpState = () => {
 					const lossTimer = setTimeout(() => {
 						const location = findItemLocationLatest(item.id);
 						if (location) {
-							removeItem(location.item, location.stateKey);
+							removeItem(location.item, location.canvasId);
 						}
 					}, LOSS_FADE_MS);
 					registerTimer(lossTimer);

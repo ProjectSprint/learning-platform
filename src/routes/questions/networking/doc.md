@@ -451,7 +451,7 @@ Rule H4 | Accessibility + reliability
 
 ### Scalability
 - Drive behavior from CanvasConfig and inventory definitions (data-driven).
-- Support multi-canvas in the future by honoring optional stateKey.
+- Support multi-canvas in the future by honoring optional canvasId.
 - Keep device-type logic extensible (switches, servers, wireless) without rewrites.
 
 ### Reliability
