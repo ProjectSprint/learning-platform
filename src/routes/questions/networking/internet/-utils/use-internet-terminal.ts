@@ -46,6 +46,16 @@ export const useInternetTerminal = ({
 			const parts = normalized.split(/\s+/);
 			const command = parts[0]?.toLowerCase();
 
+			// Handle help command
+			if (command === "help") {
+				helpers.writeOutput("Available commands:", "output");
+				helpers.writeOutput("- ifconfig", "output");
+				helpers.writeOutput("- nslookup google.com", "output");
+				helpers.writeOutput("- ping google.com", "output");
+				helpers.writeOutput(`- ping ${GOOGLE_IP}`, "output");
+				return;
+			}
+
 			if (command === "ifconfig") {
 				if (pcIp) {
 					helpers.writeOutput(`eth0: ${pcIp}`, "output");
@@ -151,7 +161,7 @@ export const useInternetTerminal = ({
 				return;
 			}
 
-			helpers.writeOutput("Error: Unknown command.", "error");
+			helpers.writeOutput('Error: Unknown command. Type "help" for available commands.', "error");
 		},
 		[
 			dispatch,

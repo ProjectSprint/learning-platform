@@ -101,7 +101,7 @@ export const useSslState = () => {
 		);
 		if (!domainItem) return;
 
-		const nextStatus = certificateIssued ? "success" : "warning";
+		const nextStatus = certificateIssued ? "success" : "error";
 		if (domainItem.status !== nextStatus) {
 			dispatchConfig(domainItem.id, { status: nextStatus });
 		}
@@ -294,6 +294,34 @@ export const useSslState = () => {
 			}
 		}
 	}, [dispatchConfig, port443Canvas, port80Canvas, state.question.status]);
+
+	// Update index.html status when webserver-443 is placed
+	useEffect(() => {
+		if (state.question.status === "completed") {
+			return;
+		}
+
+		if (port80Canvas && port443Canvas) {
+			const indexHtmlInPort80 = port80Canvas.placedItems.find(
+				(item) => item.type === "index-html",
+			);
+			const webserver443 = port443Canvas.placedItems.find(
+				(item) => item.type === "webserver-443",
+			);
+
+			if (indexHtmlInPort80 && webserver443) {
+				// Set status to warning to show "I shouldn't be here"
+				if (indexHtmlInPort80.status !== "warning") {
+					dispatchConfig(indexHtmlInPort80.id, { status: "warning" });
+				}
+			} else if (indexHtmlInPort80 && !webserver443) {
+				// Reset status if webserver-443 is removed
+				if (indexHtmlInPort80.status === "warning") {
+					dispatchConfig(indexHtmlInPort80.id, { status: null });
+				}
+			}
+		}
+	}, [dispatchConfig, port80Canvas, port443Canvas, state.question.status]);
 
 	// Reset letsencrypt data when domain item is not placed
 	useEffect(() => {

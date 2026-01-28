@@ -54,7 +54,9 @@ export type InternetCanvasKey =
 	| "conn-1"
 	| "router"
 	| "conn-2"
-	| "internet";
+	| "igw"
+	| "dns"
+	| "google";
 
 // Initial inventory items available for the internet gateway question
 export const INVENTORY_ITEMS: InventoryItem[] = [
@@ -110,33 +112,28 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "igw-1",
 		type: "igw",
 		name: "Internet Gateway",
-		allowedPlaces: ["inventory", "internet"],
+		allowedPlaces: ["inventory", "igw"],
 		icon: { icon: "mdi:server-network" },
 		behavior: "connectable",
-	},
-	{
-		id: "internet-1",
-		type: "internet",
-		name: "Internet",
-		allowedPlaces: ["inventory", "internet"],
-		icon: { icon: "mdi:cloud" },
-		behavior: "connectable",
+		category: "bridge",
 	},
 	{
 		id: "dns-1",
 		type: "dns",
 		name: "DNS Server",
-		allowedPlaces: ["inventory", "internet"],
+		allowedPlaces: ["inventory", "dns"],
 		icon: { icon: "mdi:dns" },
 		behavior: "connectable",
+		category: "address",
 	},
 	{
 		id: "google-1",
 		type: "google",
 		name: "Google",
-		allowedPlaces: ["inventory", "internet"],
+		allowedPlaces: ["inventory", "google"],
 		icon: { icon: "mdi:google" },
 		behavior: "connectable",
+		category: "server",
 	},
 ];
 
@@ -154,7 +151,9 @@ export const CANVAS_ORDER: InternetCanvasKey[] = [
 	"conn-1",
 	"router",
 	"conn-2",
-	"internet",
+	"igw",
+	"dns",
+	"google",
 ];
 
 export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
@@ -190,13 +189,29 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 		rows: 1,
 		maxItems: 1,
 	},
-	internet: {
-		id: "internet-external",
-		title: "Internet",
-		stateKey: "internet",
-		columns: 4,
+	igw: {
+		id: "internet-igw",
+		title: "Internet Gateway",
+		stateKey: "igw",
+		columns: 1,
 		rows: 1,
-		maxItems: 4,
+		maxItems: 1,
+	},
+	dns: {
+		id: "internet-dns",
+		title: "DNS Server",
+		stateKey: "dns",
+		columns: 1,
+		rows: 1,
+		maxItems: 1,
+	},
+	google: {
+		id: "internet-google",
+		title: "Google Server",
+		stateKey: "google",
+		columns: 1,
+		rows: 1,
+		maxItems: 1,
 	},
 };
 

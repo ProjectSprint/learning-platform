@@ -174,7 +174,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		network.routerWan !== undefined &&
 		network.fiber !== undefined &&
 		network.igw !== undefined &&
-		network.internet !== undefined &&
 		network.dns !== undefined &&
 		network.google !== undefined;
 
@@ -297,8 +296,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			} else if (!network.routerWanConnectedToIgw) {
 				// Has credentials but not connected to fiber → IGW
 				desiredStatus = "warning";
-			} else if (!network.igw || !network.internet) {
-				// Connected to fiber but IGW or internet not placed
+			} else if (!network.igw) {
+				// Connected to fiber but IGW not placed
 				desiredStatus = "warning";
 			} else {
 				// Fully configured and connected
@@ -314,14 +313,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (network.igw.status !== desiredStatus) {
 				dispatchConfig(network.igw.id, { status: desiredStatus });
-			}
-		}
-
-		// Internet status: warning → success based on IGW
-		if (network.internet) {
-			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
-			if (network.internet.status !== desiredStatus) {
-				dispatchConfig(network.internet.id, { status: desiredStatus });
 			}
 		}
 
@@ -376,7 +367,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		network.routerWan,
 		network.fiber,
 		network.igw,
-		network.internet,
 		network.dns,
 		network.google,
 		network.pcConnectedToRouterLan,

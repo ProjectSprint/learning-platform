@@ -114,6 +114,10 @@ export const getContextualHint = (state: SslGameState): string => {
 		}
 
 		if (!port443Items.includes("index-html")) {
+			// Check if index.html is still in port-80
+			if (port80Items.includes("index-html")) {
+				return "Move index.html from Port 80 to the HTTPS webserver (Port 443)";
+			}
 			return "Add index.html to Port 443";
 		}
 	}

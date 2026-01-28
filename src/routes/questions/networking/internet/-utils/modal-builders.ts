@@ -291,6 +291,10 @@ export const buildRouterWanConfigModal = (
 	title: "Router WAN Configuration",
 	content: [
 		{
+			kind: "text",
+			text: "Enter your ISP credentials to establish an internet connection. You can find these credentials in the documentation provided by your Internet Service Provider.",
+		},
+		{
 			kind: "field",
 			field: {
 				id: "username",

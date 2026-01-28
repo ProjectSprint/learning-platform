@@ -27,8 +27,15 @@ export const useNetworkingTerminal = ({
 			const normalized = input.trim().toLowerCase();
 			const parts = normalized.split(/\s+/);
 
+			// Handle help command
+			if (parts[0] === "help") {
+				helpers.writeOutput("Available commands:", "output");
+				helpers.writeOutput(`- ping ${pc2Ip || "<ip>"}`, "output");
+				return;
+			}
+
 			if (parts[0] !== "ping") {
-				helpers.writeOutput("Error: Unknown command.", "error");
+				helpers.writeOutput('Error: Unknown command. Type "help" for available commands.', "error");
 				return;
 			}
 
@@ -38,7 +45,7 @@ export const useNetworkingTerminal = ({
 			}
 
 			const target = parts[1];
-			const isValidTarget = target === "pc-2" || (pc2Ip && target === pc2Ip);
+			const isValidTarget = pc2Ip && target === pc2Ip;
 
 			if (isValidTarget && pc2Ip) {
 				helpers.writeOutput(

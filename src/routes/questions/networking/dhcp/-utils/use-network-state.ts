@@ -82,7 +82,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		}
 
 		if (network.router) {
-			const desiredRouterStatus = routerConfigured ? "success" : "warning";
+			const desiredRouterStatus = routerConfigured ? "success" : "error";
 			if (network.router.status !== desiredRouterStatus) {
 				dispatch({
 					type: "CONFIGURE_DEVICE",

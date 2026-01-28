@@ -34,10 +34,16 @@ export const isPort443Complete = (canvas: CanvasState | undefined): boolean => {
 
 /**
  * Check if Port 80 has redirect configured
+ * Requires: webserver-80 + domain + redirect-to-https
  */
 export const isPort80RedirectConfigured = (canvas: CanvasState | undefined): boolean => {
 	if (!canvas) return false;
-	return canvas.placedItems.some((item) => item.type === "redirect-to-https");
+	const types = canvas.placedItems.map((item) => item.type);
+	return (
+		types.includes("webserver-80") &&
+		types.includes("domain") &&
+		types.includes("redirect-to-https")
+	);
 };
 
 /**

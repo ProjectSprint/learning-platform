@@ -16,7 +16,7 @@ export const getSslItemLabel = (itemType: string): string => {
 		case "domain":
 			return "Domain";
 		case "domain-ssl":
-			return "Domain (for SSL)";
+			return "Domain";
 		case "index-html":
 			return "index.html";
 		case "private-key":
@@ -24,7 +24,7 @@ export const getSslItemLabel = (itemType: string): string => {
 		case "certificate":
 			return "📜 Domain Certificate";
 		case "redirect-to-https":
-			return "Redirect";
+			return "Redirect HTTP to HTTPS";
 		default:
 			return itemType.charAt(0).toUpperCase() + itemType.slice(1);
 	}
@@ -92,12 +92,23 @@ export const getSslStatusMessage = (
 		return "example.com";
 	}
 
-	// Domain status
+	// Domain (SSL) status
 	if (type === "domain-ssl") {
 		if (status === "success") {
 			return "Configured";
 		}
+		if (status === "error") {
+			return "Needs Issuing";
+		}
 		return "Needs Issuing";
+	}
+
+	// index.html status
+	if (type === "index-html") {
+		if (canvasKey === "port-80" && status === "warning") {
+			return "I shouldn't be here";
+		}
+		return null;
 	}
 
 	return null;

@@ -95,7 +95,6 @@ const EXPECTED_ORDER = [
 	"router-wan",
 	"fiber",
 	"igw",
-	"internet",
 	"dns",
 	"google",
 ] as const;
@@ -108,7 +107,6 @@ export interface InternetNetworkSnapshot {
 	routerWan: PlacedItem | undefined;
 	fiber: PlacedItem | undefined;
 	igw: PlacedItem | undefined;
-	internet: PlacedItem | undefined;
 	dns: PlacedItem | undefined;
 	google: PlacedItem | undefined;
 	pcConnectedToRouterLan: boolean;
@@ -133,7 +131,6 @@ export const buildInternetNetworkSnapshot = (
 	const routerWan = placedItems.find((item) => item.type === "router-wan");
 	const fiber = placedItems.find((item) => item.type === "fiber");
 	const igw = placedItems.find((item) => item.type === "igw");
-	const internet = placedItems.find((item) => item.type === "internet");
 	const dns = placedItems.find((item) => item.type === "dns");
 	const google = placedItems.find((item) => item.type === "google");
 
@@ -145,7 +142,6 @@ export const buildInternetNetworkSnapshot = (
 		routerWan,
 		fiber,
 		igw,
-		internet,
 		dns,
 		google,
 	];
@@ -220,7 +216,6 @@ export const buildInternetNetworkSnapshot = (
 		routerWan,
 		fiber,
 		igw,
-		internet,
 		dns,
 		google,
 		pcConnectedToRouterLan,

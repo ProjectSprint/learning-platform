@@ -16,8 +16,6 @@ export const getInternetItemLabel = (itemType: string): string => {
 			return "Fiber Cable";
 		case "igw":
 			return "Internet Gateway";
-		case "internet":
-			return "Internet";
 		case "dns":
 			return "DNS Server";
 		case "google":
@@ -91,16 +89,6 @@ export const getInternetStatusMessage = (
 			}
 			if (status === "success") {
 				return "connected";
-			}
-			return null;
-		}
-
-		case "internet": {
-			if (status === "warning") {
-				return "no route";
-			}
-			if (status === "success") {
-				return "online";
 			}
 			return null;
 		}

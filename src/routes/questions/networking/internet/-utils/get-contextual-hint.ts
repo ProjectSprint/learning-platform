@@ -10,7 +10,6 @@ export interface InternetNetworkState {
 	routerWan: PlacedItem | undefined;
 	fiber: PlacedItem | undefined;
 	igw: PlacedItem | undefined;
-	internet: PlacedItem | undefined;
 	dns: PlacedItem | undefined;
 	google: PlacedItem | undefined;
 	allDevicesPlaced: boolean;
@@ -40,7 +39,6 @@ const EXPECTED_ORDER = [
 	"router-wan",
 	"fiber",
 	"igw",
-	"internet",
 	"dns",
 	"google",
 ];
@@ -69,7 +67,6 @@ export const getContextualHint = (state: InternetNetworkState): string => {
 		routerWan,
 		fiber,
 		igw,
-		internet,
 		dns,
 		google,
 		allDevicesPlaced,
@@ -125,11 +122,7 @@ export const getContextualHint = (state: InternetNetworkState): string => {
 		return "Place the Internet Gateway - this is your ISP's modem";
 	}
 
-	if (igw && !internet) {
-		return "Add the Internet cloud";
-	}
-
-	if (internet && !dns) {
+	if (igw && !dns) {
 		return "Place the DNS server - it translates domain names to IPs";
 	}
 
@@ -174,7 +167,7 @@ export const getContextualHint = (state: InternetNetworkState): string => {
 	}
 
 	if (placedItems.length > 1 && !isCorrectOrder(placedItems)) {
-		return "❌ Devices must be connected in order: PC → Cable → Router LAN → Router NAT → Router WAN → Fiber → IGW → Internet → DNS → Google";
+		return "❌ Devices must be connected in order: PC → Cable → Router LAN → Router NAT → Router WAN → Fiber → IGW → DNS → Google";
 	}
 
 	if (
