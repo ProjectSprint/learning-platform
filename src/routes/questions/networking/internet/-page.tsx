@@ -301,13 +301,12 @@ const InternetGame = ({
    ]);
 
    const contextualHint = useMemo(
-      () =>
-         getContextualHint({
-            placedItems: internetState.placedItems,
-            connections: internetState.connections,
-            pc: internetState.network.pc,
-            cable: internetState.network.cable,
-            routerLan: internetState.network.routerLan,
+		() =>
+			getContextualHint({
+				placedItems: internetState.placedItems,
+				pc: internetState.network.pc,
+				cable: internetState.network.cable,
+				routerLan: internetState.network.routerLan,
             routerNat: internetState.network.routerNat,
             routerWan: internetState.network.routerWan,
             fiber: internetState.network.fiber,
@@ -332,11 +331,10 @@ const InternetGame = ({
             pcHasIp: internetState.pcHasIp,
             googleReachable: internetState.googleReachable,
          }),
-      [
-         internetState.placedItems,
-         internetState.connections,
-         internetState.network.pc,
-         internetState.network.cable,
+		[
+			internetState.placedItems,
+			internetState.network.pc,
+			internetState.network.cable,
          internetState.network.routerLan,
          internetState.network.routerNat,
          internetState.network.routerWan,

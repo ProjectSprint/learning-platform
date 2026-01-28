@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import type { DragEngine } from "@/components/game/engines";
 import {
-	type Connection,
 	type PlacedItem,
 	useAllPuzzles,
 	useGameDispatch,
@@ -30,9 +29,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const canvases = useAllPuzzles();
 	const dispatch = useGameDispatch();
 
-	const { combinedItems, combinedConnections, itemCanvasKeys } = useMemo(() => {
+	const { combinedItems, itemCanvasKeys } = useMemo(() => {
 		const items: PlacedItem[] = [];
-		const connections: Connection[] = [];
 		const keys = new Map<string, string>();
 		let offsetX = 0;
 
@@ -48,14 +46,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					items.push({ ...item, blockX: item.blockX + offsetX });
 					keys.set(item.id, key);
 				}
-
-				for (const connection of canvas.connections) {
-					connections.push({
-						...connection,
-						from: { x: connection.from.x + offsetX, y: connection.from.y },
-						to: { x: connection.to.x + offsetX, y: connection.to.y },
-					});
-				}
 			}
 
 			offsetX += config.columns;
@@ -63,7 +53,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		return {
 			combinedItems: items,
-			combinedConnections: connections,
 			itemCanvasKeys: keys,
 		};
 	}, [canvases]);
@@ -88,8 +77,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	);
 
 	const network = useMemo(
-		() => buildInternetNetworkSnapshot(combinedItems, combinedConnections),
-		[combinedConnections, combinedItems],
+		() => buildInternetNetworkSnapshot(combinedItems),
+		[combinedItems],
 	);
 
 	// Extract Router LAN configuration
@@ -442,7 +431,6 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		routerWanSettingsOpen,
 		// Game state
 		placedItems: combinedItems,
-		connections: combinedConnections,
 		dragProgress: dragEngine?.progress ?? { status: "pending" as const },
 		// Constants for external use
 		googleIp: GOOGLE_IP,

@@ -1,13 +1,12 @@
-import { deriveConnectionsFromCables } from "../../puzzle/connections";
 import { updateBlock } from "../../puzzle/grid";
 import { findInventoryItem } from "../../validation/inventory";
 import { sanitizeDeviceConfig } from "../../validation/sanitize";
 import type { GameAction } from "../actions";
 import type {
-	PuzzleState,
 	GameState,
 	PlacedItem,
 	PlacedItemStatus,
+	PuzzleState,
 } from "../types";
 import { resolvePuzzleState, updatePuzzleState } from "./puzzle-state";
 
@@ -72,7 +71,6 @@ export const puzzleReducer = (
 				...puzzle,
 				blocks: nextBlocks,
 				placedItems: nextPlacedItems,
-				connections: deriveConnectionsFromCables(nextPlacedItems),
 			};
 
 			return updatePuzzleState(
@@ -100,13 +98,10 @@ export const puzzleReducer = (
 			const nextPlacedItems = puzzle.placedItems.filter(
 				(item) => item.itemId !== block.itemId,
 			);
-			const nextConnections = deriveConnectionsFromCables(nextPlacedItems);
-
 			const nextPuzzle: PuzzleState = {
 				...puzzle,
 				blocks: nextBlocks,
 				placedItems: nextPlacedItems,
-				connections: nextConnections,
 			};
 
 			return updatePuzzleState(
@@ -164,7 +159,6 @@ export const puzzleReducer = (
 				...puzzle,
 				blocks: nextBlocks,
 				placedItems: nextPlacedItems,
-				connections: deriveConnectionsFromCables(nextPlacedItems),
 			};
 
 			return updatePuzzleState(state, action.payload.puzzleId, nextPuzzle);
@@ -235,14 +229,10 @@ export const puzzleReducer = (
 			const nextSourcePlacedItems = sourcePuzzle.placedItems.filter(
 				(item) => item.itemId !== itemId,
 			);
-			const nextSourceConnections = deriveConnectionsFromCables(
-				nextSourcePlacedItems,
-			);
 			const nextSourcePuzzle: PuzzleState = {
 				...sourcePuzzle,
 				blocks: nextSourceBlocks,
 				placedItems: nextSourcePlacedItems,
-				connections: nextSourceConnections,
 			};
 
 			const nextTargetBlocks = updateBlock(
@@ -259,29 +249,11 @@ export const puzzleReducer = (
 					blockY: toBlockY,
 				},
 			];
-			const nextTargetConnections = deriveConnectionsFromCables(
-				nextTargetPlacedItems,
-			);
 			const nextTargetPuzzle: PuzzleState = {
 				...targetPuzzle,
 				blocks: nextTargetBlocks,
 				placedItems: nextTargetPlacedItems,
-				connections: nextTargetConnections,
 			};
-
-			const nextCrossConnections = state.crossConnections.filter(
-				(connection) => {
-					const fromMatch =
-						connection.from.canvasId === fromPuzzle &&
-						connection.from.x === fromBlockX &&
-						connection.from.y === fromBlockY;
-					const toMatch =
-						connection.to.canvasId === fromPuzzle &&
-						connection.to.x === fromBlockX &&
-						connection.to.y === fromBlockY;
-					return !fromMatch && !toMatch;
-				},
-			);
 
 			const nextPuzzles = {
 				...state.puzzles,
@@ -300,7 +272,6 @@ export const puzzleReducer = (
 				...state,
 				puzzle: nextPrimaryPuzzle,
 				puzzles: nextPuzzles,
-				crossConnections: nextCrossConnections,
 			};
 		}
 		case "SWAP_ITEMS": {
@@ -377,7 +348,6 @@ export const puzzleReducer = (
 					...sourcePuzzle,
 					blocks: nextBlocks,
 					placedItems: nextPlacedItems,
-					connections: deriveConnectionsFromCables(nextPlacedItems),
 				};
 
 				return updatePuzzleState(state, fromPuzzleId, nextPuzzle);
@@ -440,13 +410,11 @@ export const puzzleReducer = (
 				...sourcePuzzle,
 				blocks: nextSourceBlocks,
 				placedItems: nextSourcePlacedItems,
-				connections: deriveConnectionsFromCables(nextSourcePlacedItems),
 			};
 			const nextTargetPuzzle: PuzzleState = {
 				...targetPuzzle,
 				blocks: nextTargetBlocks,
 				placedItems: nextTargetPlacedItems,
-				connections: deriveConnectionsFromCables(nextTargetPlacedItems),
 			};
 
 			const nextPuzzles = {

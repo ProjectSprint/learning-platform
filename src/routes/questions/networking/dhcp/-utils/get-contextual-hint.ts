@@ -1,8 +1,9 @@
-import type { Connection, PlacedItem } from "@/components/game/game-provider";
+import type { PlacedItem } from "@/components/game/game-provider";
+import type { DeviceConnection } from "./network-utils";
 
 export interface NetworkState {
 	placedItems: PlacedItem[];
-	connections: Connection[];
+	connections: DeviceConnection[];
 	router: PlacedItem | undefined;
 	pc1: PlacedItem | undefined;
 	pc2: PlacedItem | undefined;

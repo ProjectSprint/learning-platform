@@ -1,7 +1,7 @@
 import type {
-	PuzzleConfig,
 	GamePhase,
 	InventoryGroupConfig,
+	PuzzleConfig,
 	QuestionStatus,
 	TerminalState,
 } from "../types";

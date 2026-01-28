@@ -4,6 +4,7 @@ import type { PlacedItem } from "@/components/game/game-provider";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import {
 	buildNetworkSnapshot,
+	deriveConnectionsFromCables,
 	isPrivateIp,
 	isValidIp,
 	parseIpRangeBase,
@@ -18,9 +19,12 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	const dispatch = useGameDispatch();
 
 	const network = useMemo(
-		() =>
-			buildNetworkSnapshot(state.puzzle.placedItems, state.puzzle.connections),
-		[state.puzzle.connections, state.puzzle.placedItems],
+		() => buildNetworkSnapshot(state.puzzle.placedItems),
+		[state.puzzle.placedItems],
+	);
+	const connections = useMemo(
+		() => deriveConnectionsFromCables(state.puzzle.placedItems),
+		[state.puzzle.placedItems],
 	);
 
 	const routerConfig = network.router?.data ?? {};
@@ -194,7 +198,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		pc2HasIp,
 		pc2Ip,
 		placedItems: state.puzzle.placedItems,
-		connections: state.puzzle.connections,
+		connections,
 		dragProgress: dragEngine?.progress ?? { status: "pending" as const },
 	};
 };

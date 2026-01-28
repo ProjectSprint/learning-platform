@@ -1,4 +1,3 @@
-import type { Connection } from "./connection";
 import type { PlacedItem } from "./placed-item";
 
 export type Placement = {
@@ -31,6 +30,5 @@ export type PuzzleState = {
 	config: PuzzleConfig;
 	blocks: Block[][];
 	placedItems: PlacedItem[];
-	connections: Connection[];
 	selectedBlock: { x: number; y: number } | null;
 };

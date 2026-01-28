@@ -1,4 +1,4 @@
-import type { Connection, PlacedItem } from "@/components/game/game-provider";
+import type { PlacedItem } from "@/components/game/game-provider";
 
 export const PRIVATE_IP_RANGES = [
 	/^10\./,
@@ -105,7 +105,6 @@ export interface InternetNetworkSnapshot {
 
 export const buildInternetNetworkSnapshot = (
 	placedItems: PlacedItem[],
-	_connections: Connection[],
 ): InternetNetworkSnapshot => {
 	const byCoord = new Map<string, PlacedItem>();
 	placedItems.forEach((item) => {

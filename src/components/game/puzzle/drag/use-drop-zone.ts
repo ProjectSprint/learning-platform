@@ -57,11 +57,7 @@ export const useDropZone = ({
 }: UseDropZoneOptions) => {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: targetPuzzleIdRef is a ref and doesn't need to be in deps
 	useEffect(() => {
-		if (
-			!activeDrag ||
-			activeDrag.source !== "inventory" ||
-			!boardRef.current
-		) {
+		if (!activeDrag || activeDrag.source !== "inventory" || !boardRef.current) {
 			return;
 		}
 

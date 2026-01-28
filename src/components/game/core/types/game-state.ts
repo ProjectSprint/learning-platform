@@ -1,4 +1,3 @@
-import type { CrossCanvasConnection } from "./connection";
 import type { InventoryGroup } from "./inventory";
 import type { OverlayState } from "./modal";
 import type { PuzzleState } from "./puzzle";
@@ -18,7 +17,6 @@ export type GameState = {
 	inventory: { groups: InventoryGroup[] };
 	puzzle: PuzzleState;
 	puzzles?: Record<string, PuzzleState>;
-	crossConnections: CrossCanvasConnection[];
 	terminal: TerminalState;
 	overlay: OverlayState;
 	question: { id: string; status: QuestionStatus };

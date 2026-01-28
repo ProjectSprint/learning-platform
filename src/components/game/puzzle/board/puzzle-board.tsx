@@ -1,6 +1,5 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type DragData, type DragHandle, useDragContext } from "../drag";
 import {
 	type Block,
 	findInventoryItem,
@@ -8,10 +7,10 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "../../game-provider";
+import { type DragData, type DragHandle, useDragContext } from "../drag";
 import type { GridMetrics } from "../grid";
 import { GridCell } from "./grid-cell";
 import { PlacedItemCard } from "./placed-item-card";
-import { useBoardInteractions } from "./use-board-interactions";
 import type {
 	DragPreview,
 	ItemClickableCheck,
@@ -19,6 +18,7 @@ import type {
 	PlacedItemClickHandler,
 	StatusMessageGetter,
 } from "./types";
+import { useBoardInteractions } from "./use-board-interactions";
 
 const BLOCK_HEIGHT = 60;
 

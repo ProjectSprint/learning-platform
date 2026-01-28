@@ -2,13 +2,8 @@ import type { Dispatch, MutableRefObject, RefObject } from "react";
 import { useEffect } from "react";
 
 import type { GameAction } from "../../core/actions";
-import type { PuzzleState, GameState, PlacedItem } from "../../core/types";
-import type {
-	ActiveDrag,
-	DragData,
-	DragDropResult,
-	DragHandle,
-} from "../drag";
+import type { GameState, PlacedItem, PuzzleState } from "../../core/types";
+import type { ActiveDrag, DragData, DragDropResult, DragHandle } from "../drag";
 import { useBoardDrag } from "../drag/use-board-drag";
 import { useDropZone } from "../drag/use-drop-zone";
 import type { GridMetrics } from "../grid";

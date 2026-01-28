@@ -1,9 +1,9 @@
 import type { TerminalCommandHelpers } from "@/components/game/engines";
 import type {
-	PuzzleConfig,
 	GamePhase,
 	InventoryGroupConfig,
 	PlacedItem,
+	PuzzleConfig,
 	QuestionStatus,
 	TerminalState,
 } from "@/components/game/game-provider";

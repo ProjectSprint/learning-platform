@@ -1,12 +1,11 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { useCallback, useMemo, useRef } from "react";
-
-import { useDragContext } from "../drag";
 import type { InventoryItem } from "../../game-provider";
 import { useGameState } from "../../game-provider";
 import { InfoTooltip } from "../../help";
 import type { IconInfo } from "../../icons";
+import { useDragContext } from "../drag";
 
 export const useInventorySlotSize = () => {
 	const width = useBreakpointValue({ base: 120, sm: 132, md: 150 }) ?? 150;

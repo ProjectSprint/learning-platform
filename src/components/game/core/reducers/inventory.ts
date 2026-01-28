@@ -1,4 +1,3 @@
-import { deriveConnectionsFromCables } from "../../puzzle/connections";
 import { updateBlock } from "../../puzzle/grid";
 import {
 	normalizeInventory,
@@ -6,10 +5,10 @@ import {
 } from "../../validation/inventory";
 import type { GameAction } from "../actions";
 import type {
-	PuzzleState,
 	GameState,
 	InventoryGroup,
 	InventoryItem,
+	PuzzleState,
 } from "../types";
 
 const removeInventoryItems = (
@@ -48,7 +47,6 @@ const removeItemsFromPuzzle = (
 		...puzzle,
 		blocks: nextBlocks,
 		placedItems: nextPlacedItems,
-		connections: deriveConnectionsFromCables(nextPlacedItems),
 	};
 };
 
@@ -169,29 +167,10 @@ export const inventoryReducer = (
 				}
 			}
 
-			const resolvePuzzle = (key: string) =>
-				nextPuzzles?.[key] ??
-				(nextPuzzle.config.puzzleId === key ? nextPuzzle : undefined);
-
-			const nextCrossConnections = state.crossConnections.filter(
-				(connection) => {
-					const fromPuzzle = resolvePuzzle(connection.from.canvasId);
-					const toPuzzle = resolvePuzzle(connection.to.canvasId);
-					if (!fromPuzzle || !toPuzzle) {
-						return false;
-					}
-					const fromBlock =
-						fromPuzzle.blocks[connection.from.y]?.[connection.from.x];
-					const toBlock = toPuzzle.blocks[connection.to.y]?.[connection.to.x];
-					return Boolean(fromBlock?.itemId && toBlock?.itemId);
-				},
-			);
-
 			return {
 				...state,
 				puzzle: nextPuzzle,
 				puzzles: nextPuzzles,
-				crossConnections: nextCrossConnections,
 				inventory: { groups: nextInventoryGroups },
 			};
 		}

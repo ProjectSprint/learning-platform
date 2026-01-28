@@ -11,10 +11,6 @@ export type { GameAction } from "./core/actions";
 export type {
 	Block,
 	BlockStatus,
-	PuzzleConfig,
-	PuzzleState,
-	Connection,
-	CrossCanvasConnection,
 	GamePhase,
 	GameState,
 	InventoryGroup,
@@ -25,6 +21,8 @@ export type {
 	PlacedItem,
 	PlacedItemStatus,
 	Placement,
+	PuzzleConfig,
+	PuzzleState,
 	QuestionStatus,
 	TerminalEntry,
 	TerminalEntryType,
@@ -33,7 +31,7 @@ export type {
 
 import type { GameAction } from "./core/actions";
 import { createDefaultState, gameReducer } from "./core/reducers";
-import type { PuzzleState, GameState } from "./core/types";
+import type { GameState, PuzzleState } from "./core/types";
 
 // Re-export findInventoryItem
 export { findInventoryItem } from "./validation/inventory";
@@ -96,4 +94,3 @@ export const useAllPuzzles = (): Record<string, PuzzleState> => {
 		state.puzzle.config.puzzleId ?? state.puzzle.config.id ?? "puzzle";
 	return { [fallbackId]: state.puzzle };
 };
-

@@ -1,4 +1,3 @@
-import { deriveConnectionsFromCables } from "../../puzzle/connections";
 import { updateBlock } from "../../puzzle/grid";
 import {
 	DEFAULT_INVENTORY_GROUP_ID,
@@ -7,12 +6,12 @@ import {
 } from "../../validation/inventory";
 import type { GameAction } from "../actions";
 import type {
-	PuzzleConfig,
-	PuzzleState,
 	GameState,
 	InventoryGroup,
 	InventoryItem,
 	PlacedItem,
+	PuzzleConfig,
+	PuzzleState,
 } from "../types";
 import { createPuzzleState } from "./puzzle-state";
 
@@ -36,7 +35,6 @@ export const createDefaultState = (): GameState => ({
 		],
 	},
 	puzzle: createPuzzleState(defaultPuzzleConfig),
-	crossConnections: [],
 	terminal: {
 		visible: false,
 		prompt: "",
@@ -146,7 +144,6 @@ const applyInitialPlacements = (
 			...puzzle,
 			blocks: nextBlocks,
 			placedItems,
-			connections: deriveConnectionsFromCables(placedItems),
 		},
 		inventoryGroups: nextInventoryGroups,
 	};

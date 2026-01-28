@@ -2,13 +2,13 @@ import { gsap } from "gsap";
 import type { Draggable } from "gsap/Draggable";
 import type { Dispatch, MutableRefObject, RefObject } from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
+import type { GameAction } from "../../core/actions";
+import type { GameState, PlacedItem, PuzzleState } from "../../core/types";
 import type {
 	DragPreview,
 	ItemClickableCheck,
 	PlacedItemClickHandler,
 } from "../board/types";
-import type { GameAction } from "../../core/actions";
-import type { PuzzleState, GameState, PlacedItem } from "../../core/types";
 import type { GridMetrics } from "../grid";
 import { convertPixelToBlock } from "../grid";
 import {

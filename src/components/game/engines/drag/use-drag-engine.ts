@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import type {
-	PuzzleState,
-	Connection,
-	PlacedItem,
-} from "@/components/game/game-provider";
+import type { PlacedItem, PuzzleState } from "@/components/game/game-provider";
 import { useGameState } from "@/components/game/game-provider";
 import type { EngineLifecycleCallbacks } from "../engine-types";
 import {
@@ -14,7 +10,6 @@ import {
 export interface DragEngineState {
 	puzzle: PuzzleState;
 	placedItems: PlacedItem[];
-	connections: Connection[];
 }
 
 export interface DragEngineConfig<TContext = unknown>
@@ -40,7 +35,6 @@ export const useDragEngine = <TContext = unknown>(
 		() => ({
 			puzzle: gameState.puzzle,
 			placedItems: gameState.puzzle.placedItems,
-			connections: gameState.puzzle.connections,
 		}),
 		[gameState.puzzle],
 	);
@@ -49,17 +43,11 @@ export const useDragEngine = <TContext = unknown>(
 		if (!autoStart) return;
 		if (hasAutoStarted.current) return;
 		if (controller.progress.status !== "pending") return;
-		if (state.placedItems.length === 0 && state.connections.length === 0)
-			return;
+		if (state.placedItems.length === 0) return;
 
 		hasAutoStarted.current = true;
 		controller.start();
-	}, [
-		autoStart,
-		controller,
-		state.placedItems.length,
-		state.connections.length,
-	]);
+	}, [autoStart, controller, state.placedItems.length]);
 
 	return { ...controller, state };
 };

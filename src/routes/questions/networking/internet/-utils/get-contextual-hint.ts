@@ -1,8 +1,7 @@
-import type { Connection, PlacedItem } from "@/components/game/game-provider";
+import type { PlacedItem } from "@/components/game/game-provider";
 
 export interface InternetNetworkState {
 	placedItems: PlacedItem[];
-	connections: Connection[];
 	pc: PlacedItem | undefined;
 	cable: PlacedItem | undefined;
 	routerLan: PlacedItem | undefined;

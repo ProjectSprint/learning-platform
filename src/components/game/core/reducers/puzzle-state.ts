@@ -1,11 +1,10 @@
 import { createBlockGrid } from "../../puzzle/grid";
-import type { PuzzleConfig, PuzzleState, GameState } from "../types";
+import type { GameState, PuzzleConfig, PuzzleState } from "../types";
 
 export const createPuzzleState = (config: PuzzleConfig): PuzzleState => ({
 	config,
 	blocks: createBlockGrid(config.columns, config.rows),
 	placedItems: [],
-	connections: [],
 	selectedBlock: null,
 });
 

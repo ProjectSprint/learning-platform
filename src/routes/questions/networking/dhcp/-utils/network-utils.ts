@@ -1,8 +1,13 @@
 // Network utility functions for IP validation and network topology analysis
 // Contains functions for parsing IP ranges, validating IPs, and building network snapshots
 
-import type { Connection, PlacedItem } from "@/components/game/game-provider";
+import type { PlacedItem } from "@/components/game/game-provider";
 import { PRIVATE_IP_RANGES } from "./constants";
+
+export type DeviceConnection = {
+	from: { x: number; y: number };
+	to: { x: number; y: number };
+};
 
 /**
  * Validates that an IP address string is valid
@@ -115,12 +120,10 @@ export const validateIpRange = (
 /**
  * Analyzes the network topology to identify key devices and their connections
  * @param placedItems - All items placed on the canvas
- * @param connections - All cable connections between items
  * @returns Network snapshot containing router, PCs, cables, and connected IDs
  */
 export const buildNetworkSnapshot = (
 	placedItems: PlacedItem[],
-	connections: Connection[],
 ) => {
 	// Build a coordinate map for quick lookups
 	const byCoord = new Map<string, PlacedItem>();
@@ -157,26 +160,71 @@ export const buildNetworkSnapshot = (
 		}
 	});
 
-	// Also check connections array for additional PC connections
-	if (router) {
-		connections.forEach((connection) => {
-			const from = byCoord.get(`${connection.from.x}-${connection.from.y}`);
-			const to = byCoord.get(`${connection.to.x}-${connection.to.y}`);
+	return { router, pc1, pc2, cables, connectedPcIds, connectedCableIds };
+};
 
-			if (!from || !to) {
-				return;
+const CONNECTABLE_DEVICE_TYPES = new Set(["pc", "router"]);
+
+const isConnectableDevice = (item?: PlacedItem): boolean =>
+	Boolean(item && CONNECTABLE_DEVICE_TYPES.has(item.type));
+
+const normalizeConnectionKey = (
+	from: { x: number; y: number },
+	to: { x: number; y: number },
+): string => {
+	if (from.y < to.y || (from.y === to.y && from.x <= to.x)) {
+		return `${from.x},${from.y}-${to.x},${to.y}`;
+	}
+	return `${to.x},${to.y}-${from.x},${from.y}`;
+};
+
+export const deriveConnectionsFromCables = (
+	placedItems: PlacedItem[],
+): DeviceConnection[] => {
+	const byCoord = new Map<string, PlacedItem>();
+	placedItems.forEach((item) => {
+		byCoord.set(`${item.blockX}-${item.blockY}`, item);
+	});
+
+	const connections: DeviceConnection[] = [];
+	const seen = new Set<string>();
+
+	const maybeAddConnection = (from: PlacedItem, to: PlacedItem) => {
+		if (!isConnectableDevice(from) || !isConnectableDevice(to)) {
+			return;
+		}
+
+		if (from.type === to.type) {
+			return;
+		}
+
+		const fromCoord = { x: from.blockX, y: from.blockY };
+		const toCoord = { x: to.blockX, y: to.blockY };
+		const key = normalizeConnectionKey(fromCoord, toCoord);
+		if (seen.has(key)) {
+			return;
+		}
+
+		seen.add(key);
+		connections.push({ from: fromCoord, to: toCoord });
+	};
+
+	placedItems
+		.filter((item) => item.type === "cable")
+		.forEach((cable) => {
+			const left = byCoord.get(`${cable.blockX - 1}-${cable.blockY}`);
+			const right = byCoord.get(`${cable.blockX + 1}-${cable.blockY}`);
+			const up = byCoord.get(`${cable.blockX}-${cable.blockY - 1}`);
+			const down = byCoord.get(`${cable.blockX}-${cable.blockY + 1}`);
+
+			if (left && right) {
+				maybeAddConnection(left, right);
 			}
 
-			// Check if connection is between router and PC
-			if (from.id === router.id && to.type === "pc") {
-				connectedPcIds.add(to.id);
-			}
-
-			if (to.id === router.id && from.type === "pc") {
-				connectedPcIds.add(from.id);
+			if (up && down) {
+				maybeAddConnection(up, down);
 			}
 		});
-	}
 
-	return { router, pc1, pc2, cables, connectedPcIds, connectedCableIds };
+	return connections;
 };
