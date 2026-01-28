@@ -64,6 +64,10 @@ export const getContextualHint = (state: SslGameState): string => {
 
 	// Browser shows not secure - show new canvases
 	if (browserStatus === "warning") {
+		// HTTPS webserver placed but no certificate yet
+		if (port443Items.includes("webserver-443") && !certificateIssued) {
+			return "Drag the Domain to the Let's Encrypt canvas to get a certificate";
+		}
 		// Let's Encrypt canvas is visible but empty
 		if (letsencryptItems.length === 0) {
 			return "⚠️ Your site works but it's not secure! New canvases have appeared...";
