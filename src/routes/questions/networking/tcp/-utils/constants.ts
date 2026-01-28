@@ -155,6 +155,7 @@ export const SYSTEM_PACKET_ITEMS: Record<"synAck" | "finAck", InventoryItem> = {
 		allowedPlaces: ["inventory", "internet"],
 		icon: { icon: "mdi:flag-checkered", color: "#F59E0B" },
 		data: { tcpState: "idle" },
+		draggable: false,
 	},
 	finAck: {
 		id: "fin-ack-flag-1",

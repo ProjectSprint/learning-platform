@@ -34,8 +34,8 @@ const SERVER_PROCESS_MS = 3000;
 const SERVER_REJECT_DELAY_MS = 2000;
 const MESSAGE_REJECT_DELAY_MS = 2000;
 const ASSEMBLE_DELAY_MS = 2000;
-const BUFFER_RELEASE_DELAY_MS = 4000;
-const BUFFER_STEP_DELAY_MS = 2000;
+const BUFFER_RELEASE_DELAY_MS = 1500;
+const BUFFER_STEP_DELAY_MS = 800;
 const LOSS_FADE_MS = 700;
 
 const MESSAGE_SEQUENCES = [1, 2, 3];
@@ -590,6 +590,8 @@ export const useTcpState = () => {
 			const fileLabel = lossScenarioRef.current ? "notes.txt" : "message.txt";
 			updateServerStatus(`📄 ${fileLabel} received successfully!`);
 			if (!lossScenarioRef.current) {
+				appendServerLog("📄 message.txt received successfully!");
+				appendServerLog("Waiting for notes.txt packets...");
 				updateInventoryGroup(INVENTORY_GROUP_IDS.split, {
 					visible: false,
 					items: [],

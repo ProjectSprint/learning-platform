@@ -42,6 +42,8 @@ const InventorySlot = ({
 	tooltip,
 	iconInfo,
 }: InventorySlotProps) => {
+	const isNonDraggable = item.draggable === false;
+
 	return (
 		<Box
 			ref={slotRef}
@@ -54,15 +56,15 @@ const InventorySlot = ({
 			bg={isEmpty ? "transparent" : "gray.800"}
 			border="1px"
 			borderStyle={isEmpty ? "dashed" : "solid"}
-			borderColor={isEmpty ? "gray.700" : "cyan.500"}
+			borderColor={isEmpty ? "gray.700" : isNonDraggable ? "gray.600" : "cyan.500"}
 			borderRadius="md"
 			display="flex"
 			flexDirection="column"
 			alignItems="center"
 			justifyContent="center"
 			gap={1}
-			opacity={isDragging ? 0.3 : 1}
-			cursor={isEmpty ? "default" : "grab"}
+			opacity={isDragging ? 0.3 : isNonDraggable ? 0.6 : 1}
+			cursor={isEmpty ? "default" : isNonDraggable ? "not-allowed" : "grab"}
 			transition="opacity 0.1s ease"
 			style={{ touchAction: "none" }}
 			onPointerDown={isEmpty ? undefined : onPointerDown}
@@ -124,6 +126,11 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 
 	const handlePointerDown = useCallback(
 		(item: InventoryItem, event: React.PointerEvent<HTMLDivElement>) => {
+			// Check if item is draggable (default true if not specified)
+			if (item.draggable === false) {
+				return;
+			}
+
 			event.preventDefault();
 			const target = event.currentTarget;
 			const rect = target.getBoundingClientRect();

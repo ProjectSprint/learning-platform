@@ -25,6 +25,7 @@ export type InventoryItem = {
 	icon?: IconInfo;
 	behavior?: ItemBehavior;
 	data?: Record<string, unknown>;
+	draggable?: boolean; // If false, item cannot be dragged by user (default: true)
 };
 
 export type InventoryGroup = {
