@@ -1,7 +1,7 @@
 import { Box } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
-import { DragOverlay, DragProvider } from "../drag";
+import { DragOverlay, DragProvider } from "../puzzle/drag";
 import { OverlayLayer } from "../modal/overlay-layer";
 
 type GameShellProps = {

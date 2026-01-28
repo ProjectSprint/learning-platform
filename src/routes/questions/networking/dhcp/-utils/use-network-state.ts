@@ -19,8 +19,8 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 
 	const network = useMemo(
 		() =>
-			buildNetworkSnapshot(state.canvas.placedItems, state.canvas.connections),
-		[state.canvas.connections, state.canvas.placedItems],
+			buildNetworkSnapshot(state.puzzle.placedItems, state.puzzle.connections),
+		[state.puzzle.connections, state.puzzle.placedItems],
 	);
 
 	const routerConfig = network.router?.data ?? {};
@@ -193,8 +193,8 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		pc1HasIp,
 		pc2HasIp,
 		pc2Ip,
-		placedItems: state.canvas.placedItems,
-		connections: state.canvas.connections,
+		placedItems: state.puzzle.placedItems,
+		connections: state.puzzle.connections,
 		dragProgress: dragEngine?.progress ?? { status: "pending" as const },
 	};
 };

@@ -2,7 +2,7 @@
 // Contains all static configuration like inventory items, canvas setup, and question metadata
 
 import type {
-	CanvasConfig,
+	PuzzleConfig,
 	InventoryGroupConfig,
 	InventoryItem,
 	TerminalEntry,
@@ -83,7 +83,7 @@ export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
 ];
 
 // Canvas configuration for the networking question
-export const CANVAS_CONFIG: CanvasConfig = {
+export const CANVAS_CONFIG: PuzzleConfig = {
 	id: "networking-canvas",
 	columns: 5,
 	rows: 1,

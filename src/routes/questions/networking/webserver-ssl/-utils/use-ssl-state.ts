@@ -3,7 +3,7 @@
 
 import { useEffect, useCallback, useMemo } from "react";
 import {
-	useAllCanvases,
+	useAllPuzzles,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
@@ -19,7 +19,7 @@ import {
 
 export const useSslState = () => {
 	const state = useGameState();
-	const canvases = useAllCanvases();
+	const canvases = useAllPuzzles();
 	const dispatch = useGameDispatch();
 
 	// Canvas states
@@ -40,7 +40,7 @@ export const useSslState = () => {
 						payload: {
 							deviceId,
 							config,
-							canvasId: key,
+							puzzleId: key,
 						},
 					});
 					return;

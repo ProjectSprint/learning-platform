@@ -2,7 +2,7 @@
 // Contains all static configuration: items, canvases, inventory groups
 
 import type {
-	CanvasConfig,
+	PuzzleConfig,
 	InventoryItem,
 	TerminalEntry,
 } from "@/components/game/game-provider";
@@ -27,11 +27,11 @@ export const CANVAS_ORDER: WebSslCanvasKey[] = [
 	"port-443",
 ];
 
-export const CANVAS_CONFIGS: Record<WebSslCanvasKey, CanvasConfig> = {
+export const CANVAS_CONFIGS: Record<WebSslCanvasKey, PuzzleConfig> = {
 	browser: {
 		id: "ssl-browser",
 		title: "Browser",
-		canvasId: "browser",
+		puzzleId: "browser",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -39,7 +39,7 @@ export const CANVAS_CONFIGS: Record<WebSslCanvasKey, CanvasConfig> = {
 	"port-80": {
 		id: "ssl-port-80",
 		title: "HTTP Webserver",
-		canvasId: "port-80",
+		puzzleId: "port-80",
 		columns: 3,
 		rows: 1,
 		maxItems: 3,
@@ -47,7 +47,7 @@ export const CANVAS_CONFIGS: Record<WebSslCanvasKey, CanvasConfig> = {
 	letsencrypt: {
 		id: "ssl-letsencrypt",
 		title: "Let's Encrypt",
-		canvasId: "letsencrypt",
+		puzzleId: "letsencrypt",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -55,7 +55,7 @@ export const CANVAS_CONFIGS: Record<WebSslCanvasKey, CanvasConfig> = {
 	"port-443": {
 		id: "ssl-port-443",
 		title: "HTTPS Webserver",
-		canvasId: "port-443",
+		puzzleId: "port-443",
 		columns: 5,
 		rows: 1,
 		maxItems: 5,

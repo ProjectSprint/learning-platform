@@ -7,12 +7,12 @@ import {
 } from "react";
 
 export type { GameAction } from "./core/actions";
-// Re-export all types from core/types for backward compatibility
+// Re-export all types from core/types
 export type {
 	Block,
 	BlockStatus,
-	CanvasConfig,
-	CanvasState,
+	PuzzleConfig,
+	PuzzleState,
 	Connection,
 	CrossCanvasConnection,
 	GamePhase,
@@ -35,9 +35,9 @@ export type {
 
 import type { GameAction } from "./core/actions";
 import { createDefaultState, gameReducer } from "./core/reducers";
-import type { CanvasState, GameState, SharedZoneState } from "./core/types";
+import type { PuzzleState, GameState, SharedZoneState } from "./core/types";
 
-// Re-export findInventoryItem for backward compatibility
+// Re-export findInventoryItem
 export { findInventoryItem } from "./validation/inventory";
 
 const GameStateContext = createContext<GameState | null>(null);
@@ -79,24 +79,24 @@ export const useGameDispatch = () => {
 	return dispatch;
 };
 
-export const useCanvasState = (canvasId?: string) => {
+export const usePuzzleState = (puzzleId?: string) => {
 	const state = useGameState();
-	if (!canvasId) {
-		return state.canvas;
+	if (!puzzleId) {
+		return state.puzzle;
 	}
 
-	return state.canvases?.[canvasId] ?? state.canvas;
+	return state.puzzles?.[puzzleId] ?? state.puzzle;
 };
 
-export const useAllCanvases = (): Record<string, CanvasState> => {
+export const useAllPuzzles = (): Record<string, PuzzleState> => {
 	const state = useGameState();
-	if (state.canvases) {
-		return state.canvases;
+	if (state.puzzles) {
+		return state.puzzles;
 	}
 
 	const fallbackId =
-		state.canvas.config.canvasId ?? state.canvas.config.id ?? "canvas";
-	return { [fallbackId]: state.canvas };
+		state.puzzle.config.puzzleId ?? state.puzzle.config.id ?? "puzzle";
+	return { [fallbackId]: state.puzzle };
 };
 
 export const useSharedZone = (): SharedZoneState => {

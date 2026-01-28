@@ -5,12 +5,12 @@ export type ConnectionAction =
 				from: { x: number; y: number };
 				to: { x: number; y: number };
 				cableId?: string;
-				canvasId?: string;
+				puzzleId?: string;
 			};
 	  }
 	| {
 			type: "REMOVE_CONNECTION";
-			payload: { connectionId: string; canvasId?: string };
+			payload: { connectionId: string; puzzleId?: string };
 	  }
 	| {
 			type: "MAKE_CROSS_CONNECTION";

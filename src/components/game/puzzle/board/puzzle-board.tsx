@@ -7,11 +7,11 @@ import {
 	type PlacedItem,
 	useGameDispatch,
 	useGameState,
-} from "../game-provider";
+} from "../../game-provider";
 import type { GridMetrics } from "../grid";
-import { GridCell } from "./components/grid-cell";
-import { PlacedItemCard } from "./components/placed-item-card";
-import { useCanvasInteractions } from "./hooks/use-canvas-interactions";
+import { GridCell } from "./grid-cell";
+import { PlacedItemCard } from "./placed-item-card";
+import { useBoardInteractions } from "./use-board-interactions";
 import type {
 	DragPreview,
 	ItemClickableCheck,
@@ -22,8 +22,8 @@ import type {
 
 const BLOCK_HEIGHT = 60;
 
-type PlayCanvasProps = {
-	canvasId?: string;
+type PuzzleBoardProps = {
+	puzzleId?: string;
 	title?: string;
 	getItemLabel?: ItemLabelGetter;
 	getStatusMessage?: StatusMessageGetter;
@@ -41,29 +41,29 @@ const defaultGetStatusMessage: StatusMessageGetter = () => {
 
 const defaultIsItemClickable: ItemClickableCheck = () => true;
 
-export const PlayCanvas = ({
-	canvasId,
+export const PuzzleBoard = ({
+	puzzleId,
 	title,
 	getItemLabel = defaultGetItemLabel,
 	getStatusMessage = defaultGetStatusMessage,
 	onPlacedItemClick,
 	isItemClickable = defaultIsItemClickable,
-}: PlayCanvasProps) => {
+}: PuzzleBoardProps) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
 	const {
 		activeDrag,
 		setActiveDrag,
 		proxyRef,
-		targetCanvasIdRef,
+		targetPuzzleIdRef,
 		setLastDropResult,
 	} = useDragContext();
-	const canvas = canvasId
-		? (state.canvases?.[canvasId] ?? state.canvas)
-		: state.canvas;
-	const resolvedCanvasId =
-		canvasId ?? canvas.config.canvasId ?? canvas.config.id ?? "default";
-	const canvasRef = useRef<HTMLDivElement | null>(null);
+	const puzzle = puzzleId
+		? (state.puzzles?.[puzzleId] ?? state.puzzle)
+		: state.puzzle;
+	const resolvedPuzzleId =
+		puzzleId ?? puzzle.config.puzzleId ?? puzzle.config.id ?? "default";
+	const boardRef = useRef<HTMLDivElement | null>(null);
 	const placedItemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const draggablesRef = useRef<DragHandle[]>([]);
 	const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
@@ -72,40 +72,40 @@ export const PlayCanvas = ({
 		y: number;
 	} | null>(null);
 	const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
-	const [canvasSize, setCanvasSize] = useState({
+	const [boardSize, setBoardSize] = useState({
 		width: 0,
 		height: 0,
 		gapX: 0,
 		gapY: 0,
 	});
-	const orientation = canvas.config.orientation ?? "horizontal";
+	const orientation = puzzle.config.orientation ?? "horizontal";
 
 	const placedItemsByKey = useMemo(() => {
 		const map = new Map<string, PlacedItem>();
-		for (const item of canvas.placedItems) {
+		for (const item of puzzle.placedItems) {
 			map.set(`${item.blockX}-${item.blockY}`, item);
 		}
 		return map;
-	}, [canvas.placedItems]);
+	}, [puzzle.placedItems]);
 
 	const orderedBlocks = useMemo(() => {
 		if (orientation !== "vertical") {
-			return canvas.blocks.flat();
+			return puzzle.blocks.flat();
 		}
 		const blocks: Block[] = [];
-		for (let x = 0; x < canvas.config.columns; x += 1) {
-			for (let y = 0; y < canvas.config.rows; y += 1) {
-				const block = canvas.blocks[y]?.[x];
+		for (let x = 0; x < puzzle.config.columns; x += 1) {
+			for (let y = 0; y < puzzle.config.rows; y += 1) {
+				const block = puzzle.blocks[y]?.[x];
 				if (block) {
 					blocks.push(block);
 				}
 			}
 		}
 		return blocks;
-	}, [canvas.blocks, canvas.config.columns, canvas.config.rows, orientation]);
+	}, [puzzle.blocks, puzzle.config.columns, puzzle.config.rows, orientation]);
 
 	useEffect(() => {
-		const element = canvasRef.current;
+		const element = boardRef.current;
 		if (!element) {
 			return;
 		}
@@ -115,7 +115,7 @@ export const PlayCanvas = ({
 			const styles = window.getComputedStyle(element);
 			const gapX = Number.parseFloat(styles.columnGap || styles.gap || "0");
 			const gapY = Number.parseFloat(styles.rowGap || styles.gap || "0");
-			setCanvasSize({ width: rect.width, height: rect.height, gapX, gapY });
+			setBoardSize({ width: rect.width, height: rect.height, gapX, gapY });
 		};
 
 		updateSize();
@@ -131,47 +131,47 @@ export const PlayCanvas = ({
 	}, []);
 
 	const blockWidth =
-		(canvasSize.width - canvasSize.gapX * (canvas.config.columns - 1)) /
-			canvas.config.columns || 0;
+		(boardSize.width - boardSize.gapX * (puzzle.config.columns - 1)) /
+			puzzle.config.columns || 0;
 	const blockHeight =
 		useBreakpointValue({ base: 48, sm: 54, md: 60 }) ?? BLOCK_HEIGHT;
-	const stepX = blockWidth + canvasSize.gapX;
-	const stepY = blockHeight + canvasSize.gapY;
+	const stepX = blockWidth + boardSize.gapX;
+	const stepY = blockHeight + boardSize.gapY;
 
 	const gridMetrics: GridMetrics = useMemo(
 		() => ({
 			blockWidth,
 			blockHeight,
-			gapX: canvasSize.gapX,
-			gapY: canvasSize.gapY,
+			gapX: boardSize.gapX,
+			gapY: boardSize.gapY,
 		}),
-		[blockWidth, blockHeight, canvasSize.gapX, canvasSize.gapY],
+		[blockWidth, blockHeight, boardSize.gapX, boardSize.gapY],
 	);
 
 	const canPlaceItemAt = useCallback(
 		(
 			data: DragData,
 			target: { blockX: number; blockY: number },
-			targetCanvasId?: string,
+			targetPuzzleId?: string,
 		) => {
 			if (
 				target.blockX < 0 ||
 				target.blockY < 0 ||
-				target.blockX >= canvas.config.columns ||
-				target.blockY >= canvas.config.rows
+				target.blockX >= puzzle.config.columns ||
+				target.blockY >= puzzle.config.rows
 			) {
 				return false;
 			}
 
-			// Check allowedPlaces for the target canvas
-			if (targetCanvasId) {
+			// Check allowedPlaces for the target puzzle
+			if (targetPuzzleId) {
 				const inventoryMatch = findInventoryItem(
 					state.inventory.groups,
 					data.itemId,
 				);
 				if (
 					inventoryMatch?.item &&
-					!inventoryMatch.item.allowedPlaces.includes(targetCanvasId)
+					!inventoryMatch.item.allowedPlaces.includes(targetPuzzleId)
 				) {
 					return false;
 				}
@@ -184,8 +184,8 @@ export const PlayCanvas = ({
 			return !isOccupied;
 		},
 		[
-			canvas.config.columns,
-			canvas.config.rows,
+			puzzle.config.columns,
+			puzzle.config.rows,
 			placedItemsByKey,
 			state.inventory.groups,
 		],
@@ -232,12 +232,12 @@ export const PlayCanvas = ({
 						type: "SWAP_ITEMS",
 						payload: {
 							from: {
-								canvasId,
+								puzzleId,
 								blockX: data.fromBlockX,
 								blockY: data.fromBlockY,
 							},
 							to: {
-								canvasId,
+								puzzleId,
 								blockX: target.blockX,
 								blockY: target.blockY,
 							},
@@ -246,7 +246,7 @@ export const PlayCanvas = ({
 					return true;
 				}
 
-				if (!canPlaceItemAt(data, target, resolvedCanvasId)) {
+				if (!canPlaceItemAt(data, target, resolvedPuzzleId)) {
 					return false;
 				}
 
@@ -258,14 +258,14 @@ export const PlayCanvas = ({
 						fromBlockY: data.fromBlockY,
 						toBlockX: target.blockX,
 						toBlockY: target.blockY,
-						canvasId,
+						puzzleId,
 					},
 				});
 
 				return true;
 			}
 
-			if (!canPlaceItemAt(data, target, resolvedCanvasId)) {
+			if (!canPlaceItemAt(data, target, resolvedPuzzleId)) {
 				return false;
 			}
 
@@ -275,23 +275,23 @@ export const PlayCanvas = ({
 					itemId: data.itemId,
 					blockX: target.blockX,
 					blockY: target.blockY,
-					canvasId,
+					puzzleId,
 				},
 			});
 
 			return true;
 		},
-		[canPlaceItemAt, dispatch, getSwapTarget, canvasId, resolvedCanvasId],
+		[canPlaceItemAt, dispatch, getSwapTarget, puzzleId, resolvedPuzzleId],
 	);
 
-	useCanvasInteractions({
+	useBoardInteractions({
 		activeDrag,
-		canvas,
-		resolvedCanvasId,
-		canvasId,
+		puzzle,
+		resolvedPuzzleId,
+		puzzleId,
 		state,
 		dispatch,
-		canvasRef,
+		boardRef,
 		placedItemRefs,
 		draggablesRef,
 		blockWidth,
@@ -309,7 +309,7 @@ export const PlayCanvas = ({
 		setDragPreview,
 		setHoveredBlock,
 		setDraggingItemId,
-		targetCanvasIdRef,
+		targetPuzzleIdRef,
 		proxyRef,
 	});
 
@@ -328,8 +328,8 @@ export const PlayCanvas = ({
 
 	return (
 		<Box
-			className="play-canvas"
-			data-game-canvas
+			className="puzzle-board"
+			data-puzzle-board
 			bg="gray.950"
 			p={{ base: 2, md: 4 }}
 			overflow="visible"
@@ -351,13 +351,13 @@ export const PlayCanvas = ({
 			) : null}
 
 			<Box
-				ref={canvasRef}
+				ref={boardRef}
 				position="relative"
 				display="grid"
-				data-game-canvas
-				data-canvas-id={resolvedCanvasId}
-				gridTemplateColumns={`repeat(${canvas.config.columns}, minmax(0, 1fr))`}
-				gridTemplateRows={`repeat(${canvas.config.rows}, ${blockHeight}px)`}
+				data-puzzle-board
+				data-puzzle-id={resolvedPuzzleId}
+				gridTemplateColumns={`repeat(${puzzle.config.columns}, minmax(0, 1fr))`}
+				gridTemplateRows={`repeat(${puzzle.config.rows}, ${blockHeight}px)`}
 				gridAutoFlow={orientation === "vertical" ? "column" : "row"}
 				gap={2}
 			>
@@ -384,13 +384,13 @@ export const PlayCanvas = ({
 					);
 				})}
 
-				{canvas.placedItems.map((item) => {
+				{puzzle.placedItems.map((item) => {
 					const isDragging = draggingItemId === item.id;
 					return (
 						<PlacedItemCard
 							key={item.id}
 							item={item}
-							canvasId={resolvedCanvasId}
+							puzzleId={resolvedPuzzleId}
 							x={item.blockX * stepX}
 							y={item.blockY * stepY}
 							width={blockWidth}
@@ -430,4 +430,4 @@ export const PlayCanvas = ({
 	);
 };
 
-export type { PlayCanvasProps };
+export type { PuzzleBoardProps };

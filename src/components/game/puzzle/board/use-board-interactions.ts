@@ -2,30 +2,30 @@ import type { Dispatch, MutableRefObject, RefObject } from "react";
 import { useEffect } from "react";
 
 import type { GameAction } from "../../core/actions";
-import type { CanvasState, GameState, PlacedItem } from "../../core/types";
+import type { PuzzleState, GameState, PlacedItem } from "../../core/types";
 import type {
 	ActiveDrag,
 	DragData,
 	DragDropResult,
 	DragHandle,
-} from "../../drag";
-import { useCanvasDrag } from "../../drag/hooks/use-canvas-drag";
-import { useDropZone } from "../../drag/hooks/use-drop-zone";
-import type { GridMetrics } from "../../grid";
+} from "../drag";
+import { useBoardDrag } from "../drag/use-board-drag";
+import { useDropZone } from "../drag/use-drop-zone";
+import type { GridMetrics } from "../grid";
 import type {
 	DragPreview,
 	ItemClickableCheck,
 	PlacedItemClickHandler,
-} from "../types";
+} from "./types";
 
-type UseCanvasInteractionsOptions = {
+type UseBoardInteractionsOptions = {
 	activeDrag: ActiveDrag | null;
-	canvas: CanvasState;
-	resolvedCanvasId: string;
-	canvasId?: string;
+	puzzle: PuzzleState;
+	resolvedPuzzleId: string;
+	puzzleId?: string;
 	state: GameState;
 	dispatch: Dispatch<GameAction>;
-	canvasRef: RefObject<HTMLDivElement | null>;
+	boardRef: RefObject<HTMLDivElement | null>;
 	placedItemRefs: RefObject<Map<string, HTMLDivElement>>;
 	draggablesRef: RefObject<DragHandle[]>;
 	blockWidth: number;
@@ -36,7 +36,7 @@ type UseCanvasInteractionsOptions = {
 	canPlaceItemAt: (
 		data: DragData,
 		target: { blockX: number; blockY: number },
-		targetCanvasId?: string,
+		targetPuzzleId?: string,
 	) => boolean;
 	placeOrRepositionItem: (
 		data: DragData,
@@ -53,18 +53,18 @@ type UseCanvasInteractionsOptions = {
 	setDragPreview: (preview: DragPreview | null) => void;
 	setHoveredBlock: (block: { x: number; y: number } | null) => void;
 	setDraggingItemId: (itemId: string | null) => void;
-	targetCanvasIdRef: MutableRefObject<string | undefined>;
+	targetPuzzleIdRef: MutableRefObject<string | undefined>;
 	proxyRef: RefObject<HTMLDivElement | null>;
 };
 
-export const useCanvasInteractions = ({
+export const useBoardInteractions = ({
 	activeDrag,
-	canvas,
-	resolvedCanvasId,
-	canvasId,
+	puzzle,
+	resolvedPuzzleId,
+	puzzleId,
 	state,
 	dispatch,
-	canvasRef,
+	boardRef,
 	placedItemRefs,
 	draggablesRef,
 	blockWidth,
@@ -82,15 +82,15 @@ export const useCanvasInteractions = ({
 	setDragPreview,
 	setHoveredBlock,
 	setDraggingItemId,
-	targetCanvasIdRef,
+	targetPuzzleIdRef,
 	proxyRef,
-}: UseCanvasInteractionsOptions) => {
+}: UseBoardInteractionsOptions) => {
 	useEffect(() => {
-		if (!activeDrag || !canvasRef.current) {
+		if (!activeDrag || !boardRef.current) {
 			return;
 		}
 
-		const element = canvasRef.current;
+		const element = boardRef.current;
 		const handlePointerMove = (event: PointerEvent) => {
 			const rect = element.getBoundingClientRect();
 			const isInside =
@@ -103,14 +103,14 @@ export const useCanvasInteractions = ({
 				return;
 			}
 
-			if (targetCanvasIdRef.current !== resolvedCanvasId) {
-				targetCanvasIdRef.current = resolvedCanvasId;
+			if (targetPuzzleIdRef.current !== resolvedPuzzleId) {
+				targetPuzzleIdRef.current = resolvedPuzzleId;
 			}
 		};
 
 		window.addEventListener("pointermove", handlePointerMove);
 		return () => window.removeEventListener("pointermove", handlePointerMove);
-	}, [activeDrag, resolvedCanvasId, canvasRef, targetCanvasIdRef]);
+	}, [activeDrag, resolvedPuzzleId, boardRef, targetPuzzleIdRef]);
 
 	useEffect(() => {
 		if (activeDrag) {
@@ -120,14 +120,14 @@ export const useCanvasInteractions = ({
 		setHoveredBlock(null);
 	}, [activeDrag, setDragPreview, setHoveredBlock]);
 
-	useCanvasDrag({
+	useBoardDrag({
 		activeDrag,
-		canvas,
-		resolvedCanvasId,
-		canvasId,
+		puzzle,
+		resolvedPuzzleId,
+		puzzleId,
 		state,
 		dispatch,
-		canvasRef,
+		boardRef,
 		placedItemRefs,
 		draggablesRef,
 		blockWidth,
@@ -143,21 +143,21 @@ export const useCanvasInteractions = ({
 		setDragPreview,
 		setHoveredBlock,
 		setDraggingItemId,
-		targetCanvasIdRef,
+		targetPuzzleIdRef,
 		proxyRef,
 	});
 
 	useDropZone({
 		activeDrag,
-		resolvedCanvasId,
-		canvasRef,
+		resolvedPuzzleId,
+		boardRef,
 		gridMetrics,
 		blockWidth,
 		blockHeight,
 		stepX,
 		stepY,
-		columns: canvas.config.columns,
-		rows: canvas.config.rows,
+		columns: puzzle.config.columns,
+		rows: puzzle.config.rows,
 		canPlaceItemAt,
 		placeOrRepositionItem,
 		proxyRef,
@@ -165,6 +165,6 @@ export const useCanvasInteractions = ({
 		setActiveDrag,
 		setDragPreview,
 		setHoveredBlock,
-		targetCanvasIdRef,
+		targetPuzzleIdRef,
 	});
 };

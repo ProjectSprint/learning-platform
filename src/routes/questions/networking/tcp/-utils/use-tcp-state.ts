@@ -5,7 +5,7 @@ import type {
 	TerminalEntry,
 } from "@/components/game/game-provider";
 import {
-	useAllCanvases,
+	useAllPuzzles,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
@@ -92,7 +92,7 @@ const formatPacketList = (seqs: number[]) => {
 
 export const useTcpState = () => {
 	const state = useGameState();
-	const canvases = useAllCanvases();
+	const canvases = useAllPuzzles();
 	const dispatch = useGameDispatch();
 
 	const [phase, setPhase] = useState<TcpPhase>("mtu");
@@ -228,7 +228,7 @@ export const useTcpState = () => {
 		(item: PlacedItem, canvasId: string) => {
 			dispatch({
 				type: "REMOVE_ITEM",
-				payload: { canvasId, blockX: item.blockX, blockY: item.blockY },
+				payload: { puzzleId: canvasId, blockX: item.blockX, blockY: item.blockY },
 			});
 		},
 		[dispatch],
@@ -255,7 +255,7 @@ export const useTcpState = () => {
 				payload: {
 					deviceId: item.id,
 					config: updates,
-					canvasId,
+					puzzleId: canvasId,
 				},
 			});
 		},
@@ -273,10 +273,10 @@ export const useTcpState = () => {
 				type: "TRANSFER_ITEM",
 				payload: {
 					itemId,
-					fromCanvas: location.canvasId,
+					fromPuzzle: location.canvasId,
 					fromBlockX: location.item.blockX,
 					fromBlockY: location.item.blockY,
-					toCanvas: targetCanvas,
+					toPuzzle: targetCanvas,
 					toBlockX: target.blockX,
 					toBlockY: target.blockY,
 				},
@@ -292,7 +292,7 @@ export const useTcpState = () => {
 			if (!target) return false;
 			dispatch({
 				type: "PLACE_ITEM",
-				payload: { itemId, canvasId, ...target },
+				payload: { itemId, puzzleId: canvasId, ...target },
 			});
 			return true;
 		},

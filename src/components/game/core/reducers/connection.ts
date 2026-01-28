@@ -1,22 +1,22 @@
-import { normalizeConnectionKey } from "../../connections";
+import { normalizeConnectionKey } from "../../puzzle/connections";
 import { findInventoryItem } from "../../validation/inventory";
 import type { GameAction } from "../actions";
 import type {
-	CanvasState,
+	PuzzleState,
 	Connection,
 	CrossCanvasConnection,
 	GameState,
 } from "../types";
 import { createId } from "../utils/ids";
-import { resolveCanvasState, updateCanvasState } from "./canvas-state";
+import { resolvePuzzleState, updatePuzzleState } from "./puzzle-state";
 
-const isItemOnCanvas = (
+const isItemOnPuzzle = (
 	itemId: string,
-	canvases: Record<string, CanvasState> | undefined,
+	puzzles: Record<string, PuzzleState> | undefined,
 ): boolean => {
-	if (!canvases) return false;
-	return Object.values(canvases).some((canvas) =>
-		canvas.placedItems.some((item) => item.itemId === itemId),
+	if (!puzzles) return false;
+	return Object.values(puzzles).some((puzzle) =>
+		puzzle.placedItems.some((item) => item.itemId === itemId),
 	);
 };
 
@@ -26,22 +26,22 @@ export const connectionReducer = (
 ): GameState => {
 	switch (action.type) {
 		case "MAKE_CONNECTION": {
-			const canvas = resolveCanvasState(state, action.payload.canvasId);
+			const puzzle = resolvePuzzleState(state, action.payload.puzzleId);
 			const { from, to, cableId } = action.payload;
 
 			if (from.x === to.x && from.y === to.y) {
 				return state;
 			}
 
-			const fromBlock = canvas.blocks[from.y]?.[from.x];
-			const toBlock = canvas.blocks[to.y]?.[to.x];
+			const fromBlock = puzzle.blocks[from.y]?.[from.x];
+			const toBlock = puzzle.blocks[to.y]?.[to.x];
 
 			if (!fromBlock?.itemId || !toBlock?.itemId) {
 				return state;
 			}
 
 			const connectionKey = normalizeConnectionKey(from, to);
-			const exists = canvas.connections.some(
+			const exists = puzzle.connections.some(
 				(connection) =>
 					normalizeConnectionKey(connection.from, connection.to) ===
 					connectionKey,
@@ -59,14 +59,14 @@ export const connectionReducer = (
 				if (!cableItem) {
 					return state;
 				}
-				if (isItemOnCanvas(cableId, state.canvases)) {
+				if (isItemOnPuzzle(cableId, state.puzzles)) {
 					return state;
 				}
 			}
 
 			const connectionId = `connection-${connectionKey}-${cableId ?? "link"}`;
 			const nextConnections: Connection[] = [
-				...canvas.connections,
+				...puzzle.connections,
 				{
 					id: connectionId,
 					type: "cable",
@@ -76,22 +76,22 @@ export const connectionReducer = (
 				},
 			];
 
-			const nextCanvas: CanvasState = {
-				...canvas,
+			const nextPuzzle: PuzzleState = {
+				...puzzle,
 				connections: nextConnections,
 			};
 
-			return updateCanvasState(
+			return updatePuzzleState(
 				{
 					...state,
 				},
-				action.payload.canvasId,
-				nextCanvas,
+				action.payload.puzzleId,
+				nextPuzzle,
 			);
 		}
 		case "REMOVE_CONNECTION": {
-			const canvas = resolveCanvasState(state, action.payload.canvasId);
-			const connection = canvas.connections.find(
+			const puzzle = resolvePuzzleState(state, action.payload.puzzleId);
+			const connection = puzzle.connections.find(
 				(entry) => entry.id === action.payload.connectionId,
 			);
 
@@ -99,26 +99,26 @@ export const connectionReducer = (
 				return state;
 			}
 
-			const nextConnections = canvas.connections.filter(
+			const nextConnections = puzzle.connections.filter(
 				(entry) => entry.id !== action.payload.connectionId,
 			);
 
-			const nextCanvas: CanvasState = {
-				...canvas,
+			const nextPuzzle: PuzzleState = {
+				...puzzle,
 				connections: nextConnections,
 			};
 
-			return updateCanvasState(
+			return updatePuzzleState(
 				{
 					...state,
 				},
-				action.payload.canvasId,
-				nextCanvas,
+				action.payload.puzzleId,
+				nextPuzzle,
 			);
 		}
 		case "MAKE_CROSS_CONNECTION": {
 			const { from, to, cableId } = action.payload;
-			if (!state.canvases) {
+			if (!state.puzzles) {
 				return state;
 			}
 
@@ -126,14 +126,14 @@ export const connectionReducer = (
 				return state;
 			}
 
-			const fromCanvas = state.canvases[from.canvasId];
-			const toCanvas = state.canvases[to.canvasId];
-			if (!fromCanvas || !toCanvas) {
+			const fromPuzzle = state.puzzles[from.canvasId];
+			const toPuzzle = state.puzzles[to.canvasId];
+			if (!fromPuzzle || !toPuzzle) {
 				return state;
 			}
 
-			const fromBlock = fromCanvas.blocks[from.y]?.[from.x];
-			const toBlock = toCanvas.blocks[to.y]?.[to.x];
+			const fromBlock = fromPuzzle.blocks[from.y]?.[from.x];
+			const toBlock = toPuzzle.blocks[to.y]?.[to.x];
 			if (!fromBlock?.itemId || !toBlock?.itemId) {
 				return state;
 			}

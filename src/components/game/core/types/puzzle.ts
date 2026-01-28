@@ -7,13 +7,13 @@ export type Placement = {
 	itemType: string;
 };
 
-export type CanvasConfig = {
+export type PuzzleConfig = {
 	id: string;
 	title?: string;
 	columns: number;
 	rows: number;
 	orientation?: "horizontal" | "vertical";
-	canvasId?: string;
+	puzzleId?: string;
 	maxItems?: number;
 	initialPlacements?: Placement[];
 };
@@ -27,8 +27,8 @@ export type Block = {
 	itemId?: string;
 };
 
-export type CanvasState = {
-	config: CanvasConfig;
+export type PuzzleState = {
+	config: PuzzleConfig;
 	blocks: Block[][];
 	placedItems: PlacedItem[];
 	connections: Connection[];

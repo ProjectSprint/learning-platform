@@ -6,11 +6,11 @@ import type {
 	DragPreview,
 	ItemClickableCheck,
 	PlacedItemClickHandler,
-} from "../../canvas/types";
+} from "../board/types";
 import type { GameAction } from "../../core/actions";
-import type { CanvasState, GameState, PlacedItem } from "../../core/types";
-import type { GridMetrics } from "../../grid";
-import { convertPixelToBlock } from "../../grid";
+import type { PuzzleState, GameState, PlacedItem } from "../../core/types";
+import type { GridMetrics } from "../grid";
+import { convertPixelToBlock } from "../grid";
 import {
 	type ActiveDrag,
 	createDraggable,
@@ -18,16 +18,16 @@ import {
 	type DragHandle,
 	ensureGsapPlugins,
 	hitTestAny,
-} from "../index";
+} from "./index";
 
-type UseCanvasDragOptions = {
+type UseBoardDragOptions = {
 	activeDrag: ActiveDrag | null;
-	canvas: CanvasState;
-	resolvedCanvasId: string;
-	canvasId?: string;
+	puzzle: PuzzleState;
+	resolvedPuzzleId: string;
+	puzzleId?: string;
 	state: GameState;
 	dispatch: Dispatch<GameAction>;
-	canvasRef: RefObject<HTMLDivElement | null>;
+	boardRef: RefObject<HTMLDivElement | null>;
 	placedItemRefs: RefObject<Map<string, HTMLDivElement>>;
 	draggablesRef: RefObject<DragHandle[]>;
 	blockWidth: number;
@@ -49,18 +49,18 @@ type UseCanvasDragOptions = {
 	setDragPreview: (preview: DragPreview | null) => void;
 	setHoveredBlock: (block: { x: number; y: number } | null) => void;
 	setDraggingItemId: (itemId: string | null) => void;
-	targetCanvasIdRef: MutableRefObject<string | undefined>;
+	targetPuzzleIdRef: MutableRefObject<string | undefined>;
 	proxyRef: RefObject<HTMLDivElement | null>;
 };
 
-export const useCanvasDrag = ({
+export const useBoardDrag = ({
 	activeDrag,
-	canvas,
-	resolvedCanvasId,
-	canvasId,
+	puzzle,
+	resolvedPuzzleId,
+	puzzleId,
 	state,
 	dispatch,
-	canvasRef,
+	boardRef,
 	placedItemRefs,
 	draggablesRef,
 	blockWidth,
@@ -76,9 +76,9 @@ export const useCanvasDrag = ({
 	setDragPreview,
 	setHoveredBlock,
 	setDraggingItemId,
-	targetCanvasIdRef,
+	targetPuzzleIdRef,
 	proxyRef,
-}: UseCanvasDragOptions) => {
+}: UseBoardDragOptions) => {
 	const activeDragRef = useRef<ActiveDrag | null>(null);
 	const callbacksRef = useRef({ getSwapTarget, placeOrRepositionItem });
 
@@ -94,9 +94,9 @@ export const useCanvasDrag = ({
 		ensureGsapPlugins();
 	}, []);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: targetCanvasIdRef is a ref and doesn't need to be in deps
+	// biome-ignore lint/correctness/useExhaustiveDependencies: targetPuzzleIdRef is a ref and doesn't need to be in deps
 	useLayoutEffect(() => {
-		if (!canvasRef.current || !blockWidth || !blockHeight) {
+		if (!boardRef.current || !blockWidth || !blockHeight) {
 			return;
 		}
 
@@ -105,7 +105,7 @@ export const useCanvasDrag = ({
 		}
 		draggablesRef.current = [];
 
-		for (const item of canvas.placedItems) {
+		for (const item of puzzle.placedItems) {
 			const el = placedItemRefs.current.get(item.id);
 			if (!el) {
 				continue;
@@ -155,17 +155,17 @@ export const useCanvasDrag = ({
 
 					setDraggingItemId(placedItem.id);
 					setActiveDrag({
-						source: "canvas",
+						source: "board",
 						data: {
 							...dragData,
 							itemName: placedItem.type,
 						},
-						sourceCanvasId: resolvedCanvasId,
+						sourcePuzzleId: resolvedPuzzleId,
 						element: el,
 						initialRect: rect,
 						pointerOffset,
 					});
-					targetCanvasIdRef.current = resolvedCanvasId;
+					targetPuzzleIdRef.current = resolvedPuzzleId;
 
 					el.style.opacity = "0";
 				},
@@ -181,8 +181,8 @@ export const useCanvasDrag = ({
 					const isOutOfBounds =
 						blockX < 0 ||
 						blockY < 0 ||
-						blockX >= canvas.config.columns ||
-						blockY >= canvas.config.rows;
+						blockX >= puzzle.config.columns ||
+						blockY >= puzzle.config.rows;
 
 					if (isOutOfBounds) {
 						setHoveredBlock(null);
@@ -233,18 +233,18 @@ export const useCanvasDrag = ({
 					});
 
 					const dragSnapshot = activeDragRef.current;
-					const targetCanvasId = targetCanvasIdRef.current;
-					const sourceCanvasId =
-						dragSnapshot?.sourceCanvasId ?? resolvedCanvasId;
-					const isCrossCanvas =
-						targetCanvasId && targetCanvasId !== sourceCanvasId;
+					const targetPuzzleId = targetPuzzleIdRef.current;
+					const sourcePuzzleId =
+						dragSnapshot?.sourcePuzzleId ?? resolvedPuzzleId;
+					const isCrossPuzzle =
+						targetPuzzleId && targetPuzzleId !== sourcePuzzleId;
 
 					const finishDrag = (restoreOpacity = true) => {
 						setActiveDrag(null);
 						setDragPreview(null);
 						setHoveredBlock(null);
 						setDraggingItemId(null);
-						targetCanvasIdRef.current = undefined;
+						targetPuzzleIdRef.current = undefined;
 						if (restoreOpacity) {
 							el.style.opacity = "1";
 						}
@@ -279,7 +279,7 @@ export const useCanvasDrag = ({
 							payload: {
 								blockX: placedItem.blockX,
 								blockY: placedItem.blockY,
-								canvasId,
+								puzzleId,
 							},
 						});
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
@@ -287,13 +287,13 @@ export const useCanvasDrag = ({
 						return;
 					}
 
-					if (isCrossCanvas && state.canvases) {
-						const targetCanvas = state.canvases[targetCanvasId];
+					if (isCrossPuzzle && state.puzzles) {
+						const targetPuzzle = state.puzzles[targetPuzzleId];
 						const targetElement = document.querySelector<HTMLDivElement>(
-							`[data-game-canvas][data-canvas-id="${targetCanvasId}"]`,
+							`[data-puzzle-board][data-puzzle-id="${targetPuzzleId}"]`,
 						);
 
-						if (targetCanvas && targetElement) {
+						if (targetPuzzle && targetElement) {
 							const rect = targetElement.getBoundingClientRect();
 							const styles = window.getComputedStyle(targetElement);
 							const gapX = Number.parseFloat(
@@ -303,8 +303,8 @@ export const useCanvasDrag = ({
 								styles.rowGap || styles.gap || "0",
 							);
 							const targetBlockWidth =
-								(rect.width - gapX * (targetCanvas.config.columns - 1)) /
-									targetCanvas.config.columns || 0;
+								(rect.width - gapX * (targetPuzzle.config.columns - 1)) /
+									targetPuzzle.config.columns || 0;
 
 							const { blockX, blockY } = convertPixelToBlock(
 								this.pointerX - rect.left,
@@ -320,11 +320,11 @@ export const useCanvasDrag = ({
 							const isInsideTarget =
 								blockX >= 0 &&
 								blockY >= 0 &&
-								blockX < targetCanvas.config.columns &&
-								blockY < targetCanvas.config.rows;
+								blockX < targetPuzzle.config.columns &&
+								blockY < targetPuzzle.config.rows;
 
 							if (isInsideTarget) {
-								const targetBlock = targetCanvas.blocks[blockY]?.[blockX];
+								const targetBlock = targetPuzzle.blocks[blockY]?.[blockX];
 								const isTargetOccupied = Boolean(targetBlock?.itemId);
 
 								if (isTargetOccupied) {
@@ -332,12 +332,12 @@ export const useCanvasDrag = ({
 										type: "SWAP_ITEMS",
 										payload: {
 											from: {
-												canvasId: sourceCanvasId,
+												puzzleId: sourcePuzzleId,
 												blockX: placedItem.blockX,
 												blockY: placedItem.blockY,
 											},
 											to: {
-												canvasId: targetCanvasId,
+												puzzleId: targetPuzzleId,
 												blockX,
 												blockY,
 											},
@@ -348,10 +348,10 @@ export const useCanvasDrag = ({
 										type: "TRANSFER_ITEM",
 										payload: {
 											itemId: placedItem.itemId,
-											fromCanvas: sourceCanvasId,
+											fromPuzzle: sourcePuzzleId,
 											fromBlockX: placedItem.blockX,
 											fromBlockY: placedItem.blockY,
-											toCanvas: targetCanvasId,
+											toPuzzle: targetPuzzleId,
 											toBlockX: blockX,
 											toBlockY: blockY,
 										},
@@ -368,14 +368,14 @@ export const useCanvasDrag = ({
 						return;
 					}
 
-					const canvasElement = canvasRef.current;
-					if (!canvasElement) {
+					const boardElement = boardRef.current;
+					if (!boardElement) {
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
 						finishDrag();
 						return;
 					}
 
-					const canvasRect = canvasElement.getBoundingClientRect();
+					const boardRect = boardElement.getBoundingClientRect();
 					const centerX = startX + this.x + blockWidth / 2;
 					const centerY = startY + this.y + blockHeight / 2;
 					const { blockX, blockY } = convertPixelToBlock(
@@ -395,8 +395,8 @@ export const useCanvasDrag = ({
 
 					if (collidingElement && !swapTarget) {
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-						const originX = canvasRect.left + placedItem.blockX * stepX;
-						const originY = canvasRect.top + placedItem.blockY * stepY;
+						const originX = boardRect.left + placedItem.blockX * stepX;
+						const originY = boardRect.top + placedItem.blockY * stepY;
 						animateProxyTo(originX, originY, blockWidth, blockHeight, () => {
 							finishDrag();
 						});
@@ -409,16 +409,16 @@ export const useCanvasDrag = ({
 					});
 					if (!placed) {
 						gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
-						const originX = canvasRect.left + placedItem.blockX * stepX;
-						const originY = canvasRect.top + placedItem.blockY * stepY;
+						const originX = boardRect.left + placedItem.blockX * stepX;
+						const originY = boardRect.top + placedItem.blockY * stepY;
 						animateProxyTo(originX, originY, blockWidth, blockHeight, () => {
 							finishDrag();
 						});
 						return;
 					}
 
-					const targetX = canvasRect.left + blockX * stepX;
-					const targetY = canvasRect.top + blockY * stepY;
+					const targetX = boardRect.left + blockX * stepX;
+					const targetY = boardRect.top + blockY * stepY;
 					gsap.set(el, { x: 0, y: 0, clearProps: "transform" });
 					animateProxyTo(targetX, targetY, blockWidth, blockHeight, () => {
 						finishDrag();
@@ -438,10 +438,10 @@ export const useCanvasDrag = ({
 	}, [
 		blockHeight,
 		blockWidth,
-		canvas.placedItems,
-		canvas.config.columns,
-		canvas.config.rows,
-		resolvedCanvasId,
+		puzzle.placedItems,
+		puzzle.config.columns,
+		puzzle.config.rows,
+		resolvedPuzzleId,
 		dispatch,
 		getSwapTarget,
 		gridMetrics,
@@ -453,8 +453,8 @@ export const useCanvasDrag = ({
 		setDragPreview,
 		setHoveredBlock,
 		setDraggingItemId,
-		state.canvases,
-		canvasId,
+		state.puzzles,
+		puzzleId,
 		stepX,
 		stepY,
 	]);

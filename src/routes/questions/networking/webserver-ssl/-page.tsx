@@ -12,8 +12,8 @@ import {
    useGameDispatch,
    useGameState,
 } from "@/components/game/game-provider";
-import { PlayCanvas } from "@/components/game/canvas";
-import { InventoryDrawer } from "@/components/game/inventory";
+import { PuzzleBoard } from "@/components/game/puzzle/board";
+import { InventoryDrawer } from "@/components/game/puzzle/inventory";
 import { GameShell } from "@/components/game/shell";
 import {
 	TerminalInput,
@@ -305,7 +305,7 @@ const WebserverSslGame = ({
          canvasRules: [
             {
                kind: "show",
-               canvasId: "letsencrypt",
+               puzzleId: "letsencrypt",
                when: {
                   kind: "or",
                   any: [
@@ -316,7 +316,7 @@ const WebserverSslGame = ({
             },
             {
                kind: "show",
-               canvasId: "port-443",
+               puzzleId: "port-443",
                when: {
                   kind: "or",
                   any: [
@@ -582,7 +582,7 @@ const WebserverSslGame = ({
                      return null;
                   }
 
-                  const canvasId = config.canvasId ?? key;
+                  const canvasId = config.puzzleId ?? key;
 
                   return (
                      <Box
@@ -591,8 +591,8 @@ const WebserverSslGame = ({
                         flexBasis={0}
                         minW={{ base: "100%", xl: "0" }}
                      >
-						<PlayCanvas
-							canvasId={canvasId}
+						<PuzzleBoard
+							puzzleId={canvasId}
 							title={config.title ?? key}
 							getItemLabel={spec.labels.getItemLabel}
 							getStatusMessage={spec.labels.getStatusMessage}

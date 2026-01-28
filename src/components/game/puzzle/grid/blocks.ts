@@ -1,6 +1,6 @@
 // Block grid creation and manipulation utilities
 
-import type { Block, BlockStatus } from "../core/types";
+import type { Block, BlockStatus } from "../../core/types";
 
 export const createBlockGrid = (columns: number, rows: number): Block[][] =>
 	Array.from({ length: rows }, (_, rowIndex) =>

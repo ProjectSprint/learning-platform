@@ -3,11 +3,11 @@ import { Icon } from "@iconify/react";
 import { memo, type RefCallback } from "react";
 
 import type { PlacedItem } from "../../core/types";
-import type { ItemLabelGetter, StatusMessageGetter } from "../types";
+import type { ItemLabelGetter, StatusMessageGetter } from "./types";
 
 type PlacedItemCardProps = {
 	item: PlacedItem;
-	canvasId?: string;
+	puzzleId?: string;
 	x: number;
 	y: number;
 	width: number;
@@ -21,7 +21,7 @@ type PlacedItemCardProps = {
 export const PlacedItemCard = memo(
 	({
 		item,
-		canvasId,
+		puzzleId,
 		x,
 		y,
 		width,
@@ -32,7 +32,7 @@ export const PlacedItemCard = memo(
 		itemRef,
 	}: PlacedItemCardProps) => {
 		const label = getItemLabel(item.type);
-		const statusMessage = getStatusMessage(item, canvasId);
+		const statusMessage = getStatusMessage(item, puzzleId);
 		const iconInfo = item.icon;
 
 		const getStatusBadgeColor = () => {
@@ -46,7 +46,7 @@ export const PlacedItemCard = memo(
 			const isConnectable = item.behavior === "connectable";
 
 			if (isConnectable) {
-				if (item.status === "success") return "cyan.warning";
+				if (item.status === "success") return "cyan.500";
 				if (item.status === "warning") return "yellow.500";
 				if (item.status === "error") return "red.500";
 				return "gray.500";

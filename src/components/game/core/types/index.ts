@@ -1,11 +1,11 @@
-// Canvas types
+// Puzzle types
 export type {
 	Block,
 	BlockStatus,
-	CanvasConfig,
-	CanvasState,
+	PuzzleConfig,
+	PuzzleState,
 	Placement,
-} from "./canvas";
+} from "./puzzle";
 
 // Connection types
 export type { Connection, CrossCanvasConnection } from "./connection";

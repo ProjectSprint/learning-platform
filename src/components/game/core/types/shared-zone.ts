@@ -2,7 +2,7 @@ export type SharedZoneItem = {
 	id: string;
 	key: string;
 	value: unknown;
-	sourceCanvasId?: string;
+	sourcePuzzleId?: string;
 	timestamp: number;
 };
 

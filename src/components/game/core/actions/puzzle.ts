@@ -1,16 +1,16 @@
-export type CanvasAction =
+export type PuzzleAction =
 	| {
 			type: "PLACE_ITEM";
 			payload: {
 				itemId: string;
 				blockX: number;
 				blockY: number;
-				canvasId?: string;
+				puzzleId?: string;
 			};
 	  }
 	| {
 			type: "REMOVE_ITEM";
-			payload: { blockX: number; blockY: number; canvasId?: string };
+			payload: { blockX: number; blockY: number; puzzleId?: string };
 	  }
 	| {
 			type: "REPOSITION_ITEM";
@@ -20,7 +20,7 @@ export type CanvasAction =
 				fromBlockY: number;
 				toBlockX: number;
 				toBlockY: number;
-				canvasId?: string;
+				puzzleId?: string;
 			};
 	  }
 	| {
@@ -28,17 +28,17 @@ export type CanvasAction =
 			payload: {
 				deviceId: string;
 				config: Record<string, unknown>;
-				canvasId?: string;
+				puzzleId?: string;
 			};
 	  }
 	| {
 			type: "TRANSFER_ITEM";
 			payload: {
 				itemId: string;
-				fromCanvas: string;
+				fromPuzzle: string;
 				fromBlockX: number;
 				fromBlockY: number;
-				toCanvas: string;
+				toPuzzle: string;
 				toBlockX: number;
 				toBlockY: number;
 			};
@@ -46,7 +46,7 @@ export type CanvasAction =
 	| {
 			type: "SWAP_ITEMS";
 			payload: {
-				from: { canvasId?: string; blockX: number; blockY: number };
-				to: { canvasId?: string; blockX: number; blockY: number };
+				from: { puzzleId?: string; blockX: number; blockY: number };
+				to: { puzzleId?: string; blockX: number; blockY: number };
 			};
 	  };

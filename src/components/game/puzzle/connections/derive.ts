@@ -1,6 +1,6 @@
 // Connection derivation from cable placements
 
-import type { Connection, PlacedItem } from "../core/types";
+import type { Connection, PlacedItem } from "../../core/types";
 
 export const CONNECTABLE_DEVICE_TYPES = new Set(["pc", "router"]);
 

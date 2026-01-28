@@ -1,12 +1,12 @@
-import { deriveConnectionsFromCables } from "../../connections";
-import { updateBlock } from "../../grid";
+import { deriveConnectionsFromCables } from "../../puzzle/connections";
+import { updateBlock } from "../../puzzle/grid";
 import {
 	normalizeInventory,
 	normalizeInventoryGroup,
 } from "../../validation/inventory";
 import type { GameAction } from "../actions";
 import type {
-	CanvasState,
+	PuzzleState,
 	GameState,
 	InventoryGroup,
 	InventoryItem,
@@ -21,18 +21,18 @@ const removeInventoryItems = (
 		items: group.items.filter((item) => !itemIds.has(item.id)),
 	}));
 
-const removeItemsFromCanvas = (
-	canvas: CanvasState,
+const removeItemsFromPuzzle = (
+	puzzle: PuzzleState,
 	itemIds: Set<string>,
-): CanvasState => {
-	const removedItems = canvas.placedItems.filter((item) =>
+): PuzzleState => {
+	const removedItems = puzzle.placedItems.filter((item) =>
 		itemIds.has(item.itemId),
 	);
 	if (removedItems.length === 0) {
-		return canvas;
+		return puzzle;
 	}
 
-	let nextBlocks = canvas.blocks;
+	let nextBlocks = puzzle.blocks;
 	for (const item of removedItems) {
 		nextBlocks = updateBlock(nextBlocks, item.blockX, item.blockY, {
 			status: "empty",
@@ -40,12 +40,12 @@ const removeItemsFromCanvas = (
 		});
 	}
 
-	const nextPlacedItems = canvas.placedItems.filter(
+	const nextPlacedItems = puzzle.placedItems.filter(
 		(item) => !itemIds.has(item.itemId),
 	);
 
 	return {
-		...canvas,
+		...puzzle,
 		blocks: nextBlocks,
 		placedItems: nextPlacedItems,
 		connections: deriveConnectionsFromCables(nextPlacedItems),
@@ -153,44 +153,44 @@ export const inventoryReducer = (
 				itemIds,
 			);
 
-			let nextCanvas = removeItemsFromCanvas(state.canvas, itemIds);
-			let nextCanvases = state.canvases;
-			if (state.canvases) {
-				nextCanvases = Object.fromEntries(
-					Object.entries(state.canvases).map(([key, canvas]) => [
+			let nextPuzzle = removeItemsFromPuzzle(state.puzzle, itemIds);
+			let nextPuzzles = state.puzzles;
+			if (state.puzzles) {
+				nextPuzzles = Object.fromEntries(
+					Object.entries(state.puzzles).map(([key, puzzle]) => [
 						key,
-						removeItemsFromCanvas(canvas, itemIds),
+						removeItemsFromPuzzle(puzzle, itemIds),
 					]),
 				);
 
-				const primaryCanvasId = state.canvas.config.canvasId;
-				if (primaryCanvasId && nextCanvases[primaryCanvasId]) {
-					nextCanvas = nextCanvases[primaryCanvasId];
+				const primaryPuzzleId = state.puzzle.config.puzzleId;
+				if (primaryPuzzleId && nextPuzzles[primaryPuzzleId]) {
+					nextPuzzle = nextPuzzles[primaryPuzzleId];
 				}
 			}
 
-			const resolveCanvas = (key: string) =>
-				nextCanvases?.[key] ??
-				(nextCanvas.config.canvasId === key ? nextCanvas : undefined);
+			const resolvePuzzle = (key: string) =>
+				nextPuzzles?.[key] ??
+				(nextPuzzle.config.puzzleId === key ? nextPuzzle : undefined);
 
 			const nextCrossConnections = state.crossConnections.filter(
 				(connection) => {
-					const fromCanvas = resolveCanvas(connection.from.canvasId);
-					const toCanvas = resolveCanvas(connection.to.canvasId);
-					if (!fromCanvas || !toCanvas) {
+					const fromPuzzle = resolvePuzzle(connection.from.canvasId);
+					const toPuzzle = resolvePuzzle(connection.to.canvasId);
+					if (!fromPuzzle || !toPuzzle) {
 						return false;
 					}
 					const fromBlock =
-						fromCanvas.blocks[connection.from.y]?.[connection.from.x];
-					const toBlock = toCanvas.blocks[connection.to.y]?.[connection.to.x];
+						fromPuzzle.blocks[connection.from.y]?.[connection.from.x];
+					const toBlock = toPuzzle.blocks[connection.to.y]?.[connection.to.x];
 					return Boolean(fromBlock?.itemId && toBlock?.itemId);
 				},
 			);
 
 			return {
 				...state,
-				canvas: nextCanvas,
-				canvases: nextCanvases,
+				puzzle: nextPuzzle,
+				puzzles: nextPuzzles,
 				crossConnections: nextCrossConnections,
 				inventory: { groups: nextInventoryGroups },
 			};

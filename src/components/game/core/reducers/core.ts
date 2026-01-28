@@ -1,5 +1,5 @@
-import { deriveConnectionsFromCables } from "../../connections";
-import { updateBlock } from "../../grid";
+import { deriveConnectionsFromCables } from "../../puzzle/connections";
+import { updateBlock } from "../../puzzle/grid";
 import {
 	DEFAULT_INVENTORY_GROUP_ID,
 	DEFAULT_INVENTORY_TITLE,
@@ -7,8 +7,8 @@ import {
 } from "../../validation/inventory";
 import type { GameAction } from "../actions";
 import type {
-	CanvasConfig,
-	CanvasState,
+	PuzzleConfig,
+	PuzzleState,
 	GameState,
 	InventoryGroup,
 	InventoryItem,
@@ -16,10 +16,10 @@ import type {
 	SharedZoneItem,
 } from "../types";
 import { createId } from "../utils/ids";
-import { createCanvasState } from "./canvas-state";
+import { createPuzzleState } from "./puzzle-state";
 
-const defaultCanvasConfig: CanvasConfig = {
-	id: "default-canvas",
+const defaultPuzzleConfig: PuzzleConfig = {
+	id: "default-puzzle",
 	columns: 6,
 	rows: 4,
 	orientation: "horizontal",
@@ -37,7 +37,7 @@ export const createDefaultState = (): GameState => ({
 			},
 		],
 	},
-	canvas: createCanvasState(defaultCanvasConfig),
+	puzzle: createPuzzleState(defaultPuzzleConfig),
 	crossConnections: [],
 	sharedZone: { items: {} },
 	terminal: {
@@ -58,19 +58,19 @@ export const createDefaultState = (): GameState => ({
 const findAvailableItemByType = (
 	groups: InventoryGroup[],
 	itemType: string,
-	canvases: Record<string, CanvasState> | undefined,
+	puzzles: Record<string, PuzzleState> | undefined,
 ): { groupIndex: number; itemIndex: number; item: InventoryItem } | null => {
 	for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
 		const itemIndex = groups[groupIndex].items.findIndex((item) => {
 			if (item.type !== itemType) return false;
 
-			const isOnCanvas = canvases
-				? Object.values(canvases).some((canvas) =>
-						canvas.placedItems.some((placed) => placed.itemId === item.id),
+			const isOnPuzzle = puzzles
+				? Object.values(puzzles).some((puzzle) =>
+						puzzle.placedItems.some((placed) => placed.itemId === item.id),
 					)
 				: false;
 
-			return !isOnCanvas;
+			return !isOnPuzzle;
 		});
 		if (itemIndex >= 0) {
 			return {
@@ -84,19 +84,19 @@ const findAvailableItemByType = (
 };
 
 const applyInitialPlacements = (
-	canvas: CanvasState,
+	puzzle: PuzzleState,
 	inventoryGroups: InventoryGroup[],
-	allCanvases: Record<string, CanvasState> | undefined,
-): { canvas: CanvasState; inventoryGroups: InventoryGroup[] } => {
-	const placements = canvas.config.initialPlacements ?? [];
+	allPuzzles: Record<string, PuzzleState> | undefined,
+): { puzzle: PuzzleState; inventoryGroups: InventoryGroup[] } => {
+	const placements = puzzle.config.initialPlacements ?? [];
 	if (placements.length === 0) {
-		return { canvas, inventoryGroups };
+		return { puzzle, inventoryGroups };
 	}
 
-	let nextBlocks = canvas.blocks;
+	let nextBlocks = puzzle.blocks;
 	const nextInventoryGroups = inventoryGroups;
 	const placedItems: PlacedItem[] = [];
-	const currentCanvasId = canvas.config.canvasId ?? "canvas";
+	const currentPuzzleId = puzzle.config.puzzleId ?? "puzzle";
 
 	placements.forEach((placement) => {
 		if (!nextBlocks[placement.blockY]?.[placement.blockX]) {
@@ -108,17 +108,17 @@ const applyInitialPlacements = (
 		}
 
 		let itemId = `initial-${placement.itemType}-${placement.blockX}-${placement.blockY}`;
-		const canvasesForLookup = {
-			...(allCanvases ?? {}),
-			[currentCanvasId]: {
-				...canvas,
+		const puzzlesForLookup = {
+			...(allPuzzles ?? {}),
+			[currentPuzzleId]: {
+				...puzzle,
 				placedItems,
 			},
 		};
 		const inventoryMatch = findAvailableItemByType(
 			nextInventoryGroups,
 			placement.itemType,
-			canvasesForLookup,
+			puzzlesForLookup,
 		);
 		const matchedItem = inventoryMatch?.item;
 
@@ -145,8 +145,8 @@ const applyInitialPlacements = (
 	});
 
 	return {
-		canvas: {
-			...canvas,
+		puzzle: {
+			...puzzle,
 			blocks: nextBlocks,
 			placedItems,
 			connections: deriveConnectionsFromCables(placedItems),
@@ -167,39 +167,39 @@ export const coreReducer = (
 				return state;
 			}
 
-			const canvasIds = new Set<string>();
-			const normalizedCanvases: Array<{ key: string; config: CanvasConfig }> =
+			const puzzleIds = new Set<string>();
+			const normalizedPuzzles: Array<{ key: string; config: PuzzleConfig }> =
 				[];
-			for (const [entryKey, canvasConfig] of entries) {
-				const resolvedKey = canvasConfig.canvasId ?? entryKey;
-				if (canvasIds.has(resolvedKey)) {
+			for (const [entryKey, puzzleConfig] of entries) {
+				const resolvedKey = puzzleConfig.puzzleId ?? entryKey;
+				if (puzzleIds.has(resolvedKey)) {
 					return state;
 				}
-				canvasIds.add(resolvedKey);
-				normalizedCanvases.push({ key: resolvedKey, config: canvasConfig });
+				puzzleIds.add(resolvedKey);
+				normalizedPuzzles.push({ key: resolvedKey, config: puzzleConfig });
 			}
 
 			let inventoryGroups = normalizeInventoryGroups(config.inventoryGroups);
-			const nextCanvases: Record<string, CanvasState> = {};
+			const nextPuzzles: Record<string, PuzzleState> = {};
 
-			for (const entry of normalizedCanvases) {
+			for (const entry of normalizedPuzzles) {
 				const key = entry.key;
-				const canvasConfig = entry.config;
+				const puzzleConfig = entry.config;
 				const seeded = applyInitialPlacements(
-					createCanvasState(canvasConfig),
+					createPuzzleState(puzzleConfig),
 					inventoryGroups,
-					nextCanvases,
+					nextPuzzles,
 				);
 				inventoryGroups = seeded.inventoryGroups;
-				nextCanvases[key] = seeded.canvas;
+				nextPuzzles[key] = seeded.puzzle;
 			}
 
-			const firstKey = normalizedCanvases[0]?.key;
+			const firstKey = normalizedPuzzles[0]?.key;
 			if (!firstKey) {
 				return state;
 			}
-			const firstCanvas = nextCanvases[firstKey];
-			if (!firstCanvas) {
+			const firstPuzzle = nextPuzzles[firstKey];
+			if (!firstPuzzle) {
 				return state;
 			}
 
@@ -212,8 +212,8 @@ export const coreReducer = (
 				...createDefaultState(),
 				phase: config.phase ?? "setup",
 				inventory: { groups: inventoryGroups },
-				canvas: firstCanvas,
-				canvases: nextCanvases,
+				puzzle: firstPuzzle,
+				puzzles: nextPuzzles,
 				terminal: {
 					visible: terminal.visible ?? false,
 					prompt: terminal.prompt ?? "",
@@ -230,7 +230,7 @@ export const coreReducer = (
 				id: createId(),
 				key: action.payload.key,
 				value: action.payload.value,
-				sourceCanvasId: action.payload.sourceCanvasId,
+				sourcePuzzleId: action.payload.sourcePuzzleId,
 				timestamp: Date.now(),
 			};
 

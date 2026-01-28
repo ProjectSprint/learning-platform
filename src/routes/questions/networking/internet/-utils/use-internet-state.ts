@@ -3,7 +3,7 @@ import type { DragEngine } from "@/components/game/engines";
 import {
 	type Connection,
 	type PlacedItem,
-	useAllCanvases,
+	useAllPuzzles,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
@@ -27,7 +27,7 @@ interface UseInternetStateArgs {
 
 export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const state = useGameState();
-	const canvases = useAllCanvases();
+	const canvases = useAllPuzzles();
 	const dispatch = useGameDispatch();
 
 	const { combinedItems, combinedConnections, itemCanvasKeys } = useMemo(() => {
@@ -80,7 +80,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				payload: {
 					deviceId,
 					config,
-					canvasId: resolveCanvasKey(deviceId),
+					puzzleId: resolveCanvasKey(deviceId),
 				},
 			});
 		},
@@ -211,7 +211,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					payload: {
 						deviceId: network.pc.id,
 						config: { ip: desiredIp },
-						canvasId: resolveCanvasKey(network.pc.id),
+						puzzleId: resolveCanvasKey(network.pc.id),
 					},
 				});
 			}
@@ -228,7 +228,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					payload: {
 						deviceId: network.pc.id,
 						config: { ip: null },
-						canvasId: resolveCanvasKey(network.pc.id),
+						puzzleId: resolveCanvasKey(network.pc.id),
 					},
 				});
 			}

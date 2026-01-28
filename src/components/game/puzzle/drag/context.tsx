@@ -5,7 +5,7 @@ type DragContextValue = {
 	activeDrag: ActiveDrag | null;
 	setActiveDrag: React.Dispatch<React.SetStateAction<ActiveDrag | null>>;
 	proxyRef: React.RefObject<HTMLDivElement | null>;
-	targetCanvasIdRef: React.RefObject<string | undefined>;
+	targetPuzzleIdRef: React.RefObject<string | undefined>;
 	lastDropResult: DragDropResult | null;
 	setLastDropResult: React.Dispatch<
 		React.SetStateAction<DragDropResult | null>
@@ -25,7 +25,7 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
 		null,
 	);
 	const proxyRef = useRef<HTMLDivElement | null>(null);
-	const targetCanvasIdRef = useRef<string | undefined>(undefined);
+	const targetPuzzleIdRef = useRef<string | undefined>(undefined);
 
 	return (
 		<DragContext.Provider
@@ -33,7 +33,7 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
 				activeDrag,
 				setActiveDrag,
 				proxyRef,
-				targetCanvasIdRef,
+				targetPuzzleIdRef,
 				lastDropResult,
 				setLastDropResult,
 			}}

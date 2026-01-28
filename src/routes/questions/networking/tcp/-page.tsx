@@ -8,8 +8,8 @@ import {
    type GamePhase,
    type InventoryGroupConfig,
 } from "@/components/game/game-provider";
-import { PlayCanvas } from "@/components/game/canvas";
-import { InventoryDrawer } from "@/components/game/inventory";
+import { PuzzleBoard } from "@/components/game/puzzle/board";
+import { InventoryDrawer } from "@/components/game/puzzle/inventory";
 import { GameShell } from "@/components/game/shell";
 import {
 	TerminalInput,
@@ -292,8 +292,8 @@ const TcpGame = ({
 							flexBasis={0}
 							minW={{ base: "100%", xl: "0" }}
 						>
-							<PlayCanvas
-								canvasId={key}
+							<PuzzleBoard
+								puzzleId={key}
 								title={config.title ?? key}
 								getItemLabel={spec.labels.getItemLabel}
 								getStatusMessage={spec.labels.getStatusMessage}

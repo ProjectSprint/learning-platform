@@ -1,14 +1,14 @@
 // Utility functions for the webserver-ssl question
 // Domain-specific helper functions for game logic
 
-import type { CanvasState } from "@/components/game/game-provider";
+import type { PuzzleState } from "@/components/game/game-provider";
 import { DEFAULT_DOMAIN } from "./constants";
 
 /**
  * Check if Port 80 canvas is complete
  * Requires: webserver-80 + domain + index-html
  */
-export const isPort80Complete = (canvas: CanvasState | undefined): boolean => {
+export const isPort80Complete = (canvas: PuzzleState | undefined): boolean => {
 	if (!canvas) return false;
 	const types = canvas.placedItems.map((item) => item.type);
 	const hasContent =
@@ -20,7 +20,7 @@ export const isPort80Complete = (canvas: CanvasState | undefined): boolean => {
  * Check if Port 443 canvas is complete
  * Requires: webserver-443 + domain + index.html + private-key + certificate
  */
-export const isPort443Complete = (canvas: CanvasState | undefined): boolean => {
+export const isPort443Complete = (canvas: PuzzleState | undefined): boolean => {
 	if (!canvas) return false;
 	const types = canvas.placedItems.map((item) => item.type);
 	return (
@@ -36,7 +36,7 @@ export const isPort443Complete = (canvas: CanvasState | undefined): boolean => {
  * Check if Port 80 has redirect configured
  * Requires: webserver-80 + domain + redirect-to-https
  */
-export const isPort80RedirectConfigured = (canvas: CanvasState | undefined): boolean => {
+export const isPort80RedirectConfigured = (canvas: PuzzleState | undefined): boolean => {
 	if (!canvas) return false;
 	const types = canvas.placedItems.map((item) => item.type);
 	return (
@@ -50,9 +50,9 @@ export const isPort80RedirectConfigured = (canvas: CanvasState | undefined): boo
  * Determine browser connection status based on canvas states
  */
 export const getBrowserStatus = (
-	browserCanvas: CanvasState | undefined,
-	port80Canvas: CanvasState | undefined,
-	port443Canvas: CanvasState | undefined,
+	browserCanvas: PuzzleState | undefined,
+	port80Canvas: PuzzleState | undefined,
+	port443Canvas: PuzzleState | undefined,
 ): "error" | "warning" | "success" => {
 	if (!browserCanvas || browserCanvas.placedItems.length === 0) {
 		return "error";
@@ -75,9 +75,9 @@ export const getBrowserStatus = (
  * Get the URL the browser is connecting to
  */
 export const getBrowserUrl = (
-	browserCanvas: CanvasState | undefined,
-	port80Canvas: CanvasState | undefined,
-	port443Canvas: CanvasState | undefined,
+	browserCanvas: PuzzleState | undefined,
+	port80Canvas: PuzzleState | undefined,
+	port443Canvas: PuzzleState | undefined,
 ): string => {
 	if (!browserCanvas || browserCanvas.placedItems.length === 0) {
 		return "Not connected";
@@ -96,7 +96,7 @@ export const getBrowserUrl = (
 /**
  * Get domain name from canvas
  */
-export const getDomainFromCanvas = (canvas: CanvasState | undefined): string | undefined => {
+export const getDomainFromCanvas = (canvas: PuzzleState | undefined): string | undefined => {
 	if (!canvas) return undefined;
 	const domainItem = canvas.placedItems.find((item) => item.type === "domain");
 	if (domainItem && typeof domainItem.data?.domain === "string") {
@@ -108,7 +108,7 @@ export const getDomainFromCanvas = (canvas: CanvasState | undefined): string | u
 /**
  * Get certificate domain from letsencrypt canvas (domain item)
  */
-export const getCertificateDomain = (canvas: CanvasState | undefined): string | undefined => {
+export const getCertificateDomain = (canvas: PuzzleState | undefined): string | undefined => {
 	if (!canvas) return undefined;
 	// The certificate domain is stored on the domain item in the letsencrypt canvas
 	const domainItem = canvas.placedItems.find((item) => item.type === "domain");

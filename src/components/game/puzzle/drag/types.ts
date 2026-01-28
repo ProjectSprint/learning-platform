@@ -7,12 +7,12 @@ export type DragData = {
 	fromBlockY?: number;
 };
 
-export type DragSource = "inventory" | "canvas";
+export type DragSource = "inventory" | "board";
 
 export type ActiveDrag = {
 	source: DragSource;
 	data: DragData;
-	sourceCanvasId?: string;
+	sourcePuzzleId?: string;
 	element?: HTMLElement | null;
 	initialRect?: DOMRect;
 	pointerOffset?: { x: number; y: number };

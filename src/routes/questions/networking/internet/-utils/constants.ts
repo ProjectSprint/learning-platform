@@ -2,7 +2,7 @@
 // Contains all static configuration like inventory items, canvas setup, and question metadata
 
 import type {
-	CanvasConfig,
+	PuzzleConfig,
 	InventoryGroupConfig,
 	InventoryItem,
 	TerminalEntry,
@@ -156,11 +156,11 @@ export const CANVAS_ORDER: InternetCanvasKey[] = [
 	"google",
 ];
 
-export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
+export const CANVAS_CONFIGS: Record<InternetCanvasKey, PuzzleConfig> = {
 	local: {
 		id: "internet-local",
 		title: "Client",
-		canvasId: "client",
+		puzzleId: "client",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -168,7 +168,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	"conn-1": {
 		id: "internet-conn-1",
 		title: "Connector",
-		canvasId: "conn-1",
+		puzzleId: "conn-1",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -176,7 +176,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	router: {
 		id: "internet-router",
 		title: "Router",
-		canvasId: "router",
+		puzzleId: "router",
 		columns: 3,
 		rows: 1,
 		maxItems: 3,
@@ -184,7 +184,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	"conn-2": {
 		id: "internet-conn-2",
 		title: "Connector",
-		canvasId: "conn-2",
+		puzzleId: "conn-2",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -192,7 +192,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	igw: {
 		id: "internet-igw",
 		title: "Internet Gateway",
-		canvasId: "igw",
+		puzzleId: "igw",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -200,7 +200,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	dns: {
 		id: "internet-dns",
 		title: "DNS Server",
-		canvasId: "dns",
+		puzzleId: "dns",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -208,7 +208,7 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, CanvasConfig> = {
 	google: {
 		id: "internet-google",
 		title: "Google Server",
-		canvasId: "google",
+		puzzleId: "google",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,

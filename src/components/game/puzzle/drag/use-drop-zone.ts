@@ -1,16 +1,16 @@
 import { gsap } from "gsap";
 import type { MutableRefObject, RefObject } from "react";
 import { useEffect } from "react";
-import type { DragPreview } from "../../canvas/types";
-import type { GridMetrics } from "../../grid";
-import { convertPixelToBlock } from "../../grid";
-import type { DragDropResult } from "../context";
-import type { ActiveDrag, DragData } from "../types";
+import type { DragPreview } from "../board/types";
+import type { GridMetrics } from "../grid";
+import { convertPixelToBlock } from "../grid";
+import type { DragDropResult } from "./context";
+import type { ActiveDrag, DragData } from "./types";
 
 type UseDropZoneOptions = {
 	activeDrag: ActiveDrag | null;
-	resolvedCanvasId: string;
-	canvasRef: RefObject<HTMLDivElement | null>;
+	resolvedPuzzleId: string;
+	boardRef: RefObject<HTMLDivElement | null>;
 	gridMetrics: GridMetrics;
 	blockWidth: number;
 	blockHeight: number;
@@ -21,7 +21,7 @@ type UseDropZoneOptions = {
 	canPlaceItemAt: (
 		data: DragData,
 		target: { blockX: number; blockY: number },
-		targetCanvasId?: string,
+		targetPuzzleId?: string,
 	) => boolean;
 	placeOrRepositionItem: (
 		data: DragData,
@@ -32,13 +32,13 @@ type UseDropZoneOptions = {
 	setActiveDrag: (drag: ActiveDrag | null) => void;
 	setDragPreview: (preview: DragPreview | null) => void;
 	setHoveredBlock: (block: { x: number; y: number } | null) => void;
-	targetCanvasIdRef: MutableRefObject<string | undefined>;
+	targetPuzzleIdRef: MutableRefObject<string | undefined>;
 };
 
 export const useDropZone = ({
 	activeDrag,
-	resolvedCanvasId,
-	canvasRef,
+	resolvedPuzzleId,
+	boardRef,
 	gridMetrics,
 	blockWidth,
 	blockHeight,
@@ -53,30 +53,30 @@ export const useDropZone = ({
 	setActiveDrag,
 	setDragPreview,
 	setHoveredBlock,
-	targetCanvasIdRef,
+	targetPuzzleIdRef,
 }: UseDropZoneOptions) => {
-	// biome-ignore lint/correctness/useExhaustiveDependencies: targetCanvasIdRef is a ref and doesn't need to be in deps
+	// biome-ignore lint/correctness/useExhaustiveDependencies: targetPuzzleIdRef is a ref and doesn't need to be in deps
 	useEffect(() => {
 		if (
 			!activeDrag ||
 			activeDrag.source !== "inventory" ||
-			!canvasRef.current
+			!boardRef.current
 		) {
 			return;
 		}
 
-		const canvasElement = canvasRef.current;
+		const boardElement = boardRef.current;
 		let lastBlockX: number | null = null;
 		let lastBlockY: number | null = null;
 
 		const handlePointerMove = (event: PointerEvent) => {
-			const rect = canvasElement.getBoundingClientRect();
+			const rect = boardElement.getBoundingClientRect();
 			const x = event.clientX - rect.left;
 			const y = event.clientY - rect.top;
 			const isInside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
 
 			if (isInside) {
-				targetCanvasIdRef.current = resolvedCanvasId;
+				targetPuzzleIdRef.current = resolvedPuzzleId;
 			}
 
 			if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
@@ -100,7 +100,7 @@ export const useDropZone = ({
 				const valid = canPlaceItemAt(
 					activeDrag.data,
 					{ blockX, blockY },
-					resolvedCanvasId,
+					resolvedPuzzleId,
 				);
 				setHoveredBlock({ x: blockX, y: blockY });
 				setDragPreview({
@@ -118,21 +118,21 @@ export const useDropZone = ({
 		};
 
 		const handlePointerUp = (event: PointerEvent) => {
-			const targetCanvasId = targetCanvasIdRef.current;
-			if (targetCanvasId && targetCanvasId !== resolvedCanvasId) {
+			const targetPuzzleId = targetPuzzleIdRef.current;
+			if (targetPuzzleId && targetPuzzleId !== resolvedPuzzleId) {
 				return;
 			}
 
-			const rect = canvasElement.getBoundingClientRect();
+			const rect = boardElement.getBoundingClientRect();
 			const x = event.clientX - rect.left;
 			const y = event.clientY - rect.top;
 
-			const isInsideCanvas =
+			const isInsideBoard =
 				x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
 			const { blockX, blockY } = convertPixelToBlock(x, y, gridMetrics);
 			const canPlace =
-				isInsideCanvas &&
-				canPlaceItemAt(activeDrag.data, { blockX, blockY }, resolvedCanvasId);
+				isInsideBoard &&
+				canPlaceItemAt(activeDrag.data, { blockX, blockY }, resolvedPuzzleId);
 
 			if (canPlace && proxyRef.current) {
 				const targetX = rect.left + blockX * stepX;
@@ -151,7 +151,7 @@ export const useDropZone = ({
 						setActiveDrag(null);
 						setDragPreview(null);
 						setHoveredBlock(null);
-						targetCanvasIdRef.current = undefined;
+						targetPuzzleIdRef.current = undefined;
 					},
 				});
 			} else {
@@ -159,7 +159,7 @@ export const useDropZone = ({
 				setActiveDrag(null);
 				setDragPreview(null);
 				setHoveredBlock(null);
-				targetCanvasIdRef.current = undefined;
+				targetPuzzleIdRef.current = undefined;
 			}
 		};
 
@@ -174,8 +174,8 @@ export const useDropZone = ({
 		activeDrag,
 		blockHeight,
 		blockWidth,
-		resolvedCanvasId,
-		canvasRef,
+		resolvedPuzzleId,
+		boardRef,
 		canPlaceItemAt,
 		gridMetrics,
 		placeOrRepositionItem,

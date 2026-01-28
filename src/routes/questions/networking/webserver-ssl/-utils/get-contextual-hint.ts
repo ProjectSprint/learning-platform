@@ -1,14 +1,14 @@
 // Contextual hints for the webserver-ssl question
 // Hints change based on game progress to guide the user
 
-import type { CanvasState } from "@/components/game/game-provider";
+import type { PuzzleState } from "@/components/game/game-provider";
 import { isPort443Complete, isPort80RedirectConfigured } from "./ssl-utils";
 
 interface SslGameState {
-	browserCanvas: CanvasState | undefined;
-	port80Canvas: CanvasState | undefined;
-	letsencryptCanvas: CanvasState | undefined;
-	port443Canvas: CanvasState | undefined;
+	browserCanvas: PuzzleState | undefined;
+	port80Canvas: PuzzleState | undefined;
+	letsencryptCanvas: PuzzleState | undefined;
+	port443Canvas: PuzzleState | undefined;
 	allPlacedItems: Array<{ type: string; id: string }>;
 	httpReady: boolean;
 	httpsReady: boolean;

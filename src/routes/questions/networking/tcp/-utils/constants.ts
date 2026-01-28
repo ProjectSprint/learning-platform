@@ -1,5 +1,5 @@
 import type {
-	CanvasConfig,
+	PuzzleConfig,
 	InventoryItem,
 } from "@/components/game/game-provider";
 
@@ -14,11 +14,11 @@ export type TcpCanvasKey = "splitter" | "internet" | "server";
 
 export const CANVAS_ORDER: TcpCanvasKey[] = ["splitter", "internet", "server"];
 
-export const CANVAS_CONFIGS: Record<TcpCanvasKey, CanvasConfig> = {
+export const CANVAS_CONFIGS: Record<TcpCanvasKey, PuzzleConfig> = {
 	splitter: {
 		id: "tcp-splitter",
 		title: "Content Splitter",
-		canvasId: "splitter",
+		puzzleId: "splitter",
 		columns: 1,
 		rows: 1,
 		maxItems: 1,
@@ -26,7 +26,7 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, CanvasConfig> = {
 	internet: {
 		id: "tcp-internet",
 		title: "Internet",
-		canvasId: "internet",
+		puzzleId: "internet",
 		columns: 3,
 		rows: 1,
 		maxItems: 3,
@@ -34,7 +34,7 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, CanvasConfig> = {
 	server: {
 		id: "tcp-server",
 		title: "Server",
-		canvasId: "server",
+		puzzleId: "server",
 		columns: 3,
 		rows: 4,
 		maxItems: 12,

@@ -1,6 +1,6 @@
 import type { GameAction } from "../actions";
 import type { GameState } from "../types";
-import { canvasReducer } from "./canvas";
+import { puzzleReducer } from "./puzzle";
 import { connectionReducer } from "./connection";
 import { coreReducer } from "./core";
 import { inventoryReducer } from "./inventory";
@@ -15,7 +15,7 @@ export const gameReducer = (
 ): GameState => {
 	let nextState = coreReducer(state, action);
 	nextState = inventoryReducer(nextState, action);
-	nextState = canvasReducer(nextState, action);
+	nextState = puzzleReducer(nextState, action);
 	nextState = connectionReducer(nextState, action);
 	nextState = terminalReducer(nextState, action);
 	nextState = modalReducer(nextState, action);

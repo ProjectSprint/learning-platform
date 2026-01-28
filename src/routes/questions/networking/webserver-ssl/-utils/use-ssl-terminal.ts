@@ -2,12 +2,12 @@
 // Supports curl and openssl commands for testing HTTP and HTTPS
 
 import { useCallback, useMemo } from "react";
-import { useAllCanvases, useGameDispatch } from "@/components/game/game-provider";
+import { useAllPuzzles, useGameDispatch } from "@/components/game/game-provider";
 import type { TerminalCommandHelpers } from "@/components/game/engines/terminal/use-terminal-engine";
 import { INDEX_HTML_CONTENT } from "./constants";
 import { isPort443Complete, isPort80Complete, isPort80RedirectConfigured } from "./ssl-utils";
 import { buildSuccessModal } from "./modal-builders";
-import type { CanvasState } from "@/components/game/game-provider";
+import type { PuzzleState } from "@/components/game/game-provider";
 
 interface UseSslTerminalArgs {
 	hasRedirect: boolean;
@@ -23,13 +23,13 @@ export const useSslTerminal = ({
 	onQuestionComplete,
 }: UseSslTerminalArgs) => {
 	const dispatch = useGameDispatch();
-	const canvases = useAllCanvases();
+	const canvases = useAllPuzzles();
 	const port80Canvas = useMemo(
-		() => canvases["port-80"] as CanvasState | undefined,
+		() => canvases["port-80"] as PuzzleState | undefined,
 		[canvases],
 	);
 	const port443Canvas = useMemo(
-		() => canvases["port-443"] as CanvasState | undefined,
+		() => canvases["port-443"] as PuzzleState | undefined,
 		[canvases],
 	);
 

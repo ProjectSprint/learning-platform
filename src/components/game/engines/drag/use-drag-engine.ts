@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import type {
-	CanvasState,
+	PuzzleState,
 	Connection,
 	PlacedItem,
 } from "@/components/game/game-provider";
@@ -12,7 +12,7 @@ import {
 } from "../use-engine-progress";
 
 export interface DragEngineState {
-	canvas: CanvasState;
+	puzzle: PuzzleState;
 	placedItems: PlacedItem[];
 	connections: Connection[];
 }
@@ -38,11 +38,11 @@ export const useDragEngine = <TContext = unknown>(
 
 	const state: DragEngineState = useMemo(
 		() => ({
-			canvas: gameState.canvas,
-			placedItems: gameState.canvas.placedItems,
-			connections: gameState.canvas.connections,
+			puzzle: gameState.puzzle,
+			placedItems: gameState.puzzle.placedItems,
+			connections: gameState.puzzle.connections,
 		}),
-		[gameState.canvas],
+		[gameState.puzzle],
 	);
 
 	useEffect(() => {

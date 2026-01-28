@@ -7,8 +7,8 @@ import {
    useGameDispatch,
    useGameState,
 } from "@/components/game/game-provider";
-import { PlayCanvas } from "@/components/game/canvas";
-import { InventoryDrawer } from "@/components/game/inventory";
+import { PuzzleBoard } from "@/components/game/puzzle/board";
+import { InventoryDrawer } from "@/components/game/puzzle/inventory";
 import { GameShell } from "@/components/game/shell";
 import {
 	TerminalInput,
@@ -124,7 +124,7 @@ const NetworkingGame = ({
    const itemClickHandlers = useMemo(
       () => ({
          router: ({ item }: { item: PlacedItem }) => {
-            const placedItem = state.canvas.placedItems.find(
+            const placedItem = state.puzzle.placedItems.find(
                (entry) => entry.id === item.id,
             );
             const currentConfig = placedItem?.data ?? {};
@@ -134,7 +134,7 @@ const NetworkingGame = ({
             });
          },
          pc: ({ item }: { item: PlacedItem }) => {
-            const placedItem = state.canvas.placedItems.find(
+            const placedItem = state.puzzle.placedItems.find(
                (entry) => entry.id === item.id,
             );
             const currentConfig = placedItem?.data ?? {};
@@ -144,7 +144,7 @@ const NetworkingGame = ({
             });
          },
       }),
-      [dispatch, state.canvas.placedItems],
+      [dispatch, state.puzzle.placedItems],
    );
 
    const spec = useMemo<QuestionSpec<DhcpConditionKey>>(
@@ -264,7 +264,7 @@ const NetworkingGame = ({
             </Box>
 
             <Box flex="1">
-               <PlayCanvas
+               <PuzzleBoard
                   getItemLabel={spec.labels.getItemLabel}
                   getStatusMessage={spec.labels.getStatusMessage}
                   onPlacedItemClick={handlePlacedItemClick}

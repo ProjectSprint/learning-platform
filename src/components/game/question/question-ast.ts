@@ -1,6 +1,6 @@
 import type { TerminalCommandHelpers } from "@/components/game/engines";
 import type {
-	CanvasConfig,
+	PuzzleConfig,
 	GamePhase,
 	InventoryGroupConfig,
 	PlacedItem,
@@ -28,7 +28,7 @@ export type InitSpec = { kind: "multi"; payload: MultiInitPayload };
 
 export type MultiInitPayload = {
 	questionId: string;
-	canvases: Record<string, CanvasConfig>;
+	canvases: Record<string, PuzzleConfig>;
 	inventoryGroups?: InventoryGroupConfig[];
 	terminal?: Partial<TerminalState>;
 	phase?: GamePhase;
@@ -44,8 +44,8 @@ export type InventoryRule<ConditionKey extends string = string> =
 	| { kind: "hide-group"; when: Condition<ConditionKey>; groupId: string };
 
 export type CanvasRule<ConditionKey extends string = string> =
-	| { kind: "show"; when: Condition<ConditionKey>; canvasId: string }
-	| { kind: "hide"; when: Condition<ConditionKey>; canvasId: string };
+	| { kind: "show"; when: Condition<ConditionKey>; puzzleId: string }
+	| { kind: "hide"; when: Condition<ConditionKey>; puzzleId: string };
 
 export type Labels = {
 	getItemLabel: (itemType: string) => string;
@@ -140,7 +140,7 @@ export const resolveVisibility = <ConditionKey extends string>(
 
 	for (const rule of rules) {
 		const matchesKey =
-			"groupId" in rule ? rule.groupId === key : rule.canvasId === key;
+			"groupId" in rule ? rule.groupId === key : rule.puzzleId === key;
 		if (!matchesKey) {
 			continue;
 		}

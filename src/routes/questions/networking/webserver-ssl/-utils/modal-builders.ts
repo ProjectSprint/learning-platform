@@ -325,7 +325,7 @@ export const buildCertificateRequestModal = (
 							verified: true,
 							certificateDomain: domain,
 						},
-						canvasId: "letsencrypt",
+						puzzleId: "letsencrypt",
 					},
 				});
 
@@ -335,7 +335,7 @@ export const buildCertificateRequestModal = (
 					payload: {
 						key: "ssl-certificate",
 						value: { issued: true, domain },
-						sourceCanvasId: "letsencrypt",
+						sourcePuzzleId: "letsencrypt",
 					},
 				});
 

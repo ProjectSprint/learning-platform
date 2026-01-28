@@ -1,5 +1,5 @@
 import type {
-	CanvasConfig,
+	PuzzleConfig,
 	GamePhase,
 	InventoryGroupConfig,
 	QuestionStatus,
@@ -11,7 +11,7 @@ export type CoreAction =
 			type: "INIT_MULTI_CANVAS";
 			payload: {
 				questionId: string;
-				canvases: Record<string, CanvasConfig>;
+				canvases: Record<string, PuzzleConfig>;
 				inventoryGroups?: InventoryGroupConfig[];
 				terminal?: Partial<TerminalState>;
 				phase?: GamePhase;
@@ -23,7 +23,7 @@ export type CoreAction =
 			payload: {
 				key: string;
 				value: unknown;
-				sourceCanvasId?: string;
+				sourcePuzzleId?: string;
 			};
 	  }
 	| {
