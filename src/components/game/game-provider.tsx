@@ -9,6 +9,10 @@ import {
 export type { GameAction } from "./core/actions";
 // Re-export all types from core/types
 export type {
+	Arrow,
+	ArrowAnchor,
+	ArrowEndpoint,
+	ArrowStyle,
 	Block,
 	BlockStatus,
 	GamePhase,

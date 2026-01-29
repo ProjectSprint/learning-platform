@@ -35,6 +35,7 @@ export const createDefaultState = (): GameState => ({
 		],
 	},
 	puzzle: createPuzzleState(defaultPuzzleConfig),
+	arrows: [],
 	terminal: {
 		visible: false,
 		prompt: "",

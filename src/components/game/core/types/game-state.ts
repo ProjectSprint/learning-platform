@@ -1,3 +1,4 @@
+import type { Arrow } from "./arrow";
 import type { HintState } from "./hint";
 import type { InventoryGroup } from "./inventory";
 import type { OverlayState } from "./modal";
@@ -18,6 +19,7 @@ export type GameState = {
 	inventory: { groups: InventoryGroup[] };
 	puzzle: PuzzleState;
 	puzzles?: Record<string, PuzzleState>;
+	arrows: Arrow[];
 	terminal: TerminalState;
 	hint: HintState;
 	overlay: OverlayState;

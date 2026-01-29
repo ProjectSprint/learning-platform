@@ -1,5 +1,6 @@
 import type { GameAction } from "../actions";
 import type { GameState } from "../types";
+import { arrowsReducer } from "./arrows";
 import { coreReducer } from "./core";
 import { hintReducer } from "./hint";
 import { inventoryReducer } from "./inventory";
@@ -17,6 +18,7 @@ export const gameReducer = (
 	nextState = hintReducer(nextState, action);
 	nextState = inventoryReducer(nextState, action);
 	nextState = puzzleReducer(nextState, action);
+	nextState = arrowsReducer(nextState, action);
 	nextState = terminalReducer(nextState, action);
 	nextState = modalReducer(nextState, action);
 	return nextState;
