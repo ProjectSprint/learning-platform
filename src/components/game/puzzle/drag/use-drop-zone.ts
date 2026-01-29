@@ -78,6 +78,8 @@ export const useDropZone = ({
 			if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
 				setDragPreview(null);
 				setHoveredBlock(null);
+				lastBlockX = null;
+				lastBlockY = null;
 				return;
 			}
 
@@ -86,6 +88,8 @@ export const useDropZone = ({
 			if (blockX < 0 || blockY < 0 || blockX >= columns || blockY >= rows) {
 				setDragPreview(null);
 				setHoveredBlock(null);
+				lastBlockX = null;
+				lastBlockY = null;
 				return;
 			}
 
