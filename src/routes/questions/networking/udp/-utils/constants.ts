@@ -164,6 +164,15 @@ export const buildReceivedSynPacket = (
 	data: { clientId, tcpState: "delivered" },
 });
 
+export const buildReceivedAckPacket = (
+	clientId: TcpClientId,
+): InventoryItem => ({
+	...buildAckPacket(clientId),
+	allowedPlaces: ["inventory"],
+	draggable: false,
+	data: { clientId, tcpState: "delivered" },
+});
+
 export const buildSynAckPacket = (clientId: TcpClientId): InventoryItem => ({
 	id: `syn-ack-packet-${clientId}`,
 	type: "syn-ack-packet",

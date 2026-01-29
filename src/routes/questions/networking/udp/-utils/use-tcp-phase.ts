@@ -7,7 +7,6 @@ import {
 } from "@/components/game/game-provider";
 
 import {
-	ACK_PACKETS,
 	DATA_PACKETS,
 	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_GROUP_IDS,
@@ -15,6 +14,7 @@ import {
 	SYN_ACK_PACKETS,
 	TCP_CLIENT_IDS,
 	TCP_INBOX_IDS,
+	buildReceivedAckPacket,
 	buildReceivedSynPacket,
 	buildSynAckPacket,
 } from "./constants";
@@ -337,12 +337,6 @@ export const useTcpPhase = ({
 		[],
 	);
 
-	const areSynAcksSent = useCallback(
-		(ids: readonly string[]) =>
-			ids.every((id) => clientStateRef.current[id]?.synAckSent),
-		[],
-	);
-
 	const clearTcpCanvases = useCallback(() => {
 		const keys = [
 			"internet",
@@ -545,21 +539,26 @@ export const useTcpPhase = ({
 
 	const handleSynAckArrival = useCallback(
 		(item: PlacedItem, inboxId: string, clientId: string) => {
+			if (!(clientId in TCP_INBOX_IDS)) {
+				return;
+			}
 			updateItemIfNeeded(item, inboxId, {
 				status: "success",
 				tcpState: "delivered",
 			});
-			ensureClientState(clientId);
-			clientStateRef.current[clientId].synAckSent = true;
-			setClientStatusFor(clientId, "🟡 SYN-ACK sent, waiting for ACK...");
+			const typedClientId = clientId as keyof typeof TCP_INBOX_IDS;
+			ensureClientState(typedClientId);
+			clientStateRef.current[typedClientId].synAckSent = true;
+			setClientStatusFor(typedClientId, "🟢 Connected");
+			clientStateRef.current[typedClientId].connected = true;
 			ensureInventoryItems(
-				INVENTORY_GROUP_IDS.incoming,
-				ACK_PACKETS.filter((packet) => packet.data?.clientId === clientId),
+				INVENTORY_GROUP_IDS.received,
+				[buildReceivedAckPacket(typedClientId)],
 				true,
 			);
 
-			if (areSynAcksSent(INITIAL_TCP_CLIENT_IDS)) {
-				setPhase("handshake-ack");
+			if (areClientsConnected(INITIAL_TCP_CLIENT_IDS)) {
+				handleHandshakeComplete();
 			}
 
 			const timer = setTimeout(() => {
@@ -571,10 +570,12 @@ export const useTcpPhase = ({
 			registerTimer(timer);
 		},
 		[
-			areSynAcksSent,
+			areClientsConnected,
+			buildReceivedAckPacket,
 			ensureInventoryItems,
 			ensureClientState,
 			findItemLocationLatest,
+			handleHandshakeComplete,
 			registerTimer,
 			removeItem,
 			setClientStatusFor,
