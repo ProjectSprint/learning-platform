@@ -660,6 +660,7 @@ export const useTcpPhase = ({
 
 	const handleDataArrival = useCallback(
 		(item: PlacedItem, inboxId: string, clientId: string) => {
+			removeInventoryItem(INVENTORY_GROUP_IDS.dataPackets, item.id);
 			if (item.data?.clientId !== clientId) {
 				updateItemIfNeeded(item, inboxId, {
 					status: "error",
@@ -698,6 +699,7 @@ export const useTcpPhase = ({
 			incrementPacketCount,
 			registerTimer,
 			removeItem,
+			removeInventoryItem,
 			updateItemIfNeeded,
 		],
 	);
@@ -732,6 +734,7 @@ export const useTcpPhase = ({
 			}
 
 			if (item.type === "data-packet") {
+				removeInventoryItem(INVENTORY_GROUP_IDS.dataPackets, item.id);
 				const clientId = item.data?.clientId as string | undefined;
 				if (!clientId) return;
 				if (!clientStateRef.current[clientId]?.connected) {
