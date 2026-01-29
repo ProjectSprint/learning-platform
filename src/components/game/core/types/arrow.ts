@@ -15,8 +15,15 @@ export type ArrowStyle = {
 	strokeWidth?: number;
 	opacity?: number;
 	headSize?: number;
-	bow?: number;
 	dashed?: boolean;
+	bow?: number;
+	stretch?: number;
+	stretchMin?: number;
+	stretchMax?: number;
+	padStart?: number;
+	padEnd?: number;
+	flip?: boolean;
+	straights?: boolean;
 };
 
 export type Arrow = {

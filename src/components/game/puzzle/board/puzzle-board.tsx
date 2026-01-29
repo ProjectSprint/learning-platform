@@ -9,6 +9,7 @@ import {
 } from "../../game-provider";
 import { type DragData, type DragHandle, useDragContext } from "../drag";
 import type { GridMetrics } from "../grid";
+import { useBoardRegistry } from "./arrow";
 import { GridCell } from "./grid-cell";
 import { PlacedItemCard } from "./placed-item-card";
 import type {
@@ -63,6 +64,8 @@ export const PuzzleBoard = ({
 		: state.puzzle;
 	const resolvedPuzzleId =
 		puzzleId ?? puzzle.config.puzzleId ?? puzzle.config.id ?? "default";
+	const { registerBoard } = useBoardRegistry();
+	const containerRef = useRef<HTMLDivElement | null>(null);
 	const boardRef = useRef<HTMLDivElement | null>(null);
 	const placedItemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const draggablesRef = useRef<DragHandle[]>([]);
@@ -129,6 +132,13 @@ export const PuzzleBoard = ({
 		observer.observe(element);
 		return () => observer.disconnect();
 	}, []);
+
+	useEffect(() => {
+		registerBoard(resolvedPuzzleId, containerRef.current);
+		return () => {
+			registerBoard(resolvedPuzzleId, null);
+		};
+	}, [registerBoard, resolvedPuzzleId]);
 
 	const blockWidth =
 		(boardSize.width - boardSize.gapX * (puzzle.config.columns - 1)) /
@@ -328,6 +338,7 @@ export const PuzzleBoard = ({
 
 	return (
 		<Box
+			ref={containerRef}
 			className="puzzle-board"
 			data-puzzle-board
 			bg="gray.950"
