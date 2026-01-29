@@ -124,63 +124,13 @@ export const InventoryDrawer = forwardRef<
 
 		useEffect(() => {
 			if (!activeDrag) {
-				if (isMdOrBelow) {
-					expandDrawer("auto");
-				}
 				return;
 			}
 
 			if (activeDrag.source === "inventory") {
 				foldDrawer("drag");
 			}
-		}, [activeDrag, expandDrawer, foldDrawer, isMdOrBelow]);
-
-		useEffect(() => {
-			if (!isMdOrBelow) {
-				return;
-			}
-			if (!activeDrag || activeDrag.source !== "inventory") {
-				return;
-			}
-
-			const handlePointerUp = () => {
-				expandDrawer("auto");
-			};
-
-			const handlePointerCancel = () => {
-				expandDrawer("auto");
-			};
-
-			window.addEventListener("pointerup", handlePointerUp, { capture: true });
-			window.addEventListener("pointercancel", handlePointerCancel, {
-				capture: true,
-			});
-
-			return () => {
-				window.removeEventListener("pointerup", handlePointerUp, {
-					capture: true,
-				});
-				window.removeEventListener("pointercancel", handlePointerCancel, {
-					capture: true,
-				});
-			};
-		}, [activeDrag, expandDrawer, isMdOrBelow]);
-
-		useEffect(() => {
-			if (!isMdOrBelow) {
-				return;
-			}
-			if (!activeDrag || activeDrag.source !== "inventory") {
-				return;
-			}
-
-			const handlePointerUp = () => {
-				expandDrawer("auto");
-			};
-
-			window.addEventListener("pointerup", handlePointerUp, { once: true });
-			return () => window.removeEventListener("pointerup", handlePointerUp);
-		}, [activeDrag, expandDrawer, isMdOrBelow]);
+		}, [activeDrag, foldDrawer]);
 
 		useEffect(() => {
 			if (!lastDropResult || activeDrag) {
@@ -188,21 +138,11 @@ export const InventoryDrawer = forwardRef<
 			}
 
 			if (lastDropResult.source === "inventory") {
-				if (isMdOrBelow) {
-					expandDrawer("auto");
-				} else if (!lastDropResult.placed) {
-					expandDrawer("auto");
-				}
+				expandDrawer("auto");
 			}
 
 			setLastDropResult(null);
-		}, [
-			activeDrag,
-			expandDrawer,
-			isMdOrBelow,
-			lastDropResult,
-			setLastDropResult,
-		]);
+		}, [activeDrag, expandDrawer, lastDropResult, setLastDropResult]);
 
 		useEffect(() => {
 			if (prevItemCountRef.current === null) {
