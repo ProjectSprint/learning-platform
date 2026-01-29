@@ -53,9 +53,9 @@ export const InventoryDrawer = forwardRef<
 		const [hoverLocked, setHoverLocked] = useState(false);
 		const { activeDrag, lastDropResult, setLastDropResult } = useDragContext();
 		const isMdOrBelow =
-			useBreakpointValue({ base: true, md: true, lg: false }) ?? true;
+			useBreakpointValue({ base: true, sm: false }) ?? true;
 		const responsiveDrawerWidth =
-			useBreakpointValue({ base: "80vw", md: "320px" }) ?? "320px";
+			useBreakpointValue({ base: "80vw", sm: "320px" }) ?? "320px";
 		const resolvedDrawerWidth = drawerWidth ?? responsiveDrawerWidth;
 		const resolvedCloseGutterWidth =
 			closeGutterWidth ?? `calc(100vw - ${resolvedDrawerWidth})`;
