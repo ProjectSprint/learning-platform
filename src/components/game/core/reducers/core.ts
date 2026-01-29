@@ -222,12 +222,6 @@ export const coreReducer = (
 			return {
 				...state,
 				phase: action.payload.phase,
-				terminal: {
-					...state.terminal,
-					visible:
-						action.payload.phase === "terminal" ||
-						action.payload.phase === "completed",
-				},
 			};
 		case "COMPLETE_QUESTION":
 			return {

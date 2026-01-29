@@ -36,6 +36,22 @@ export const terminalReducer = (
 	action: GameAction,
 ): GameState => {
 	switch (action.type) {
+		case "OPEN_TERMINAL":
+			return {
+				...state,
+				terminal: {
+					...state.terminal,
+					visible: true,
+				},
+			};
+		case "CLOSE_TERMINAL":
+			return {
+				...state,
+				terminal: {
+					...state.terminal,
+					visible: false,
+				},
+			};
 		case "SUBMIT_COMMAND": {
 			const input = sanitizeTerminalInput(action.payload.input);
 			if (!input) {
