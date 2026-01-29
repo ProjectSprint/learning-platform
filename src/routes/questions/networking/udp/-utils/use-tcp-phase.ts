@@ -11,11 +11,12 @@ import {
 	DATA_PACKETS,
 	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_GROUP_IDS,
+	RECEIVED_SYN_PACKETS,
 	SYN_ACK_PACKETS,
-	SYN_PACKETS,
 	TCP_CLIENT_IDS,
 	TCP_INBOX_IDS,
-	buildSynPacket,
+	buildReceivedSynPacket,
+	buildSynAckPacket,
 } from "./constants";
 import {
 	buildBreakingPointModal,
@@ -38,6 +39,11 @@ const CLIENT_LABELS: Record<string, string> = {
 	d: "D",
 };
 
+const isInitialClientId = (
+	clientId: unknown,
+): clientId is (typeof INITIAL_TCP_CLIENT_IDS)[number] =>
+	INITIAL_TCP_CLIENT_IDS.includes(clientId as (typeof INITIAL_TCP_CLIENT_IDS)[number]);
+
 export type TcpNotice = { message: string; tone: "error" | "info" } | null;
 
 export const useTcpPhase = ({
@@ -51,7 +57,7 @@ export const useTcpPhase = ({
 	const state = useGameState();
 	const canvases = useAllPuzzles();
 
-	const [phase, setPhase] = useState<TcpPhase>("handshake-syn");
+	const [phase, setPhase] = useState<TcpPhase>("handshake-synack");
 	const [packetsSent, setPacketsSent] = useState(0);
 	const [showClientD, setShowClientD] = useState(false);
 	const [clientStatus, setClientStatus] = useState<Record<string, string>>({
@@ -78,6 +84,7 @@ export const useTcpPhase = ({
 		breaking: false,
 	});
 	const udpTransitionRef = useRef(false);
+	const initRef = useRef(false);
 	const redoPacketSentRef = useRef(false);
 
 	useEffect(() => {
@@ -239,19 +246,6 @@ export const useTcpPhase = ({
 		[dispatch, findEmptyBlockLatest, findItemLocationLatest],
 	);
 
-	const placeItemOnCanvas = useCallback(
-		(itemId: string, canvasId: string) => {
-			const target = findEmptyBlockLatest(canvasId);
-			if (!target) return false;
-			dispatch({
-				type: "PLACE_ITEM",
-				payload: { itemId, puzzleId: canvasId, ...target },
-			});
-			return true;
-		},
-		[dispatch, findEmptyBlockLatest],
-	);
-
 	const resetClientState = useCallback((clientId: string) => {
 		clientLocksRef.current[clientId] = false;
 		clientStateRef.current[clientId] = {
@@ -270,6 +264,13 @@ export const useTcpPhase = ({
 		[resetClientState],
 	);
 
+	const setClientStatusFor = useCallback(
+		(clientId: string, status: string) => {
+			setClientStatus((prev) => ({ ...prev, [clientId]: status }));
+		},
+		[],
+	);
+
 	useEffect(() => {
 		for (const clientId of TCP_CLIENT_IDS) {
 			if (!clientStateRef.current[clientId]) {
@@ -278,12 +279,51 @@ export const useTcpPhase = ({
 		}
 	}, [resetClientState]);
 
-	const setClientStatusFor = useCallback(
-		(clientId: string, status: string) => {
-			setClientStatus((prev) => ({ ...prev, [clientId]: status }));
-		},
-		[],
-	);
+	useEffect(() => {
+		if (!active || initRef.current) return;
+		initRef.current = true;
+		setPhase("handshake-synack");
+		setPacketsSent(0);
+		packetsSentRef.current = 0;
+		setShowClientD(false);
+		redoPacketSentRef.current = false;
+		modalShownRef.current.connected = false;
+		modalShownRef.current.newClient = false;
+		modalShownRef.current.timeout = false;
+		modalShownRef.current.breaking = false;
+		udpTransitionRef.current = false;
+
+		for (const clientId of INITIAL_TCP_CLIENT_IDS) {
+			resetClientState(clientId);
+			clientStateRef.current[clientId].synReceived = true;
+			setClientStatusFor(clientId, "🟡 SYN received");
+		}
+		resetClientState("d");
+		setClientStatusFor("d", INITIAL_STATUS);
+
+		updateInventoryGroup(INVENTORY_GROUP_IDS.received, {
+			visible: true,
+			items: RECEIVED_SYN_PACKETS,
+		});
+		updateInventoryGroup(INVENTORY_GROUP_IDS.incoming, {
+			visible: false,
+			items: [],
+		});
+		updateInventoryGroup(INVENTORY_GROUP_IDS.outgoing, {
+			visible: true,
+			items: SYN_ACK_PACKETS.filter((packet) =>
+				isInitialClientId(packet.data?.clientId),
+			),
+		});
+		updateInventoryGroup(INVENTORY_GROUP_IDS.dataPackets, {
+			visible: false,
+		});
+	}, [
+		active,
+		resetClientState,
+		setClientStatusFor,
+		updateInventoryGroup,
+	]);
 
 	const areClientsConnected = useCallback(
 		(ids: readonly string[]) =>
@@ -339,16 +379,19 @@ export const useTcpPhase = ({
 		modalShownRef.current.newClient = true;
 		setPhase("chaos-new-client");
 		setShowClientD(true);
-		setClientStatusFor("d", INITIAL_STATUS);
+		resetClientState("d");
+		clientStateRef.current.d.synReceived = true;
+		setClientStatusFor("d", "🟡 SYN received");
 		ensureInventoryItems(
-			INVENTORY_GROUP_IDS.incoming,
-			[buildSynPacket("d")],
+			INVENTORY_GROUP_IDS.received,
+			[buildReceivedSynPacket("d")],
 			true,
 		);
-		const placeTimer = setTimeout(() => {
-			placeItemOnCanvas("syn-packet-d", "internet");
-		}, 0);
-		registerTimer(placeTimer);
+		ensureInventoryItems(
+			INVENTORY_GROUP_IDS.outgoing,
+			[buildSynAckPacket("d")],
+			true,
+		);
 		dispatch({
 			type: "OPEN_MODAL",
 			payload: buildNewClientModal(),
@@ -356,8 +399,7 @@ export const useTcpPhase = ({
 	}, [
 		dispatch,
 		ensureInventoryItems,
-		placeItemOnCanvas,
-		registerTimer,
+		resetClientState,
 		setClientStatusFor,
 	]);
 
@@ -365,30 +407,29 @@ export const useTcpPhase = ({
 		setPhase("chaos-redo");
 		for (const clientId of INITIAL_TCP_CLIENT_IDS) {
 			resetClientState(clientId);
-			setClientStatusFor(clientId, "🔴 Disconnected (timeout)");
+			clientStateRef.current[clientId].synReceived = true;
+			setClientStatusFor(clientId, "🟡 SYN received");
 		}
 		clearTcpCanvases();
-		updateInventoryGroup(INVENTORY_GROUP_IDS.outgoing, {
+		updateInventoryGroup(INVENTORY_GROUP_IDS.received, {
+			visible: true,
+			items: RECEIVED_SYN_PACKETS,
+		});
+		updateInventoryGroup(INVENTORY_GROUP_IDS.incoming, {
 			visible: false,
 			items: [],
 		});
-		updateInventoryGroup(INVENTORY_GROUP_IDS.incoming, {
+		updateInventoryGroup(INVENTORY_GROUP_IDS.outgoing, {
 			visible: true,
-			items: SYN_PACKETS,
+			items: SYN_ACK_PACKETS.filter((packet) =>
+				isInitialClientId(packet.data?.clientId),
+			),
 		});
-		const placeTimer = setTimeout(() => {
-			for (const clientId of INITIAL_TCP_CLIENT_IDS) {
-				placeItemOnCanvas(`syn-packet-${clientId}`, "internet");
-			}
-		}, 0);
-		registerTimer(placeTimer);
 	}, [
 		clearTcpCanvases,
-		placeItemOnCanvas,
 		resetClientState,
 		setClientStatusFor,
 		updateInventoryGroup,
-		registerTimer,
 	]);
 
 	const triggerTimeout = useCallback(() => {
@@ -405,6 +446,7 @@ export const useTcpPhase = ({
 		if (udpTransitionRef.current) return;
 		udpTransitionRef.current = true;
 		setPhase("breaking-point");
+		updateInventoryGroup(INVENTORY_GROUP_IDS.received, { visible: false });
 		updateInventoryGroup(INVENTORY_GROUP_IDS.incoming, { visible: false });
 		updateInventoryGroup(INVENTORY_GROUP_IDS.outgoing, { visible: false });
 		updateInventoryGroup(INVENTORY_GROUP_IDS.dataPackets, { visible: false });

@@ -95,6 +95,7 @@ export const useUdpPhase = ({
 	useEffect(() => {
 		if (!active) return;
 		updateInventoryGroup(INVENTORY_GROUP_IDS.frames, { visible: true });
+		updateInventoryGroup(INVENTORY_GROUP_IDS.received, { visible: false });
 		updateInventoryGroup(INVENTORY_GROUP_IDS.incoming, { visible: false });
 		updateInventoryGroup(INVENTORY_GROUP_IDS.outgoing, { visible: false });
 		updateInventoryGroup(INVENTORY_GROUP_IDS.dataPackets, { visible: false });
