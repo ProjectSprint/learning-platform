@@ -2,6 +2,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
+	type Arrow,
 	GameProvider,
 	type PlacedItem,
 	useGameDispatch,
@@ -9,7 +10,11 @@ import {
 } from "@/components/game/game-provider";
 import { ContextualHint, useContextualHint } from "@/components/game/hint";
 import { Modal } from "@/components/game/modal";
-import { PuzzleBoard } from "@/components/game/puzzle/board";
+import {
+	BoardArrowSurface,
+	BoardRegistryProvider,
+	PuzzleBoard,
+} from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import {
 	InventoryDrawer,
@@ -17,8 +22,10 @@ import {
 } from "@/components/game/puzzle/inventory";
 import {
 	type ConditionContext,
+	clearBoardArrows,
 	type QuestionSpec,
 	resolvePhase,
+	setBoardArrows,
 } from "@/components/game/question";
 import {
 	TerminalInput,
@@ -384,6 +391,70 @@ const InternetGame = ({
 	);
 	useContextualHint(contextualHint);
 
+	const boardArrows = useMemo<Arrow[]>(() => {
+		if (isCompleted) {
+			return [];
+		}
+
+		const baseStyle = {
+			stroke: "rgba(56, 189, 248, 0.85)",
+			strokeWidth: 2,
+			headSize: 12,
+			bow: 0.1,
+		};
+
+		return [
+			{
+				id: "client-conn-1",
+				from: { puzzleId: "local", anchor: { x: 1, y: 0.5, offsetX: 8 } },
+				to: { puzzleId: "conn-1", anchor: { x: 0, y: 0.5, offsetX: -8 } },
+				style: baseStyle,
+			},
+			{
+				id: "conn-1-router",
+				from: { puzzleId: "conn-1", anchor: { x: 1, y: 0.5, offsetX: 8 } },
+				to: { puzzleId: "router", anchor: { x: 0, y: 0.5, offsetX: -8 } },
+				style: baseStyle,
+			},
+			{
+				id: "router-conn-2",
+				from: { puzzleId: "router", anchor: { x: 1, y: 0.5, offsetX: 8 } },
+				to: { puzzleId: "conn-2", anchor: { x: 0, y: 0.5, offsetX: -8 } },
+				style: baseStyle,
+			},
+			{
+				id: "conn-2-igw",
+				from: { puzzleId: "conn-2", anchor: { x: 1, y: 0.5, offsetX: 8 } },
+				to: { puzzleId: "igw", anchor: { x: 0, y: 0.5, offsetX: -8 } },
+				style: baseStyle,
+			},
+			{
+				id: "igw-dns",
+				from: { puzzleId: "igw", anchor: { x: 1, y: 0.5, offsetX: 8 } },
+				to: { puzzleId: "dns", anchor: { x: 0, y: 0.5, offsetX: -8 } },
+				style: baseStyle,
+			},
+			{
+				id: "dns-google",
+				from: { puzzleId: "dns", anchor: { x: 1, y: 0.5, offsetX: 8 } },
+				to: { puzzleId: "google", anchor: { x: 0, y: 0.5, offsetX: -8 } },
+				style: baseStyle,
+			},
+		];
+	}, [isCompleted]);
+
+	useEffect(() => {
+		if (isCompleted) {
+			clearBoardArrows(dispatch);
+			return;
+		}
+
+		setBoardArrows(dispatch, boardArrows);
+		return () => {
+			clearBoardArrows(dispatch);
+		};
+	}, [boardArrows, dispatch, isCompleted]);
+
 	const handlePlacedItemClick = useCallback(
 		(item: PlacedItem) => {
 			const handler = spec.handlers.onItemClickByType[item.type];
@@ -429,34 +500,38 @@ const InternetGame = ({
 						</Text>
 					</Box>
 
-					<Flex
-						direction={{ base: "column", xl: "row" }}
-						gap={{ base: 2, md: 4 }}
-						align={{ base: "stretch", xl: "flex-start" }}
-					>
-						{CANVAS_ORDER.map((key) => {
-							const config = CANVAS_CONFIGS[key];
-							const title = config.title ?? key;
+					<BoardRegistryProvider>
+						<BoardArrowSurface>
+							<Flex
+								direction={{ base: "column", xl: "row" }}
+								gap={{ base: 2, md: 4 }}
+								align={{ base: "stretch", xl: "flex-start" }}
+							>
+								{CANVAS_ORDER.map((key) => {
+									const config = CANVAS_CONFIGS[key];
+									const title = config.title ?? key;
 
-							return (
-								<Box
-									key={key}
-									flexGrow={config.columns}
-									flexBasis={0}
-									minW={{ base: "100%", xl: "0" }}
-								>
-									<PuzzleBoard
-										puzzleId={key}
-										title={title}
-										getItemLabel={spec.labels.getItemLabel}
-										getStatusMessage={spec.labels.getStatusMessage}
-										onPlacedItemClick={handlePlacedItemClick}
-										isItemClickable={isItemClickable}
-									/>
-								</Box>
-							);
-						})}
-					</Flex>
+									return (
+										<Box
+											key={key}
+											flexGrow={config.columns}
+											flexBasis={0}
+											minW={{ base: "100%", xl: "0" }}
+										>
+											<PuzzleBoard
+												puzzleId={key}
+												title={title}
+												getItemLabel={spec.labels.getItemLabel}
+												getStatusMessage={spec.labels.getStatusMessage}
+												onPlacedItemClick={handlePlacedItemClick}
+												isItemClickable={isItemClickable}
+											/>
+										</Box>
+									);
+								})}
+							</Flex>
+						</BoardArrowSurface>
+					</BoardRegistryProvider>
 
 					<InventoryDrawer
 						ref={inventoryDrawerRef}

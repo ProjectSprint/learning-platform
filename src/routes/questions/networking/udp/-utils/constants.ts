@@ -47,7 +47,7 @@ export const TCP_CANVAS_ORDER: UdpCanvasKey[] = [
 	"client-c-inbox",
 ];
 
-export const UDP_CANVAS_ORDER: UdpCanvasKey[] = ["outbox"];
+export const UDP_CANVAS_ORDER: UdpCanvasKey[] = ["outbox", "internet"];
 
 export const CANVAS_CONFIGS: Record<UdpCanvasKey, PuzzleConfig> = {
 	internet: {
