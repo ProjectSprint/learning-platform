@@ -18,13 +18,13 @@ import {
 	TCP_TOOL_ITEMS,
 } from "./constants";
 import {
+	buildAckIntroModal,
 	buildCloseConnectionModal,
 	buildDuplicateAckModal,
 	buildHandshakeCompleteModal,
 	buildHolBlockingModal,
 	buildMtuModal,
 	buildPacketLossModal,
-	buildAckIntroModal,
 	buildSynAckModal,
 	buildSynIntroModal,
 } from "./modal-builders";
@@ -82,15 +82,18 @@ const formatPacketList = (seqs: number[]) => {
 		return `packet #${seqs[0]}`;
 	}
 	const sorted = [...seqs].sort((a, b) => a - b);
-	const isRange =
-		sorted[sorted.length - 1] - sorted[0] + 1 === sorted.length;
+	const isRange = sorted[sorted.length - 1] - sorted[0] + 1 === sorted.length;
 	if (isRange) {
 		return `packets #${sorted[0]}-${sorted[sorted.length - 1]}`;
 	}
 	return `packets ${sorted.map((seq) => `#${seq}`).join(", ")}`;
 };
 
-export const useTcpState = () => {
+type UseTcpStateOptions = {
+	onInventoryExpand?: () => void;
+};
+
+export const useTcpState = ({ onInventoryExpand }: UseTcpStateOptions = {}) => {
 	const state = useGameState();
 	const canvases = useAllPuzzles();
 	const dispatch = useGameDispatch();
@@ -146,10 +149,12 @@ export const useTcpState = () => {
 		lossScenarioRef.current = lossScenarioActive;
 	}, [lossScenarioActive]);
 
-
-	const registerTimer = useCallback((timerId: ReturnType<typeof setTimeout>) => {
-		timersRef.current.add(timerId);
-	}, []);
+	const registerTimer = useCallback(
+		(timerId: ReturnType<typeof setTimeout>) => {
+			timersRef.current.add(timerId);
+		},
+		[],
+	);
 
 	useEffect(() => {
 		return () => {
@@ -166,13 +171,27 @@ export const useTcpState = () => {
 	);
 
 	const updateInventoryGroup = useCallback(
-		(id: string, updates: { visible?: boolean; title?: string; items?: InventoryItem[] }) => {
+		(
+			id: string,
+			updates: { visible?: boolean; title?: string; items?: InventoryItem[] },
+		) => {
+			const existingItems = getInventoryGroupItems(id);
 			dispatch({
 				type: "UPDATE_INVENTORY_GROUP",
 				payload: { id, ...updates },
 			});
+
+			if (updates.items && onInventoryExpand) {
+				const existingIds = new Set(existingItems.map((item) => item.id));
+				const hasNewItem = updates.items.some(
+					(item) => !existingIds.has(item.id),
+				);
+				if (hasNewItem) {
+					onInventoryExpand();
+				}
+			}
 		},
-		[dispatch],
+		[dispatch, getInventoryGroupItems, onInventoryExpand],
 	);
 
 	const ensureInventoryItems = useCallback(
@@ -228,7 +247,11 @@ export const useTcpState = () => {
 		(item: PlacedItem, canvasId: string) => {
 			dispatch({
 				type: "REMOVE_ITEM",
-				payload: { puzzleId: canvasId, blockX: item.blockX, blockY: item.blockY },
+				payload: {
+					puzzleId: canvasId,
+					blockX: item.blockX,
+					blockY: item.blockY,
+				},
 			});
 		},
 		[dispatch],
@@ -386,7 +409,9 @@ export const useTcpState = () => {
 		const parts: string[] = [];
 		if (missing.length > 0) {
 			const missingLabel = formatPacketList(missing);
-			parts.push(`${missingLabel} ${missing.length === 1 ? "is" : "are"} missing`);
+			parts.push(
+				`${missingLabel} ${missing.length === 1 ? "is" : "are"} missing`,
+			);
 		}
 		if (buffered.length > 0) {
 			const bufferedLabel = formatPacketList(buffered);
@@ -440,22 +465,26 @@ export const useTcpState = () => {
 		[updateSplitInventory],
 	);
 
-	const highlightMissingPacket = useCallback((targetSeq: number) => {
-		updateSplitInventory((item) => {
-			const seq = typeof item.data?.seq === "number" ? item.data.seq : undefined;
-			if (!seq || getFileKey(item.data) !== "notes") return item;
-			const isTarget = seq === targetSeq;
-			const nextColor = isTarget ? "#F87171" : getPacketColor("notes", true);
-			const nextIcon = item.icon
-				? { ...item.icon, color: nextColor }
-				: { icon: "mdi:package-variant", color: nextColor };
-			return {
-				...item,
-				name: isTarget ? `Packet #${seq} (Resend?)` : `Packet #${seq}`,
-				icon: nextIcon,
-			};
-		});
-	}, [updateSplitInventory]);
+	const highlightMissingPacket = useCallback(
+		(targetSeq: number) => {
+			updateSplitInventory((item) => {
+				const seq =
+					typeof item.data?.seq === "number" ? item.data.seq : undefined;
+				if (!seq || getFileKey(item.data) !== "notes") return item;
+				const isTarget = seq === targetSeq;
+				const nextColor = isTarget ? "#F87171" : getPacketColor("notes", true);
+				const nextIcon = item.icon
+					? { ...item.icon, color: nextColor }
+					: { icon: "mdi:package-variant", color: nextColor };
+				return {
+					...item,
+					name: isTarget ? `Packet #${seq} (Resend?)` : `Packet #${seq}`,
+					icon: nextIcon,
+				};
+			});
+		},
+		[updateSplitInventory],
+	);
 
 	const trackDuplicateAck = useCallback(
 		(ackNumber: number, total: number) => {
@@ -495,7 +524,8 @@ export const useTcpState = () => {
 
 	const clearResendHighlight = useCallback(() => {
 		updateSplitInventory((item) => {
-			const seq = typeof item.data?.seq === "number" ? item.data.seq : undefined;
+			const seq =
+				typeof item.data?.seq === "number" ? item.data.seq : undefined;
 			if (!seq) return item;
 			const fileKey = getFileKey(item.data);
 			const nextIcon = item.icon
@@ -581,54 +611,62 @@ export const useTcpState = () => {
 		setPhase("connected");
 	}, [dispatch, updateServerStatus, updateSplitPacketsForSequence]);
 
-	const handleAssembledMessage = useCallback((delayMs = ASSEMBLE_DELAY_MS) => {
-		if (assembleActiveRef.current) return;
-		assembleActiveRef.current = true;
-		updateServerStatus("Processing...");
+	const handleAssembledMessage = useCallback(
+		(delayMs = ASSEMBLE_DELAY_MS) => {
+			if (assembleActiveRef.current) return;
+			assembleActiveRef.current = true;
+			updateServerStatus("Processing...");
 
-		const assembleTimer = setTimeout(() => {
-			const fileLabel = lossScenarioRef.current ? "notes.txt" : "message.txt";
-			updateServerStatus(`📄 ${fileLabel} received successfully!`);
-			if (!lossScenarioRef.current) {
-				appendServerLog("Waiting for notes.txt packets...");
-				updateInventoryGroup(INVENTORY_GROUP_IDS.split, {
-					visible: false,
-					items: [],
-				});
-				updateInventoryGroup(INVENTORY_GROUP_IDS.files, {
-					visible: true,
-					items: [NOTES_FILE_ITEM],
-				});
-				setLossScenarioActive(true);
-				setPhase("notes");
-				resetBuffer();
-				duplicateAckCountRef.current = 0;
-				lastAckNumberRef.current = null;
-				allowPacket2Ref.current = false;
-				duplicateAckModalSeqRef.current = null;
-				resendTargetSeqRef.current = null;
-				assembleActiveRef.current = false;
-			} else {
-				setPhase("closing");
-				if (!modalShownRef.current.closeConnection) {
-					modalShownRef.current.closeConnection = true;
-					dispatch({
-						type: "OPEN_MODAL",
-						payload: buildCloseConnectionModal(),
+			const assembleTimer = setTimeout(() => {
+				const fileLabel = lossScenarioRef.current ? "notes.txt" : "message.txt";
+				updateServerStatus(`📄 ${fileLabel} received successfully!`);
+				if (!lossScenarioRef.current) {
+					appendServerLog("Waiting for notes.txt packets...");
+					updateInventoryGroup(INVENTORY_GROUP_IDS.split, {
+						visible: false,
+						items: [],
 					});
+					updateInventoryGroup(INVENTORY_GROUP_IDS.files, {
+						visible: true,
+						items: [NOTES_FILE_ITEM],
+					});
+					setLossScenarioActive(true);
+					setPhase("notes");
+					resetBuffer();
+					duplicateAckCountRef.current = 0;
+					lastAckNumberRef.current = null;
+					allowPacket2Ref.current = false;
+					duplicateAckModalSeqRef.current = null;
+					resendTargetSeqRef.current = null;
+					assembleActiveRef.current = false;
+				} else {
+					setPhase("closing");
+					if (!modalShownRef.current.closeConnection) {
+						modalShownRef.current.closeConnection = true;
+						dispatch({
+							type: "OPEN_MODAL",
+							payload: buildCloseConnectionModal(),
+						});
+					}
+					ensureInventoryItems(
+						INVENTORY_GROUP_IDS.tcpTools,
+						[TCP_TOOL_ITEMS.fin],
+						true,
+					);
 				}
-				ensureInventoryItems(INVENTORY_GROUP_IDS.tcpTools, [TCP_TOOL_ITEMS.fin], true);
-			}
-		}, delayMs);
-		registerTimer(assembleTimer);
-	}, [
-		dispatch,
-		ensureInventoryItems,
-		registerTimer,
-		resetBuffer,
-		updateInventoryGroup,
-		updateServerStatus,
-	]);
+			}, delayMs);
+			registerTimer(assembleTimer);
+		},
+		[
+			dispatch,
+			ensureInventoryItems,
+			registerTimer,
+			resetBuffer,
+			updateInventoryGroup,
+			updateServerStatus,
+			appendServerLog,
+		],
+	);
 
 	const handleAllPacketsReceived = useCallback(
 		(delayMs?: number) => {
@@ -840,7 +878,9 @@ export const useTcpState = () => {
 	useEffect(() => {
 		const splitterCanvas = canvases.splitter;
 		if (!splitterCanvas) return;
-		const currentIds = new Set(splitterCanvas.placedItems.map((item) => item.id));
+		const currentIds = new Set(
+			splitterCanvas.placedItems.map((item) => item.id),
+		);
 		const newItems = splitterCanvas.placedItems.filter(
 			(item) => !prevSplitterIdsRef.current.has(item.id),
 		);
@@ -911,7 +951,9 @@ export const useTcpState = () => {
 	useEffect(() => {
 		const internetCanvas = canvases.internet;
 		if (!internetCanvas) return;
-		const currentIds = new Set(internetCanvas.placedItems.map((item) => item.id));
+		const currentIds = new Set(
+			internetCanvas.placedItems.map((item) => item.id),
+		);
 		const newItems = internetCanvas.placedItems.filter(
 			(item) => !prevInternetIdsRef.current.has(item.id),
 		);
@@ -1159,17 +1201,13 @@ export const useTcpState = () => {
 
 		prevServerIdsRef.current = currentIds;
 	}, [
-		appendServerLog,
-		buildAckServerMessage,
 		canvases.server,
-		dispatch,
-		ensureInventoryItems,
 		getActiveSequences,
 		handleAllPacketsReceived,
 		handleConnectionEstablished,
 		handleSeqArrival,
 		handleServerReject,
-		registerTimer,
+		sendServerPacket,
 		updateServerStatus,
 		updateItemIfNeeded,
 	]);

@@ -1,4 +1,7 @@
-export { InventoryDrawer } from "./inventory-drawer";
+export {
+	InventoryDrawer,
+	type InventoryDrawerHandle,
+} from "./inventory-drawer";
 export {
 	InventoryPanel,
 	type InventoryPanelProps,

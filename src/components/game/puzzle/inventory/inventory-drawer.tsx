@@ -1,230 +1,399 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+	forwardRef,
+	useCallback,
+	useEffect,
+	useImperativeHandle,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 
+import { useGameState } from "@/components/game/game-provider";
 import { useDragContext } from "../drag";
 import { InventoryPanel, type InventoryPanelProps } from "./inventory-panel";
+
+export type InventoryDrawerHandle = {
+	expand: () => void;
+	fold: () => void;
+	toggle: () => void;
+};
 
 type InventoryDrawerProps = InventoryPanelProps & {
 	drawerWidth?: string;
 	hoverGutterWidth?: string;
 	closeGutterWidth?: string;
+	initialExpanded?: boolean;
+	expandedHeight?: string;
+	foldedHeights?: Partial<Record<"lg" | "xl" | "2xl", string>>;
+	title?: string;
 };
 
-export const InventoryDrawer = ({
-	tooltips,
-	drawerWidth,
-	hoverGutterWidth = "10vw",
-	closeGutterWidth,
-}: InventoryDrawerProps) => {
-	const [isOpen, setIsOpen] = useState(false);
-	const [openSource, setOpenSource] = useState<"button" | "hover" | "auto">(
-		"button",
-	);
-	const [hoverLocked, setHoverLocked] = useState(false);
-	const { activeDrag, lastDropResult, setLastDropResult } = useDragContext();
-	const isMdOrBelow =
-		useBreakpointValue({ base: true, md: true, lg: false }) ?? true;
-	const responsiveDrawerWidth =
-		useBreakpointValue({ base: "80vw", md: "320px" }) ?? "320px";
-	const resolvedDrawerWidth = drawerWidth ?? responsiveDrawerWidth;
-	const resolvedCloseGutterWidth =
-		closeGutterWidth ?? `calc(100vw - ${resolvedDrawerWidth})`;
+type OpenSource = "button" | "hover" | "auto" | "external" | "drag";
 
-	useEffect(() => {
-		if (!activeDrag) {
-			return;
-		}
-		setIsOpen(false);
-		setLastDropResult(null);
-	}, [activeDrag, setLastDropResult]);
-
-	useEffect(() => {
-		if (!lastDropResult || activeDrag) {
-			return;
-		}
-
-		if (lastDropResult.source === "inventory" && !lastDropResult.placed) {
-			setIsOpen(true);
-			setOpenSource("auto");
-			setHoverLocked(false);
-		}
-
-		setLastDropResult(null);
-	}, [activeDrag, lastDropResult, setLastDropResult]);
-
-	const handleToggle = useCallback(() => {
-		setIsOpen((prev) => {
-			const next = !prev;
-			if (next) {
-				setOpenSource("button");
-				setHoverLocked(false);
-			} else {
-				setHoverLocked(true);
-			}
-			return next;
-		});
-		setLastDropResult(null);
-	}, [setLastDropResult]);
-
-	const handleClose = useCallback(
-		(reason: "x" | "gutter" | "drag") => {
-			setIsOpen(false);
-			if (reason === "x" && openSource === "button") {
-				setHoverLocked(true);
-			}
-			setLastDropResult(null);
+export const InventoryDrawer = forwardRef<
+	InventoryDrawerHandle,
+	InventoryDrawerProps
+>(
+	(
+		{
+			tooltips,
+			drawerWidth,
+			hoverGutterWidth = "10vw",
+			closeGutterWidth,
+			initialExpanded = false,
+			expandedHeight = "60vh",
+			foldedHeights,
+			title = "Inventory",
 		},
-		[openSource, setLastDropResult],
-	);
+		ref,
+	) => {
+		const { inventory } = useGameState();
+		const [isExpanded, setIsExpanded] = useState(initialExpanded);
+		const [hoverLocked, setHoverLocked] = useState(false);
+		const { activeDrag, lastDropResult, setLastDropResult } = useDragContext();
+		const isMdOrBelow =
+			useBreakpointValue({ base: true, md: true, lg: false }) ?? true;
+		const responsiveDrawerWidth =
+			useBreakpointValue({ base: "80vw", md: "320px" }) ?? "320px";
+		const resolvedDrawerWidth = drawerWidth ?? responsiveDrawerWidth;
+		const resolvedCloseGutterWidth =
+			closeGutterWidth ?? `calc(100vw - ${resolvedDrawerWidth})`;
+		const resolvedFoldedHeight =
+			useBreakpointValue({
+				base: "0px",
+				lg: foldedHeights?.lg ?? "60vh",
+				xl: foldedHeights?.xl ?? "40vh",
+				"2xl": foldedHeights?.["2xl"] ?? "25vh",
+			}) ?? "40vh";
 
-	useEffect(() => {
-		if (!hoverLocked || !isMdOrBelow) {
-			return;
-		}
+		const itemCount = useMemo(
+			() =>
+				inventory.groups.reduce(
+					(total, group) => total + group.items.length,
+					0,
+				),
+			[inventory.groups],
+		);
+		const visibleGroupIds = useMemo(
+			() =>
+				inventory.groups
+					.filter((group) => group.visible)
+					.map((group) => group.id),
+			[inventory.groups],
+		);
+		const prevItemCountRef = useRef<number | null>(null);
+		const prevVisibleGroupsRef = useRef<Set<string> | null>(null);
 
-		const resolveWidth = (value: string) => {
-			if (value.endsWith("vw")) {
-				const ratio = Number.parseFloat(value);
-				if (Number.isNaN(ratio)) return 0;
-				return (window.innerWidth * ratio) / 100;
-			}
-			if (value.endsWith("px")) {
-				const px = Number.parseFloat(value);
-				return Number.isNaN(px) ? 0 : px;
-			}
-			return 0;
-		};
-
-		const gutterWidthPx = resolveWidth(hoverGutterWidth);
-		const handlePointerMove = (event: PointerEvent) => {
-			if (event.clientX < window.innerWidth - gutterWidthPx) {
+		const expandDrawer = useCallback(
+			(_source: OpenSource) => {
+				setIsExpanded(true);
 				setHoverLocked(false);
-			}
-		};
+				setLastDropResult(null);
+			},
+			[setLastDropResult],
+		);
 
-		window.addEventListener("pointermove", handlePointerMove);
-		return () => window.removeEventListener("pointermove", handlePointerMove);
-	}, [hoverGutterWidth, hoverLocked, isMdOrBelow]);
+		const foldDrawer = useCallback(
+			(source: OpenSource) => {
+				setIsExpanded(false);
+				if (source === "button") {
+					setHoverLocked(true);
+				}
+				setLastDropResult(null);
+			},
+			[setLastDropResult],
+		);
 
-	const hoverZone = useMemo(() => {
-		if (!isMdOrBelow || isOpen) {
-			return null;
-		}
-
-		return (
-			<Box
-				position="fixed"
-				top={0}
-				right={0}
-				height="100vh"
-				width={hoverGutterWidth}
-				zIndex={90}
-				onMouseEnter={() => {
-					if (!activeDrag && !hoverLocked) {
-						setIsOpen(true);
-						setOpenSource("hover");
+		useImperativeHandle(
+			ref,
+			() => ({
+				expand: () => expandDrawer("external"),
+				fold: () => foldDrawer("external"),
+				toggle: () => {
+					if (isExpanded) {
+						foldDrawer("button");
+					} else {
+						expandDrawer("button");
 					}
-				}}
-			/>
+				},
+			}),
+			[expandDrawer, foldDrawer, isExpanded],
 		);
-	}, [activeDrag, hoverGutterWidth, hoverLocked, isMdOrBelow, isOpen]);
 
-	if (!isMdOrBelow) {
-		return (
-			<Box alignSelf="center" my={4}>
-				<InventoryPanel tooltips={tooltips} />
-			</Box>
-		);
-	}
+		useEffect(() => {
+			if (!activeDrag) {
+				return;
+			}
 
-	return (
-		<>
-			{hoverZone}
+			if (activeDrag.source === "inventory") {
+				foldDrawer("drag");
+			}
+		}, [activeDrag, foldDrawer]);
 
-			<Box
-				as="button"
-				position="fixed"
-				top={3}
-				right={3}
-				zIndex={1200}
-				bg="gray.900"
-				border="1px solid"
-				borderColor="gray.700"
-				color="gray.100"
-				borderRadius="md"
-				width="36px"
-				height="36px"
-				display="flex"
-				alignItems="center"
-				justifyContent="center"
-				fontSize="lg"
-				onClick={handleToggle}
-				aria-label={isOpen ? "Close inventory drawer" : "Open inventory drawer"}
-			>
-				{isOpen ? "✕" : "☰"}
-			</Box>
+		useEffect(() => {
+			if (!lastDropResult || activeDrag) {
+				return;
+			}
 
-			{isOpen && isMdOrBelow && (
+			if (lastDropResult.source === "inventory" && !lastDropResult.placed) {
+				expandDrawer("auto");
+			}
+
+			setLastDropResult(null);
+		}, [activeDrag, expandDrawer, lastDropResult, setLastDropResult]);
+
+		useEffect(() => {
+			if (prevItemCountRef.current === null) {
+				prevItemCountRef.current = itemCount;
+				return;
+			}
+			if (itemCount > prevItemCountRef.current) {
+				expandDrawer("auto");
+			}
+			prevItemCountRef.current = itemCount;
+		}, [expandDrawer, itemCount]);
+
+		useEffect(() => {
+			const currentVisible = new Set(visibleGroupIds);
+			if (prevVisibleGroupsRef.current) {
+				const hasNewVisibleGroup = Array.from(currentVisible).some(
+					(id) => !prevVisibleGroupsRef.current?.has(id),
+				);
+				if (hasNewVisibleGroup) {
+					expandDrawer("auto");
+				}
+			}
+			prevVisibleGroupsRef.current = currentVisible;
+		}, [expandDrawer, visibleGroupIds]);
+
+		useEffect(() => {
+			if (!hoverLocked || !isMdOrBelow) {
+				return;
+			}
+
+			const resolveWidth = (value: string) => {
+				if (value.endsWith("vw")) {
+					const ratio = Number.parseFloat(value);
+					if (Number.isNaN(ratio)) return 0;
+					return (window.innerWidth * ratio) / 100;
+				}
+				if (value.endsWith("px")) {
+					const px = Number.parseFloat(value);
+					return Number.isNaN(px) ? 0 : px;
+				}
+				return 0;
+			};
+
+			const gutterWidthPx = resolveWidth(hoverGutterWidth);
+			const handlePointerMove = (event: PointerEvent) => {
+				if (event.clientX < window.innerWidth - gutterWidthPx) {
+					setHoverLocked(false);
+				}
+			};
+
+			window.addEventListener("pointermove", handlePointerMove);
+			return () => window.removeEventListener("pointermove", handlePointerMove);
+		}, [hoverGutterWidth, hoverLocked, isMdOrBelow]);
+
+		const hoverZone = useMemo(() => {
+			if (!isMdOrBelow || isExpanded) {
+				return null;
+			}
+
+			return (
 				<Box
 					position="fixed"
 					top={0}
-					right={resolvedDrawerWidth}
+					right={0}
 					height="100vh"
-					width={resolvedCloseGutterWidth}
-					zIndex={950}
-					bg="transparent"
-					onPointerDown={() => handleClose("gutter")}
-					aria-hidden
+					width={hoverGutterWidth}
+					zIndex={80}
+					onMouseEnter={() => {
+						if (!activeDrag && !hoverLocked) {
+							expandDrawer("hover");
+						}
+					}}
 				/>
-			)}
+			);
+		}, [
+			activeDrag,
+			expandDrawer,
+			hoverGutterWidth,
+			hoverLocked,
+			isExpanded,
+			isMdOrBelow,
+		]);
 
-			<Box
-				position="fixed"
-				top={0}
-				right={0}
-				height="100vh"
-				width={resolvedDrawerWidth}
-				bg="gray.900"
-				borderLeft="1px solid"
-				borderColor="gray.800"
-				transform={isOpen ? "translateX(0)" : "translateX(100%)"}
-				transition="transform 0.2s ease"
-				zIndex={1000}
-				pointerEvents={isOpen ? "auto" : "none"}
-				onMouseLeave={() => {
-					if (!activeDrag) {
-						handleClose("gutter");
-					}
-				}}
-			>
-				<Flex direction="column" height="100%">
-					<Flex
-						align="center"
-						justify="space-between"
-						px={4}
-						py={3}
-						borderBottom="1px solid"
-						borderColor="gray.800"
-					>
-						<Text fontSize="sm" fontWeight="bold" color="gray.100">
-							Inventory
-						</Text>
-						<Box
-							as="button"
-							onClick={() => handleClose("x")}
-							aria-label="Close inventory drawer"
-							color="gray.400"
-							_hover={{ color: "gray.100" }}
+		const handlePointerEnter = useCallback(() => {
+			if (activeDrag) {
+				expandDrawer("drag");
+			}
+		}, [activeDrag, expandDrawer]);
+
+		if (!isMdOrBelow) {
+			return (
+				<Box
+					position="fixed"
+					left={0}
+					right={0}
+					bottom={0}
+					height={isExpanded ? expandedHeight : resolvedFoldedHeight}
+					bg="gray.900"
+					borderTop="1px solid"
+					borderColor="gray.800"
+					boxShadow="0 -8px 24px rgba(0, 0, 0, 0.35)"
+					zIndex={isExpanded ? 90 : 80}
+					transition="height 0.2s ease"
+					overflow="hidden"
+					onPointerEnter={handlePointerEnter}
+				>
+					<Flex direction="column" height="100%">
+						<Flex
+							align="center"
+							justify="space-between"
+							px={4}
+							py={3}
+							borderBottom="1px solid"
+							borderColor="gray.800"
 						>
-							✕
+							<Text fontSize="sm" fontWeight="bold" color="gray.100">
+								{title}
+							</Text>
+							<Box
+								as="button"
+								onClick={() =>
+									isExpanded ? foldDrawer("button") : expandDrawer("button")
+								}
+								aria-label={
+									isExpanded
+										? "Fold inventory drawer"
+										: "Expand inventory drawer"
+								}
+								color="gray.400"
+								_hover={{ color: "gray.100" }}
+							>
+								{isExpanded ? "▼" : "▲"}
+							</Box>
+						</Flex>
+
+						<Box
+							flex="1"
+							overflowY="auto"
+							px={4}
+							py={4}
+							display="flex"
+							justifyContent="center"
+						>
+							<InventoryPanel tooltips={tooltips} />
 						</Box>
 					</Flex>
+				</Box>
+			);
+		}
 
-					<Box flex="1" overflowY="auto" px={4} py={4}>
-						<InventoryPanel tooltips={tooltips} />
+		return (
+			<>
+				{hoverZone}
+
+				{!isExpanded && (
+					<Box
+						position="fixed"
+						top="40%"
+						right={0}
+						zIndex={90}
+						bg="gray.900"
+						border="1px solid"
+						borderColor="gray.700"
+						borderRight="none"
+						borderRadius="md 0 0 md"
+						px={2}
+						py={3}
+						cursor="pointer"
+						onClick={() => expandDrawer("button")}
+						onPointerEnter={handlePointerEnter}
+						role="button"
+						aria-label="Open inventory drawer"
+						tabIndex={0}
+						onKeyDown={(event) => {
+							if (event.key === "Enter" || event.key === " ") {
+								event.preventDefault();
+								expandDrawer("button");
+							}
+						}}
+					>
+						<Text
+							fontSize="xs"
+							fontWeight="bold"
+							color="gray.100"
+							transform="rotate(-90deg)"
+							whiteSpace="nowrap"
+						>
+							{title}
+						</Text>
 					</Box>
-				</Flex>
-			</Box>
-		</>
-	);
-};
+				)}
+
+				{isExpanded && (
+					<Box
+						position="fixed"
+						top={0}
+						right={resolvedDrawerWidth}
+						height="100vh"
+						width={resolvedCloseGutterWidth}
+						zIndex={85}
+						bg="transparent"
+						onPointerDown={() => foldDrawer("button")}
+						aria-hidden
+					/>
+				)}
+
+				<Box
+					position="fixed"
+					top={0}
+					right={0}
+					height="100vh"
+					width={resolvedDrawerWidth}
+					bg="gray.900"
+					borderLeft="1px solid"
+					borderColor="gray.800"
+					transform={isExpanded ? "translateX(0)" : "translateX(100%)"}
+					transition="transform 0.2s ease"
+					zIndex={90}
+					pointerEvents={isExpanded ? "auto" : "none"}
+					onPointerEnter={handlePointerEnter}
+				>
+					<Flex direction="column" height="100%">
+						<Flex
+							align="center"
+							justify="space-between"
+							px={4}
+							py={3}
+							borderBottom="1px solid"
+							borderColor="gray.800"
+						>
+							<Text fontSize="sm" fontWeight="bold" color="gray.100">
+								{title}
+							</Text>
+							<Box
+								as="button"
+								onClick={() => foldDrawer("button")}
+								aria-label="Close inventory drawer"
+								color="gray.400"
+								_hover={{ color: "gray.100" }}
+							>
+								✕
+							</Box>
+						</Flex>
+
+						<Box flex="1" overflowY="auto" px={4} py={4}>
+							<InventoryPanel tooltips={tooltips} />
+						</Box>
+					</Flex>
+				</Box>
+			</>
+		);
+	},
+);
+
+InventoryDrawer.displayName = "InventoryDrawer";

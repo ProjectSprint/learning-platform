@@ -1,22 +1,26 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+	type GamePhase,
 	GameProvider,
 	useGameDispatch,
 	useGameState,
-	type GamePhase,
 } from "@/components/game/game-provider";
+import { ContextualHint, useContextualHint } from "@/components/game/hint";
 import { Modal } from "@/components/game/modal";
 import { PuzzleBoard } from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
-import { InventoryDrawer } from "@/components/game/puzzle/inventory";
-import type { QuestionProps } from "@/components/module";
+import {
+	InventoryDrawer,
+	type InventoryDrawerHandle,
+} from "@/components/game/puzzle/inventory";
 import {
 	type ConditionContext,
 	type QuestionSpec,
 	resolvePhase,
 } from "@/components/game/question";
+import type { QuestionProps } from "@/components/module";
 
 import {
 	CANVAS_CONFIGS,
@@ -62,10 +66,15 @@ const UdpGame = ({
 	const state = useGameState();
 	const initializedRef = useRef(false);
 	const [activeMode, setActiveMode] = useState<ActiveMode>("tcp");
+	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
+	const expandInventory = useCallback(() => {
+		inventoryDrawerRef.current?.expand();
+	}, []);
 
 	const tcpState = useTcpPhase({
 		active: activeMode === "tcp",
 		onTransitionToUdp: () => setActiveMode("udp"),
+		onInventoryExpand: expandInventory,
 	});
 
 	const udpState = useUdpPhase({
@@ -118,6 +127,7 @@ const UdpGame = ({
 			type: "INIT_MULTI_CANVAS",
 			payload: spec.init.payload,
 		});
+		inventoryDrawerRef.current?.expand();
 	}, [dispatch, spec.init.payload]);
 
 	useEffect(() => {
@@ -145,6 +155,7 @@ const UdpGame = ({
 		expectedFrame: udpState.expectedFrame,
 		packetsSent: tcpState.packetsSent,
 	});
+	useContextualHint(contextualHint);
 
 	const notice = tcpState.notice ?? udpState.notice;
 
@@ -271,11 +282,7 @@ const UdpGame = ({
 									);
 								})}
 
-								<Flex
-									flex="2"
-									gap={{ base: 2, md: 3 }}
-									wrap="wrap"
-								>
+								<Flex flex="2" gap={{ base: 2, md: 3 }} wrap="wrap">
 									{udpState.clientProgress.map((client) => (
 										<Box
 											key={client.clientId}
@@ -313,7 +320,10 @@ const UdpGame = ({
 						</Flex>
 					)}
 
-					<InventoryDrawer tooltips={INVENTORY_TOOLTIPS} />
+					<InventoryDrawer
+						ref={inventoryDrawerRef}
+						tooltips={INVENTORY_TOOLTIPS}
+					/>
 
 					{notice && (
 						<Box
@@ -331,22 +341,7 @@ const UdpGame = ({
 						</Box>
 					)}
 
-					{contextualHint && (
-						<Box
-							bg="gray.800"
-							border="1px solid"
-							borderColor="gray.700"
-							borderRadius="md"
-							px={4}
-							py={2}
-							textAlign="center"
-							mb={4}
-						>
-							<Text fontSize="sm" color="gray.100">
-								{contextualHint}
-							</Text>
-						</Box>
-					)}
+					<ContextualHint />
 				</Flex>
 				<Modal />
 				<DragOverlay getItemLabel={spec.labels.getItemLabel} />

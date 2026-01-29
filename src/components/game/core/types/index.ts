@@ -2,6 +2,8 @@
 
 // Game state types
 export type { GamePhase, GameState, QuestionStatus } from "./game-state";
+// Hint types
+export type { HintState } from "./hint";
 // Icon types
 export type { IconInfo } from "./icon";
 // Inventory types

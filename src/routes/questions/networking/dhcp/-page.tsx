@@ -7,10 +7,14 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import { ContextualHint, useContextualHint } from "@/components/game/hint";
 import { Modal } from "@/components/game/modal";
 import { PuzzleBoard } from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
-import { InventoryDrawer } from "@/components/game/puzzle/inventory";
+import {
+	InventoryDrawer,
+	type InventoryDrawerHandle,
+} from "@/components/game/puzzle/inventory";
 import {
 	type ConditionContext,
 	type QuestionSpec,
@@ -112,6 +116,7 @@ const NetworkingGame = ({
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
+	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
 	const dragEngine = useDragEngine();
 	const networkState = useNetworkState({ dragEngine });
 
@@ -172,6 +177,7 @@ const NetworkingGame = ({
 			type: "INIT_MULTI_CANVAS",
 			payload: spec.init.payload,
 		});
+		inventoryDrawerRef.current?.expand();
 	}, [dispatch, spec.init.payload]);
 
 	useEffect(() => {
@@ -240,6 +246,7 @@ const NetworkingGame = ({
 			networkState.pc2HasIp,
 		],
 	);
+	useContextualHint(contextualHint);
 
 	const handlePlacedItemClick = useCallback(
 		(item: PlacedItem) => {
@@ -295,24 +302,12 @@ const NetworkingGame = ({
 						/>
 					</Box>
 
-					<InventoryDrawer tooltips={INVENTORY_TOOLTIPS} />
+					<InventoryDrawer
+						ref={inventoryDrawerRef}
+						tooltips={INVENTORY_TOOLTIPS}
+					/>
 
-					{contextualHint && (
-						<Box
-							bg="gray.800"
-							border="1px solid"
-							borderColor="gray.700"
-							borderRadius="md"
-							px={4}
-							py={2}
-							textAlign="center"
-							mb={4}
-						>
-							<Text fontSize="sm" color="gray.100">
-								{contextualHint}
-							</Text>
-						</Box>
-					)}
+					<ContextualHint />
 
 					<TerminalLayout
 						visible={state.terminal.visible}

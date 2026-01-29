@@ -40,6 +40,10 @@ export const createDefaultState = (): GameState => ({
 		prompt: "",
 		history: [],
 	},
+	hint: {
+		visible: false,
+		content: null,
+	},
 	overlay: {
 		activeModal: null,
 	},

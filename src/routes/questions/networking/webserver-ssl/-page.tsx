@@ -12,10 +12,14 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import { ContextualHint, useContextualHint } from "@/components/game/hint";
 import { Modal } from "@/components/game/modal";
 import { PuzzleBoard } from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
-import { InventoryDrawer } from "@/components/game/puzzle/inventory";
+import {
+	InventoryDrawer,
+	type InventoryDrawerHandle,
+} from "@/components/game/puzzle/inventory";
 import {
 	type ConditionContext,
 	type QuestionSpec,
@@ -96,6 +100,7 @@ const WebserverSslGame = ({
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
 	const initializedRef = useRef(false);
+	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
 	const [prevSecureState, setPrevSecureState] = useState(false);
 	const [sslCanvasesUnlocked, setSslCanvasesUnlocked] = useState(false);
 
@@ -369,6 +374,7 @@ const WebserverSslGame = ({
 			type: "INIT_MULTI_CANVAS",
 			payload: spec.init.payload,
 		});
+		inventoryDrawerRef.current?.expand();
 	}, [dispatch, spec.init.payload]); // inventoryGroups only depends on constants
 
 	// Phase transitions and inventory group visibility
@@ -517,6 +523,7 @@ const WebserverSslGame = ({
 			sslState.letsencryptModalOpen,
 		],
 	);
+	useContextualHint(contextualHint);
 
 	// Item click handler
 	const handlePlacedItemClick = useCallback(
@@ -634,24 +641,12 @@ const WebserverSslGame = ({
 						})}
 					</Flex>
 
-					<InventoryDrawer tooltips={INVENTORY_TOOLTIPS} />
+					<InventoryDrawer
+						ref={inventoryDrawerRef}
+						tooltips={INVENTORY_TOOLTIPS}
+					/>
 
-					{contextualHint && (
-						<Box
-							bg="gray.800"
-							border="1px solid"
-							borderColor="gray.700"
-							borderRadius="md"
-							px={4}
-							py={2}
-							textAlign="center"
-							mb={4}
-						>
-							<Text fontSize="sm" color="gray.100">
-								{contextualHint}
-							</Text>
-						</Box>
-					)}
+					<ContextualHint />
 
 					<TerminalLayout
 						visible={state.terminal.visible}

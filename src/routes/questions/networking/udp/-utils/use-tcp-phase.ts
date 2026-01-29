@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { InventoryItem, PlacedItem } from "@/components/game/game-provider";
+import type {
+	InventoryItem,
+	PlacedItem,
+} from "@/components/game/game-provider";
 import {
 	useAllPuzzles,
 	useGameDispatch,
@@ -7,6 +10,9 @@ import {
 } from "@/components/game/game-provider";
 
 import {
+	buildReceivedAckPacket,
+	buildReceivedSynPacket,
+	buildSynAckPacket,
 	DATA_PACKETS,
 	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_GROUP_IDS,
@@ -14,9 +20,6 @@ import {
 	SYN_ACK_PACKETS,
 	TCP_CLIENT_IDS,
 	TCP_INBOX_IDS,
-	buildReceivedAckPacket,
-	buildReceivedSynPacket,
-	buildSynAckPacket,
 } from "./constants";
 import {
 	buildBreakingPointModal,
@@ -42,17 +45,23 @@ const CLIENT_LABELS: Record<string, string> = {
 const isInitialClientId = (
 	clientId: unknown,
 ): clientId is (typeof INITIAL_TCP_CLIENT_IDS)[number] =>
-	INITIAL_TCP_CLIENT_IDS.includes(clientId as (typeof INITIAL_TCP_CLIENT_IDS)[number]);
+	INITIAL_TCP_CLIENT_IDS.includes(
+		clientId as (typeof INITIAL_TCP_CLIENT_IDS)[number],
+	);
 
 export type TcpNotice = { message: string; tone: "error" | "info" } | null;
+
+type UseTcpPhaseOptions = {
+	active: boolean;
+	onTransitionToUdp: () => void;
+	onInventoryExpand?: () => void;
+};
 
 export const useTcpPhase = ({
 	active,
 	onTransitionToUdp,
-}: {
-	active: boolean;
-	onTransitionToUdp: () => void;
-}) => {
+	onInventoryExpand,
+}: UseTcpPhaseOptions) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const canvases = useAllPuzzles();
@@ -75,7 +84,10 @@ export const useTcpPhase = ({
 	const packetsSentRef = useRef(0);
 	const clientLocksRef = useRef<Record<string, boolean>>({});
 	const clientStateRef = useRef<
-		Record<string, { synReceived: boolean; synAckSent: boolean; connected: boolean }>
+		Record<
+			string,
+			{ synReceived: boolean; synAckSent: boolean; connected: boolean }
+		>
 	>({});
 	const modalShownRef = useRef({
 		connected: false,
@@ -112,9 +124,12 @@ export const useTcpPhase = ({
 		};
 	}, []);
 
-	const registerTimer = useCallback((timerId: ReturnType<typeof setTimeout>) => {
-		timersRef.current.add(timerId);
-	}, []);
+	const registerTimer = useCallback(
+		(timerId: ReturnType<typeof setTimeout>) => {
+			timersRef.current.add(timerId);
+		},
+		[],
+	);
 
 	const showNotice = useCallback((message: string, tone: "error" | "info") => {
 		setNotice({ message, tone });
@@ -126,23 +141,34 @@ export const useTcpPhase = ({
 		}, NOTICE_MS);
 	}, []);
 
+	const getInventoryGroupItems = useCallback(
+		(id: string) =>
+			state.inventory.groups.find((group) => group.id === id)?.items ?? [],
+		[state.inventory.groups],
+	);
+
 	const updateInventoryGroup = useCallback(
 		(
 			id: string,
 			updates: { visible?: boolean; title?: string; items?: InventoryItem[] },
 		) => {
+			const existingItems = getInventoryGroupItems(id);
 			dispatch({
 				type: "UPDATE_INVENTORY_GROUP",
 				payload: { id, ...updates },
 			});
-		},
-		[dispatch],
-	);
 
-	const getInventoryGroupItems = useCallback(
-		(id: string) =>
-			state.inventory.groups.find((group) => group.id === id)?.items ?? [],
-		[state.inventory.groups],
+			if (updates.items && onInventoryExpand) {
+				const existingIds = new Set(existingItems.map((item) => item.id));
+				const hasNewItem = updates.items.some(
+					(item) => !existingIds.has(item.id),
+				);
+				if (hasNewItem) {
+					onInventoryExpand();
+				}
+			}
+		},
+		[dispatch, getInventoryGroupItems, onInventoryExpand],
 	);
 
 	const ensureInventoryItems = useCallback(
@@ -274,12 +300,9 @@ export const useTcpPhase = ({
 		[resetClientState],
 	);
 
-	const setClientStatusFor = useCallback(
-		(clientId: string, status: string) => {
-			setClientStatus((prev) => ({ ...prev, [clientId]: status }));
-		},
-		[],
-	);
+	const setClientStatusFor = useCallback((clientId: string, status: string) => {
+		setClientStatus((prev) => ({ ...prev, [clientId]: status }));
+	}, []);
 
 	useEffect(() => {
 		for (const clientId of TCP_CLIENT_IDS) {
@@ -328,12 +351,7 @@ export const useTcpPhase = ({
 		updateInventoryGroup(INVENTORY_GROUP_IDS.dataPackets, {
 			visible: false,
 		});
-	}, [
-		active,
-		resetClientState,
-		setClientStatusFor,
-		updateInventoryGroup,
-	]);
+	}, [active, resetClientState, setClientStatusFor, updateInventoryGroup]);
 
 	const areClientsConnected = useCallback(
 		(ids: readonly string[]) =>
@@ -400,12 +418,7 @@ export const useTcpPhase = ({
 			type: "OPEN_MODAL",
 			payload: buildNewClientModal(),
 		});
-	}, [
-		dispatch,
-		ensureInventoryItems,
-		resetClientState,
-		setClientStatusFor,
-	]);
+	}, [dispatch, ensureInventoryItems, resetClientState, setClientStatusFor]);
 
 	const startReconnect = useCallback(() => {
 		setPhase("chaos-redo");
@@ -457,11 +470,7 @@ export const useTcpPhase = ({
 		updateInventoryGroup(INVENTORY_GROUP_IDS.frames, { visible: true });
 		clearTcpCanvases();
 		onTransitionToUdp();
-	}, [
-		clearTcpCanvases,
-		onTransitionToUdp,
-		updateInventoryGroup,
-	]);
+	}, [clearTcpCanvases, onTransitionToUdp, updateInventoryGroup]);
 
 	const triggerBreakingPoint = useCallback(() => {
 		if (modalShownRef.current.breaking) return;
@@ -585,7 +594,6 @@ export const useTcpPhase = ({
 		},
 		[
 			areClientsConnected,
-			buildReceivedAckPacket,
 			ensureInventoryItems,
 			ensureClientState,
 			findItemLocationLatest,
@@ -596,6 +604,7 @@ export const useTcpPhase = ({
 			setClientStatusFor,
 			triggerTimeout,
 			updateItemIfNeeded,
+			phase,
 		],
 	);
 
@@ -764,10 +773,7 @@ export const useTcpPhase = ({
 						status: "error",
 						tcpState: "rejected",
 					});
-					showNotice(
-						`Wait for Client ${CLIENT_LABELS[clientId]} ACK.`,
-						"info",
-					);
+					showNotice(`Wait for Client ${CLIENT_LABELS[clientId]} ACK.`, "info");
 					const timer = setTimeout(() => {
 						const location = findItemLocationLatest(item.id);
 						if (location) {
@@ -801,7 +807,6 @@ export const useTcpPhase = ({
 			registerTimer,
 			removeItem,
 			removeInventoryItem,
-			setPhase,
 			showNotice,
 			transferItemToCanvas,
 			updateItemIfNeeded,
@@ -810,9 +815,7 @@ export const useTcpPhase = ({
 
 	const handleInboxItem = useCallback(
 		(item: PlacedItem, inboxId: string) => {
-			const clientId = inboxId
-				.replace("client-", "")
-				.replace("-inbox", "");
+			const clientId = inboxId.replace("client-", "").replace("-inbox", "");
 			if (!clientId) return;
 
 			switch (item.type) {
@@ -845,7 +848,9 @@ export const useTcpPhase = ({
 		if (!active) return;
 		const internetCanvas = canvases.internet;
 		if (!internetCanvas) return;
-		const currentIds = new Set(internetCanvas.placedItems.map((item) => item.id));
+		const currentIds = new Set(
+			internetCanvas.placedItems.map((item) => item.id),
+		);
 		const newItems = internetCanvas.placedItems.filter(
 			(item) => !prevInternetIdsRef.current.has(item.id),
 		);
@@ -873,7 +878,9 @@ export const useTcpPhase = ({
 			}
 			const inboxCanvas = canvases[inboxId];
 			if (!inboxCanvas) continue;
-			const currentIds = new Set(inboxCanvas.placedItems.map((item) => item.id));
+			const currentIds = new Set(
+				inboxCanvas.placedItems.map((item) => item.id),
+			);
 			const prevIds = prevInboxIdsRef.current[inboxId] ?? new Set();
 			const newItems = inboxCanvas.placedItems.filter(
 				(item) => !prevIds.has(item.id),
