@@ -302,7 +302,8 @@ export const InventoryDrawer = forwardRef<
 
 						<Box
 							flex="1"
-							overflowY="auto"
+							overflowY={isExpanded ? "auto" : "hidden"}
+							scrollbarGutter="stable"
 							px={4}
 							py={4}
 							display="flex"
