@@ -137,12 +137,22 @@ export const InventoryDrawer = forwardRef<
 				return;
 			}
 
-			if (lastDropResult.source === "inventory" && !lastDropResult.placed) {
+			if (
+				!isMdOrBelow &&
+				lastDropResult.source === "inventory" &&
+				!lastDropResult.placed
+			) {
 				expandDrawer("auto");
 			}
 
 			setLastDropResult(null);
-		}, [activeDrag, expandDrawer, lastDropResult, setLastDropResult]);
+		}, [
+			activeDrag,
+			expandDrawer,
+			isMdOrBelow,
+			lastDropResult,
+			setLastDropResult,
+		]);
 
 		useEffect(() => {
 			if (prevItemCountRef.current === null) {
