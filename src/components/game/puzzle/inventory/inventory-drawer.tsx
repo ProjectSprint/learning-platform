@@ -1,7 +1,6 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import {
 	forwardRef,
-	type PointerEvent as ReactPointerEvent,
 	useCallback,
 	useEffect,
 	useImperativeHandle,
@@ -11,7 +10,7 @@ import {
 } from "react";
 
 import { useGameState } from "@/components/game/game-provider";
-import { type ActiveDrag, useDragContext } from "../drag";
+import { useDragContext } from "../drag";
 import { InventoryPanel, type InventoryPanelProps } from "./inventory-panel";
 
 export type InventoryDrawerHandle = {
@@ -53,7 +52,9 @@ export const InventoryDrawer = forwardRef<
 		const [isExpanded, setIsExpanded] = useState(initialExpanded);
 		const [hoverLocked, setHoverLocked] = useState(false);
 		const { activeDrag, lastDropResult, setLastDropResult } = useDragContext();
-		const isMdOrBelow = useBreakpointValue({ base: true, sm: false }) ?? true;
+		const isXs = useBreakpointValue({ base: true, sm: false }) ?? true;
+		const isMdOrBelow =
+			useBreakpointValue({ base: true, md: true, lg: false }) ?? true;
 		const responsiveDrawerWidth =
 			useBreakpointValue({ base: "80vw", sm: "320px" }) ?? "320px";
 		const resolvedDrawerWidth = drawerWidth ?? responsiveDrawerWidth;
@@ -61,11 +62,11 @@ export const InventoryDrawer = forwardRef<
 			closeGutterWidth ?? `calc(100vw - ${resolvedDrawerWidth})`;
 		const resolvedFoldedHeight =
 			useBreakpointValue({
-				base: "0px",
-				lg: foldedHeights?.lg ?? "60vh",
-				xl: foldedHeights?.xl ?? "40vh",
-				"2xl": foldedHeights?.["2xl"] ?? "25vh",
-			}) ?? "40vh";
+				base: "20vh",
+				lg: foldedHeights?.lg ?? "15vh",
+				xl: foldedHeights?.xl ?? "12vh",
+				"2xl": foldedHeights?.["2xl"] ?? "10vh",
+			}) ?? "15vh";
 
 		const itemCount = useMemo(
 			() =>
@@ -84,10 +85,6 @@ export const InventoryDrawer = forwardRef<
 		);
 		const prevItemCountRef = useRef<number | null>(null);
 		const prevVisibleGroupsRef = useRef<Set<string> | null>(null);
-		const touchHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-			null,
-		);
-		const activeDragRef = useRef<ActiveDrag | null>(null);
 
 		const expandDrawer = useCallback(
 			(_source: OpenSource) => {
@@ -126,31 +123,12 @@ export const InventoryDrawer = forwardRef<
 		);
 
 		useEffect(() => {
-			activeDragRef.current = activeDrag;
-		}, [activeDrag]);
-
-		useEffect(() => {
-			if (touchHoldTimerRef.current) {
-				clearTimeout(touchHoldTimerRef.current);
-				touchHoldTimerRef.current = null;
-			}
-
 			if (!activeDrag) {
 				return;
 			}
 
 			if (activeDrag.source === "inventory") {
-				if (activeDrag.pointerType === "touch") {
-					const activeItemId = activeDrag.data.itemId;
-					touchHoldTimerRef.current = setTimeout(() => {
-						const currentDrag = activeDragRef.current;
-						if (currentDrag?.data.itemId === activeItemId) {
-							foldDrawer("drag");
-						}
-					}, 250);
-				} else {
-					foldDrawer("drag");
-				}
+				foldDrawer("drag");
 			}
 		}, [activeDrag, foldDrawer]);
 
@@ -220,7 +198,7 @@ export const InventoryDrawer = forwardRef<
 		}, [hoverGutterWidth, hoverLocked, isMdOrBelow]);
 
 		const hoverZone = useMemo(() => {
-			if (!isMdOrBelow || isExpanded) {
+			if (!isXs || isExpanded || isMdOrBelow) {
 				return null;
 			}
 
@@ -246,6 +224,7 @@ export const InventoryDrawer = forwardRef<
 			hoverLocked,
 			isExpanded,
 			isMdOrBelow,
+			isXs,
 		]);
 
 		const handlePointerEnter = useCallback(() => {
@@ -254,31 +233,25 @@ export const InventoryDrawer = forwardRef<
 			}
 		}, [activeDrag, expandDrawer]);
 
-		const handleBottomPointerEnter = useCallback(
-			(event: ReactPointerEvent<HTMLDivElement>) => {
-				if (event.pointerType === "touch") {
-					return;
-				}
-				if (!isExpanded) {
-					expandDrawer("hover");
-				}
-			},
-			[expandDrawer, isExpanded],
-		);
+		const handleBottomPointerEnter = useCallback(() => {
+			if (isMdOrBelow) {
+				return;
+			}
+			if (!isExpanded) {
+				expandDrawer("hover");
+			}
+		}, [expandDrawer, isExpanded, isMdOrBelow]);
 
-		const handleBottomPointerLeave = useCallback(
-			(event: ReactPointerEvent<HTMLDivElement>) => {
-				if (event.pointerType === "touch") {
-					return;
-				}
-				if (isExpanded) {
-					foldDrawer("hover");
-				}
-			},
-			[foldDrawer, isExpanded],
-		);
+		const handleBottomPointerLeave = useCallback(() => {
+			if (isMdOrBelow) {
+				return;
+			}
+			if (isExpanded) {
+				foldDrawer("hover");
+			}
+		}, [foldDrawer, isExpanded, isMdOrBelow]);
 
-		if (!isMdOrBelow) {
+		if (!isXs) {
 			return (
 				<Box
 					position="fixed"
@@ -308,15 +281,21 @@ export const InventoryDrawer = forwardRef<
 							<Text fontSize="sm" fontWeight="bold" color="gray.100">
 								{title}
 							</Text>
-							{isExpanded && (
+							{(isExpanded || isMdOrBelow) && (
 								<Box
 									as="button"
-									onClick={() => foldDrawer("button")}
-									aria-label="Fold inventory drawer"
+									onClick={() =>
+										isExpanded ? foldDrawer("button") : expandDrawer("button")
+									}
+									aria-label={
+										isExpanded
+											? "Fold inventory drawer"
+											: "Expand inventory drawer"
+									}
 									color="gray.400"
 									_hover={{ color: "gray.100" }}
 								>
-									▼
+									{isExpanded ? "▼" : "▲"}
 								</Box>
 							)}
 						</Flex>

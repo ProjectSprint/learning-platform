@@ -16,5 +16,4 @@ export type ActiveDrag = {
 	element?: HTMLElement | null;
 	initialRect?: DOMRect;
 	pointerOffset?: { x: number; y: number };
-	pointerType?: "mouse" | "touch" | "pen";
 };
