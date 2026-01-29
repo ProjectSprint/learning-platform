@@ -92,6 +92,23 @@ export const useUdpPhase = ({
 		[dispatch],
 	);
 
+	const removeInventoryItem = useCallback(
+		(itemId: string) => {
+			const existing =
+				state.inventory.groups.find(
+					(group) => group.id === INVENTORY_GROUP_IDS.frames,
+				)?.items ?? [];
+			dispatch({
+				type: "UPDATE_INVENTORY_GROUP",
+				payload: {
+					id: INVENTORY_GROUP_IDS.frames,
+					items: existing.filter((item) => item.id !== itemId),
+				},
+			});
+		},
+		[dispatch, state.inventory.groups],
+	);
+
 	useEffect(() => {
 		if (!active) return;
 		updateInventoryGroup(INVENTORY_GROUP_IDS.frames, { visible: true });
@@ -154,6 +171,7 @@ export const useUdpPhase = ({
 					config: { status: "warning", state: "sending" },
 				},
 			});
+			removeInventoryItem(item.id);
 
 			const timer = setTimeout(() => {
 				if (!activeRef.current) return;
@@ -193,7 +211,7 @@ export const useUdpPhase = ({
 			}, FRAME_SEND_MS);
 			registerTimer(timer);
 		},
-		[dispatch, registerTimer, showNotice],
+		[dispatch, registerTimer, removeInventoryItem, showNotice],
 	);
 
 	const prevOutboxIdsRef = useRef<Set<string>>(new Set());
