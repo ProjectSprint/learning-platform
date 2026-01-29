@@ -61,6 +61,7 @@ export const buildBreakingPointModal = (
 ): ModalInstance => ({
 	id: "tcp-exhaustion",
 	title: "😤 This is exhausting...",
+	blocking: true,
 	content: [
 		buildText("You've done 20+ actions just managing connections."),
 		buildText("And you've barely sent any actual video data!"),
