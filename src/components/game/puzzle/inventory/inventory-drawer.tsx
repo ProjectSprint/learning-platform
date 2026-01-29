@@ -236,6 +236,12 @@ export const InventoryDrawer = forwardRef<
 			}
 		}, [expandDrawer, isExpanded]);
 
+		const handleBottomPointerLeave = useCallback(() => {
+			if (isExpanded) {
+				foldDrawer("hover");
+			}
+		}, [foldDrawer, isExpanded]);
+
 		if (!isMdOrBelow) {
 			return (
 				<Box
@@ -252,6 +258,7 @@ export const InventoryDrawer = forwardRef<
 					transition="height 0.2s ease"
 					overflow="hidden"
 					onPointerEnter={handleBottomPointerEnter}
+					onPointerLeave={handleBottomPointerLeave}
 				>
 					<Flex direction="column" height="100%">
 						<Flex
