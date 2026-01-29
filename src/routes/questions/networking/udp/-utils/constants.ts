@@ -27,19 +27,28 @@ export type UdpCanvasKey =
 	| "client-b"
 	| "client-c";
 
+export const TCP_INBOX_IDS = {
+	a: "client-a-inbox",
+	b: "client-b-inbox",
+	c: "client-c-inbox",
+	d: "client-d-inbox",
+} as const;
+
+export const UDP_CLIENT_CANVAS_IDS = {
+	a: "client-a",
+	b: "client-b",
+	c: "client-c",
+} as const;
+
 export const TCP_CANVAS_ORDER: UdpCanvasKey[] = [
 	"internet",
 	"client-a-inbox",
 	"client-b-inbox",
 	"client-c-inbox",
-	"client-d-inbox",
 ];
 
 export const UDP_CANVAS_ORDER: UdpCanvasKey[] = [
 	"outbox",
-	"client-a",
-	"client-b",
-	"client-c",
 ];
 
 export const CANVAS_CONFIGS: Record<UdpCanvasKey, PuzzleConfig> = {
@@ -50,6 +59,11 @@ export const CANVAS_CONFIGS: Record<UdpCanvasKey, PuzzleConfig> = {
 		columns: 4,
 		rows: 1,
 		maxItems: 4,
+		initialPlacements: [
+			{ blockX: 0, blockY: 0, itemType: "syn-packet" },
+			{ blockX: 1, blockY: 0, itemType: "syn-packet" },
+			{ blockX: 2, blockY: 0, itemType: "syn-packet" },
+		],
 	},
 	"client-a-inbox": {
 		id: "udp-client-a-inbox",
@@ -124,16 +138,23 @@ export const INVENTORY_GROUP_IDS = {
 	frames: "frames",
 } as const;
 
-const createSynPacket = (clientId: TcpClientId): InventoryItem => ({
+export const buildSynPacket = (clientId: TcpClientId): InventoryItem => ({
 	id: `syn-packet-${clientId}`,
 	type: "syn-packet",
 	name: `SYN from Client ${clientId.toUpperCase()}`,
-	allowedPlaces: ["inventory", "internet", `client-${clientId}-inbox`],
+	allowedPlaces: [
+		"inventory",
+		"internet",
+		"client-a-inbox",
+		"client-b-inbox",
+		"client-c-inbox",
+		"client-d-inbox",
+	],
 	icon: { icon: "mdi:handshake-outline", color: "#FBBF24" },
 	data: { clientId, tcpState: "pending" },
 });
 
-const createSynAckPacket = (clientId: TcpClientId): InventoryItem => ({
+export const buildSynAckPacket = (clientId: TcpClientId): InventoryItem => ({
 	id: `syn-ack-packet-${clientId}`,
 	type: "syn-ack-packet",
 	name: `SYN-ACK to Client ${clientId.toUpperCase()}`,
@@ -142,16 +163,22 @@ const createSynAckPacket = (clientId: TcpClientId): InventoryItem => ({
 	data: { clientId, tcpState: "pending" },
 });
 
-const createAckPacket = (clientId: TcpClientId): InventoryItem => ({
+export const buildAckPacket = (clientId: TcpClientId): InventoryItem => ({
 	id: `ack-packet-${clientId}`,
 	type: "ack-packet",
 	name: `ACK from Client ${clientId.toUpperCase()}`,
-	allowedPlaces: ["inventory", `client-${clientId}-inbox`],
+	allowedPlaces: [
+		"inventory",
+		"client-a-inbox",
+		"client-b-inbox",
+		"client-c-inbox",
+		"client-d-inbox",
+	],
 	icon: { icon: "mdi:check-circle-outline", color: "#10B981" },
 	data: { clientId, tcpState: "pending" },
 });
 
-const createDataPacket = (
+export const buildDataPacket = (
 	clientId: TcpClientId,
 	seq: number,
 ): InventoryItem => ({
@@ -163,7 +190,7 @@ const createDataPacket = (
 	data: { clientId, seq, tcpState: "pending" },
 });
 
-const createFrameItem = (frameNumber: number): InventoryItem => ({
+export const buildFrameItem = (frameNumber: number): InventoryItem => ({
 	id: `udp-frame-${frameNumber}`,
 	type: "frame",
 	name: `Frame ${frameNumber}`,
@@ -173,28 +200,28 @@ const createFrameItem = (frameNumber: number): InventoryItem => ({
 });
 
 export const SYN_PACKETS: InventoryItem[] = INITIAL_TCP_CLIENT_IDS.map(
-	(clientId) => createSynPacket(clientId),
+	(clientId) => buildSynPacket(clientId),
 );
 
 export const SYN_ACK_PACKETS: InventoryItem[] = TCP_CLIENT_IDS.map(
-	(clientId) => createSynAckPacket(clientId),
+	(clientId) => buildSynAckPacket(clientId),
 );
 
 export const ACK_PACKETS: InventoryItem[] = TCP_CLIENT_IDS.map((clientId) =>
-	createAckPacket(clientId),
+	buildAckPacket(clientId),
 );
 
 const DATA_PACKET_COUNT = 6;
 export const DATA_PACKETS: InventoryItem[] = INITIAL_TCP_CLIENT_IDS.flatMap(
 	(clientId) =>
 		Array.from({ length: DATA_PACKET_COUNT }, (_, index) =>
-			createDataPacket(clientId, index + 1),
+			buildDataPacket(clientId, index + 1),
 		),
 );
 
 export const FRAME_ITEMS: InventoryItem[] = Array.from(
 	{ length: 6 },
-	(_, index) => createFrameItem(index + 1),
+	(_, index) => buildFrameItem(index + 1),
 );
 
 export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
@@ -208,7 +235,7 @@ export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
 		id: INVENTORY_GROUP_IDS.outgoing,
 		title: "Server Response",
 		visible: false,
-		items: SYN_ACK_PACKETS,
+		items: [],
 	},
 	{
 		id: INVENTORY_GROUP_IDS.dataPackets,
@@ -232,3 +259,12 @@ export const PACKET_LIKE_TYPES = [
 	"ack-data",
 	"frame",
 ];
+
+export const TCP_ITEM_IDS = [
+	...SYN_PACKETS.map((item) => item.id),
+	...SYN_ACK_PACKETS.map((item) => item.id),
+	...ACK_PACKETS.map((item) => item.id),
+	...DATA_PACKETS.map((item) => item.id),
+];
+
+export const UDP_ITEM_IDS = [...FRAME_ITEMS.map((item) => item.id)];
