@@ -778,7 +778,6 @@ export const useTcpPhase = ({
 						status: "error",
 						tcpState: "rejected",
 					});
-					showNotice(`Wait for Client ${CLIENT_LABELS[clientId]} ACK.`, "info");
 					const timer = setTimeout(() => {
 						const location = findItemLocationLatest(item.id);
 						if (location) {
