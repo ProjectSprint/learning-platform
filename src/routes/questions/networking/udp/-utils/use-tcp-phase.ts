@@ -26,7 +26,7 @@ import {
 } from "./modal-builders";
 import type { TcpPhase } from "./types";
 
-const INTERNET_TRAVEL_MS = 1000;
+const INTERNET_TRAVEL_MS = 1500;
 const DATA_ACK_MS = 500;
 const NOTICE_MS = 2000;
 

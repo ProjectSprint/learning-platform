@@ -211,7 +211,14 @@ export const buildDataPacket = (
 	id: `data-packet-${clientId}-${seq}`,
 	type: "data-packet",
 	name: `Packet ${seq} -> Client ${clientId.toUpperCase()}`,
-	allowedPlaces: ["inventory", "internet"],
+	allowedPlaces: [
+		"inventory",
+		"internet",
+		"client-a-inbox",
+		"client-b-inbox",
+		"client-c-inbox",
+		"client-d-inbox",
+	],
 	icon: { icon: "mdi:filmstrip", color: "#60A5FA" },
 	data: { clientId, seq, tcpState: "pending" },
 });
