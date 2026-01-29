@@ -25,7 +25,7 @@ type InventoryDrawerProps = InventoryPanelProps & {
 	closeGutterWidth?: string;
 	initialExpanded?: boolean;
 	expandedHeight?: string;
-	foldedHeights?: Partial<Record<"lg" | "xl" | "2xl", string>>;
+	foldedHeights?: Partial<Record<"base" | "lg" | "xl" | "2xl", string>>;
 	title?: string;
 };
 
@@ -62,11 +62,11 @@ export const InventoryDrawer = forwardRef<
 			closeGutterWidth ?? `calc(100vw - ${resolvedDrawerWidth})`;
 		const resolvedFoldedHeight =
 			useBreakpointValue({
-				base: "20vh",
-				lg: foldedHeights?.lg ?? "15vh",
-				xl: foldedHeights?.xl ?? "12vh",
-				"2xl": foldedHeights?.["2xl"] ?? "10vh",
-			}) ?? "15vh";
+				base: foldedHeights?.base ?? "20vh",
+				lg: foldedHeights?.lg ?? "25vh",
+				xl: foldedHeights?.xl ?? "22vh",
+				"2xl": foldedHeights?.["2xl"] ?? "18vh",
+			}) ?? "25vh";
 
 		const itemCount = useMemo(
 			() =>
