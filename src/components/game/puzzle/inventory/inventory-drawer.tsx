@@ -137,12 +137,12 @@ export const InventoryDrawer = forwardRef<
 				return;
 			}
 
-			if (
-				!isMdOrBelow &&
-				lastDropResult.source === "inventory" &&
-				!lastDropResult.placed
-			) {
-				expandDrawer("auto");
+			if (lastDropResult.source === "inventory") {
+				if (isMdOrBelow) {
+					expandDrawer("auto");
+				} else if (!lastDropResult.placed) {
+					expandDrawer("auto");
+				}
 			}
 
 			setLastDropResult(null);
