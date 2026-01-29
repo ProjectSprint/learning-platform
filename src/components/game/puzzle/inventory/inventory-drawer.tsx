@@ -85,6 +85,7 @@ export const InventoryDrawer = forwardRef<
 		);
 		const prevItemCountRef = useRef<number | null>(null);
 		const prevVisibleGroupsRef = useRef<Set<string> | null>(null);
+		const lastActiveDragRef = useRef<typeof activeDrag>(null);
 
 		const expandDrawer = useCallback(
 			(_source: OpenSource) => {
@@ -124,13 +125,19 @@ export const InventoryDrawer = forwardRef<
 
 		useEffect(() => {
 			if (!activeDrag) {
+				if (isMdOrBelow && lastActiveDragRef.current?.source === "inventory") {
+					expandDrawer("auto");
+				}
+				lastActiveDragRef.current = null;
 				return;
 			}
+
+			lastActiveDragRef.current = activeDrag;
 
 			if (activeDrag.source === "inventory") {
 				foldDrawer("drag");
 			}
-		}, [activeDrag, foldDrawer]);
+		}, [activeDrag, expandDrawer, foldDrawer, isMdOrBelow]);
 
 		useEffect(() => {
 			if (!lastDropResult || activeDrag) {
