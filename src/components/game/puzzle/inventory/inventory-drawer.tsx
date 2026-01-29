@@ -1,6 +1,7 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import {
 	forwardRef,
+	type PointerEvent as ReactPointerEvent,
 	useCallback,
 	useEffect,
 	useImperativeHandle,
@@ -10,7 +11,7 @@ import {
 } from "react";
 
 import { useGameState } from "@/components/game/game-provider";
-import { useDragContext } from "../drag";
+import { type ActiveDrag, useDragContext } from "../drag";
 import { InventoryPanel, type InventoryPanelProps } from "./inventory-panel";
 
 export type InventoryDrawerHandle = {
@@ -83,6 +84,10 @@ export const InventoryDrawer = forwardRef<
 		);
 		const prevItemCountRef = useRef<number | null>(null);
 		const prevVisibleGroupsRef = useRef<Set<string> | null>(null);
+		const touchHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+			null,
+		);
+		const activeDragRef = useRef<ActiveDrag | null>(null);
 
 		const expandDrawer = useCallback(
 			(_source: OpenSource) => {
@@ -121,12 +126,31 @@ export const InventoryDrawer = forwardRef<
 		);
 
 		useEffect(() => {
+			activeDragRef.current = activeDrag;
+		}, [activeDrag]);
+
+		useEffect(() => {
+			if (touchHoldTimerRef.current) {
+				clearTimeout(touchHoldTimerRef.current);
+				touchHoldTimerRef.current = null;
+			}
+
 			if (!activeDrag) {
 				return;
 			}
 
 			if (activeDrag.source === "inventory") {
-				foldDrawer("drag");
+				if (activeDrag.pointerType === "touch") {
+					const activeItemId = activeDrag.data.itemId;
+					touchHoldTimerRef.current = setTimeout(() => {
+						const currentDrag = activeDragRef.current;
+						if (currentDrag?.data.itemId === activeItemId) {
+							foldDrawer("drag");
+						}
+					}, 250);
+				} else {
+					foldDrawer("drag");
+				}
 			}
 		}, [activeDrag, foldDrawer]);
 
@@ -230,17 +254,29 @@ export const InventoryDrawer = forwardRef<
 			}
 		}, [activeDrag, expandDrawer]);
 
-		const handleBottomPointerEnter = useCallback(() => {
-			if (!isExpanded) {
-				expandDrawer("hover");
-			}
-		}, [expandDrawer, isExpanded]);
+		const handleBottomPointerEnter = useCallback(
+			(event: ReactPointerEvent<HTMLDivElement>) => {
+				if (event.pointerType === "touch") {
+					return;
+				}
+				if (!isExpanded) {
+					expandDrawer("hover");
+				}
+			},
+			[expandDrawer, isExpanded],
+		);
 
-		const handleBottomPointerLeave = useCallback(() => {
-			if (isExpanded) {
-				foldDrawer("hover");
-			}
-		}, [foldDrawer, isExpanded]);
+		const handleBottomPointerLeave = useCallback(
+			(event: ReactPointerEvent<HTMLDivElement>) => {
+				if (event.pointerType === "touch") {
+					return;
+				}
+				if (isExpanded) {
+					foldDrawer("hover");
+				}
+			},
+			[foldDrawer, isExpanded],
+		);
 
 		if (!isMdOrBelow) {
 			return (

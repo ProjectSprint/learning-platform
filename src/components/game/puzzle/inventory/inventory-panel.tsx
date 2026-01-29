@@ -143,6 +143,7 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 					itemType: item.type,
 					itemName: item.name,
 				},
+				pointerType: event.pointerType,
 				element: target,
 				initialRect: rect,
 			});
