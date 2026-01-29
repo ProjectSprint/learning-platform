@@ -42,7 +42,7 @@ export const InventoryDrawer = forwardRef<
 			hoverGutterWidth = "10vw",
 			closeGutterWidth,
 			initialExpanded = false,
-			expandedHeight = "60vh",
+			expandedHeight = "30vh",
 			foldedHeights,
 			title = "Inventory",
 		},
