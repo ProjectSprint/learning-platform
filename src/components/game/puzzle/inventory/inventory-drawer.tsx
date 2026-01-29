@@ -52,8 +52,7 @@ export const InventoryDrawer = forwardRef<
 		const [isExpanded, setIsExpanded] = useState(initialExpanded);
 		const [hoverLocked, setHoverLocked] = useState(false);
 		const { activeDrag, lastDropResult, setLastDropResult } = useDragContext();
-		const isMdOrBelow =
-			useBreakpointValue({ base: true, sm: false }) ?? true;
+		const isMdOrBelow = useBreakpointValue({ base: true, sm: false }) ?? true;
 		const responsiveDrawerWidth =
 			useBreakpointValue({ base: "80vw", sm: "320px" }) ?? "320px";
 		const resolvedDrawerWidth = drawerWidth ?? responsiveDrawerWidth;
@@ -231,6 +230,12 @@ export const InventoryDrawer = forwardRef<
 			}
 		}, [activeDrag, expandDrawer]);
 
+		const handleBottomPointerEnter = useCallback(() => {
+			if (!isExpanded) {
+				expandDrawer("hover");
+			}
+		}, [expandDrawer, isExpanded]);
+
 		if (!isMdOrBelow) {
 			return (
 				<Box
@@ -246,7 +251,7 @@ export const InventoryDrawer = forwardRef<
 					zIndex={isExpanded ? 90 : 80}
 					transition="height 0.2s ease"
 					overflow="hidden"
-					onPointerEnter={handlePointerEnter}
+					onPointerEnter={handleBottomPointerEnter}
 				>
 					<Flex direction="column" height="100%">
 						<Flex
@@ -260,21 +265,17 @@ export const InventoryDrawer = forwardRef<
 							<Text fontSize="sm" fontWeight="bold" color="gray.100">
 								{title}
 							</Text>
-							<Box
-								as="button"
-								onClick={() =>
-									isExpanded ? foldDrawer("button") : expandDrawer("button")
-								}
-								aria-label={
-									isExpanded
-										? "Fold inventory drawer"
-										: "Expand inventory drawer"
-								}
-								color="gray.400"
-								_hover={{ color: "gray.100" }}
-							>
-								{isExpanded ? "▼" : "▲"}
-							</Box>
+							{isExpanded && (
+								<Box
+									as="button"
+									onClick={() => foldDrawer("button")}
+									aria-label="Fold inventory drawer"
+									color="gray.400"
+									_hover={{ color: "gray.100" }}
+								>
+									▼
+								</Box>
+							)}
 						</Flex>
 
 						<Box
