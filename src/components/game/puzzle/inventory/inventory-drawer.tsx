@@ -147,6 +147,37 @@ export const InventoryDrawer = forwardRef<
 				expandDrawer("auto");
 			};
 
+			const handlePointerCancel = () => {
+				expandDrawer("auto");
+			};
+
+			window.addEventListener("pointerup", handlePointerUp, { capture: true });
+			window.addEventListener("pointercancel", handlePointerCancel, {
+				capture: true,
+			});
+
+			return () => {
+				window.removeEventListener("pointerup", handlePointerUp, {
+					capture: true,
+				});
+				window.removeEventListener("pointercancel", handlePointerCancel, {
+					capture: true,
+				});
+			};
+		}, [activeDrag, expandDrawer, isMdOrBelow]);
+
+		useEffect(() => {
+			if (!isMdOrBelow) {
+				return;
+			}
+			if (!activeDrag || activeDrag.source !== "inventory") {
+				return;
+			}
+
+			const handlePointerUp = () => {
+				expandDrawer("auto");
+			};
+
 			window.addEventListener("pointerup", handlePointerUp, { once: true });
 			return () => window.removeEventListener("pointerup", handlePointerUp);
 		}, [activeDrag, expandDrawer, isMdOrBelow]);
