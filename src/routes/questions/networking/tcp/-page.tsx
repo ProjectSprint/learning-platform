@@ -2,6 +2,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTerminalEngine } from "@/components/game/engines";
 import {
+	type Arrow,
 	type GamePhase,
 	GameProvider,
 	type InventoryGroupConfig,
@@ -10,7 +11,11 @@ import {
 } from "@/components/game/game-provider";
 import { ContextualHint, useContextualHint } from "@/components/game/hint";
 import { Modal } from "@/components/game/modal";
-import { PuzzleBoard } from "@/components/game/puzzle/board";
+import {
+	BoardArrowSurface,
+	BoardRegistryProvider,
+	PuzzleBoard,
+} from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import {
 	InventoryDrawer,
@@ -18,8 +23,10 @@ import {
 } from "@/components/game/puzzle/inventory";
 import {
 	type ConditionContext,
+	clearBoardArrows,
 	type QuestionSpec,
 	resolvePhase,
+	setBoardArrows,
 } from "@/components/game/question";
 import {
 	TerminalInput,
@@ -274,6 +281,54 @@ const TcpGame = ({
 	);
 	useContextualHint(contextualHint);
 
+	const boardArrows = useMemo<Arrow[]>(() => {
+		if (isCompleted) {
+			return [];
+		}
+
+		const baseStyle = {
+			stroke: "rgba(56, 189, 248, 0.85)",
+			strokeWidth: 2,
+			headSize: 12,
+			bow: 0.15,
+		};
+
+		const arrows: Arrow[] = [
+			{
+				id: "internet-to-server",
+				from: { puzzleId: "internet", anchor: { x: 1, y: 0.5, offsetX: 8 } },
+				to: { puzzleId: "server", anchor: { x: 0, y: 0.5, offsetX: -8 } },
+				style: baseStyle,
+			},
+		];
+
+		if (tcpState.splitterVisible) {
+			arrows.unshift({
+				id: "splitter-to-internet",
+				from: { puzzleId: "splitter", anchor: { x: 1, y: 0.5, offsetX: 8 } },
+				to: { puzzleId: "internet", anchor: { x: 0, y: 0.5, offsetX: -8 } },
+				style: {
+					...baseStyle,
+					stroke: "rgba(96, 165, 250, 0.85)",
+				},
+			});
+		}
+
+		return arrows;
+	}, [isCompleted, tcpState.splitterVisible]);
+
+	useEffect(() => {
+		if (isCompleted) {
+			clearBoardArrows(dispatch);
+			return;
+		}
+
+		setBoardArrows(dispatch, boardArrows);
+		return () => {
+			clearBoardArrows(dispatch);
+		};
+	}, [boardArrows, dispatch, isCompleted]);
+
 	return (
 		<DragProvider>
 			<Box
@@ -303,91 +358,95 @@ const TcpGame = ({
 						</Text>
 					</Box>
 
-					<Flex
-						direction={{ base: "column", xl: "row" }}
-						gap={{ base: 2, md: 4 }}
-						align={{ base: "stretch", xl: "flex-start" }}
-					>
-						{CANVAS_ORDER.map((key) => {
-							const config = CANVAS_CONFIGS[key];
-							if (!config) return null;
-							if (key === "splitter" && !tcpState.splitterVisible) {
-								return null;
-							}
+					<BoardRegistryProvider>
+						<BoardArrowSurface>
+							<Flex
+								direction={{ base: "column", xl: "row" }}
+								gap={{ base: 2, md: 4 }}
+								align={{ base: "stretch", xl: "flex-start" }}
+							>
+								{CANVAS_ORDER.map((key) => {
+									const config = CANVAS_CONFIGS[key];
+									if (!config) return null;
+									if (key === "splitter" && !tcpState.splitterVisible) {
+										return null;
+									}
 
-							return (
-								<Box
-									key={key}
-									flexGrow={config.columns}
-									flexBasis={0}
-									minW={{ base: "100%", xl: "0" }}
-								>
-									<PuzzleBoard
-										puzzleId={key}
-										title={config.title ?? key}
-										getItemLabel={spec.labels.getItemLabel}
-										getStatusMessage={spec.labels.getStatusMessage}
-									/>
-									{key === "server" && (
+									return (
 										<Box
-											mt={2}
-											bg="gray.900"
-											border="1px solid"
-											borderColor="gray.800"
-											borderRadius="md"
-											px={3}
-											py={2}
+											key={key}
+											flexGrow={config.columns}
+											flexBasis={0}
+											minW={{ base: "100%", xl: "0" }}
 										>
-											<Text fontSize="xs" color="gray.400" mb={1}>
-												Server terminal
-											</Text>
-											<TerminalView
-												history={tcpState.serverLog}
-												entryPrefix="> "
-												containerProps={{
-													bg: "gray.950",
-													border: "1px solid",
-													borderColor: "gray.800",
-													borderRadius: "md",
-													px: 3,
-													py: 2,
-													height: "120px",
-												}}
+											<PuzzleBoard
+												puzzleId={key}
+												title={config.title ?? key}
+												getItemLabel={spec.labels.getItemLabel}
+												getStatusMessage={spec.labels.getStatusMessage}
 											/>
-											{(tcpState.connectionActive ||
-												tcpState.receivedCount > 0 ||
-												tcpState.waitingCount > 0) && (
-												<Box mt={2}>
+											{key === "server" && (
+												<Box
+													mt={2}
+													bg="gray.900"
+													border="1px solid"
+													borderColor="gray.800"
+													borderRadius="md"
+													px={3}
+													py={2}
+												>
 													<Text fontSize="xs" color="gray.400" mb={1}>
-														Receiving buffer:
+														Server terminal
 													</Text>
-													<Flex gap={2} wrap="wrap">
-														{tcpState.bufferSlots.map((slot) => {
-															const label =
-																slot.status === "received"
-																	? `#${slot.seq} ✅`
-																	: slot.status === "waiting"
-																		? `#${slot.seq} ⏳`
-																		: `#${slot.seq} ___`;
-															return (
-																<Text
-																	key={slot.seq}
-																	fontSize="xs"
-																	color="gray.300"
-																>
-																	[{label}]
-																</Text>
-															);
-														})}
-													</Flex>
+													<TerminalView
+														history={tcpState.serverLog}
+														entryPrefix="> "
+														containerProps={{
+															bg: "gray.950",
+															border: "1px solid",
+															borderColor: "gray.800",
+															borderRadius: "md",
+															px: 3,
+															py: 2,
+															height: "120px",
+														}}
+													/>
+													{(tcpState.connectionActive ||
+														tcpState.receivedCount > 0 ||
+														tcpState.waitingCount > 0) && (
+														<Box mt={2}>
+															<Text fontSize="xs" color="gray.400" mb={1}>
+																Receiving buffer:
+															</Text>
+															<Flex gap={2} wrap="wrap">
+																{tcpState.bufferSlots.map((slot) => {
+																	const label =
+																		slot.status === "received"
+																			? `#${slot.seq} ✅`
+																			: slot.status === "waiting"
+																				? `#${slot.seq} ⏳`
+																				: `#${slot.seq} ___`;
+																	return (
+																		<Text
+																			key={slot.seq}
+																			fontSize="xs"
+																			color="gray.300"
+																		>
+																			[{label}]
+																		</Text>
+																	);
+																})}
+															</Flex>
+														</Box>
+													)}
 												</Box>
 											)}
 										</Box>
-									)}
-								</Box>
-							);
-						})}
-					</Flex>
+									);
+								})}
+							</Flex>
+						</BoardArrowSurface>
+					</BoardRegistryProvider>
 
 					{tunnelVisible && (
 						<Box mt={4} mb={2} px={{ base: 2, md: 12 }}>

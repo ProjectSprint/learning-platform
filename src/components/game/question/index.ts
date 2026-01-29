@@ -1,3 +1,4 @@
+export { clearBoardArrows, setBoardArrows } from "./arrows";
 export {
 	type CanvasRule,
 	type Condition,
