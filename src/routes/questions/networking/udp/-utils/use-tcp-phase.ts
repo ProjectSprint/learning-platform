@@ -571,6 +571,9 @@ export const useTcpPhase = ({
 			if (areClientsConnected(INITIAL_TCP_CLIENT_IDS)) {
 				handleHandshakeComplete();
 			}
+			if (typedClientId === "d" && phase === "chaos-new-client") {
+				triggerTimeout();
+			}
 
 			const timer = setTimeout(() => {
 				const location = findItemLocationLatest(item.id);
@@ -591,6 +594,7 @@ export const useTcpPhase = ({
 			registerTimer,
 			removeItem,
 			setClientStatusFor,
+			triggerTimeout,
 			updateItemIfNeeded,
 		],
 	);
