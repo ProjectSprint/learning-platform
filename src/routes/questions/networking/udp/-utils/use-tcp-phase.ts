@@ -189,8 +189,13 @@ export const useTcpPhase = ({
 	const removeInventoryItem = useCallback(
 		(id: string, itemId: string) => {
 			const existing = getInventoryGroupItems(id);
+			const nextItems = existing.filter((item) => item.id !== itemId);
 			updateInventoryGroup(id, {
-				items: existing.filter((item) => item.id !== itemId),
+				items: nextItems,
+				visible:
+					id === INVENTORY_GROUP_IDS.outgoing
+						? nextItems.length > 0
+						: undefined,
 			});
 		},
 		[getInventoryGroupItems, updateInventoryGroup],
