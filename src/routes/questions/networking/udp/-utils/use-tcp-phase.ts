@@ -160,6 +160,16 @@ export const useTcpPhase = ({
 		[getInventoryGroupItems, updateInventoryGroup],
 	);
 
+	const removeInventoryItem = useCallback(
+		(id: string, itemId: string) => {
+			const existing = getInventoryGroupItems(id);
+			updateInventoryGroup(id, {
+				items: existing.filter((item) => item.id !== itemId),
+			});
+		},
+		[getInventoryGroupItems, updateInventoryGroup],
+	);
+
 	const findItemLocationLatest = useCallback((itemId: string) => {
 		for (const [canvasId, canvas] of Object.entries(canvasesRef.current)) {
 			const item = canvas.placedItems.find((entry) => entry.id === itemId);
@@ -556,6 +566,7 @@ export const useTcpPhase = ({
 				[buildReceivedAckPacket(typedClientId)],
 				true,
 			);
+			removeInventoryItem(INVENTORY_GROUP_IDS.outgoing, item.id);
 
 			if (areClientsConnected(INITIAL_TCP_CLIENT_IDS)) {
 				handleHandshakeComplete();
@@ -576,6 +587,7 @@ export const useTcpPhase = ({
 			ensureClientState,
 			findItemLocationLatest,
 			handleHandshakeComplete,
+			removeInventoryItem,
 			registerTimer,
 			removeItem,
 			setClientStatusFor,
@@ -705,10 +717,11 @@ export const useTcpPhase = ({
 					status: "warning",
 					tcpState: "in-transit",
 				});
-			const clientId = item.data?.clientId as string | undefined;
-			const targetInbox = clientId
-				? TCP_INBOX_IDS[clientId as keyof typeof TCP_INBOX_IDS]
-				: null;
+				removeInventoryItem(INVENTORY_GROUP_IDS.outgoing, item.id);
+				const clientId = item.data?.clientId as string | undefined;
+				const targetInbox = clientId
+					? TCP_INBOX_IDS[clientId as keyof typeof TCP_INBOX_IDS]
+					: null;
 				const timer = setTimeout(() => {
 					if (!activeRef.current) return;
 					if (!targetInbox) return;
@@ -766,8 +779,8 @@ export const useTcpPhase = ({
 				if (phase === "connected") {
 					setPhase("data-transfer");
 				}
-			const targetInbox =
-				TCP_INBOX_IDS[clientId as keyof typeof TCP_INBOX_IDS];
+				const targetInbox =
+					TCP_INBOX_IDS[clientId as keyof typeof TCP_INBOX_IDS];
 				const timer = setTimeout(() => {
 					if (!activeRef.current) return;
 					transferItemToCanvas(item.id, targetInbox);
@@ -780,6 +793,7 @@ export const useTcpPhase = ({
 			phase,
 			registerTimer,
 			removeItem,
+			removeInventoryItem,
 			setPhase,
 			showNotice,
 			transferItemToCanvas,
