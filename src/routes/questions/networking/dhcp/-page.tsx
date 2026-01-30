@@ -1,4 +1,4 @@
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
@@ -112,6 +112,7 @@ const NetworkingGame = ({
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const initializedRef = useRef(false);
+	const isBase = useBreakpointValue({ base: true, sm: false }) ?? false;
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
@@ -155,6 +156,15 @@ const NetworkingGame = ({
 		[dispatch, state.puzzle.placedItems],
 	);
 
+	const resolvedCanvasConfig = useMemo(
+		() => ({
+			...CANVAS_CONFIG,
+			columns: isBase ? 1 : CANVAS_CONFIG.columns,
+			rows: isBase ? CANVAS_CONFIG.columns : CANVAS_CONFIG.rows,
+		}),
+		[isBase],
+	);
+
 	const spec = useMemo<QuestionSpec<DhcpConditionKey>>(
 		() => ({
 			...DHCP_SPEC_BASE,
@@ -163,8 +173,15 @@ const NetworkingGame = ({
 				onItemClickByType: itemClickHandlers,
 				isItemClickableByType: { router: true, pc: true },
 			},
+			init: {
+				...DHCP_SPEC_BASE.init,
+				payload: {
+					...DHCP_SPEC_BASE.init.payload,
+					canvases: { [resolvedCanvasConfig.id]: resolvedCanvasConfig },
+				},
+			},
 		}),
-		[handleNetworkingCommand, itemClickHandlers],
+		[handleNetworkingCommand, itemClickHandlers, resolvedCanvasConfig],
 	);
 
 	useEffect(() => {
