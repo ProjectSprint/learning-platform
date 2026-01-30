@@ -6,13 +6,23 @@ import { useBoardRegistry } from "./board-registry";
 
 const defaultAnchor: ArrowAnchor = { x: 0.5, y: 0.5 };
 
-const resolveAnchorPoint = (anchor?: ArrowAnchor) => {
+const resolveAnchorPoint = (
+	rect: DOMRect,
+	containerRect: DOMRect,
+	anchor?: ArrowAnchor,
+) => {
 	const safeAnchor = anchor ?? defaultAnchor;
 	return {
-		x: safeAnchor.x,
-		y: safeAnchor.y,
-		offsetX: safeAnchor.offsetX ?? 0,
-		offsetY: safeAnchor.offsetY ?? 0,
+		x:
+			rect.left -
+			containerRect.left +
+			rect.width * safeAnchor.x +
+			(safeAnchor.offsetX ?? 0),
+		y:
+			rect.top -
+			containerRect.top +
+			rect.height * safeAnchor.y +
+			(safeAnchor.offsetY ?? 0),
 	};
 };
 
@@ -57,30 +67,27 @@ export const ArrowLayer = () => {
 
 			const fromRect = fromElement.getBoundingClientRect();
 			const toRect = toElement.getBoundingClientRect();
-			const fromAnchor = resolveAnchorPoint(arrow.from.anchor);
-			const toAnchor = resolveAnchorPoint(arrow.to.anchor);
+			const fromAnchor = resolveAnchorPoint(
+				fromRect,
+				containerRect,
+				arrow.from.anchor,
+			);
+			const toAnchor = resolveAnchorPoint(
+				toRect,
+				containerRect,
+				arrow.to.anchor,
+			);
+			const anchorBoxSize = 4;
 			const [startX, startY, controlX, controlY, endX, endY, endAngle] =
 				getBoxToBoxArrow(
-					fromRect.left -
-						containerRect.left +
-						fromRect.width * fromAnchor.x +
-						fromAnchor.offsetX,
-					fromRect.top -
-						containerRect.top +
-						fromRect.height * fromAnchor.y +
-						fromAnchor.offsetY,
-					fromRect.width,
-					fromRect.height,
-					toRect.left -
-						containerRect.left +
-						toRect.width * toAnchor.x +
-						toAnchor.offsetX,
-					toRect.top -
-						containerRect.top +
-						toRect.height * toAnchor.y +
-						toAnchor.offsetY,
-					toRect.width,
-					toRect.height,
+					fromAnchor.x - anchorBoxSize / 2,
+					fromAnchor.y - anchorBoxSize / 2,
+					anchorBoxSize,
+					anchorBoxSize,
+					toAnchor.x - anchorBoxSize / 2,
+					toAnchor.y - anchorBoxSize / 2,
+					anchorBoxSize,
+					anchorBoxSize,
 					resolveArrowOptions(arrow.style),
 				);
 			const { stroke, strokeWidth, opacity, headSize, dashed } = resolveStroke(
