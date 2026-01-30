@@ -21,7 +21,7 @@ const resolveAnchorPoint = (
 };
 
 const resolveArrowOptions = (style?: ArrowStyle) => ({
-	bow: style?.bow ?? 0.2,
+	bow: style?.bow ?? 0.02,
 	stretch: style?.stretch,
 	stretchMin: style?.stretchMin,
 	stretchMax: style?.stretchMax,
@@ -113,7 +113,7 @@ export const ArrowLayer = () => {
 		<Box
 			position="absolute"
 			inset={0}
-			zIndex={0}
+			zIndex={2}
 			pointerEvents="none"
 			overflow="hidden"
 			aria-hidden="true"

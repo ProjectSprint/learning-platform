@@ -172,7 +172,7 @@ const UdpGame = ({
 			stroke: "rgba(56, 189, 248, 0.85)",
 			strokeWidth: 2,
 			headSize: 12,
-			bow: 0.15,
+			bow: 0.02,
 		};
 
 		if (activeMode === "tcp") {
