@@ -1,4 +1,4 @@
-import { Box, Grid, GridItem, Text } from "@chakra-ui/react";
+import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
