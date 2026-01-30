@@ -112,7 +112,7 @@ const NetworkingGame = ({
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const initializedRef = useRef(false);
-	const isBase = useBreakpointValue({ base: true, sm: false }) ?? false;
+	const isBase = useBreakpointValue({ base: true, sm: false });
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
@@ -156,14 +156,14 @@ const NetworkingGame = ({
 		[dispatch, state.puzzle.placedItems],
 	);
 
-	const resolvedCanvasConfig = useMemo(
-		() => ({
+	const resolvedCanvasConfig = useMemo(() => {
+		const isVertical = isBase === true;
+		return {
 			...CANVAS_CONFIG,
-			columns: isBase ? 1 : CANVAS_CONFIG.columns,
-			rows: isBase ? CANVAS_CONFIG.columns : CANVAS_CONFIG.rows,
-		}),
-		[isBase],
-	);
+			columns: isVertical ? 1 : CANVAS_CONFIG.columns,
+			rows: isVertical ? CANVAS_CONFIG.columns : CANVAS_CONFIG.rows,
+		};
+	}, [isBase]);
 
 	const spec = useMemo<QuestionSpec<DhcpConditionKey>>(
 		() => ({
@@ -185,7 +185,7 @@ const NetworkingGame = ({
 	);
 
 	useEffect(() => {
-		if (initializedRef.current) {
+		if (initializedRef.current || isBase === undefined) {
 			return;
 		}
 
@@ -195,7 +195,7 @@ const NetworkingGame = ({
 			payload: spec.init.payload,
 		});
 		inventoryDrawerRef.current?.expand();
-	}, [dispatch, spec.init.payload]);
+	}, [dispatch, isBase, spec.init.payload]);
 
 	useEffect(() => {
 		const context: ConditionContext<DhcpConditionKey> = {
