@@ -372,6 +372,9 @@ const TcpGame = ({
 									if (key === "splitter" && !tcpState.splitterVisible) {
 										return null;
 									}
+									const baseOrder =
+										key === "server" ? 2 : key === "internet" ? 3 : 1;
+									const xlOrder = CANVAS_ORDER.indexOf(key) + 1;
 
 									return (
 										<Box
@@ -379,6 +382,7 @@ const TcpGame = ({
 											flexGrow={config.columns}
 											flexBasis={0}
 											minW={{ base: "100%", xl: "0" }}
+											order={{ base: baseOrder, xl: xlOrder }}
 										>
 											<PuzzleBoard
 												puzzleId={key}

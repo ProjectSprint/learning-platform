@@ -1,4 +1,10 @@
-import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
+import {
+	Box,
+	type BoxProps,
+	Flex,
+	Text,
+	useBreakpointValue,
+} from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
@@ -39,6 +45,7 @@ import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
 	INVENTORY_GROUPS,
+	type InternetCanvasKey,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
@@ -67,6 +74,9 @@ type InternetConditionKey =
 	| "questionStatus"
 	| "dragStatus"
 	| "allDevicesPlaced";
+
+const COLUMN_ONE: InternetCanvasKey[] = ["local", "conn-1", "router"];
+const COLUMN_TWO: InternetCanvasKey[] = ["conn-2", "igw", "dns", "google"];
 
 const INTERNET_SPEC_BASE: Omit<
 	QuestionSpec<InternetConditionKey>,
@@ -472,6 +482,41 @@ const InternetGame = ({
 		[spec.handlers.isItemClickableByType],
 	);
 
+	const layoutMode =
+		useBreakpointValue({
+			base: "stack",
+			sm: "stack",
+			md: "columns",
+			lg: "columns",
+			xl: "row",
+		}) ?? "row";
+
+	const renderBoard = useCallback(
+		(key: InternetCanvasKey, minW: BoxProps["minW"]) => {
+			const config = CANVAS_CONFIGS[key];
+			const title = config.title ?? key;
+
+			return (
+				<Box key={key} flexGrow={config.columns} flexBasis={0} minW={minW}>
+					<PuzzleBoard
+						puzzleId={key}
+						title={title}
+						getItemLabel={spec.labels.getItemLabel}
+						getStatusMessage={spec.labels.getStatusMessage}
+						onPlacedItemClick={handlePlacedItemClick}
+						isItemClickable={isItemClickable}
+					/>
+				</Box>
+			);
+		},
+		[
+			handlePlacedItemClick,
+			isItemClickable,
+			spec.labels.getItemLabel,
+			spec.labels.getStatusMessage,
+		],
+	);
+
 	return (
 		<DragProvider>
 			<Box
@@ -503,34 +548,34 @@ const InternetGame = ({
 
 					<BoardRegistryProvider>
 						<BoardArrowSurface>
-							<Flex
-								direction={{ base: "column", xl: "row" }}
-								gap={{ base: 2, md: 4 }}
-								align={{ base: "stretch", xl: "flex-start" }}
-							>
-								{CANVAS_ORDER.map((key) => {
-									const config = CANVAS_CONFIGS[key];
-									const title = config.title ?? key;
-
-									return (
-										<Box
-											key={key}
-											flexGrow={config.columns}
-											flexBasis={0}
-											minW={{ base: "100%", xl: "0" }}
-										>
-											<PuzzleBoard
-												puzzleId={key}
-												title={title}
-												getItemLabel={spec.labels.getItemLabel}
-												getStatusMessage={spec.labels.getStatusMessage}
-												onPlacedItemClick={handlePlacedItemClick}
-												isItemClickable={isItemClickable}
-											/>
-										</Box>
-									);
-								})}
-							</Flex>
+							{layoutMode === "row" ? (
+								<Flex
+									direction="row"
+									gap={{ base: 2, md: 4 }}
+									align="flex-start"
+									wrap="wrap"
+								>
+									{CANVAS_ORDER.map((key) =>
+										renderBoard(key, { base: "100%", xl: "0" }),
+									)}
+								</Flex>
+							) : layoutMode === "columns" ? (
+								<Flex
+									direction={{ base: "column", md: "row" }}
+									gap={{ base: 2, md: 4 }}
+								>
+									<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
+										{COLUMN_ONE.map((key) => renderBoard(key, "100%"))}
+									</Flex>
+									<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
+										{COLUMN_TWO.map((key) => renderBoard(key, "100%"))}
+									</Flex>
+								</Flex>
+							) : (
+								<Flex direction="column" gap={{ base: 2, md: 4 }}>
+									{CANVAS_ORDER.map((key) => renderBoard(key, "100%"))}
+								</Flex>
+							)}
 						</BoardArrowSurface>
 					</BoardRegistryProvider>
 
