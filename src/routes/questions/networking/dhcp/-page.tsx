@@ -226,8 +226,8 @@ const NetworkingGame = ({
 		const arrows = [
 			{
 				id: "pc1-connector",
-				from: { puzzleId: DHCP_CANVAS_IDS.pc1 },
-				to: { puzzleId: DHCP_CANVAS_IDS.conn1 },
+				from: { puzzleId: DHCP_CANVAS_IDS.pc1, anchor: "tl" },
+				to: { puzzleId: DHCP_CANVAS_IDS.conn1, anchor: "tl" },
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -237,8 +237,8 @@ const NetworkingGame = ({
 			},
 			{
 				id: "connector-router-left",
-				from: { puzzleId: DHCP_CANVAS_IDS.conn1 },
-				to: { puzzleId: DHCP_CANVAS_IDS.router },
+				from: { puzzleId: DHCP_CANVAS_IDS.conn1, anchor: "tl" },
+				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: "tl" },
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -248,8 +248,8 @@ const NetworkingGame = ({
 			},
 			{
 				id: "pc2-connector",
-				from: { puzzleId: DHCP_CANVAS_IDS.pc2 },
-				to: { puzzleId: DHCP_CANVAS_IDS.conn2 },
+				from: { puzzleId: DHCP_CANVAS_IDS.pc2, anchor: "tl" },
+				to: { puzzleId: DHCP_CANVAS_IDS.conn2, anchor: "tl" },
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -259,8 +259,8 @@ const NetworkingGame = ({
 			},
 			{
 				id: "connector-router-right",
-				from: { puzzleId: DHCP_CANVAS_IDS.conn2 },
-				to: { puzzleId: DHCP_CANVAS_IDS.router },
+				from: { puzzleId: DHCP_CANVAS_IDS.conn2, anchor: "tl" },
+				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: "tl" },
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,

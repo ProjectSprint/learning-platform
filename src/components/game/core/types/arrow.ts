@@ -1,13 +1,8 @@
-export type ArrowAnchor = {
-	x: number;
-	y: number;
-	offsetX?: number;
-	offsetY?: number;
-};
+export type ArrowAnchor = "tl" | "tr" | "bl" | "br";
 
 export type ArrowEndpoint = {
 	puzzleId: string;
-	anchor?: ArrowAnchor;
+	anchor: ArrowAnchor;
 };
 
 export type ArrowStyle = {

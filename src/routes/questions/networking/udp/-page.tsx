@@ -287,25 +287,28 @@ const UdpGame = ({
 			return [
 				{
 					id: "internet-client-a",
-					from: { puzzleId: "internet" },
+					from: { puzzleId: "internet", anchor: "tl" },
 					to: {
 						puzzleId: "client-a-inbox",
+						anchor: "tl",
 					},
 					style: baseStyle,
 				},
 				{
 					id: "internet-client-b",
-					from: { puzzleId: "internet" },
+					from: { puzzleId: "internet", anchor: "tl" },
 					to: {
 						puzzleId: "client-b-inbox",
+						anchor: "tl",
 					},
 					style: baseStyle,
 				},
 				{
 					id: "internet-client-c",
-					from: { puzzleId: "internet" },
+					from: { puzzleId: "internet", anchor: "tl" },
 					to: {
 						puzzleId: "client-c-inbox",
+						anchor: "tl",
 					},
 					style: baseStyle,
 				},
@@ -315,25 +318,28 @@ const UdpGame = ({
 		return [
 			{
 				id: "udp-internet-client-a",
-				from: { puzzleId: "internet" },
+				from: { puzzleId: "internet", anchor: "tl" },
 				to: {
 					puzzleId: "client-a",
+					anchor: "tl",
 				},
 				style: baseStyle,
 			},
 			{
 				id: "udp-internet-client-b",
-				from: { puzzleId: "internet" },
+				from: { puzzleId: "internet", anchor: "tl" },
 				to: {
 					puzzleId: "client-b",
+					anchor: "tl",
 				},
 				style: baseStyle,
 			},
 			{
 				id: "udp-internet-client-c",
-				from: { puzzleId: "internet" },
+				from: { puzzleId: "internet", anchor: "tl" },
 				to: {
 					puzzleId: "client-c",
+					anchor: "tl",
 				},
 				style: baseStyle,
 			},

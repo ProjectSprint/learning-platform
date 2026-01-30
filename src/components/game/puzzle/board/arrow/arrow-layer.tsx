@@ -4,49 +4,23 @@ import type { ArrowAnchor, ArrowStyle } from "@/components/game/game-provider";
 import { useGameState } from "@/components/game/game-provider";
 import { useBoardRegistry } from "./board-registry";
 
-const defaultAnchor: ArrowAnchor = { x: 0.5, y: 0.5 };
-
-const resolveAnchorPoint = (
-	rect: DOMRect,
-	containerRect: DOMRect,
-	anchor?: ArrowAnchor,
-) => {
-	const safeAnchor = anchor ?? defaultAnchor;
-	return {
-		x:
-			rect.left -
-			containerRect.left +
-			rect.width * safeAnchor.x +
-			(safeAnchor.offsetX ?? 0),
-		y:
-			rect.top -
-			containerRect.top +
-			rect.height * safeAnchor.y +
-			(safeAnchor.offsetY ?? 0),
-	};
-};
-
 const resolveEndpointBox = (
 	rect: DOMRect,
 	containerRect: DOMRect,
-	anchor: ArrowAnchor | undefined,
-	anchorBoxSize: number,
+	anchor: ArrowAnchor,
 ) => {
-	if (!anchor) {
-		return {
-			x: rect.left - containerRect.left,
-			y: rect.top - containerRect.top,
-			width: rect.width,
-			height: rect.height,
-		};
-	}
+	const left = rect.left - containerRect.left;
+	const top = rect.top - containerRect.top;
+	const halfWidth = rect.width / 2;
+	const halfHeight = rect.height / 2;
+	const isRight = anchor === "tr" || anchor === "br";
+	const isBottom = anchor === "bl" || anchor === "br";
 
-	const point = resolveAnchorPoint(rect, containerRect, anchor);
 	return {
-		x: point.x - anchorBoxSize / 2,
-		y: point.y - anchorBoxSize / 2,
-		width: anchorBoxSize,
-		height: anchorBoxSize,
+		x: left + (isRight ? halfWidth : 0),
+		y: top + (isBottom ? halfHeight : 0),
+		width: halfWidth,
+		height: halfHeight,
 	};
 };
 
@@ -91,19 +65,12 @@ export const ArrowLayer = () => {
 
 			const fromRect = fromElement.getBoundingClientRect();
 			const toRect = toElement.getBoundingClientRect();
-			const anchorBoxSize = 4;
 			const fromBox = resolveEndpointBox(
 				fromRect,
 				containerRect,
 				arrow.from.anchor,
-				anchorBoxSize,
 			);
-			const toBox = resolveEndpointBox(
-				toRect,
-				containerRect,
-				arrow.to.anchor,
-				anchorBoxSize,
-			);
+			const toBox = resolveEndpointBox(toRect, containerRect, arrow.to.anchor);
 			const [startX, startY, controlX, controlY, endX, endY, endAngle] =
 				getBoxToBoxArrow(
 					fromBox.x,

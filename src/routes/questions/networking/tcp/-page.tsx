@@ -297,8 +297,8 @@ const TcpGame = ({
 		const arrows: Arrow[] = [
 			{
 				id: "internet-to-server",
-				from: { puzzleId: "internet" },
-				to: { puzzleId: "server" },
+				from: { puzzleId: "internet", anchor: "tl" },
+				to: { puzzleId: "server", anchor: "tl" },
 				style: baseStyle,
 			},
 		];
@@ -306,8 +306,8 @@ const TcpGame = ({
 		if (tcpState.splitterVisible) {
 			arrows.unshift({
 				id: "splitter-to-internet",
-				from: { puzzleId: "splitter" },
-				to: { puzzleId: "internet" },
+				from: { puzzleId: "splitter", anchor: "tl" },
+				to: { puzzleId: "internet", anchor: "tl" },
 				style: {
 					...baseStyle,
 					stroke: "rgba(96, 165, 250, 0.85)",
