@@ -1,22 +1,18 @@
 import { Box } from "@chakra-ui/react";
-import { getArrow } from "perfect-arrows";
+import { getBoxToBoxArrow } from "perfect-arrows";
 import type { ArrowAnchor, ArrowStyle } from "@/components/game/game-provider";
 import { useGameState } from "@/components/game/game-provider";
 import { useBoardRegistry } from "./board-registry";
 
 const defaultAnchor: ArrowAnchor = { x: 0.5, y: 0.5 };
 
-const resolveAnchorPoint = (
-	rect: DOMRect,
-	containerRect: DOMRect,
-	anchor?: ArrowAnchor,
-) => {
+const resolveAnchorPoint = (anchor?: ArrowAnchor) => {
 	const safeAnchor = anchor ?? defaultAnchor;
-	const offsetX = safeAnchor.offsetX ?? 0;
-	const offsetY = safeAnchor.offsetY ?? 0;
 	return {
-		x: rect.left - containerRect.left + rect.width * safeAnchor.x + offsetX,
-		y: rect.top - containerRect.top + rect.height * safeAnchor.y + offsetY,
+		x: safeAnchor.x,
+		y: safeAnchor.y,
+		offsetX: safeAnchor.offsetX ?? 0,
+		offsetY: safeAnchor.offsetY ?? 0,
 	};
 };
 
@@ -61,18 +57,30 @@ export const ArrowLayer = () => {
 
 			const fromRect = fromElement.getBoundingClientRect();
 			const toRect = toElement.getBoundingClientRect();
-			const start = resolveAnchorPoint(
-				fromRect,
-				containerRect,
-				arrow.from.anchor,
-			);
-			const end = resolveAnchorPoint(toRect, containerRect, arrow.to.anchor);
+			const fromAnchor = resolveAnchorPoint(arrow.from.anchor);
+			const toAnchor = resolveAnchorPoint(arrow.to.anchor);
 			const [startX, startY, controlX, controlY, endX, endY, endAngle] =
-				getArrow(
-					start.x,
-					start.y,
-					end.x,
-					end.y,
+				getBoxToBoxArrow(
+					fromRect.left -
+						containerRect.left +
+						fromRect.width * fromAnchor.x +
+						fromAnchor.offsetX,
+					fromRect.top -
+						containerRect.top +
+						fromRect.height * fromAnchor.y +
+						fromAnchor.offsetY,
+					fromRect.width,
+					fromRect.height,
+					toRect.left -
+						containerRect.left +
+						toRect.width * toAnchor.x +
+						toAnchor.offsetX,
+					toRect.top -
+						containerRect.top +
+						toRect.height * toAnchor.y +
+						toAnchor.offsetY,
+					toRect.width,
+					toRect.height,
 					resolveArrowOptions(arrow.style),
 				);
 			const { stroke, strokeWidth, opacity, headSize, dashed } = resolveStroke(
