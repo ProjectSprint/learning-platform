@@ -1,4 +1,11 @@
-import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
+import {
+	Box,
+	Flex,
+	Grid,
+	GridItem,
+	Text,
+	useBreakpointValue,
+} from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
@@ -127,6 +134,7 @@ const NetworkingGame = ({
 	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
 	const dragEngine = useDragEngine();
 	const networkState = useNetworkState({ dragEngine });
+	const isLgUp = useBreakpointValue({ base: false, lg: true }) ?? false;
 
 	const handleNetworkingCommand = useNetworkingTerminal({
 		pc2Ip: networkState.pc2Ip,
@@ -223,10 +231,12 @@ const NetworkingGame = ({
 	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
 
 	useEffect(() => {
+		const connectorLeftAnchor = isLgUp ? "tr" : "br";
+		const routerLeftAnchor = isLgUp ? "tl" : "tr";
 		const arrows = [
 			{
 				id: "pc1-connector",
-				from: { puzzleId: DHCP_CANVAS_IDS.pc1, anchor: "tl" },
+				from: { puzzleId: DHCP_CANVAS_IDS.pc1, anchor: "tr" },
 				to: { puzzleId: DHCP_CANVAS_IDS.conn1, anchor: "tl" },
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
@@ -237,8 +247,11 @@ const NetworkingGame = ({
 			},
 			{
 				id: "connector-router-left",
-				from: { puzzleId: DHCP_CANVAS_IDS.conn1, anchor: "tl" },
-				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: "tl" },
+				from: {
+					puzzleId: DHCP_CANVAS_IDS.conn1,
+					anchor: connectorLeftAnchor,
+				},
+				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: routerLeftAnchor },
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -248,7 +261,7 @@ const NetworkingGame = ({
 			},
 			{
 				id: "pc2-connector",
-				from: { puzzleId: DHCP_CANVAS_IDS.pc2, anchor: "tl" },
+				from: { puzzleId: DHCP_CANVAS_IDS.pc2, anchor: "tr" },
 				to: { puzzleId: DHCP_CANVAS_IDS.conn2, anchor: "tl" },
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
@@ -259,8 +272,8 @@ const NetworkingGame = ({
 			},
 			{
 				id: "connector-router-right",
-				from: { puzzleId: DHCP_CANVAS_IDS.conn2, anchor: "tl" },
-				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: "tl" },
+				from: { puzzleId: DHCP_CANVAS_IDS.conn2, anchor: "tr" },
+				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: "br" },
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -274,7 +287,7 @@ const NetworkingGame = ({
 		return () => {
 			clearBoardArrows(dispatch);
 		};
-	}, [dispatch]);
+	}, [dispatch, isLgUp]);
 
 	const canvasAreas = useMemo(
 		() => ({
