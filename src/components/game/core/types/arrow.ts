@@ -1,8 +1,14 @@
 export type ArrowAnchor = "tl" | "tr" | "bl" | "br";
 
+export type ArrowBreakpoint = "base" | "sm" | "md" | "lg" | "xl" | "2xl";
+
+export type ArrowAnchorValue =
+	| ArrowAnchor
+	| Partial<Record<ArrowBreakpoint, ArrowAnchor>>;
+
 export type ArrowEndpoint = {
 	puzzleId: string;
-	anchor: ArrowAnchor;
+	anchor: ArrowAnchorValue;
 };
 
 export type ArrowStyle = {

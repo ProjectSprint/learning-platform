@@ -1,8 +1,24 @@
-import { Box } from "@chakra-ui/react";
+import { Box, useBreakpointValue } from "@chakra-ui/react";
 import { getBoxToBoxArrow } from "perfect-arrows";
-import type { ArrowAnchor, ArrowStyle } from "@/components/game/game-provider";
+import type {
+	ArrowAnchor,
+	ArrowAnchorValue,
+	ArrowBreakpoint,
+	ArrowStyle,
+} from "@/components/game/game-provider";
 import { useGameState } from "@/components/game/game-provider";
 import { useBoardRegistry } from "./board-registry";
+
+const resolveAnchorValue = (
+	anchor: ArrowAnchorValue,
+	breakpoint: ArrowBreakpoint,
+): ArrowAnchor => {
+	if (typeof anchor === "string") {
+		return anchor;
+	}
+
+	return anchor[breakpoint] ?? anchor.base ?? "tl";
+};
 
 const resolveEndpointBox = (
 	rect: DOMRect,
@@ -47,6 +63,15 @@ export const ArrowLayer = () => {
 	const { arrows } = useGameState();
 	const { containerRef, layoutVersion, getBoardElement } = useBoardRegistry();
 	const container = containerRef.current;
+	const activeBreakpoint =
+		useBreakpointValue<ArrowBreakpoint>({
+			base: "base",
+			sm: "sm",
+			md: "md",
+			lg: "lg",
+			xl: "xl",
+			"2xl": "2xl",
+		}) ?? "base";
 	const paths = (() => {
 		if (!container) {
 			return [];
@@ -65,12 +90,13 @@ export const ArrowLayer = () => {
 
 			const fromRect = fromElement.getBoundingClientRect();
 			const toRect = toElement.getBoundingClientRect();
-			const fromBox = resolveEndpointBox(
-				fromRect,
-				containerRect,
+			const fromAnchor = resolveAnchorValue(
 				arrow.from.anchor,
+				activeBreakpoint,
 			);
-			const toBox = resolveEndpointBox(toRect, containerRect, arrow.to.anchor);
+			const toAnchor = resolveAnchorValue(arrow.to.anchor, activeBreakpoint);
+			const fromBox = resolveEndpointBox(fromRect, containerRect, fromAnchor);
+			const toBox = resolveEndpointBox(toRect, containerRect, toAnchor);
 			const [startX, startY, controlX, controlY, endX, endY, endAngle] =
 				getBoxToBoxArrow(
 					fromBox.x,

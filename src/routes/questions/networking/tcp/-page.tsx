@@ -22,8 +22,6 @@ import {
 	type InventoryDrawerHandle,
 } from "@/components/game/puzzle/inventory";
 import {
-	type ArrowAnchorOverride,
-	applyArrowAnchors,
 	type ConditionContext,
 	clearBoardArrows,
 	type QuestionSpec,
@@ -284,10 +282,6 @@ const TcpGame = ({
 	useContextualHint(contextualHint);
 
 	const arrowBow = useBreakpointValue({ base: 1, lg: 1 }) ?? 1;
-	const arrowAnchorOverrides =
-		useBreakpointValue<Record<string, ArrowAnchorOverride>>({
-			base: {},
-		}) ?? {};
 	const boardArrows = useMemo<Arrow[]>(() => {
 		if (isCompleted) {
 			return [];
@@ -321,8 +315,8 @@ const TcpGame = ({
 			});
 		}
 
-		return applyArrowAnchors(arrows, arrowAnchorOverrides);
-	}, [arrowAnchorOverrides, arrowBow, isCompleted, tcpState.splitterVisible]);
+		return arrows;
+	}, [arrowBow, isCompleted, tcpState.splitterVisible]);
 
 	useEffect(() => {
 		if (isCompleted) {

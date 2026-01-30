@@ -27,8 +27,6 @@ import {
 	type InventoryDrawerHandle,
 } from "@/components/game/puzzle/inventory";
 import {
-	type ArrowAnchorOverride,
-	applyArrowAnchors,
 	type ConditionContext,
 	clearBoardArrows,
 	type QuestionSpec,
@@ -404,10 +402,6 @@ const InternetGame = ({
 	useContextualHint(contextualHint);
 
 	const arrowBow = useBreakpointValue({ base: 0.06, lg: 0.02 }) ?? 0.02;
-	const arrowAnchorOverrides =
-		useBreakpointValue<Record<string, ArrowAnchorOverride>>({
-			base: {},
-		}) ?? {};
 	const boardArrows = useMemo<Arrow[]>(() => {
 		if (isCompleted) {
 			return [];
@@ -420,7 +414,7 @@ const InternetGame = ({
 			bow: arrowBow,
 		};
 
-		const arrows: Arrow[] = [
+		return [
 			{
 				id: "client-conn-1",
 				from: { puzzleId: "local", anchor: "tl" },
@@ -458,8 +452,7 @@ const InternetGame = ({
 				style: baseStyle,
 			},
 		];
-		return applyArrowAnchors(arrows, arrowAnchorOverrides);
-	}, [arrowAnchorOverrides, arrowBow, isCompleted]);
+	}, [arrowBow, isCompleted]);
 
 	useEffect(() => {
 		if (isCompleted) {

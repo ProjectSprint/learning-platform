@@ -1,11 +1,4 @@
-import {
-	Box,
-	Flex,
-	Grid,
-	GridItem,
-	Text,
-	useBreakpointValue,
-} from "@chakra-ui/react";
+import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
@@ -28,8 +21,6 @@ import {
 	type InventoryDrawerHandle,
 } from "@/components/game/puzzle/inventory";
 import {
-	type ArrowAnchorOverride,
-	applyArrowAnchors,
 	type ConditionContext,
 	clearBoardArrows,
 	type QuestionSpec,
@@ -232,18 +223,7 @@ const NetworkingGame = ({
 		}
 	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
 
-	const arrowAnchorOverrides =
-		useBreakpointValue<Record<string, ArrowAnchorOverride>>({
-			base: {},
-			lg: {
-				"connector-router-left": {
-					from: "tr",
-					to: "tl",
-				},
-			},
-		}) ?? {};
-
-	const baseArrows = useMemo<Arrow[]>(
+	const arrows = useMemo<Arrow[]>(
 		() => [
 			{
 				id: "pc1-connector",
@@ -258,8 +238,14 @@ const NetworkingGame = ({
 			},
 			{
 				id: "connector-router-left",
-				from: { puzzleId: DHCP_CANVAS_IDS.conn1, anchor: "br" },
-				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: "tr" },
+				from: {
+					puzzleId: DHCP_CANVAS_IDS.conn1,
+					anchor: { base: "br", lg: "tr" },
+				},
+				to: {
+					puzzleId: DHCP_CANVAS_IDS.router,
+					anchor: { base: "tr", lg: "tl" },
+				},
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -291,11 +277,6 @@ const NetworkingGame = ({
 			},
 		],
 		[],
-	);
-
-	const arrows = useMemo(
-		() => applyArrowAnchors(baseArrows, arrowAnchorOverrides),
-		[arrowAnchorOverrides, baseArrows],
 	);
 
 	useEffect(() => {

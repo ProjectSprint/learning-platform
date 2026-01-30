@@ -1,7 +1,14 @@
 // Puzzle types
 
 // Arrow types
-export type { Arrow, ArrowAnchor, ArrowEndpoint, ArrowStyle } from "./arrow";
+export type {
+	Arrow,
+	ArrowAnchor,
+	ArrowAnchorValue,
+	ArrowBreakpoint,
+	ArrowEndpoint,
+	ArrowStyle,
+} from "./arrow";
 // Game state types
 export type { GamePhase, GameState, QuestionStatus } from "./game-state";
 // Hint types

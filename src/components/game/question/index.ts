@@ -1,9 +1,4 @@
-export {
-	type ArrowAnchorOverride,
-	applyArrowAnchors,
-	clearBoardArrows,
-	setBoardArrows,
-} from "./arrows";
+export { clearBoardArrows, setBoardArrows } from "./arrows";
 export {
 	type CanvasRule,
 	type Condition,
