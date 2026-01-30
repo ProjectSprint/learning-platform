@@ -281,7 +281,7 @@ const TcpGame = ({
 	);
 	useContextualHint(contextualHint);
 
-	const arrowBow = useBreakpointValue({ base: 0.06, lg: 0.02 }) ?? 0.02;
+	const arrowBow = useBreakpointValue({ base: 1, lg: 1 }) ?? 1;
 	const boardArrows = useMemo<Arrow[]>(() => {
 		if (isCompleted) {
 			return [];

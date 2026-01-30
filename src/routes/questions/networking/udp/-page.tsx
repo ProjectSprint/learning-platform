@@ -167,7 +167,7 @@ const UdpGame = ({
 
 	const notice = tcpState.notice ?? udpState.notice;
 
-	const arrowBow = useBreakpointValue({ base: 0.06, lg: 0.02 }) ?? 0.02;
+	const arrowBow = useBreakpointValue({ base: 1, lg: 1 }) ?? 1;
 	const boardArrows = useMemo<Arrow[]>(() => {
 		const baseStyle = {
 			stroke: "rgba(56, 189, 248, 0.85)",
