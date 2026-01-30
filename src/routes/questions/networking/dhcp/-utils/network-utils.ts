@@ -2,12 +2,14 @@
 // Contains functions for parsing IP ranges, validating IPs, and building network snapshots
 
 import type { PlacedItem } from "@/components/game/game-provider";
-import { PRIVATE_IP_RANGES } from "./constants";
+import { DHCP_CANVAS_IDS, PRIVATE_IP_RANGES } from "./constants";
 
 export type DeviceConnection = {
-	from: { x: number; y: number };
-	to: { x: number; y: number };
+	fromId: string;
+	toId: string;
 };
+
+export type BoardPlacements = Record<string, PlacedItem[]>;
 
 /**
  * Validates that an IP address string is valid
@@ -122,109 +124,70 @@ export const validateIpRange = (
  * @param placedItems - All items placed on the canvas
  * @returns Network snapshot containing router, PCs, cables, and connected IDs
  */
-export const buildNetworkSnapshot = (
-	placedItems: PlacedItem[],
-) => {
-	// Build a coordinate map for quick lookups
-	const byCoord = new Map<string, PlacedItem>();
-	placedItems.forEach((item) => {
-		byCoord.set(`${item.blockX}-${item.blockY}`, item);
-	});
-
-	// Find key network devices
-	const router = placedItems.find((item) => item.type === "router");
-	const pc1 = placedItems.find((item) => item.id === "pc-1");
-	const pc2 = placedItems.find((item) => item.id === "pc-2");
-	const cables = placedItems.filter((item) => item.type === "cable");
+export const buildNetworkSnapshot = (placements: BoardPlacements) => {
+	const pc1 = placements[DHCP_CANVAS_IDS.pc1]?.find(
+		(item) => item.type === "pc",
+	);
+	const pc2 = placements[DHCP_CANVAS_IDS.pc2]?.find(
+		(item) => item.type === "pc",
+	);
+	const router = placements[DHCP_CANVAS_IDS.router]?.find(
+		(item) => item.type === "router",
+	);
+	const leftCables =
+		placements[DHCP_CANVAS_IDS.conn1]?.filter(
+			(item) => item.type === "cable",
+		) ?? [];
+	const rightCables =
+		placements[DHCP_CANVAS_IDS.conn2]?.filter(
+			(item) => item.type === "cable",
+		) ?? [];
+	const cables = [...leftCables, ...rightCables];
 	const connectedPcIds = new Set<string>();
 	const connectedCableIds = new Set<string>();
 
-	// Check each cable to see if it's properly connecting a PC to a router
-	cables.forEach((cable) => {
-		const left = byCoord.get(`${cable.blockX - 1}-${cable.blockY}`);
-		const right = byCoord.get(`${cable.blockX + 1}-${cable.blockY}`);
-		const up = byCoord.get(`${cable.blockX}-${cable.blockY - 1}`);
-		const down = byCoord.get(`${cable.blockX}-${cable.blockY + 1}`);
-
-		const neighbors = [left, right, up, down].filter(Boolean) as PlacedItem[];
-		const hasRouter = neighbors.some((n) => n.type === "router");
-		const hasPc = neighbors.some((n) => n.type === "pc");
-
-		// Cable is connected if it has both a router and a PC as neighbors
-		if (hasRouter && hasPc) {
+	if (pc1 && router && leftCables.length > 0) {
+		connectedPcIds.add(pc1.id);
+		leftCables.forEach((cable) => {
 			connectedCableIds.add(cable.id);
-			// Also mark the PC as connected
-			for (const pc of neighbors.filter((n) => n.type === "pc")) {
-				connectedPcIds.add(pc.id);
-			}
-		}
-	});
+		});
+	}
+
+	if (pc2 && router && rightCables.length > 0) {
+		connectedPcIds.add(pc2.id);
+		rightCables.forEach((cable) => {
+			connectedCableIds.add(cable.id);
+		});
+	}
 
 	return { router, pc1, pc2, cables, connectedPcIds, connectedCableIds };
 };
 
-const CONNECTABLE_DEVICE_TYPES = new Set(["pc", "router"]);
-
-const isConnectableDevice = (item?: PlacedItem): boolean =>
-	Boolean(item && CONNECTABLE_DEVICE_TYPES.has(item.type));
-
-const normalizeConnectionKey = (
-	from: { x: number; y: number },
-	to: { x: number; y: number },
-): string => {
-	if (from.y < to.y || (from.y === to.y && from.x <= to.x)) {
-		return `${from.x},${from.y}-${to.x},${to.y}`;
-	}
-	return `${to.x},${to.y}-${from.x},${from.y}`;
-};
-
 export const deriveConnectionsFromCables = (
-	placedItems: PlacedItem[],
+	placements: BoardPlacements,
 ): DeviceConnection[] => {
-	const byCoord = new Map<string, PlacedItem>();
-	placedItems.forEach((item) => {
-		byCoord.set(`${item.blockX}-${item.blockY}`, item);
-	});
-
 	const connections: DeviceConnection[] = [];
-	const seen = new Set<string>();
+	const snapshot = buildNetworkSnapshot(placements);
 
-	const maybeAddConnection = (from: PlacedItem, to: PlacedItem) => {
-		if (!isConnectableDevice(from) || !isConnectableDevice(to)) {
-			return;
+	if (snapshot.pc1 && snapshot.router) {
+		const leftCable =
+			placements[DHCP_CANVAS_IDS.conn1]?.find(
+				(item) => item.type === "cable",
+			) ?? null;
+		if (leftCable) {
+			connections.push({ fromId: snapshot.pc1.id, toId: snapshot.router.id });
 		}
+	}
 
-		if (from.type === to.type) {
-			return;
+	if (snapshot.pc2 && snapshot.router) {
+		const rightCable =
+			placements[DHCP_CANVAS_IDS.conn2]?.find(
+				(item) => item.type === "cable",
+			) ?? null;
+		if (rightCable) {
+			connections.push({ fromId: snapshot.pc2.id, toId: snapshot.router.id });
 		}
-
-		const fromCoord = { x: from.blockX, y: from.blockY };
-		const toCoord = { x: to.blockX, y: to.blockY };
-		const key = normalizeConnectionKey(fromCoord, toCoord);
-		if (seen.has(key)) {
-			return;
-		}
-
-		seen.add(key);
-		connections.push({ from: fromCoord, to: toCoord });
-	};
-
-	placedItems
-		.filter((item) => item.type === "cable")
-		.forEach((cable) => {
-			const left = byCoord.get(`${cable.blockX - 1}-${cable.blockY}`);
-			const right = byCoord.get(`${cable.blockX + 1}-${cable.blockY}`);
-			const up = byCoord.get(`${cable.blockX}-${cable.blockY - 1}`);
-			const down = byCoord.get(`${cable.blockX}-${cable.blockY + 1}`);
-
-			if (left && right) {
-				maybeAddConnection(left, right);
-			}
-
-			if (up && down) {
-				maybeAddConnection(up, down);
-			}
-		});
+	}
 
 	return connections;
 };

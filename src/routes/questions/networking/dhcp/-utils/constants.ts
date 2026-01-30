@@ -2,9 +2,9 @@
 // Contains all static configuration like inventory items, canvas setup, and question metadata
 
 import type {
-	PuzzleConfig,
 	InventoryGroupConfig,
 	InventoryItem,
+	PuzzleConfig,
 	TerminalEntry,
 } from "@/components/game/game-provider";
 
@@ -35,35 +35,35 @@ export const INVENTORY_ITEMS: InventoryItem[] = [
 		id: "pc-1",
 		type: "pc",
 		name: "PC-1",
-		allowedPlaces: ["inventory", "networking-canvas"],
+		allowedPlaces: ["inventory", "pc-1-board"],
 		icon: { icon: "twemoji:laptop-computer" },
 	},
 	{
 		id: "pc-2",
 		type: "pc",
 		name: "PC-2",
-		allowedPlaces: ["inventory", "networking-canvas"],
+		allowedPlaces: ["inventory", "pc-2-board"],
 		icon: { icon: "twemoji:laptop-computer" },
 	},
 	{
 		id: "router-1",
 		type: "router",
 		name: "Router",
-		allowedPlaces: ["inventory", "networking-canvas"],
+		allowedPlaces: ["inventory", "router-board"],
 		icon: { icon: "streamline-flex-color:router-wifi-network" },
 	},
 	{
 		id: "cable-1",
 		type: "cable",
 		name: "Cable",
-		allowedPlaces: ["inventory", "networking-canvas"],
+		allowedPlaces: ["inventory", "connector-left", "connector-right"],
 		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
 	},
 	{
 		id: "cable-2",
 		type: "cable",
 		name: "Cable",
-		allowedPlaces: ["inventory", "networking-canvas"],
+		allowedPlaces: ["inventory", "connector-left", "connector-right"],
 		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
 	},
 ];
@@ -77,12 +77,63 @@ export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
 	},
 ];
 
-// Canvas configuration for the networking question
-export const CANVAS_CONFIG: PuzzleConfig = {
-	id: "networking-canvas",
-	columns: 5,
-	rows: 1,
-	maxItems: 6,
+export const DHCP_CANVAS_IDS = {
+	pc1: "pc-1-board",
+	conn1: "connector-left",
+	router: "router-board",
+	conn2: "connector-right",
+	pc2: "pc-2-board",
+} as const;
+
+export const CANVAS_ORDER = [
+	DHCP_CANVAS_IDS.pc1,
+	DHCP_CANVAS_IDS.conn1,
+	DHCP_CANVAS_IDS.router,
+	DHCP_CANVAS_IDS.conn2,
+	DHCP_CANVAS_IDS.pc2,
+];
+
+export const CANVAS_CONFIGS: Record<string, PuzzleConfig> = {
+	[DHCP_CANVAS_IDS.pc1]: {
+		id: "dhcp-pc-1",
+		title: "PC-1",
+		puzzleId: DHCP_CANVAS_IDS.pc1,
+		columns: 1,
+		rows: 1,
+		maxItems: 1,
+	},
+	[DHCP_CANVAS_IDS.conn1]: {
+		id: "dhcp-connector-left",
+		title: "Connector",
+		puzzleId: DHCP_CANVAS_IDS.conn1,
+		columns: 1,
+		rows: 1,
+		maxItems: 1,
+	},
+	[DHCP_CANVAS_IDS.router]: {
+		id: "dhcp-router",
+		title: "Router",
+		puzzleId: DHCP_CANVAS_IDS.router,
+		columns: 1,
+		rows: 1,
+		maxItems: 1,
+	},
+	[DHCP_CANVAS_IDS.conn2]: {
+		id: "dhcp-connector-right",
+		title: "Connector",
+		puzzleId: DHCP_CANVAS_IDS.conn2,
+		columns: 1,
+		rows: 1,
+		maxItems: 1,
+	},
+	[DHCP_CANVAS_IDS.pc2]: {
+		id: "dhcp-pc-2",
+		title: "PC-2",
+		puzzleId: DHCP_CANVAS_IDS.pc2,
+		columns: 1,
+		rows: 1,
+		maxItems: 1,
+	},
 };
 
 // Private IP address ranges for validation

@@ -1,4 +1,4 @@
-import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
+import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
@@ -9,7 +9,11 @@ import {
 } from "@/components/game/game-provider";
 import { ContextualHint, useContextualHint } from "@/components/game/hint";
 import { Modal } from "@/components/game/modal";
-import { PuzzleBoard } from "@/components/game/puzzle/board";
+import {
+	BoardArrowSurface,
+	BoardRegistryProvider,
+	PuzzleBoard,
+} from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import {
 	InventoryDrawer,
@@ -17,8 +21,10 @@ import {
 } from "@/components/game/puzzle/inventory";
 import {
 	type ConditionContext,
+	clearBoardArrows,
 	type QuestionSpec,
 	resolvePhase,
+	setBoardArrows,
 } from "@/components/game/question";
 import {
 	TerminalInput,
@@ -29,7 +35,9 @@ import {
 import type { QuestionProps } from "@/components/module";
 
 import {
-	CANVAS_CONFIG,
+	CANVAS_CONFIGS,
+	CANVAS_ORDER,
+	DHCP_CANVAS_IDS,
 	INVENTORY_GROUPS,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
@@ -62,7 +70,7 @@ const DHCP_SPEC_BASE: Omit<QuestionSpec<DhcpConditionKey>, "handlers"> = {
 		kind: "multi",
 		payload: {
 			questionId: QUESTION_ID,
-			canvases: { [CANVAS_CONFIG.id]: CANVAS_CONFIG },
+			canvases: CANVAS_CONFIGS,
 			inventoryGroups: INVENTORY_GROUPS,
 			terminal: {
 				visible: false,
@@ -112,7 +120,6 @@ const NetworkingGame = ({
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const initializedRef = useRef(false);
-	const isBase = useBreakpointValue({ base: true, sm: false });
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
@@ -133,37 +140,22 @@ const NetworkingGame = ({
 	const itemClickHandlers = useMemo(
 		() => ({
 			router: ({ item }: { item: PlacedItem }) => {
-				const placedItem = state.puzzle.placedItems.find(
-					(entry) => entry.id === item.id,
-				);
-				const currentConfig = placedItem?.data ?? {};
+				const currentConfig = item.data ?? {};
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildRouterConfigModal(item.id, currentConfig),
 				});
 			},
 			pc: ({ item }: { item: PlacedItem }) => {
-				const placedItem = state.puzzle.placedItems.find(
-					(entry) => entry.id === item.id,
-				);
-				const currentConfig = placedItem?.data ?? {};
+				const currentConfig = item.data ?? {};
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildPcConfigModal(item.id, currentConfig),
 				});
 			},
 		}),
-		[dispatch, state.puzzle.placedItems],
+		[dispatch],
 	);
-
-	const resolvedCanvasConfig = useMemo(() => {
-		const isVertical = isBase === true;
-		return {
-			...CANVAS_CONFIG,
-			columns: isVertical ? 1 : CANVAS_CONFIG.columns,
-			rows: isVertical ? CANVAS_CONFIG.columns : CANVAS_CONFIG.rows,
-		};
-	}, [isBase]);
 
 	const spec = useMemo<QuestionSpec<DhcpConditionKey>>(
 		() => ({
@@ -177,15 +169,15 @@ const NetworkingGame = ({
 				...DHCP_SPEC_BASE.init,
 				payload: {
 					...DHCP_SPEC_BASE.init.payload,
-					canvases: { [resolvedCanvasConfig.id]: resolvedCanvasConfig },
+					canvases: CANVAS_CONFIGS,
 				},
 			},
 		}),
-		[handleNetworkingCommand, itemClickHandlers, resolvedCanvasConfig],
+		[handleNetworkingCommand, itemClickHandlers],
 	);
 
 	useEffect(() => {
-		if (initializedRef.current || isBase === undefined) {
+		if (initializedRef.current) {
 			return;
 		}
 
@@ -195,7 +187,7 @@ const NetworkingGame = ({
 			payload: spec.init.payload,
 		});
 		inventoryDrawerRef.current?.expand();
-	}, [dispatch, isBase, spec.init.payload]);
+	}, [dispatch, spec.init.payload]);
 
 	useEffect(() => {
 		const context: ConditionContext<DhcpConditionKey> = {
@@ -229,6 +221,60 @@ const NetworkingGame = ({
 			dispatch({ type: "CLOSE_TERMINAL" });
 		}
 	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
+
+	useEffect(() => {
+		const arrows = [
+			{
+				id: "pc1-connector",
+				from: { puzzleId: DHCP_CANVAS_IDS.pc1 },
+				to: { puzzleId: DHCP_CANVAS_IDS.conn1 },
+				style: {
+					stroke: "rgba(56, 189, 248, 0.85)",
+					strokeWidth: 2,
+					headSize: 12,
+					bow: 0.1,
+				},
+			},
+			{
+				id: "connector-router-left",
+				from: { puzzleId: DHCP_CANVAS_IDS.conn1 },
+				to: { puzzleId: DHCP_CANVAS_IDS.router },
+				style: {
+					stroke: "rgba(56, 189, 248, 0.85)",
+					strokeWidth: 2,
+					headSize: 12,
+					bow: 0.1,
+				},
+			},
+			{
+				id: "pc2-connector",
+				from: { puzzleId: DHCP_CANVAS_IDS.pc2 },
+				to: { puzzleId: DHCP_CANVAS_IDS.conn2 },
+				style: {
+					stroke: "rgba(56, 189, 248, 0.85)",
+					strokeWidth: 2,
+					headSize: 12,
+					bow: 0.1,
+				},
+			},
+			{
+				id: "connector-router-right",
+				from: { puzzleId: DHCP_CANVAS_IDS.conn2 },
+				to: { puzzleId: DHCP_CANVAS_IDS.router },
+				style: {
+					stroke: "rgba(56, 189, 248, 0.85)",
+					strokeWidth: 2,
+					headSize: 12,
+					bow: 0.1,
+				},
+			},
+		];
+
+		setBoardArrows(dispatch, arrows);
+		return () => {
+			clearBoardArrows(dispatch);
+		};
+	}, [dispatch]);
 
 	const contextualHint = useMemo(
 		() =>
@@ -310,14 +356,38 @@ const NetworkingGame = ({
 						</Text>
 					</Box>
 
-					<Box flex="1">
-						<PuzzleBoard
-							getItemLabel={spec.labels.getItemLabel}
-							getStatusMessage={spec.labels.getStatusMessage}
-							onPlacedItemClick={handlePlacedItemClick}
-							isItemClickable={isItemClickable}
-						/>
-					</Box>
+					<BoardRegistryProvider>
+						<BoardArrowSurface>
+							<Flex
+								direction={{ base: "column", sm: "row" }}
+								gap={{ base: 2, md: 4 }}
+								align={{ base: "stretch", sm: "flex-start" }}
+								wrap="wrap"
+							>
+								{CANVAS_ORDER.map((canvasId) => {
+									const config = CANVAS_CONFIGS[canvasId];
+									if (!config) return null;
+									return (
+										<Box
+											key={canvasId}
+											flexGrow={1}
+											flexBasis={0}
+											minW={{ base: "100%", sm: "160px" }}
+										>
+											<PuzzleBoard
+												puzzleId={canvasId}
+												title={config.title ?? canvasId}
+												getItemLabel={spec.labels.getItemLabel}
+												getStatusMessage={spec.labels.getStatusMessage}
+												onPlacedItemClick={handlePlacedItemClick}
+												isItemClickable={isItemClickable}
+											/>
+										</Box>
+									);
+								})}
+							</Flex>
+						</BoardArrowSurface>
+					</BoardRegistryProvider>
 
 					<InventoryDrawer
 						ref={inventoryDrawerRef}

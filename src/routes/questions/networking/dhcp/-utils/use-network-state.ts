@@ -2,7 +2,9 @@ import { useEffect, useMemo } from "react";
 import type { DragEngine } from "@/components/game/engines";
 import type { PlacedItem } from "@/components/game/game-provider";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import { DHCP_CANVAS_IDS } from "./constants";
 import {
+	type BoardPlacements,
 	buildNetworkSnapshot,
 	deriveConnectionsFromCables,
 	isPrivateIp,
@@ -17,14 +19,31 @@ interface UseNetworkStateArgs {
 export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
+	const puzzles = state.puzzles ?? {};
 
-	const network = useMemo(
-		() => buildNetworkSnapshot(state.puzzle.placedItems),
-		[state.puzzle.placedItems],
+	const placements = useMemo<BoardPlacements>(
+		() => ({
+			[DHCP_CANVAS_IDS.pc1]: puzzles[DHCP_CANVAS_IDS.pc1]?.placedItems ?? [],
+			[DHCP_CANVAS_IDS.conn1]:
+				puzzles[DHCP_CANVAS_IDS.conn1]?.placedItems ?? [],
+			[DHCP_CANVAS_IDS.router]:
+				puzzles[DHCP_CANVAS_IDS.router]?.placedItems ?? [],
+			[DHCP_CANVAS_IDS.conn2]:
+				puzzles[DHCP_CANVAS_IDS.conn2]?.placedItems ?? [],
+			[DHCP_CANVAS_IDS.pc2]: puzzles[DHCP_CANVAS_IDS.pc2]?.placedItems ?? [],
+		}),
+		[puzzles],
 	);
+
+	const placedItems = useMemo(
+		() => Object.values(placements).flat(),
+		[placements],
+	);
+
+	const network = useMemo(() => buildNetworkSnapshot(placements), [placements]);
 	const connections = useMemo(
-		() => deriveConnectionsFromCables(state.puzzle.placedItems),
-		[state.puzzle.placedItems],
+		() => deriveConnectionsFromCables(placements),
+		[placements],
 	);
 
 	const routerConfig = network.router?.data ?? {};
@@ -197,7 +216,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		pc1HasIp,
 		pc2HasIp,
 		pc2Ip,
-		placedItems: state.puzzle.placedItems,
+		placedItems,
 		connections,
 		dragProgress: dragEngine?.progress ?? { status: "pending" as const },
 	};

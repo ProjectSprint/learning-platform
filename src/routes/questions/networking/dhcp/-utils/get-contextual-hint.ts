@@ -58,33 +58,21 @@ export const getContextualHint = (state: NetworkState): string => {
 	).length;
 
 	const hasPcToPcConnection = connections.some((c) => {
-		const fromItem = placedItems.find(
-			(item) => item.blockX === c.from.x && item.blockY === c.from.y,
-		);
-		const toItem = placedItems.find(
-			(item) => item.blockX === c.to.x && item.blockY === c.to.y,
-		);
+		const fromItem = placedItems.find((item) => item.id === c.fromId);
+		const toItem = placedItems.find((item) => item.id === c.toId);
 		return fromItem?.type === "pc" && toItem?.type === "pc";
 	});
 
 	const hasRouterToRouterConnection = connections.some((c) => {
-		const fromItem = placedItems.find(
-			(item) => item.blockX === c.from.x && item.blockY === c.from.y,
-		);
-		const toItem = placedItems.find(
-			(item) => item.blockX === c.to.x && item.blockY === c.to.y,
-		);
+		const fromItem = placedItems.find((item) => item.id === c.fromId);
+		const toItem = placedItems.find((item) => item.id === c.toId);
 		return fromItem?.type === "router" && toItem?.type === "router";
 	});
 
 	const cableCountByDevice = new Map<string, number>();
 	for (const conn of connections) {
-		const fromItem = placedItems.find(
-			(item) => item.blockX === conn.from.x && item.blockY === conn.from.y,
-		);
-		const toItem = placedItems.find(
-			(item) => item.blockX === conn.to.x && item.blockY === conn.to.y,
-		);
+		const fromItem = placedItems.find((item) => item.id === conn.fromId);
+		const toItem = placedItems.find((item) => item.id === conn.toId);
 		if (fromItem) {
 			cableCountByDevice.set(
 				fromItem.id,
@@ -199,12 +187,8 @@ export const getContextualHint = (state: NetworkState): string => {
 		return "🎉 Network configured! Both PCs can now communicate";
 	}
 
-	if (
-		router &&
-		!placedItems.find((item) => item.type === "router" && item.blockX === 2) &&
-		connections.length === 0
-	) {
-		return "💡 Tip: Put the router in the center slot for easier connections";
+	if (router && connections.length === 0) {
+		return "💡 Tip: Add cables on both connectors to link the PCs to the router";
 	}
 
 	return "";
