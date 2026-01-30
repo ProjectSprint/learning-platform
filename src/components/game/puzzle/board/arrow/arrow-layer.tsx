@@ -26,6 +26,30 @@ const resolveAnchorPoint = (
 	};
 };
 
+const resolveEndpointBox = (
+	rect: DOMRect,
+	containerRect: DOMRect,
+	anchor: ArrowAnchor | undefined,
+	anchorBoxSize: number,
+) => {
+	if (!anchor) {
+		return {
+			x: rect.left - containerRect.left,
+			y: rect.top - containerRect.top,
+			width: rect.width,
+			height: rect.height,
+		};
+	}
+
+	const point = resolveAnchorPoint(rect, containerRect, anchor);
+	return {
+		x: point.x - anchorBoxSize / 2,
+		y: point.y - anchorBoxSize / 2,
+		width: anchorBoxSize,
+		height: anchorBoxSize,
+	};
+};
+
 const resolveArrowOptions = (style?: ArrowStyle) => ({
 	bow: style?.bow ?? 0.02,
 	stretch: style?.stretch ?? 0.02,
@@ -67,27 +91,29 @@ export const ArrowLayer = () => {
 
 			const fromRect = fromElement.getBoundingClientRect();
 			const toRect = toElement.getBoundingClientRect();
-			const fromAnchor = resolveAnchorPoint(
+			const anchorBoxSize = 4;
+			const fromBox = resolveEndpointBox(
 				fromRect,
 				containerRect,
 				arrow.from.anchor,
+				anchorBoxSize,
 			);
-			const toAnchor = resolveAnchorPoint(
+			const toBox = resolveEndpointBox(
 				toRect,
 				containerRect,
 				arrow.to.anchor,
+				anchorBoxSize,
 			);
-			const anchorBoxSize = 4;
 			const [startX, startY, controlX, controlY, endX, endY, endAngle] =
 				getBoxToBoxArrow(
-					fromAnchor.x - anchorBoxSize / 2,
-					fromAnchor.y - anchorBoxSize / 2,
-					anchorBoxSize,
-					anchorBoxSize,
-					toAnchor.x - anchorBoxSize / 2,
-					toAnchor.y - anchorBoxSize / 2,
-					anchorBoxSize,
-					anchorBoxSize,
+					fromBox.x,
+					fromBox.y,
+					fromBox.width,
+					fromBox.height,
+					toBox.x,
+					toBox.y,
+					toBox.width,
+					toBox.height,
 					resolveArrowOptions(arrow.style),
 				);
 			const { stroke, strokeWidth, opacity, headSize, dashed } = resolveStroke(
