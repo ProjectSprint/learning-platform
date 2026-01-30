@@ -37,8 +37,10 @@ import {
 	QUESTION_ID,
 	QUESTION_TITLE,
 	TCP_CANVAS_ORDER,
+	TCP_CLIENT_IDS,
 	UDP_CANVAS_ORDER,
 } from "./-utils/constants";
+import { TOTAL_FRAMES } from "./-utils/frame-destiny";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
@@ -56,6 +58,62 @@ const UDP_INTRO_TEXT = [
 ];
 
 type UdpConditionKey = "questionStatus";
+
+const FRAME_IDS = Array.from({ length: TOTAL_FRAMES }, (_, index) => index + 1);
+
+type ClientProgressContentProps = {
+	title?: string;
+	description: string;
+	frames: boolean[];
+	frameIds?: number[];
+	showTitle?: boolean;
+};
+
+const ClientProgressContent = ({
+	title,
+	description,
+	frames,
+	frameIds = FRAME_IDS,
+	showTitle = true,
+}: ClientProgressContentProps) => (
+	<Flex direction="column" gap={1}>
+		{showTitle && title ? (
+			<Text fontSize="sm" fontWeight="bold" mb={1} whiteSpace="normal">
+				{title}
+			</Text>
+		) : null}
+		<Text
+			fontSize="xs"
+			color="gray.400"
+			whiteSpace="normal"
+			wordBreak="break-word"
+			order={{ base: 2, md: 3 }}
+			mb={{ base: 2, md: 0 }}
+		>
+			{description}
+		</Text>
+		<Flex
+			gap={1}
+			mb={{ base: 0, md: 2 }}
+			direction={{ base: "column", md: "row" }}
+			align={{ base: "flex-start", md: "center" }}
+			order={{ base: 3, md: 2 }}
+		>
+			{frameIds.map((frameId, index) => {
+				const received = frames[index] ?? false;
+				return (
+					<Box
+						key={`frame-${frameId}`}
+						width="12px"
+						height="12px"
+						bg={received ? "green.400" : "gray.600"}
+						borderRadius="2px"
+					/>
+				);
+			})}
+		</Flex>
+	</Flex>
+);
 
 export const UdpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -167,6 +225,22 @@ const UdpGame = ({
 
 	const notice = tcpState.notice ?? udpState.notice;
 
+	const tcpClientProgress = useMemo(() => {
+		const activeClients = tcpState.showClientD
+			? TCP_CLIENT_IDS
+			: TCP_CLIENT_IDS.filter((clientId) => clientId !== "d");
+		return activeClients.map((clientId) => ({
+			clientId,
+			frames: Array.from({ length: TOTAL_FRAMES }, () => true),
+			description: tcpState.clientStatus[clientId] ?? "🟢 Connected",
+		}));
+	}, [tcpState.clientStatus, tcpState.showClientD]);
+
+	const tcpClientProgressById = useMemo(
+		() => new Map(tcpClientProgress.map((client) => [client.clientId, client])),
+		[tcpClientProgress],
+	);
+
 	const arrowBow = useBreakpointValue({ base: 1, lg: 1 }) ?? 1;
 	const boardArrows = useMemo<Arrow[]>(() => {
 		const baseStyle = {
@@ -240,11 +314,14 @@ const UdpGame = ({
 		};
 	}, [boardArrows, dispatch]);
 
-	const tcpCanvases = useMemo(() => {
+	const tcpClientCanvases = useMemo(() => {
+		const baseClients = TCP_CANVAS_ORDER.filter(
+			(canvasKey) => canvasKey !== "internet",
+		);
 		if (!tcpState.showClientD) {
-			return TCP_CANVAS_ORDER;
+			return baseClients;
 		}
-		return [...TCP_CANVAS_ORDER, "client-d-inbox"] as const;
+		return [...baseClients, "client-d-inbox"] as const;
 	}, [tcpState.showClientD]);
 
 	return (
@@ -281,24 +358,32 @@ const UdpGame = ({
 							{activeMode === "tcp" ? (
 								<Flex direction="column" gap={{ base: 3, md: 4 }}>
 									<Flex
-										direction={{ base: "column", xl: "row" }}
+										direction="row"
 										gap={{ base: 2, md: 4 }}
-										align={{ base: "stretch", xl: "flex-start" }}
+										align="flex-start"
 										wrap="wrap"
 									>
-										{tcpCanvases.map((key) => {
+										{tcpClientCanvases.map((key) => {
 											const config = CANVAS_CONFIGS[key];
 											if (!config) return null;
 											const isClientInbox = key.includes("client-");
 											const clientId = key
 												.replace("client-", "")
 												.replace("-inbox", "");
+											const progress = isClientInbox
+												? tcpClientProgressById.get(clientId)
+												: null;
 											return (
 												<Box
 													key={key}
 													flexGrow={config.columns}
 													flexBasis={0}
-													minW={{ base: "100%", xl: "0" }}
+													minW={{
+														base: "150px",
+														sm: "180px",
+														md: "200px",
+														xl: "0",
+													}}
 												>
 													<PuzzleBoard
 														puzzleId={key}
@@ -306,15 +391,32 @@ const UdpGame = ({
 														getItemLabel={spec.labels.getItemLabel}
 														getStatusMessage={spec.labels.getStatusMessage}
 													/>
-													{isClientInbox && clientId && (
-														<Text mt={2} fontSize="xs" color="gray.400">
-															{tcpState.clientStatus[clientId]}
-														</Text>
-													)}
+													{isClientInbox && clientId && progress ? (
+														<Box mt={2}>
+															<ClientProgressContent
+																description={progress.description}
+																frames={progress.frames}
+																showTitle={false}
+															/>
+														</Box>
+													) : null}
 												</Box>
 											);
 										})}
 									</Flex>
+
+									<Box
+										flexGrow={CANVAS_CONFIGS.internet.columns}
+										flexBasis={0}
+										minW={{ base: "100%", md: "260px" }}
+									>
+										<PuzzleBoard
+											puzzleId="internet"
+											title={CANVAS_CONFIGS.internet.title ?? "internet"}
+											getItemLabel={spec.labels.getItemLabel}
+											getStatusMessage={spec.labels.getStatusMessage}
+										/>
+									</Box>
 
 									<Text fontSize="sm" color="gray.400">
 										Packets sent: {tcpState.packetsSent}/18
@@ -339,33 +441,13 @@ const UdpGame = ({
 										</Box>
 									)}
 
-									<Flex
-										direction={{ base: "column", xl: "row" }}
-										gap={{ base: 2, md: 4 }}
-										align={{ base: "stretch", xl: "flex-start" }}
-										wrap="wrap"
-									>
-										{UDP_CANVAS_ORDER.map((key) => {
-											const config = CANVAS_CONFIGS[key];
-											if (!config) return null;
-											return (
-												<Box
-													key={key}
-													flexGrow={config.columns}
-													flexBasis={0}
-													minW={{ base: "100%", xl: "0" }}
-												>
-													<PuzzleBoard
-														puzzleId={key}
-														title={config.title ?? key}
-														getItemLabel={spec.labels.getItemLabel}
-														getStatusMessage={spec.labels.getStatusMessage}
-													/>
-												</Box>
-											);
-										})}
-
-										<Flex flex="2" gap={{ base: 2, md: 3 }} wrap="wrap">
+									<Flex direction="column" gap={{ base: 2, md: 4 }}>
+										<Flex
+											direction="row"
+											gap={{ base: 2, md: 3 }}
+											wrap="wrap"
+											align="flex-start"
+										>
 											{udpState.clientProgress.map((client) => (
 												<CustomBoard
 													key={client.clientId}
@@ -376,29 +458,43 @@ const UdpGame = ({
 													borderRadius="md"
 													px={3}
 													py={3}
-													minW={{ base: "100%", md: "200px" }}
+													minW={{ base: "150px", sm: "180px", md: "200px" }}
 												>
-													<Text fontSize="sm" fontWeight="bold" mb={2}>
-														Client {client.clientId.toUpperCase()}
-													</Text>
-													<Flex gap={1} mb={2}>
-														{client.frames.map((received, index) => (
-															<Box
-																key={`${client.clientId}-${index}`}
-																width="12px"
-																height="12px"
-																bg={received ? "green.400" : "gray.600"}
-																borderRadius="2px"
-															/>
-														))}
-													</Flex>
-													<Text fontSize="xs" color="gray.400">
-														{client.receivedCount === 0
-															? "Waiting for frames..."
-															: `${client.percent}% received — good enough for streaming`}
-													</Text>
+													<ClientProgressContent
+														title={`Client ${client.clientId.toUpperCase()}`}
+														description={
+															client.receivedCount === 0
+																? "Waiting for frames..."
+																: `${client.percent}% received — good enough for streaming`
+														}
+														frames={client.frames}
+													/>
 												</CustomBoard>
 											))}
+										</Flex>
+
+										<Flex direction="row" gap={{ base: 2, md: 4 }} wrap="wrap">
+											{UDP_CANVAS_ORDER.map((key) => {
+												const config = CANVAS_CONFIGS[key];
+												if (!config) return null;
+												const title =
+													key === "internet" ? "Outbox" : (config.title ?? key);
+												return (
+													<Box
+														key={key}
+														flexGrow={config.columns}
+														flexBasis={0}
+														minW={{ base: "100%", md: "260px" }}
+													>
+														<PuzzleBoard
+															puzzleId={key}
+															title={title}
+															getItemLabel={spec.labels.getItemLabel}
+															getStatusMessage={spec.labels.getStatusMessage}
+														/>
+													</Box>
+												);
+											})}
 										</Flex>
 									</Flex>
 								</Flex>

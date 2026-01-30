@@ -22,7 +22,6 @@ export type UdpCanvasKey =
 	| "client-b-inbox"
 	| "client-c-inbox"
 	| "client-d-inbox"
-	| "outbox"
 	| "client-a"
 	| "client-b"
 	| "client-c";
@@ -41,22 +40,22 @@ export const UDP_CLIENT_CANVAS_IDS = {
 } as const;
 
 export const TCP_CANVAS_ORDER: UdpCanvasKey[] = [
-	"internet",
 	"client-a-inbox",
 	"client-b-inbox",
 	"client-c-inbox",
+	"internet",
 ];
 
-export const UDP_CANVAS_ORDER: UdpCanvasKey[] = ["outbox", "internet"];
+export const UDP_CANVAS_ORDER: UdpCanvasKey[] = ["internet"];
 
 export const CANVAS_CONFIGS: Record<UdpCanvasKey, PuzzleConfig> = {
 	internet: {
 		id: "udp-internet",
 		title: "Internet",
 		puzzleId: "internet",
-		columns: 4,
+		columns: 3,
 		rows: 1,
-		maxItems: 4,
+		maxItems: 3,
 	},
 	"client-a-inbox": {
 		id: "udp-client-a-inbox",
@@ -89,14 +88,6 @@ export const CANVAS_CONFIGS: Record<UdpCanvasKey, PuzzleConfig> = {
 		columns: 2,
 		rows: 2,
 		maxItems: 4,
-	},
-	outbox: {
-		id: "udp-outbox",
-		title: "Outbox",
-		puzzleId: "outbox",
-		columns: 1,
-		rows: 1,
-		maxItems: 1,
 	},
 	"client-a": {
 		id: "udp-client-a",
@@ -227,7 +218,7 @@ export const buildFrameItem = (frameNumber: number): InventoryItem => ({
 	id: `udp-frame-${frameNumber}`,
 	type: "frame",
 	name: `Frame ${frameNumber}`,
-	allowedPlaces: ["inventory", "outbox"],
+	allowedPlaces: ["inventory", "internet"],
 	icon: { icon: "mdi:filmstrip-box", color: "#8B5CF6" },
 	data: { frameNumber, state: "ready" },
 });

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlacedItem } from "@/components/game/game-provider";
-import { useAllPuzzles, useGameDispatch, useGameState } from "@/components/game/game-provider";
-
 import {
-	FRAME_ITEMS,
-	INVENTORY_GROUP_IDS,
-	UDP_CLIENT_IDS,
-} from "./constants";
+	useAllPuzzles,
+	useGameDispatch,
+	useGameState,
+} from "@/components/game/game-provider";
+
+import { FRAME_ITEMS, INVENTORY_GROUP_IDS, UDP_CLIENT_IDS } from "./constants";
 import { FRAME_DESTINY, TOTAL_FRAMES } from "./frame-destiny";
 import { buildUdpSuccessModal } from "./modal-builders";
 import type { UdpPhase } from "./types";
@@ -68,9 +68,12 @@ export const useUdpPhase = ({
 		};
 	}, []);
 
-	const registerTimer = useCallback((timerId: ReturnType<typeof setTimeout>) => {
-		timersRef.current.add(timerId);
-	}, []);
+	const registerTimer = useCallback(
+		(timerId: ReturnType<typeof setTimeout>) => {
+			timersRef.current.add(timerId);
+		},
+		[],
+	);
 
 	const showNotice = useCallback((message: string, tone: "error" | "info") => {
 		setNotice({ message, tone });
@@ -139,13 +142,13 @@ export const useUdpPhase = ({
 					type: "CONFIGURE_DEVICE",
 					payload: {
 						deviceId: item.id,
-						puzzleId: "outbox",
+						puzzleId: "internet",
 						config: { status: "error", state: "rejected" },
 					},
 				});
 				showNotice(`Send Frame ${expectedFrame} first.`, "error");
 				const timer = setTimeout(() => {
-					const outbox = canvasesRef.current.outbox;
+					const outbox = canvasesRef.current.internet;
 					const placed = outbox?.placedItems.find(
 						(entry) => entry.id === item.id,
 					);
@@ -153,7 +156,7 @@ export const useUdpPhase = ({
 					dispatch({
 						type: "REMOVE_ITEM",
 						payload: {
-							puzzleId: "outbox",
+							puzzleId: "internet",
 							blockX: placed.blockX,
 							blockY: placed.blockY,
 						},
@@ -167,7 +170,7 @@ export const useUdpPhase = ({
 				type: "CONFIGURE_DEVICE",
 				payload: {
 					deviceId: item.id,
-					puzzleId: "outbox",
+					puzzleId: "internet",
 					config: { status: "warning", state: "sending" },
 				},
 			});
@@ -175,7 +178,7 @@ export const useUdpPhase = ({
 
 			const timer = setTimeout(() => {
 				if (!activeRef.current) return;
-				const outbox = canvasesRef.current.outbox;
+				const outbox = canvasesRef.current.internet;
 				const placed = outbox?.placedItems.find(
 					(entry) => entry.id === item.id,
 				);
@@ -183,7 +186,7 @@ export const useUdpPhase = ({
 					dispatch({
 						type: "REMOVE_ITEM",
 						payload: {
-							puzzleId: "outbox",
+							puzzleId: "internet",
 							blockX: placed.blockX,
 							blockY: placed.blockY,
 						},
@@ -217,7 +220,7 @@ export const useUdpPhase = ({
 	const prevOutboxIdsRef = useRef<Set<string>>(new Set());
 	useEffect(() => {
 		if (!active) return;
-		const outbox = canvases.outbox;
+		const outbox = canvases.internet;
 		if (!outbox) return;
 		const currentIds = new Set(outbox.placedItems.map((item) => item.id));
 		const newItems = outbox.placedItems.filter(
@@ -231,7 +234,7 @@ export const useUdpPhase = ({
 		}
 
 		prevOutboxIdsRef.current = currentIds;
-	}, [active, canvases.outbox, handleFrameDrop]);
+	}, [active, canvases.internet, handleFrameDrop]);
 
 	useEffect(() => {
 		if (!active) return;
