@@ -1,4 +1,4 @@
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
@@ -276,6 +276,17 @@ const NetworkingGame = ({
 		};
 	}, [dispatch]);
 
+	const canvasAreas = useMemo(
+		() => ({
+			[DHCP_CANVAS_IDS.pc1]: "pc1",
+			[DHCP_CANVAS_IDS.conn1]: "conn1",
+			[DHCP_CANVAS_IDS.router]: "router",
+			[DHCP_CANVAS_IDS.pc2]: "pc2",
+			[DHCP_CANVAS_IDS.conn2]: "conn2",
+		}),
+		[],
+	);
+
 	const contextualHint = useMemo(
 		() =>
 			getContextualHint({
@@ -358,21 +369,29 @@ const NetworkingGame = ({
 
 					<BoardRegistryProvider>
 						<BoardArrowSurface>
-							<Flex
-								direction={{ base: "column", sm: "row" }}
+							<Grid
+								templateAreas={{
+									base: `"pc1" "conn1" "router" "pc2" "conn2"`,
+									sm: `"pc1 conn1" "router router" "pc2 conn2"`,
+									md: `"pc1 conn1" "router router" "pc2 conn2"`,
+									lg: `"pc1 conn1 router conn2 pc2"`,
+								}}
+								templateColumns={{
+									base: "1fr",
+									sm: "repeat(2, minmax(0, 1fr))",
+									lg: "repeat(5, minmax(0, 1fr))",
+								}}
 								gap={{ base: 2, md: 4 }}
-								align={{ base: "stretch", sm: "flex-start" }}
-								wrap="wrap"
+								alignItems="stretch"
 							>
 								{CANVAS_ORDER.map((canvasId) => {
 									const config = CANVAS_CONFIGS[canvasId];
 									if (!config) return null;
 									return (
-										<Box
+										<GridItem
 											key={canvasId}
-											flexGrow={1}
-											flexBasis={0}
-											minW={{ base: "100%", sm: "160px" }}
+											area={canvasAreas[canvasId]}
+											minW={0}
 										>
 											<PuzzleBoard
 												puzzleId={canvasId}
@@ -382,10 +401,10 @@ const NetworkingGame = ({
 												onPlacedItemClick={handlePlacedItemClick}
 												isItemClickable={isItemClickable}
 											/>
-										</Box>
+										</GridItem>
 									);
 								})}
-							</Flex>
+							</Grid>
 						</BoardArrowSurface>
 					</BoardRegistryProvider>
 
