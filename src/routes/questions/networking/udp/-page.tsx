@@ -28,6 +28,8 @@ import {
 	type InventoryDrawerHandle,
 } from "@/components/game/puzzle/inventory";
 import {
+	type ArrowAnchorOverride,
+	applyArrowAnchors,
 	type ConditionContext,
 	clearBoardArrows,
 	type QuestionSpec,
@@ -275,6 +277,10 @@ const UdpGame = ({
 	);
 
 	const arrowBow = useBreakpointValue({ base: 1, lg: 1 }) ?? 1;
+	const arrowAnchorOverrides =
+		useBreakpointValue<Record<string, ArrowAnchorOverride>>({
+			base: {},
+		}) ?? {};
 	const boardArrows = useMemo<Arrow[]>(() => {
 		const baseStyle = {
 			stroke: "rgba(56, 189, 248, 0.85)",
@@ -284,7 +290,7 @@ const UdpGame = ({
 		};
 
 		if (activeMode === "tcp") {
-			return [
+			const arrows: Arrow[] = [
 				{
 					id: "internet-client-a",
 					from: { puzzleId: "internet", anchor: "tl" },
@@ -313,9 +319,10 @@ const UdpGame = ({
 					style: baseStyle,
 				},
 			];
+			return applyArrowAnchors(arrows, arrowAnchorOverrides);
 		}
 
-		return [
+		const arrows: Arrow[] = [
 			{
 				id: "udp-internet-client-a",
 				from: { puzzleId: "internet", anchor: "tl" },
@@ -344,7 +351,8 @@ const UdpGame = ({
 				style: baseStyle,
 			},
 		];
-	}, [activeMode, arrowBow]);
+		return applyArrowAnchors(arrows, arrowAnchorOverrides);
+	}, [activeMode, arrowAnchorOverrides, arrowBow]);
 
 	useEffect(() => {
 		setBoardArrows(dispatch, boardArrows);

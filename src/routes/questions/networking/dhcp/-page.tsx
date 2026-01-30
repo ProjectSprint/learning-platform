@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
+	type Arrow,
 	GameProvider,
 	type PlacedItem,
 	useGameDispatch,
@@ -27,6 +28,8 @@ import {
 	type InventoryDrawerHandle,
 } from "@/components/game/puzzle/inventory";
 import {
+	type ArrowAnchorOverride,
+	applyArrowAnchors,
 	type ConditionContext,
 	clearBoardArrows,
 	type QuestionSpec,
@@ -134,7 +137,6 @@ const NetworkingGame = ({
 	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
 	const dragEngine = useDragEngine();
 	const networkState = useNetworkState({ dragEngine });
-	const isLgUp = useBreakpointValue({ base: false, lg: true }) ?? false;
 
 	const handleNetworkingCommand = useNetworkingTerminal({
 		pc2Ip: networkState.pc2Ip,
@@ -230,10 +232,19 @@ const NetworkingGame = ({
 		}
 	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
 
-	useEffect(() => {
-		const connectorLeftAnchor = isLgUp ? "tr" : "br";
-		const routerLeftAnchor = isLgUp ? "tl" : "tr";
-		const arrows = [
+	const arrowAnchorOverrides =
+		useBreakpointValue<Record<string, ArrowAnchorOverride>>({
+			base: {},
+			lg: {
+				"connector-router-left": {
+					from: "tr",
+					to: "tl",
+				},
+			},
+		}) ?? {};
+
+	const baseArrows = useMemo<Arrow[]>(
+		() => [
 			{
 				id: "pc1-connector",
 				from: { puzzleId: DHCP_CANVAS_IDS.pc1, anchor: "tr" },
@@ -247,11 +258,8 @@ const NetworkingGame = ({
 			},
 			{
 				id: "connector-router-left",
-				from: {
-					puzzleId: DHCP_CANVAS_IDS.conn1,
-					anchor: connectorLeftAnchor,
-				},
-				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: routerLeftAnchor },
+				from: { puzzleId: DHCP_CANVAS_IDS.conn1, anchor: "br" },
+				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: "tr" },
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -281,13 +289,21 @@ const NetworkingGame = ({
 					bow: 0.1,
 				},
 			},
-		];
+		],
+		[],
+	);
 
+	const arrows = useMemo(
+		() => applyArrowAnchors(baseArrows, arrowAnchorOverrides),
+		[arrowAnchorOverrides, baseArrows],
+	);
+
+	useEffect(() => {
 		setBoardArrows(dispatch, arrows);
 		return () => {
 			clearBoardArrows(dispatch);
 		};
-	}, [dispatch, isLgUp]);
+	}, [arrows, dispatch]);
 
 	const canvasAreas = useMemo(
 		() => ({
