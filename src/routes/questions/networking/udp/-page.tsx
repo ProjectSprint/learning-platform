@@ -1,4 +1,10 @@
-import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
+import {
+	Box,
+	Flex,
+	type FlexProps,
+	Text,
+	useBreakpointValue,
+} from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -65,6 +71,7 @@ type ClientProgressContentProps = {
 	frames?: boolean[];
 	frameStatuses?: PacketReceiptStatus[];
 	frameIds?: number[];
+	frameDirection?: FlexProps["direction"];
 	showTitle?: boolean;
 };
 
@@ -74,6 +81,7 @@ const ClientProgressContent = ({
 	frames,
 	frameStatuses,
 	frameIds,
+	frameDirection,
 	showTitle = true,
 }: ClientProgressContentProps) => {
 	const resolvedFrameIds =
@@ -102,7 +110,7 @@ const ClientProgressContent = ({
 			<Flex
 				gap={1}
 				mb={{ base: 0, md: 2 }}
-				direction={{ base: "column", md: "row" }}
+				direction={frameDirection ?? { base: "column", md: "row" }}
 				align={{ base: "flex-start", md: "center" }}
 				order={{ base: 3, md: 2 }}
 			>
@@ -513,10 +521,10 @@ const UdpGame = ({
 
 									<Flex direction="column" gap={{ base: 2, md: 4 }}>
 										<Flex
-											direction="row"
+											direction={{ base: "column", sm: "column", md: "row" }}
 											gap={{ base: 2, md: 3 }}
-											wrap="wrap"
-											align="flex-start"
+											wrap={{ base: "nowrap", md: "wrap" }}
+											align={{ base: "stretch", md: "flex-start" }}
 										>
 											{udpState.clientProgress.map((client) => (
 												<CustomBoard
@@ -528,7 +536,7 @@ const UdpGame = ({
 													borderRadius="md"
 													px={3}
 													py={3}
-													minW={{ base: "150px", sm: "180px", md: "200px" }}
+													minW={{ base: "100%", sm: "100%", md: "200px" }}
 												>
 													<ClientProgressContent
 														title={`Client ${client.clientId.toUpperCase()}`}
@@ -538,6 +546,7 @@ const UdpGame = ({
 																: `${client.percent}% received — good enough for streaming`
 														}
 														frames={client.frames}
+														frameDirection={{ base: "row", md: "row" }}
 													/>
 												</CustomBoard>
 											))}
