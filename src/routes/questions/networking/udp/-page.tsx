@@ -1,4 +1,4 @@
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -167,12 +167,13 @@ const UdpGame = ({
 
 	const notice = tcpState.notice ?? udpState.notice;
 
+	const arrowBow = useBreakpointValue({ base: 0.06, lg: 0.02 }) ?? 0.02;
 	const boardArrows = useMemo<Arrow[]>(() => {
 		const baseStyle = {
 			stroke: "rgba(56, 189, 248, 0.85)",
 			strokeWidth: 2,
 			headSize: 12,
-			bow: 0.02,
+			bow: arrowBow,
 		};
 
 		if (activeMode === "tcp") {
@@ -230,7 +231,7 @@ const UdpGame = ({
 				style: baseStyle,
 			},
 		];
-	}, [activeMode]);
+	}, [activeMode, arrowBow]);
 
 	useEffect(() => {
 		setBoardArrows(dispatch, boardArrows);

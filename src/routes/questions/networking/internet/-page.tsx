@@ -1,4 +1,4 @@
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
@@ -391,6 +391,7 @@ const InternetGame = ({
 	);
 	useContextualHint(contextualHint);
 
+	const arrowBow = useBreakpointValue({ base: 0.06, lg: 0.02 }) ?? 0.02;
 	const boardArrows = useMemo<Arrow[]>(() => {
 		if (isCompleted) {
 			return [];
@@ -400,7 +401,7 @@ const InternetGame = ({
 			stroke: "rgba(56, 189, 248, 0.85)",
 			strokeWidth: 2,
 			headSize: 12,
-			bow: 0.02,
+			bow: arrowBow,
 		};
 
 		return [
@@ -441,7 +442,7 @@ const InternetGame = ({
 				style: baseStyle,
 			},
 		];
-	}, [isCompleted]);
+	}, [arrowBow, isCompleted]);
 
 	useEffect(() => {
 		if (isCompleted) {
