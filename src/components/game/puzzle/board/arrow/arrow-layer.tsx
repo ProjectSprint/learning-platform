@@ -22,7 +22,7 @@ const resolveAnchorPoint = (
 
 const resolveArrowOptions = (style?: ArrowStyle) => ({
 	bow: style?.bow ?? 0.02,
-	stretch: style?.stretch,
+	stretch: style?.stretch ?? 0.02,
 	stretchMin: style?.stretchMin,
 	stretchMax: style?.stretchMax,
 	padStart: style?.padStart,
