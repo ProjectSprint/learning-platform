@@ -373,6 +373,29 @@ const UdpGame = ({
 											const progress = isClientInbox
 												? tcpClientProgressById.get(clientId)
 												: null;
+											if (!isClientInbox || !clientId) {
+												return (
+													<Box
+														key={key}
+														flexGrow={config.columns}
+														flexBasis={0}
+														minW={{
+															base: "150px",
+															sm: "180px",
+															md: "200px",
+															xl: "0",
+														}}
+													>
+														<PuzzleBoard
+															puzzleId={key}
+															title={config.title ?? key}
+															getItemLabel={spec.labels.getItemLabel}
+															getStatusMessage={spec.labels.getStatusMessage}
+														/>
+													</Box>
+												);
+											}
+
 											return (
 												<Box
 													key={key}
@@ -384,22 +407,41 @@ const UdpGame = ({
 														md: "200px",
 														xl: "0",
 													}}
+													position="relative"
 												>
-													<PuzzleBoard
-														puzzleId={key}
-														title={config.title ?? key}
-														getItemLabel={spec.labels.getItemLabel}
-														getStatusMessage={spec.labels.getStatusMessage}
-													/>
-													{isClientInbox && clientId && progress ? (
-														<Box mt={2}>
-															<ClientProgressContent
-																description={progress.description}
-																frames={progress.frames}
-																showTitle={false}
-															/>
-														</Box>
-													) : null}
+													<Box opacity={0} pointerEvents="auto">
+														<PuzzleBoard
+															puzzleId={key}
+															title={config.title ?? key}
+															getItemLabel={spec.labels.getItemLabel}
+															getStatusMessage={spec.labels.getStatusMessage}
+														/>
+													</Box>
+													<CustomBoard
+														puzzleId={`client-${clientId}`}
+														position="absolute"
+														inset={0}
+														bg="gray.900"
+														border="1px solid"
+														borderColor="gray.800"
+														borderRadius="md"
+														px={3}
+														py={3}
+														pointerEvents="none"
+													>
+														<ClientProgressContent
+															title={`Client ${clientId.toUpperCase()}`}
+															description={
+																progress?.description ??
+																tcpState.clientStatus[clientId] ??
+																"🟢 Connected"
+															}
+															frames={
+																progress?.frames ??
+																Array.from({ length: TOTAL_FRAMES }, () => true)
+															}
+														/>
+													</CustomBoard>
 												</Box>
 											);
 										})}
