@@ -521,10 +521,14 @@ const UdpGame = ({
 
 									<Flex direction="column" gap={{ base: 2, md: 4 }}>
 										<Flex
-											direction={{ base: "column", sm: "column", md: "row" }}
+											direction={{ base: "column", sm: "row" }}
 											gap={{ base: 2, md: 3 }}
-											wrap={{ base: "nowrap", md: "wrap" }}
-											align={{ base: "stretch", md: "flex-start" }}
+											wrap={{ base: "nowrap", sm: "nowrap", lg: "wrap" }}
+											align={{
+												base: "stretch",
+												sm: "stretch",
+												lg: "flex-start",
+											}}
 										>
 											{udpState.clientProgress.map((client) => (
 												<CustomBoard
@@ -536,7 +540,8 @@ const UdpGame = ({
 													borderRadius="md"
 													px={3}
 													py={3}
-													minW={{ base: "100%", sm: "100%", md: "200px" }}
+													flex={{ base: "unset", sm: 1, md: 1, lg: "unset" }}
+													minW={{ base: "100%", sm: "0", md: "0", lg: "200px" }}
 												>
 													<ClientProgressContent
 														title={`Client ${client.clientId.toUpperCase()}`}
