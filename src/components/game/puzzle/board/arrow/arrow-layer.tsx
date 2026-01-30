@@ -32,7 +32,7 @@ const resolveArrowOptions = (style?: ArrowStyle) => ({
 	stretchMin: style?.stretchMin,
 	stretchMax: style?.stretchMax,
 	padStart: style?.padStart,
-	padEnd: style?.padEnd,
+	padEnd: style?.padEnd ?? 0,
 	flip: style?.flip,
 	straights: style?.straights,
 });
