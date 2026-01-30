@@ -238,7 +238,7 @@ export const ACK_PACKETS: InventoryItem[] = TCP_CLIENT_IDS.map((clientId) =>
 	buildAckPacket(clientId),
 );
 
-const DATA_PACKET_COUNT = 6;
+export const DATA_PACKET_COUNT = 6;
 export const DATA_PACKETS: InventoryItem[] = INITIAL_TCP_CLIENT_IDS.flatMap(
 	(clientId) =>
 		Array.from({ length: DATA_PACKET_COUNT }, (_, index) =>

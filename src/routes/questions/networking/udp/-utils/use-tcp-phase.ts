@@ -13,6 +13,7 @@ import {
 	buildReceivedAckPacket,
 	buildReceivedSynPacket,
 	buildSynAckPacket,
+	DATA_PACKET_COUNT,
 	DATA_PACKETS,
 	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_GROUP_IDS,
@@ -27,7 +28,7 @@ import {
 	buildTcpConnectedModal,
 	buildTimeoutModal,
 } from "./modal-builders";
-import type { TcpPhase } from "./types";
+import type { PacketReceiptStatus, TcpPhase } from "./types";
 
 const INTERNET_TRAVEL_MS = 1500;
 const DATA_ACK_MS = 500;
@@ -41,6 +42,12 @@ const CLIENT_LABELS: Record<string, string> = {
 	c: "C",
 	d: "D",
 };
+
+const buildEmptyPacketTracker = () =>
+	TCP_CLIENT_IDS.reduce<Record<string, boolean[]>>((acc, clientId) => {
+		acc[clientId] = Array.from({ length: DATA_PACKET_COUNT }, () => false);
+		return acc;
+	}, {});
 
 const isInitialClientId = (
 	clientId: unknown,
@@ -75,6 +82,7 @@ export const useTcpPhase = ({
 		c: INITIAL_STATUS,
 		d: INITIAL_STATUS,
 	});
+	const [clientPackets, setClientPackets] = useState(buildEmptyPacketTracker);
 	const [notice, setNotice] = useState<TcpNotice>(null);
 
 	const canvasesRef = useRef(canvases);
@@ -98,6 +106,32 @@ export const useTcpPhase = ({
 	const udpTransitionRef = useRef(false);
 	const initRef = useRef(false);
 	const redoPacketSentRef = useRef(false);
+
+	const resetClientPackets = useCallback((clientId?: string) => {
+		if (!clientId) {
+			setClientPackets(buildEmptyPacketTracker());
+			return;
+		}
+		setClientPackets((prev) => {
+			const next = { ...prev };
+			next[clientId] = Array.from({ length: DATA_PACKET_COUNT }, () => false);
+			return next;
+		});
+	}, []);
+
+	const markPacketReceived = useCallback((clientId: string, seq: number) => {
+		if (!Number.isFinite(seq) || seq < 1 || seq > DATA_PACKET_COUNT) return;
+		setClientPackets((prev) => {
+			const next = { ...prev };
+			const current =
+				prev[clientId] ??
+				Array.from({ length: DATA_PACKET_COUNT }, () => false);
+			const updated = [...current];
+			updated[seq - 1] = true;
+			next[clientId] = updated;
+			return next;
+		});
+	}, []);
 
 	useEffect(() => {
 		canvasesRef.current = canvases;
@@ -324,6 +358,7 @@ export const useTcpPhase = ({
 		setPacketsSent(0);
 		packetsSentRef.current = 0;
 		setShowClientD(false);
+		resetClientPackets();
 		redoPacketSentRef.current = false;
 		modalShownRef.current.connected = false;
 		modalShownRef.current.newClient = false;
@@ -356,7 +391,13 @@ export const useTcpPhase = ({
 		updateInventoryGroup(INVENTORY_GROUP_IDS.dataPackets, {
 			visible: false,
 		});
-	}, [active, resetClientState, setClientStatusFor, updateInventoryGroup]);
+	}, [
+		active,
+		resetClientPackets,
+		resetClientState,
+		setClientStatusFor,
+		updateInventoryGroup,
+	]);
 
 	const areClientsConnected = useCallback(
 		(ids: readonly string[]) =>
@@ -432,6 +473,9 @@ export const useTcpPhase = ({
 			clientStateRef.current[clientId].synReceived = true;
 			setClientStatusFor(clientId, "🟡 SYN received");
 		}
+		for (const clientId of INITIAL_TCP_CLIENT_IDS) {
+			resetClientPackets(clientId);
+		}
 		clearTcpCanvases();
 		updateInventoryGroup(INVENTORY_GROUP_IDS.received, {
 			visible: true,
@@ -449,6 +493,7 @@ export const useTcpPhase = ({
 		});
 	}, [
 		clearTcpCanvases,
+		resetClientPackets,
 		resetClientState,
 		setClientStatusFor,
 		updateInventoryGroup,
@@ -698,6 +743,9 @@ export const useTcpPhase = ({
 				status: "success",
 				tcpState: "delivered",
 			});
+			if (typeof item.data?.seq === "number") {
+				markPacketReceived(clientId, item.data.seq);
+			}
 			const ackTimer = setTimeout(() => {
 				const location = findItemLocationLatest(item.id);
 				if (location) {
@@ -715,6 +763,7 @@ export const useTcpPhase = ({
 		[
 			findItemLocationLatest,
 			incrementPacketCount,
+			markPacketReceived,
 			registerTimer,
 			removeItem,
 			removeInventoryItem,
@@ -904,11 +953,39 @@ export const useTcpPhase = ({
 		packetsSentRef.current = packetsSent;
 	}, [packetsSent]);
 
+	const clientPacketStatus = useMemo(() => {
+		const statusMap: Record<string, PacketReceiptStatus[]> = {};
+		for (const clientId of TCP_CLIENT_IDS) {
+			const packets =
+				clientPackets[clientId] ??
+				Array.from({ length: DATA_PACKET_COUNT }, () => false);
+			let contiguous = 0;
+			for (let index = 0; index < packets.length; index += 1) {
+				if (packets[index]) {
+					contiguous += 1;
+				} else {
+					break;
+				}
+			}
+			statusMap[clientId] = packets.map((received, index) => {
+				if (index < contiguous) {
+					return "received";
+				}
+				if (received) {
+					return "out-of-order";
+				}
+				return "missing";
+			});
+		}
+		return statusMap;
+	}, [clientPackets]);
+
 	return {
 		phase,
 		packetsSent: dataSentCount,
 		showClientD,
 		clientStatus,
+		clientPacketStatus,
 		notice,
 		isCompleted: state.question.status === "completed",
 	};

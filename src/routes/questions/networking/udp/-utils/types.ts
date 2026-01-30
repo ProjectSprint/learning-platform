@@ -12,3 +12,5 @@ export type TcpPhase =
 	| "breaking-point";
 
 export type UdpPhase = "intro" | "streaming" | "complete";
+
+export type PacketReceiptStatus = "received" | "out-of-order" | "missing";

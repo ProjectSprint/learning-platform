@@ -32,6 +32,7 @@ import type { QuestionProps } from "@/components/module";
 
 import {
 	CANVAS_CONFIGS,
+	DATA_PACKET_COUNT,
 	INVENTORY_GROUPS,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
@@ -40,14 +41,13 @@ import {
 	TCP_CLIENT_IDS,
 	UDP_CANVAS_ORDER,
 } from "./-utils/constants";
-import { TOTAL_FRAMES } from "./-utils/frame-destiny";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
 	getUdpItemLabel,
 	getUdpStatusMessage,
 } from "./-utils/item-notification";
-import type { ActiveMode } from "./-utils/types";
+import type { ActiveMode, PacketReceiptStatus } from "./-utils/types";
 import { useTcpPhase } from "./-utils/use-tcp-phase";
 import { useUdpPhase } from "./-utils/use-udp-phase";
 
@@ -59,12 +59,11 @@ const UDP_INTRO_TEXT = [
 
 type UdpConditionKey = "questionStatus";
 
-const FRAME_IDS = Array.from({ length: TOTAL_FRAMES }, (_, index) => index + 1);
-
 type ClientProgressContentProps = {
 	title?: string;
 	description: string;
-	frames: boolean[];
+	frames?: boolean[];
+	frameStatuses?: PacketReceiptStatus[];
 	frameIds?: number[];
 	showTitle?: boolean;
 };
@@ -73,47 +72,64 @@ const ClientProgressContent = ({
 	title,
 	description,
 	frames,
-	frameIds = FRAME_IDS,
+	frameStatuses,
+	frameIds,
 	showTitle = true,
-}: ClientProgressContentProps) => (
-	<Flex direction="column" gap={1}>
-		{showTitle && title ? (
-			<Text fontSize="sm" fontWeight="bold" mb={1} whiteSpace="normal">
-				{title}
+}: ClientProgressContentProps) => {
+	const resolvedFrameIds =
+		frameIds ??
+		frameStatuses?.map((_, index) => index + 1) ??
+		frames?.map((_, index) => index + 1) ??
+		[];
+
+	return (
+		<Flex direction="column" gap={1}>
+			{showTitle && title ? (
+				<Text fontSize="sm" fontWeight="bold" mb={1} whiteSpace="normal">
+					{title}
+				</Text>
+			) : null}
+			<Text
+				fontSize="xs"
+				color="gray.400"
+				whiteSpace="normal"
+				wordBreak="break-word"
+				order={{ base: 2, md: 3 }}
+				mb={{ base: 2, md: 0 }}
+			>
+				{description}
 			</Text>
-		) : null}
-		<Text
-			fontSize="xs"
-			color="gray.400"
-			whiteSpace="normal"
-			wordBreak="break-word"
-			order={{ base: 2, md: 3 }}
-			mb={{ base: 2, md: 0 }}
-		>
-			{description}
-		</Text>
-		<Flex
-			gap={1}
-			mb={{ base: 0, md: 2 }}
-			direction={{ base: "column", md: "row" }}
-			align={{ base: "flex-start", md: "center" }}
-			order={{ base: 3, md: 2 }}
-		>
-			{frameIds.map((frameId, index) => {
-				const received = frames[index] ?? false;
-				return (
-					<Box
-						key={`frame-${frameId}`}
-						width="12px"
-						height="12px"
-						bg={received ? "green.400" : "gray.600"}
-						borderRadius="2px"
-					/>
-				);
-			})}
+			<Flex
+				gap={1}
+				mb={{ base: 0, md: 2 }}
+				direction={{ base: "column", md: "row" }}
+				align={{ base: "flex-start", md: "center" }}
+				order={{ base: 3, md: 2 }}
+			>
+				{resolvedFrameIds.map((frameId, index) => {
+					const status =
+						frameStatuses?.[index] ??
+						((frames?.[index] ?? false) ? "received" : "missing");
+					const color =
+						status === "received"
+							? "green.400"
+							: status === "out-of-order"
+								? "yellow.400"
+								: "gray.600";
+					return (
+						<Box
+							key={`frame-${frameId}`}
+							width="12px"
+							height="12px"
+							bg={color}
+							borderRadius="2px"
+						/>
+					);
+				})}
+			</Flex>
 		</Flex>
-	</Flex>
-);
+	);
+};
 
 export const UdpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -231,10 +247,19 @@ const UdpGame = ({
 			: TCP_CLIENT_IDS.filter((clientId) => clientId !== "d");
 		return activeClients.map((clientId) => ({
 			clientId,
-			frames: Array.from({ length: TOTAL_FRAMES }, () => true),
+			frameStatuses:
+				tcpState.clientPacketStatus?.[clientId] ??
+				Array.from(
+					{ length: DATA_PACKET_COUNT },
+					() => "missing" as PacketReceiptStatus,
+				),
 			description: tcpState.clientStatus[clientId] ?? "🟢 Connected",
 		}));
-	}, [tcpState.clientStatus, tcpState.showClientD]);
+	}, [
+		tcpState.clientPacketStatus,
+		tcpState.clientStatus,
+		tcpState.showClientD,
+	]);
 
 	const tcpClientProgressById = useMemo(
 		() => new Map(tcpClientProgress.map((client) => [client.clientId, client])),
@@ -436,9 +461,12 @@ const UdpGame = ({
 																tcpState.clientStatus[clientId] ??
 																"🟢 Connected"
 															}
-															frames={
-																progress?.frames ??
-																Array.from({ length: TOTAL_FRAMES }, () => true)
+															frameStatuses={
+																progress?.frameStatuses ??
+																Array.from(
+																	{ length: DATA_PACKET_COUNT },
+																	() => "missing" as PacketReceiptStatus,
+																)
 															}
 														/>
 													</CustomBoard>
