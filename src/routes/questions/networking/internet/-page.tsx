@@ -496,7 +496,7 @@ const InternetGame = ({
 			base: "structured",
 			sm: "structured",
 			md: "structured",
-			lg: "columns",
+			lg: "structured-lg",
 			xl: "row",
 		}) ?? "row";
 
@@ -578,6 +578,20 @@ const InternetGame = ({
 									</Flex>
 									<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
 										{COLUMN_TWO.map((key) => renderBoard(key, "100%"))}
+									</Flex>
+								</Flex>
+							) : layoutMode === "structured-lg" ? (
+								<Flex direction="column" gap={{ base: 2, md: 4 }}>
+									<Flex direction="row" gap={{ base: 2, md: 4 }}>
+										{renderBoard("local", "0")}
+										{renderBoard("conn-1", "0")}
+										{renderBoard("router", "0")}
+									</Flex>
+									<Flex direction="row" gap={{ base: 2, md: 4 }}>
+										{renderBoard("conn-2", "0")}
+										{renderBoard("igw", "0")}
+										{renderBoard("dns", "0")}
+										{renderBoard("google", "0")}
 									</Flex>
 								</Flex>
 							) : layoutMode === "structured" ? (
