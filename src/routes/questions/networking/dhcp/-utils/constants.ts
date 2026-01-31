@@ -3,7 +3,7 @@
 
 import type {
 	InventoryGroupConfig,
-	InventoryItem,
+	Item,
 	PuzzleConfig,
 	TerminalEntry,
 } from "@/components/game/game-provider";
@@ -30,7 +30,7 @@ export const TERMINAL_INTRO_ENTRIES: TerminalEntry[] = [
 ];
 
 // Initial inventory items available for the networking question
-export const INVENTORY_ITEMS: InventoryItem[] = [
+export const INVENTORY_ITEMS: Item[] = [
 	{
 		id: "pc-1",
 		type: "pc",

@@ -9,8 +9,8 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
+	type BoardItemLocation,
 	GameProvider,
-	type PlacedItem,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
@@ -159,7 +159,7 @@ const InternetGame = ({
 	const internetState = useInternetState({ dragEngine });
 	const puzzleBreakpoint = usePuzzleBreakpoint();
 	const placedItemById = useMemo(() => {
-		const map = new Map<string, PlacedItem>();
+		const map = new Map<string, BoardItemLocation>();
 		for (const entry of internetState.placedItems) {
 			map.set(entry.id, entry);
 		}
@@ -168,7 +168,7 @@ const InternetGame = ({
 
 	const itemClickHandlers = useMemo(
 		() => ({
-			"router-lan": ({ item }: { item: PlacedItem }) => {
+			"router-lan": ({ item }: { item: BoardItemLocation }) => {
 				const placedItem = placedItemById.get(item.id);
 				const currentConfig = placedItem?.data ?? {};
 				dispatch({
@@ -176,7 +176,7 @@ const InternetGame = ({
 					payload: buildRouterLanConfigModal(item.id, currentConfig),
 				});
 			},
-			"router-nat": ({ item }: { item: PlacedItem }) => {
+			"router-nat": ({ item }: { item: BoardItemLocation }) => {
 				const placedItem = placedItemById.get(item.id);
 				const currentConfig = placedItem?.data ?? {};
 				dispatch({
@@ -184,7 +184,7 @@ const InternetGame = ({
 					payload: buildRouterNatConfigModal(item.id, currentConfig),
 				});
 			},
-			"router-wan": ({ item }: { item: PlacedItem }) => {
+			"router-wan": ({ item }: { item: BoardItemLocation }) => {
 				const placedItem = placedItemById.get(item.id);
 				const currentConfig = placedItem?.data ?? {};
 				dispatch({
@@ -192,7 +192,7 @@ const InternetGame = ({
 					payload: buildRouterWanConfigModal(item.id, currentConfig),
 				});
 			},
-			pc: ({ item }: { item: PlacedItem }) => {
+			pc: ({ item }: { item: BoardItemLocation }) => {
 				const placedItem = placedItemById.get(item.id);
 				const currentConfig = placedItem?.data ?? {};
 				dispatch({
@@ -208,7 +208,7 @@ const InternetGame = ({
 					}),
 				});
 			},
-			igw: ({ item }: { item: PlacedItem }) => {
+			igw: ({ item }: { item: BoardItemLocation }) => {
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildIgwStatusModal(item.id, {
@@ -218,7 +218,7 @@ const InternetGame = ({
 					}),
 				});
 			},
-			dns: ({ item }: { item: PlacedItem }) => {
+			dns: ({ item }: { item: BoardItemLocation }) => {
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildDnsStatusModal(item.id, {
@@ -227,7 +227,7 @@ const InternetGame = ({
 					}),
 				});
 			},
-			google: ({ item }: { item: PlacedItem }) => {
+			google: ({ item }: { item: BoardItemLocation }) => {
 				let reason: string | undefined;
 				if (!internetState.hasValidDnsServer) {
 					reason = "DNS not configured";
@@ -508,7 +508,7 @@ const InternetGame = ({
 	}, [boardArrows, dispatch, isCompleted]);
 
 	const handlePlacedItemClick = useCallback(
-		(item: PlacedItem) => {
+		(item: BoardItemLocation) => {
 			const handler = spec.handlers.onItemClickByType[item.type];
 			if (handler) {
 				handler({ item });
@@ -518,7 +518,7 @@ const InternetGame = ({
 	);
 
 	const isItemClickable = useCallback(
-		(item: PlacedItem) =>
+		(item: BoardItemLocation) =>
 			spec.handlers.isItemClickableByType[item.type] === true,
 		[spec.handlers.isItemClickableByType],
 	);

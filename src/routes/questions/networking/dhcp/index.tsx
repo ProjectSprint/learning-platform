@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-
-import { DhcpQuestion } from "./-page";
 import {
 	getNextQuestionPath,
 	markNetworkingQuestionComplete,
 } from "../-utils/module-progress";
+import { DhcpQuestion } from "./-page";
 
 const DhcpQuestionRoute = () => {
 	const navigate = useNavigate();

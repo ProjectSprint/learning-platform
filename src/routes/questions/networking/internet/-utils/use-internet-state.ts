@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import type { DragEngine } from "@/components/game/engines";
 import {
-	type PlacedItem,
+	type BoardItemLocation,
 	useAllPuzzles,
 	useGameDispatch,
 	useGameState,
@@ -35,7 +35,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const puzzleBreakpoint = usePuzzleBreakpoint();
 
 	const { combinedItems, itemCanvasKeys } = useMemo(() => {
-		const items: PlacedItem[] = [];
+		const items: BoardItemLocation[] = [];
 		const keys = new Map<string, string>();
 		let offsetX = 0;
 

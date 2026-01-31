@@ -302,8 +302,8 @@ const TcpGame = ({
 		const arrows: Arrow[] = [
 			{
 				id: "internet-to-server",
-				from: { puzzleId: "internet", anchor: "tr" },
-				to: { puzzleId: "server", anchor: "tl" },
+				from: { puzzleId: "internet", anchor: { base: "tl", xl: "tr" } },
+				to: { puzzleId: "server", anchor: { base: "br", xl: "tl" } },
 				style: baseStyle,
 			},
 		];

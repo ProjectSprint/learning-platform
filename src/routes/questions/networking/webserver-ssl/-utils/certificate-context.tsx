@@ -1,7 +1,7 @@
 // Context for SSL certificate state (question-local)
 // Replaces SharedZone usage for certificate persistence
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 
 type CertificateState = {
 	issued: boolean;

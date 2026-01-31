@@ -65,6 +65,9 @@ importers:
       nitro:
         specifier: npm:nitro-nightly@latest
         version: nitro-nightly@3.0.1-20260115-135431-98fc91c5(drizzle-orm@0.45.1(@types/pg@8.16.0)(kysely@0.28.9)(pg@8.17.1))(lru-cache@11.2.4)(rollup@4.55.1)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0))
+      perfect-arrows:
+        specifier: ^0.3.7
+        version: 0.3.7
       pg:
         specifier: ^8.16.3
         version: 8.17.1
@@ -2836,6 +2839,10 @@ packages:
   pathval@2.0.1:
     resolution: {integrity: sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ==}
     engines: {node: '>= 14.16'}
+
+  perfect-arrows@0.3.7:
+    resolution: {integrity: sha512-wEN2gerTPVWl3yqoFEF8OeGbg3aRe2sxNUi9rnyYrCsL4JcI6K2tBDezRtqVrYG0BNtsWLdYiiTrYm+X//8yLQ==}
+    engines: {node: '>=10'}
 
   perfect-freehand@1.2.2:
     resolution: {integrity: sha512-eh31l019WICQ03pkF3FSzHxB8n07ItqIQ++G5UV8JX0zVOXzgTGCqnRR0jJ2h9U8/2uW4W4mtGJELt9kEV0CFQ==}
@@ -6201,6 +6208,8 @@ snapshots:
   pathe@2.0.3: {}
 
   pathval@2.0.1: {}
+
+  perfect-arrows@0.3.7: {}
 
   perfect-freehand@1.2.2: {}
 

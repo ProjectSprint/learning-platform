@@ -1,4 +1,4 @@
-import type { InventoryGroupConfig, InventoryItem } from "../types";
+import type { InventoryGroupConfig, Item } from "../types";
 
 export type InventoryAction =
 	| {
@@ -11,7 +11,7 @@ export type InventoryAction =
 				id: string;
 				title?: string;
 				visible?: boolean;
-				items?: InventoryItem[];
+				items?: Item[];
 			};
 	  }
 	| {

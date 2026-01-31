@@ -28,9 +28,7 @@ export const buildMtuModal = (): ModalInstance => ({
 	id: "mtu-limit",
 	title: "🚧 MTU Limit Reached",
 	content: [
-		buildText(
-			"message.txt is too large to fit in a single network packet.",
-		),
+		buildText("message.txt is too large to fit in a single network packet."),
 		buildText(
 			"Networks enforce an MTU (Maximum Transmission Unit) which caps packet size.",
 		),
@@ -55,18 +53,12 @@ export const buildSynIntroModal = (): ModalInstance => ({
 	actions: [closeAction()],
 });
 
-export const buildSynAckModal = (
-	onContinue?: VoidFunction,
-): ModalInstance => ({
+export const buildSynAckModal = (onContinue?: VoidFunction): ModalInstance => ({
 	id: "syn-ack-received",
 	title: "✅ SYN-ACK Received",
 	content: [
-		buildText(
-			"The server accepted your SYN and replied with SYN-ACK.",
-		),
-		buildText(
-			"That means it is ready and has shared its own sequence number.",
-		),
+		buildText("The server accepted your SYN and replied with SYN-ACK."),
+		buildText("That means it is ready and has shared its own sequence number."),
 	],
 	actions: [
 		{
@@ -84,9 +76,7 @@ export const buildAckIntroModal = (): ModalInstance => ({
 	id: "ack-intro",
 	title: "✅ Send ACK",
 	content: [
-		buildText(
-			"ACK confirms the server's SYN-ACK and completes the handshake.",
-		),
+		buildText("ACK confirms the server's SYN-ACK and completes the handshake."),
 		buildText("Send the ACK so the connection opens and data can flow."),
 	],
 	actions: [
@@ -118,9 +108,7 @@ export const buildHolBlockingModal = (): ModalInstance => ({
 	id: "hol-blocking",
 	title: "⏳ Head-of-Line Blocking",
 	content: [
-		buildText(
-			"That packet arrived out of order. The server won't reject it.",
-		),
+		buildText("That packet arrived out of order. The server won't reject it."),
 		buildText(
 			"It buffers the packet, waits for the missing one, then reorders the stream to rebuild the file.",
 		),

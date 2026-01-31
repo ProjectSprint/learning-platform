@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import type { DragEngine } from "@/components/game/engines";
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import { DHCP_CANVAS_IDS } from "./constants";
 import {
@@ -85,7 +85,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		}
 
 		const connectedPcs = [network.pc1, network.pc2].filter(
-			(pc): pc is PlacedItem =>
+			(pc): pc is BoardItemLocation =>
 				Boolean(pc && network.connectedPcIds.has(pc.id)),
 		);
 		const desiredIps = new Map<string, string>();

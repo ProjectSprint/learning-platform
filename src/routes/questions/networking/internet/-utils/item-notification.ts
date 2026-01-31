@@ -1,4 +1,4 @@
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 
 export const getInternetItemLabel = (itemType: string): string => {
 	switch (itemType) {
@@ -26,7 +26,7 @@ export const getInternetItemLabel = (itemType: string): string => {
 };
 
 export const getInternetStatusMessage = (
-	placedItem: PlacedItem,
+	placedItem: BoardItemLocation,
 ): string | null => {
 	const { type, status, data } = placedItem;
 

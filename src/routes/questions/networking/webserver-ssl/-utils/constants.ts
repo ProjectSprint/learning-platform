@@ -2,7 +2,7 @@
 // Contains all static configuration: items, canvases, inventory groups
 
 import type {
-	InventoryItem,
+	Item,
 	PuzzleConfig,
 	TerminalEntry,
 } from "@/components/game/game-provider";
@@ -139,7 +139,7 @@ export const TLS_HANDSHAKE_STEPS = [
 ];
 
 // Base items always available
-export const BASIC_INVENTORY_ITEMS: InventoryItem[] = [
+export const BASIC_INVENTORY_ITEMS: Item[] = [
 	{
 		id: "browser-1",
 		type: "browser",
@@ -171,7 +171,7 @@ export const BASIC_INVENTORY_ITEMS: InventoryItem[] = [
 ];
 
 // SSL setup items (shown after HTTP works)
-export const SSL_SETUP_INVENTORY_ITEMS: InventoryItem[] = [
+export const SSL_SETUP_INVENTORY_ITEMS: Item[] = [
 	{
 		id: "webserver-443-1",
 		type: "webserver-443",
@@ -203,7 +203,7 @@ export const SSL_SETUP_INVENTORY_ITEMS: InventoryItem[] = [
 ];
 
 // SSL certificate items (shown after certificate is issued)
-export const SSL_ITEMS_INVENTORY: InventoryItem[] = [
+export const SSL_ITEMS_INVENTORY: Item[] = [
 	{
 		id: "private-key-1",
 		type: "private-key",

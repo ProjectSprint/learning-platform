@@ -1,7 +1,7 @@
-import { Box, Container, Heading, Text, VStack, Flex } from "@chakra-ui/react";
+import { Box, Container, Flex, Heading, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useRef } from "react";
-import { ensureScrollTrigger, ScrollTrigger } from "@/lib/gsap-plugins";
 import Tetris, { type TetrisHandle } from "@/components/tetris";
+import { ensureScrollTrigger, ScrollTrigger } from "@/lib/gsap-plugins";
 
 export function TetrisSection() {
 	const sectionRef = useRef<HTMLDivElement>(null);
@@ -72,9 +72,9 @@ export function TetrisSection() {
 							We squeeze fundamentals into fun puzzle games!
 						</Heading>
 						<Text fontSize="20px" color="#525252">
-							No more boring lectures or endless documentation. Learn networking,
-							databases, and system design through interactive puzzles that make
-							complex concepts click.
+							No more boring lectures or endless documentation. Learn
+							networking, databases, and system design through interactive
+							puzzles that make complex concepts click.
 						</Text>
 						<Box pt={4}>
 							<Text

@@ -1,14 +1,14 @@
 import type { IconInfo } from "./icon";
 
-export type PlacedItemStatus = "normal" | "warning" | "success" | "error";
+export type BoardItemStatus = "normal" | "warning" | "success" | "error";
 
-export type PlacedItem = {
+export type BoardItemLocation = {
 	id: string;
 	itemId: string;
 	type: string;
 	blockX: number;
 	blockY: number;
-	status: PlacedItemStatus;
+	status: BoardItemStatus;
 	icon?: IconInfo;
 	data: Record<string, unknown>;
 };

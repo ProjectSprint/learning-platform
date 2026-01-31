@@ -99,31 +99,37 @@ export const useTcpTerminal = ({ onQuestionComplete }: UseTcpTerminalArgs) => {
 					}
 					helpers.writeOutput(NETSTAT_OUTPUT, "output");
 					return;
-			case "tcpdump": {
-				let shouldComplete = false;
-				if (arg === "-explain") {
-					helpers.writeOutput(TCPDUMP_EXPLAIN_OUTPUT, "output");
-					shouldComplete = true;
-				} else if (arg === "-count") {
-					helpers.writeOutput("Total packets: 16\nRetransmissions: 1\nPacket loss: 1", "output");
-				} else if (!arg) {
-					helpers.writeOutput(TCPDUMP_OUTPUT, "output");
-					shouldComplete = true;
-				} else {
-					helpers.writeOutput("Unknown tcpdump option. Try tcpdump -explain", "error");
+				case "tcpdump": {
+					let shouldComplete = false;
+					if (arg === "-explain") {
+						helpers.writeOutput(TCPDUMP_EXPLAIN_OUTPUT, "output");
+						shouldComplete = true;
+					} else if (arg === "-count") {
+						helpers.writeOutput(
+							"Total packets: 16\nRetransmissions: 1\nPacket loss: 1",
+							"output",
+						);
+					} else if (!arg) {
+						helpers.writeOutput(TCPDUMP_OUTPUT, "output");
+						shouldComplete = true;
+					} else {
+						helpers.writeOutput(
+							"Unknown tcpdump option. Try tcpdump -explain",
+							"error",
+						);
+						return;
+					}
+
+					if (shouldComplete) {
+						dispatch({
+							type: "OPEN_MODAL",
+							payload: buildSuccessModal(onQuestionComplete),
+						});
+						helpers.finishEngine();
+						dispatch({ type: "COMPLETE_QUESTION" });
+					}
 					return;
 				}
-
-				if (shouldComplete) {
-					dispatch({
-						type: "OPEN_MODAL",
-						payload: buildSuccessModal(onQuestionComplete),
-					});
-					helpers.finishEngine();
-					dispatch({ type: "COMPLETE_QUESTION" });
-				}
-				return;
-			}
 				case "ss":
 					if (arg === "-t") {
 						helpers.writeOutput(SS_OUTPUT, "output");

@@ -1,6 +1,6 @@
 import type {
 	InventoryGroupConfig,
-	InventoryItem,
+	Item,
 	PuzzleConfig,
 } from "@/components/game/game-provider";
 
@@ -122,7 +122,7 @@ const isInitialClientId = (
 		clientId as (typeof INITIAL_TCP_CLIENT_IDS)[number],
 	);
 
-export const buildSynPacket = (clientId: TcpClientId): InventoryItem => ({
+export const buildSynPacket = (clientId: TcpClientId): Item => ({
 	id: `syn-packet-${clientId}`,
 	type: "syn-packet",
 	name: `SYN from Client ${clientId.toUpperCase()}`,
@@ -138,25 +138,21 @@ export const buildSynPacket = (clientId: TcpClientId): InventoryItem => ({
 	data: { clientId, tcpState: "pending" },
 });
 
-export const buildReceivedSynPacket = (
-	clientId: TcpClientId,
-): InventoryItem => ({
+export const buildReceivedSynPacket = (clientId: TcpClientId): Item => ({
 	...buildSynPacket(clientId),
 	allowedPlaces: ["inventory"],
 	draggable: false,
 	data: { clientId, tcpState: "delivered" },
 });
 
-export const buildReceivedAckPacket = (
-	clientId: TcpClientId,
-): InventoryItem => ({
+export const buildReceivedAckPacket = (clientId: TcpClientId): Item => ({
 	...buildAckPacket(clientId),
 	allowedPlaces: ["inventory"],
 	draggable: false,
 	data: { clientId, tcpState: "delivered" },
 });
 
-export const buildSynAckPacket = (clientId: TcpClientId): InventoryItem => ({
+export const buildSynAckPacket = (clientId: TcpClientId): Item => ({
 	id: `syn-ack-packet-${clientId}`,
 	type: "syn-ack-packet",
 	name: `SYN-ACK to Client ${clientId.toUpperCase()}`,
@@ -172,7 +168,7 @@ export const buildSynAckPacket = (clientId: TcpClientId): InventoryItem => ({
 	data: { clientId, tcpState: "pending" },
 });
 
-export const buildAckPacket = (clientId: TcpClientId): InventoryItem => ({
+export const buildAckPacket = (clientId: TcpClientId): Item => ({
 	id: `ack-packet-${clientId}`,
 	type: "ack-packet",
 	name: `ACK from Client ${clientId.toUpperCase()}`,
@@ -187,10 +183,7 @@ export const buildAckPacket = (clientId: TcpClientId): InventoryItem => ({
 	data: { clientId, tcpState: "pending" },
 });
 
-export const buildDataPacket = (
-	clientId: TcpClientId,
-	seq: number,
-): InventoryItem => ({
+export const buildDataPacket = (clientId: TcpClientId, seq: number): Item => ({
 	id: `data-packet-${clientId}-${seq}`,
 	type: "data-packet",
 	name: `Packet ${seq} -> Client ${clientId.toUpperCase()}`,
@@ -206,7 +199,7 @@ export const buildDataPacket = (
 	data: { clientId, seq, tcpState: "pending" },
 });
 
-export const buildFrameItem = (frameNumber: number): InventoryItem => ({
+export const buildFrameItem = (frameNumber: number): Item => ({
 	id: `udp-frame-${frameNumber}`,
 	type: "frame",
 	name: `Frame ${frameNumber}`,
@@ -215,32 +208,30 @@ export const buildFrameItem = (frameNumber: number): InventoryItem => ({
 	data: { frameNumber, state: "ready" },
 });
 
-export const SYN_PACKETS: InventoryItem[] = INITIAL_TCP_CLIENT_IDS.map(
-	(clientId) => buildSynPacket(clientId),
+export const SYN_PACKETS: Item[] = INITIAL_TCP_CLIENT_IDS.map((clientId) =>
+	buildSynPacket(clientId),
 );
-export const RECEIVED_SYN_PACKETS: InventoryItem[] = INITIAL_TCP_CLIENT_IDS.map(
+export const RECEIVED_SYN_PACKETS: Item[] = INITIAL_TCP_CLIENT_IDS.map(
 	(clientId) => buildReceivedSynPacket(clientId),
 );
 
-export const SYN_ACK_PACKETS: InventoryItem[] = TCP_CLIENT_IDS.map((clientId) =>
+export const SYN_ACK_PACKETS: Item[] = TCP_CLIENT_IDS.map((clientId) =>
 	buildSynAckPacket(clientId),
 );
 
-export const ACK_PACKETS: InventoryItem[] = TCP_CLIENT_IDS.map((clientId) =>
+export const ACK_PACKETS: Item[] = TCP_CLIENT_IDS.map((clientId) =>
 	buildAckPacket(clientId),
 );
 
 export const DATA_PACKET_COUNT = 6;
-export const DATA_PACKETS: InventoryItem[] = INITIAL_TCP_CLIENT_IDS.flatMap(
-	(clientId) =>
-		Array.from({ length: DATA_PACKET_COUNT }, (_, index) =>
-			buildDataPacket(clientId, index + 1),
-		),
+export const DATA_PACKETS: Item[] = INITIAL_TCP_CLIENT_IDS.flatMap((clientId) =>
+	Array.from({ length: DATA_PACKET_COUNT }, (_, index) =>
+		buildDataPacket(clientId, index + 1),
+	),
 );
 
-export const FRAME_ITEMS: InventoryItem[] = Array.from(
-	{ length: 6 },
-	(_, index) => buildFrameItem(index + 1),
+export const FRAME_ITEMS: Item[] = Array.from({ length: 6 }, (_, index) =>
+	buildFrameItem(index + 1),
 );
 
 export const INVENTORY_GROUPS: InventoryGroupConfig[] = [

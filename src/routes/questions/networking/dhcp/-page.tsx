@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
+	type BoardItemLocation,
 	GameProvider,
-	type PlacedItem,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
@@ -140,14 +140,14 @@ const NetworkingGame = ({
 
 	const itemClickHandlers = useMemo(
 		() => ({
-			router: ({ item }: { item: PlacedItem }) => {
+			router: ({ item }: { item: BoardItemLocation }) => {
 				const currentConfig = item.data ?? {};
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildRouterConfigModal(item.id, currentConfig),
 				});
 			},
-			pc: ({ item }: { item: PlacedItem }) => {
+			pc: ({ item }: { item: BoardItemLocation }) => {
 				const currentConfig = item.data ?? {};
 				dispatch({
 					type: "OPEN_MODAL",
@@ -227,8 +227,14 @@ const NetworkingGame = ({
 		() => [
 			{
 				id: "pc1-connector",
-				from: { puzzleId: DHCP_CANVAS_IDS.pc1, anchor: "tr" },
-				to: { puzzleId: DHCP_CANVAS_IDS.conn1, anchor: "tl" },
+				from: {
+					puzzleId: DHCP_CANVAS_IDS.pc1,
+					anchor: { base: "br", sm: "tr", md: "tr", lg: "tr" },
+				},
+				to: {
+					puzzleId: DHCP_CANVAS_IDS.conn1,
+					anchor: { base: "tr", sm: "tl", md: "tl", lg: "tl" },
+				},
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -255,8 +261,14 @@ const NetworkingGame = ({
 			},
 			{
 				id: "pc2-connector",
-				from: { puzzleId: DHCP_CANVAS_IDS.pc2, anchor: "tr" },
-				to: { puzzleId: DHCP_CANVAS_IDS.conn2, anchor: "tl" },
+				from: {
+					puzzleId: DHCP_CANVAS_IDS.pc2,
+					anchor: { base: "tr", sm: "tr", md: "tr", lg: "tl" },
+				},
+				to: {
+					puzzleId: DHCP_CANVAS_IDS.conn2,
+					anchor: { base: "br", sm: "tl", md: "tl", lg: "tr" },
+				},
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -266,8 +278,14 @@ const NetworkingGame = ({
 			},
 			{
 				id: "connector-router-right",
-				from: { puzzleId: DHCP_CANVAS_IDS.conn2, anchor: "tr" },
-				to: { puzzleId: DHCP_CANVAS_IDS.router, anchor: "br" },
+				from: {
+					puzzleId: DHCP_CANVAS_IDS.conn2,
+					anchor: { base: "tr", lg: "tl" },
+				},
+				to: {
+					puzzleId: DHCP_CANVAS_IDS.router,
+					anchor: { base: "br", lg: "tr" },
+				},
 				style: {
 					stroke: "rgba(56, 189, 248, 0.85)",
 					strokeWidth: 2,
@@ -333,7 +351,7 @@ const NetworkingGame = ({
 	useContextualHint(contextualHint);
 
 	const handlePlacedItemClick = useCallback(
-		(item: PlacedItem) => {
+		(item: BoardItemLocation) => {
 			const handler = spec.handlers.onItemClickByType[item.type];
 			if (handler) {
 				handler({ item });
@@ -343,7 +361,7 @@ const NetworkingGame = ({
 	);
 
 	const isItemClickable = useCallback(
-		(item: PlacedItem) =>
+		(item: BoardItemLocation) =>
 			spec.handlers.isItemClickableByType[item.type] === true,
 		[spec.handlers.isItemClickableByType],
 	);
@@ -381,7 +399,7 @@ const NetworkingGame = ({
 						<BoardArrowSurface>
 							<Grid
 								templateAreas={{
-									base: `"pc1" "conn1" "router" "pc2" "conn2"`,
+									base: `"pc1" "conn1" "router" "conn2" "pc2"`,
 									sm: `"pc1 conn1" "router router" "pc2 conn2"`,
 									md: `"pc1 conn1" "router router" "pc2 conn2"`,
 									lg: `"pc1 conn1 router conn2 pc2"`,

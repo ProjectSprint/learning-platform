@@ -2,7 +2,7 @@
 // Hints change based on game progress to guide the user
 
 import type { PuzzleState } from "@/components/game/game-provider";
-import { isPort443Complete, isPort80RedirectConfigured } from "./ssl-utils";
+import { isPort80RedirectConfigured, isPort443Complete } from "./ssl-utils";
 
 interface SslGameState {
 	browserCanvas: PuzzleState | undefined;
@@ -34,7 +34,8 @@ export const getContextualHint = (state: SslGameState): string => {
 	// Get item counts for each canvas
 	const browserItems = browserCanvas?.placedItems.length ?? 0;
 	const port80Items = port80Canvas?.placedItems.map((i) => i.type) ?? [];
-	const letsencryptItems = letsencryptCanvas?.placedItems.map((i) => i.type) ?? [];
+	const letsencryptItems =
+		letsencryptCanvas?.placedItems.map((i) => i.type) ?? [];
 	const port443Items = port443Canvas?.placedItems.map((i) => i.type) ?? [];
 
 	// Early game - drag browser
@@ -126,17 +127,26 @@ export const getContextualHint = (state: SslGameState): string => {
 	}
 
 	// Port 443 complete - HTTPS is ready
-	if (isPort443Complete(port443Canvas) && !isPort80RedirectConfigured(port80Canvas)) {
+	if (
+		isPort443Complete(port443Canvas) &&
+		!isPort80RedirectConfigured(port80Canvas)
+	) {
 		return "🔒 HTTPS is ready! Add the redirect on Port 80 so visitors land on HTTPS.";
 	}
 
 	// Redirect available in inventory
-	if (isPort443Complete(port443Canvas) && !port80Items.includes("redirect-to-https")) {
+	if (
+		isPort443Complete(port443Canvas) &&
+		!port80Items.includes("redirect-to-https")
+	) {
 		return "Drag the redirect to Port 80 to automatically send visitors to HTTPS";
 	}
 
 	// Redirect placed on port 80
-	if (isPort80RedirectConfigured(port80Canvas) && isPort443Complete(port443Canvas)) {
+	if (
+		isPort80RedirectConfigured(port80Canvas) &&
+		isPort443Complete(port443Canvas)
+	) {
 		return "🎉 HTTPS is fully configured! Use the terminal to verify with curl/openssl.";
 	}
 
@@ -151,8 +161,10 @@ export const getPlacementErrorHint = (
 	canvasId: string,
 ): string | null => {
 	const errors: Record<string, string> = {
-		"private-key|port-80": "❌ Private key is for HTTPS only - put it in Port 443",
-		"certificate|port-80": "❌ Certificate is for HTTPS only - put it in Port 443",
+		"private-key|port-80":
+			"❌ Private key is for HTTPS only - put it in Port 443",
+		"certificate|port-80":
+			"❌ Certificate is for HTTPS only - put it in Port 443",
 		"redirect-to-https|port-443": "❌ Redirect only makes sense on port 80",
 		"webserver-80|port-443": "❌ This webserver is for HTTP (port 80)",
 		"webserver-443|port-80": "❌ This webserver is for HTTPS (port 443)",

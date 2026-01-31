@@ -1,7 +1,7 @@
 // State management for the webserver-ssl question
 // Tracks canvas states, inventory visibility, and game progression
 
-import { useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
 	useAllPuzzles,
 	useGameDispatch,
@@ -13,9 +13,9 @@ import {
 	getBrowserStatus,
 	getCertificateDomain,
 	getDomainFromCanvas,
-	isPort443Complete,
 	isPort80Complete,
 	isPort80RedirectConfigured,
+	isPort443Complete,
 } from "./ssl-utils";
 
 export const useSslState = () => {
@@ -70,7 +70,10 @@ export const useSslState = () => {
 	);
 
 	// Port 80 domain
-	const port80Domain = useMemo(() => getDomainFromCanvas(port80Canvas), [port80Canvas]);
+	const port80Domain = useMemo(
+		() => getDomainFromCanvas(port80Canvas),
+		[port80Canvas],
+	);
 
 	// Certificate domain from context or letsencrypt canvas (domain item)
 	const certificateDomain = useMemo(
@@ -79,13 +82,22 @@ export const useSslState = () => {
 	);
 
 	// HTTP ready - Port 80 is configured
-	const httpReady = useMemo(() => isPort80Complete(port80Canvas), [port80Canvas]);
+	const httpReady = useMemo(
+		() => isPort80Complete(port80Canvas),
+		[port80Canvas],
+	);
 
 	// HTTPS ready - Port 443 is fully configured
-	const httpsReady = useMemo(() => isPort443Complete(port443Canvas), [port443Canvas]);
+	const httpsReady = useMemo(
+		() => isPort443Complete(port443Canvas),
+		[port443Canvas],
+	);
 
 	// Has redirect on Port 80
-	const hasRedirect = useMemo(() => isPort80RedirectConfigured(port80Canvas), [port80Canvas]);
+	const hasRedirect = useMemo(
+		() => isPort80RedirectConfigured(port80Canvas),
+		[port80Canvas],
+	);
 
 	// Certificate issued
 	const certificateIssued = useMemo(() => {
@@ -111,7 +123,6 @@ export const useSslState = () => {
 			dispatchConfig(domainItem.id, { status: nextStatus });
 		}
 	}, [certificateIssued, dispatchConfig, letsencryptCanvas]);
-
 
 	// Port 80 config state
 	const port80Config = useMemo(() => {
@@ -153,7 +164,9 @@ export const useSslState = () => {
 		}
 
 		if (browserCanvas) {
-			const browserItem = browserCanvas.placedItems.find((item) => item.type === "browser");
+			const browserItem = browserCanvas.placedItems.find(
+				(item) => item.type === "browser",
+			);
 			if (browserItem) {
 				// Update status
 				if (browserItem.status !== browserStatus) {
@@ -161,14 +174,23 @@ export const useSslState = () => {
 				}
 
 				// Update domain data - default to "example.com" if not set
-				const currentDomain = typeof browserItem.data?.domain === "string" ? browserItem.data.domain : null;
+				const currentDomain =
+					typeof browserItem.data?.domain === "string"
+						? browserItem.data.domain
+						: null;
 				const targetDomain = port80Domain ?? DEFAULT_DOMAIN;
 				if (currentDomain !== targetDomain) {
 					dispatchConfig(browserItem.id, { domain: targetDomain });
 				}
 			}
 		}
-	}, [browserCanvas, browserStatus, port80Domain, dispatchConfig, state.question.status]);
+	}, [
+		browserCanvas,
+		browserStatus,
+		port80Domain,
+		dispatchConfig,
+		state.question.status,
+	]);
 
 	// Update webserver status/config data
 	useEffect(() => {
@@ -207,9 +229,13 @@ export const useSslState = () => {
 						: null;
 
 				const currentState =
-					typeof webserver.data?.state === "string" ? webserver.data.state : null;
+					typeof webserver.data?.state === "string"
+						? webserver.data.state
+						: null;
 				const currentDomain =
-					typeof webserver.data?.domain === "string" ? webserver.data.domain : null;
+					typeof webserver.data?.domain === "string"
+						? webserver.data.domain
+						: null;
 				const currentServingFile =
 					typeof webserver.data?.servingFile === "string"
 						? webserver.data.servingFile
@@ -257,15 +283,21 @@ export const useSslState = () => {
 					stateLabel = "Missing SSL";
 				}
 
-				const nextDomain = hasDomain ? getDomainFromCanvas(port443Canvas) : null;
+				const nextDomain = hasDomain
+					? getDomainFromCanvas(port443Canvas)
+					: null;
 				const nextServingFile = hasIndexHtml ? DEFAULT_INDEX_HTML : null;
 				const nextPrivateKey = hasPrivateKey ? "✓ Installed" : null;
 				const nextCertificate = hasCertificate ? "✓ Installed" : null;
 
 				const currentState =
-					typeof webserver.data?.state === "string" ? webserver.data.state : null;
+					typeof webserver.data?.state === "string"
+						? webserver.data.state
+						: null;
 				const currentDomain =
-					typeof webserver.data?.domain === "string" ? webserver.data.domain : null;
+					typeof webserver.data?.domain === "string"
+						? webserver.data.domain
+						: null;
 				const currentServingFile =
 					typeof webserver.data?.servingFile === "string"
 						? webserver.data.servingFile

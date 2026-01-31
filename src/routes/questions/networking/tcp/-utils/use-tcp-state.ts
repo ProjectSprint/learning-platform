@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
-	InventoryItem,
-	PlacedItem,
+	BoardItemLocation,
+	Item,
 	TerminalEntry,
 } from "@/components/game/game-provider";
 import {
@@ -65,7 +65,7 @@ export type BufferSlot = {
 
 type PacketFileKey = "message" | "notes";
 
-const getSeq = (item: PlacedItem) =>
+const getSeq = (item: BoardItemLocation) =>
 	typeof item.data?.seq === "number" ? item.data.seq : undefined;
 const getFileKey = (data?: Record<string, unknown>): PacketFileKey =>
 	data?.fileKey === "notes" ? "notes" : "message";
@@ -173,7 +173,7 @@ export const useTcpState = ({ onInventoryExpand }: UseTcpStateOptions = {}) => {
 	const updateInventoryGroup = useCallback(
 		(
 			id: string,
-			updates: { visible?: boolean; title?: string; items?: InventoryItem[] },
+			updates: { visible?: boolean; title?: string; items?: Item[] },
 		) => {
 			const existingItems = getInventoryGroupItems(id);
 			dispatch({
@@ -195,7 +195,7 @@ export const useTcpState = ({ onInventoryExpand }: UseTcpStateOptions = {}) => {
 	);
 
 	const ensureInventoryItems = useCallback(
-		(id: string, items: InventoryItem[], visible = true) => {
+		(id: string, items: Item[], visible = true) => {
 			const existing = getInventoryGroupItems(id);
 			const map = new Map(existing.map((item) => [item.id, item]));
 			for (const item of items) {
@@ -210,7 +210,7 @@ export const useTcpState = ({ onInventoryExpand }: UseTcpStateOptions = {}) => {
 	);
 
 	const updateSplitInventory = useCallback(
-		(updater: (item: InventoryItem) => InventoryItem) => {
+		(updater: (item: Item) => Item) => {
 			const items = getInventoryGroupItems(INVENTORY_GROUP_IDS.split);
 			if (items.length === 0) return;
 			updateInventoryGroup(INVENTORY_GROUP_IDS.split, {
@@ -244,7 +244,7 @@ export const useTcpState = ({ onInventoryExpand }: UseTcpStateOptions = {}) => {
 	}, []);
 
 	const removeItem = useCallback(
-		(item: PlacedItem, canvasId: string) => {
+		(item: BoardItemLocation, canvasId: string) => {
 			dispatch({
 				type: "REMOVE_ITEM",
 				payload: {
@@ -258,7 +258,11 @@ export const useTcpState = ({ onInventoryExpand }: UseTcpStateOptions = {}) => {
 	);
 
 	const updateItemIfNeeded = useCallback(
-		(item: PlacedItem, canvasId: string, updates: Record<string, unknown>) => {
+		(
+			item: BoardItemLocation,
+			canvasId: string,
+			updates: Record<string, unknown>,
+		) => {
 			const nextStatus =
 				typeof updates.status === "string" ? updates.status : item.status;
 			const { status: _, ...dataUpdates } = updates;
@@ -328,14 +332,14 @@ export const useTcpState = ({ onInventoryExpand }: UseTcpStateOptions = {}) => {
 	}, []);
 
 	const addReceivedItem = useCallback(
-		(item: InventoryItem) => {
+		(item: Item) => {
 			ensureInventoryItems(INVENTORY_GROUP_IDS.received, [item], true);
 		},
 		[ensureInventoryItems],
 	);
 
 	const sendServerPacket = useCallback(
-		(item: InventoryItem) => {
+		(item: Item) => {
 			addReceivedItem(item);
 			placeItemOnCanvas(item.id, "internet");
 		},
@@ -543,7 +547,7 @@ export const useTcpState = ({ onInventoryExpand }: UseTcpStateOptions = {}) => {
 	}, [updateSplitInventory]);
 
 	const handleServerReject = useCallback(
-		(item: PlacedItem, canvasId: string) => {
+		(item: BoardItemLocation, canvasId: string) => {
 			updateServerStatus("Processing...");
 			updateItemIfNeeded(item, canvasId, {
 				status: "warning",
@@ -755,7 +759,7 @@ export const useTcpState = ({ onInventoryExpand }: UseTcpStateOptions = {}) => {
 	}, [registerTimer, releaseBufferedPackets]);
 
 	const handleSeqArrival = useCallback(
-		(item: PlacedItem, canvasId: string, seq: number) => {
+		(item: BoardItemLocation, canvasId: string, seq: number) => {
 			const sequences = getActiveSequences();
 			const received = receivedSeqsRef.current;
 			const waiting = waitingSeqsRef.current;

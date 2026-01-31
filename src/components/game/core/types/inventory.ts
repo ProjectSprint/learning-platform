@@ -1,11 +1,10 @@
 import type { IconInfo } from "./icon";
 
-export type InventoryItem = {
+export type Item = {
 	id: string;
 	type: string;
 	name?: string;
 	allowedPlaces: string[];
-	quantity?: number;
 	icon?: IconInfo;
 	data?: Record<string, unknown>;
 	draggable?: boolean;
@@ -16,12 +15,12 @@ export type InventoryGroup = {
 	id: string;
 	title: string;
 	visible: boolean;
-	items: InventoryItem[];
+	items: Item[];
 };
 
 export type InventoryGroupConfig = {
 	id: string;
 	title: string;
 	visible?: boolean;
-	items: InventoryItem[];
+	items: Item[];
 };

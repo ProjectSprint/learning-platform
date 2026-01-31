@@ -2,14 +2,14 @@ import { updateBlock } from "../../puzzle/grid";
 import {
 	DEFAULT_INVENTORY_GROUP_ID,
 	DEFAULT_INVENTORY_TITLE,
+	findInventoryItem,
 	normalizeInventoryGroups,
 } from "../../validation/inventory";
 import type { GameAction } from "../actions";
 import type {
+	BoardItemLocation,
 	GameState,
 	InventoryGroup,
-	InventoryItem,
-	PlacedItem,
 	PuzzleConfig,
 	PuzzleState,
 } from "../types";
@@ -54,38 +54,9 @@ export const createDefaultState = (): GameState => ({
 	sequence: 0,
 });
 
-const findAvailableItemByType = (
-	groups: InventoryGroup[],
-	itemType: string,
-	puzzles: Record<string, PuzzleState> | undefined,
-): { groupIndex: number; itemIndex: number; item: InventoryItem } | null => {
-	for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
-		const itemIndex = groups[groupIndex].items.findIndex((item) => {
-			if (item.type !== itemType) return false;
-
-			const isOnPuzzle = puzzles
-				? Object.values(puzzles).some((puzzle) =>
-						puzzle.placedItems.some((placed) => placed.itemId === item.id),
-					)
-				: false;
-
-			return !isOnPuzzle;
-		});
-		if (itemIndex >= 0) {
-			return {
-				groupIndex,
-				itemIndex,
-				item: groups[groupIndex].items[itemIndex],
-			};
-		}
-	}
-	return null;
-};
-
 const applyInitialPlacements = (
 	puzzle: PuzzleState,
 	inventoryGroups: InventoryGroup[],
-	allPuzzles: Record<string, PuzzleState> | undefined,
 ): { puzzle: PuzzleState; inventoryGroups: InventoryGroup[] } => {
 	const placements = puzzle.config.initialPlacements ?? [];
 	if (placements.length === 0) {
@@ -94,9 +65,7 @@ const applyInitialPlacements = (
 
 	let nextBlocks = puzzle.blocks;
 	const nextInventoryGroups = inventoryGroups;
-	const placedItems: PlacedItem[] = [];
-	const currentPuzzleId = puzzle.config.puzzleId ?? "puzzle";
-
+	const placedItems: BoardItemLocation[] = [];
 	placements.forEach((placement) => {
 		if (!nextBlocks[placement.blockY]?.[placement.blockX]) {
 			return;
@@ -106,34 +75,23 @@ const applyInitialPlacements = (
 			return;
 		}
 
-		let itemId = `initial-${placement.itemType}-${placement.blockX}-${placement.blockY}`;
-		const puzzlesForLookup = {
-			...(allPuzzles ?? {}),
-			[currentPuzzleId]: {
-				...puzzle,
-				placedItems,
-			},
-		};
-		const inventoryMatch = findAvailableItemByType(
-			nextInventoryGroups,
-			placement.itemType,
-			puzzlesForLookup,
-		);
+		const itemId = placement.itemId;
+		const inventoryMatch = findInventoryItem(nextInventoryGroups, itemId);
 		const matchedItem = inventoryMatch?.item;
 
-		if (inventoryMatch) {
-			itemId = inventoryMatch.item.id;
+		if (!matchedItem) {
+			return;
 		}
 
 		placedItems.push({
 			id: itemId,
 			itemId,
-			type: placement.itemType,
+			type: matchedItem.type,
 			blockX: placement.blockX,
 			blockY: placement.blockY,
-			status: "normal",
+			status: placement.status ?? "normal",
 			icon: matchedItem?.icon,
-			data: matchedItem?.data ?? {},
+			data: placement.data ?? matchedItem?.data ?? {},
 		});
 
 		nextBlocks = updateBlock(nextBlocks, placement.blockX, placement.blockY, {
@@ -185,7 +143,6 @@ export const coreReducer = (
 				const seeded = applyInitialPlacements(
 					createPuzzleState(puzzleConfig),
 					inventoryGroups,
-					nextPuzzles,
 				);
 				inventoryGroups = seeded.inventoryGroups;
 				nextPuzzles[key] = seeded.puzzle;

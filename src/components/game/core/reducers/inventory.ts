@@ -4,12 +4,7 @@ import {
 	normalizeInventoryGroup,
 } from "../../validation/inventory";
 import type { GameAction } from "../actions";
-import type {
-	GameState,
-	InventoryGroup,
-	InventoryItem,
-	PuzzleState,
-} from "../types";
+import type { GameState, InventoryGroup, Item, PuzzleState } from "../types";
 
 const removeInventoryItems = (
 	groups: InventoryGroup[],
@@ -89,7 +84,7 @@ export const inventoryReducer = (
 				return state;
 			}
 
-			let nextItems: InventoryItem[] | undefined;
+			let nextItems: Item[] | undefined;
 			if (Array.isArray(items)) {
 				const usedIds = new Set<string>();
 				for (const [index, entry] of state.inventory.groups.entries()) {

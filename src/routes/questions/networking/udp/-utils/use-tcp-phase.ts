@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-	InventoryItem,
-	PlacedItem,
-} from "@/components/game/game-provider";
+import type { BoardItemLocation, Item } from "@/components/game/game-provider";
 import {
 	useAllPuzzles,
 	useGameDispatch,
@@ -184,7 +181,7 @@ export const useTcpPhase = ({
 	const updateInventoryGroup = useCallback(
 		(
 			id: string,
-			updates: { visible?: boolean; title?: string; items?: InventoryItem[] },
+			updates: { visible?: boolean; title?: string; items?: Item[] },
 		) => {
 			const existingItems = getInventoryGroupItems(id);
 			dispatch({
@@ -206,7 +203,7 @@ export const useTcpPhase = ({
 	);
 
 	const ensureInventoryItems = useCallback(
-		(id: string, items: InventoryItem[], visible?: boolean) => {
+		(id: string, items: Item[], visible?: boolean) => {
 			const existing = getInventoryGroupItems(id);
 			const map = new Map(existing.map((item) => [item.id, item]));
 			for (const item of items) {
@@ -259,7 +256,11 @@ export const useTcpPhase = ({
 	}, []);
 
 	const updateItemIfNeeded = useCallback(
-		(item: PlacedItem, canvasId: string, updates: Record<string, unknown>) => {
+		(
+			item: BoardItemLocation,
+			canvasId: string,
+			updates: Record<string, unknown>,
+		) => {
 			const nextStatus =
 				typeof updates.status === "string" ? updates.status : item.status;
 			const { status: _, ...dataUpdates } = updates;
@@ -284,7 +285,7 @@ export const useTcpPhase = ({
 	);
 
 	const removeItem = useCallback(
-		(item: PlacedItem, canvasId: string) => {
+		(item: BoardItemLocation, canvasId: string) => {
 			dispatch({
 				type: "REMOVE_ITEM",
 				payload: {
@@ -545,7 +546,7 @@ export const useTcpPhase = ({
 	}, [phase, triggerBreakingPoint, triggerNewClient]);
 
 	const handleSynPlacement = useCallback(
-		(item: PlacedItem, inboxId: string, clientId: string) => {
+		(item: BoardItemLocation, inboxId: string, clientId: string) => {
 			const packetClient = item.data?.clientId;
 			if (packetClient !== clientId) {
 				updateItemIfNeeded(item, inboxId, {
@@ -607,7 +608,7 @@ export const useTcpPhase = ({
 	);
 
 	const handleSynAckArrival = useCallback(
-		(item: PlacedItem, inboxId: string, clientId: string) => {
+		(item: BoardItemLocation, inboxId: string, clientId: string) => {
 			if (!(clientId in TCP_INBOX_IDS)) {
 				return;
 			}
@@ -659,7 +660,7 @@ export const useTcpPhase = ({
 	);
 
 	const handleAckPlacement = useCallback(
-		(item: PlacedItem, inboxId: string, clientId: string) => {
+		(item: BoardItemLocation, inboxId: string, clientId: string) => {
 			const packetClient = item.data?.clientId;
 			if (packetClient !== clientId) {
 				updateItemIfNeeded(item, inboxId, {
@@ -722,7 +723,7 @@ export const useTcpPhase = ({
 	);
 
 	const handleDataArrival = useCallback(
-		(item: PlacedItem, inboxId: string, clientId: string) => {
+		(item: BoardItemLocation, inboxId: string, clientId: string) => {
 			removeInventoryItem(INVENTORY_GROUP_IDS.dataPackets, item.id);
 			if (item.data?.clientId !== clientId) {
 				updateItemIfNeeded(item, inboxId, {
@@ -772,7 +773,7 @@ export const useTcpPhase = ({
 	);
 
 	const handleInternetItem = useCallback(
-		(item: PlacedItem) => {
+		(item: BoardItemLocation) => {
 			if (item.type === "syn-packet") {
 				updateItemIfNeeded(item, "internet", {
 					status: "warning",
@@ -867,7 +868,7 @@ export const useTcpPhase = ({
 	);
 
 	const handleInboxItem = useCallback(
-		(item: PlacedItem, inboxId: string) => {
+		(item: BoardItemLocation, inboxId: string) => {
 			const clientId = inboxId.replace("client-", "").replace("-inbox", "");
 			if (!clientId) return;
 

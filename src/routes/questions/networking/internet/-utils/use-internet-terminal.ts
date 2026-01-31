@@ -161,7 +161,10 @@ export const useInternetTerminal = ({
 				return;
 			}
 
-			helpers.writeOutput('Error: Unknown command. Type "help" for available commands.', "error");
+			helpers.writeOutput(
+				'Error: Unknown command. Type "help" for available commands.',
+				"error",
+			);
 		},
 		[
 			dispatch,

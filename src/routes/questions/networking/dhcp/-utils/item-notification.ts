@@ -1,7 +1,7 @@
 // Item label and status notifications for the networking question
 // These are question-specific helpers passed to PlayCanvas
 
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 
 /**
  * Get the display label for a networking item type
@@ -23,7 +23,7 @@ export const getNetworkingItemLabel = (itemType: string): string => {
  * Get the status message for a networking item based on its state
  */
 export const getNetworkingStatusMessage = (
-	placedItem: PlacedItem,
+	placedItem: BoardItemLocation,
 ): string | null => {
 	if (placedItem.type === "router") {
 		if (placedItem.status === "error") {

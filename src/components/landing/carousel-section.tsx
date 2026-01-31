@@ -1,7 +1,7 @@
 import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
+import { useEffect, useRef } from "react";
 
 const topics = [
 	{
@@ -95,19 +95,8 @@ function TopicCard({
 				}}
 			>
 				<Box>
-					<Box
-						w="12px"
-						h="12px"
-						borderRadius="full"
-						bg={color}
-						mb={4}
-					/>
-					<Text
-						fontSize="18px"
-						fontWeight="bold"
-						color="#0A0A0A"
-						mb={1}
-					>
+					<Box w="12px" h="12px" borderRadius="full" bg={color} mb={4} />
+					<Text fontSize="18px" fontWeight="bold" color="#0A0A0A" mb={1}>
 						{title}
 					</Text>
 					<Text fontSize="14px" color="#525252">
@@ -207,8 +196,9 @@ export function CarouselSection() {
 								With many fundamentals as the service
 							</Heading>
 							<Text fontSize="20px" color="#525252">
-								From networking to algorithms, from databases to DevOps. We cover
-								everything you need to build a solid engineering foundation.
+								From networking to algorithms, from databases to DevOps. We
+								cover everything you need to build a solid engineering
+								foundation.
 							</Text>
 						</VStack>
 					</Box>

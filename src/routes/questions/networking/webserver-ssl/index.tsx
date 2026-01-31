@@ -1,11 +1,10 @@
 // Route for webserver-ssl question
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-
-import { WebserverSslQuestion } from "./-page";
 import {
 	getNextQuestionPath,
 	markNetworkingQuestionComplete,
 } from "../-utils/module-progress";
+import { WebserverSslQuestion } from "./-page";
 
 const WebserverSslQuestionRoute = () => {
 	const navigate = useNavigate();

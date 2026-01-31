@@ -6,9 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
+	type BoardItemLocation,
 	GameProvider,
 	type InventoryGroupConfig,
-	type PlacedItem,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
@@ -159,7 +159,7 @@ const WebserverSslGame = ({
 
 	const itemClickHandlers = useMemo(
 		() => ({
-			"webserver-80": ({ item }: { item: PlacedItem }) => {
+			"webserver-80": ({ item }: { item: BoardItemLocation }) => {
 				const status = item.data?.state as string | undefined;
 				const domain = item.data?.domain as string | undefined;
 				const servingFile = item.data?.servingFile as string | undefined;
@@ -172,7 +172,7 @@ const WebserverSslGame = ({
 					}),
 				});
 			},
-			"webserver-443": ({ item }: { item: PlacedItem }) => {
+			"webserver-443": ({ item }: { item: BoardItemLocation }) => {
 				const status = item.data?.state as string | undefined;
 				const domain = item.data?.domain as string | undefined;
 				const privateKey = item.data?.privateKey as string | undefined;
@@ -189,7 +189,7 @@ const WebserverSslGame = ({
 					}),
 				});
 			},
-			domain: ({ item }: { item: PlacedItem }) => {
+			domain: ({ item }: { item: BoardItemLocation }) => {
 				const isInLetsencrypt = sslState.letsencryptCanvas?.placedItems.some(
 					(entry) => entry.id === item.id,
 				);
@@ -215,13 +215,13 @@ const WebserverSslGame = ({
 					),
 				});
 			},
-			"private-key": ({ item }: { item: PlacedItem }) => {
+			"private-key": ({ item }: { item: BoardItemLocation }) => {
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildPrivateKeyInfoModal(item.id, true),
 				});
 			},
-			certificate: ({ item }: { item: PlacedItem }) => {
+			certificate: ({ item }: { item: BoardItemLocation }) => {
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildCertificateInfoModal(
@@ -230,13 +230,13 @@ const WebserverSslGame = ({
 					),
 				});
 			},
-			"redirect-to-https": ({ item }: { item: PlacedItem }) => {
+			"redirect-to-https": ({ item }: { item: BoardItemLocation }) => {
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildRedirectInfoModal(item.id),
 				});
 			},
-			"index-html": ({ item }: { item: PlacedItem }) => {
+			"index-html": ({ item }: { item: BoardItemLocation }) => {
 				dispatch({
 					type: "OPEN_MODAL",
 					payload: buildIndexHtmlViewModal(item.id),
@@ -532,7 +532,7 @@ const WebserverSslGame = ({
 
 	// Item click handler
 	const handlePlacedItemClick = useCallback(
-		(item: PlacedItem) => {
+		(item: BoardItemLocation) => {
 			const handler = spec.handlers.onItemClickByType[item.type];
 			if (handler) {
 				handler({ item });
@@ -543,7 +543,7 @@ const WebserverSslGame = ({
 
 	// Check if item is clickable
 	const isItemClickable = useCallback(
-		(item: PlacedItem) =>
+		(item: BoardItemLocation) =>
 			spec.handlers.isItemClickableByType[item.type] === true,
 		[spec.handlers.isItemClickableByType],
 	);

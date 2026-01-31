@@ -2,8 +2,8 @@ import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	type Block,
+	type BoardItemLocation,
 	findInventoryItem,
-	type PlacedItem,
 	useGameDispatch,
 	useGameState,
 } from "../../game-provider";
@@ -84,7 +84,7 @@ export const PuzzleBoard = ({
 	const [columns, rows] = useResolvedPuzzleSize(puzzle.config.size);
 
 	const placedItemsByKey = useMemo(() => {
-		const map = new Map<string, PlacedItem>();
+		const map = new Map<string, BoardItemLocation>();
 		for (const item of puzzle.placedItems) {
 			map.set(`${item.blockX}-${item.blockY}`, item);
 		}

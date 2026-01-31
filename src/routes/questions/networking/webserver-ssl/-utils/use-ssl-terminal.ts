@@ -2,12 +2,19 @@
 // Supports curl and openssl commands for testing HTTP and HTTPS
 
 import { useCallback, useMemo } from "react";
-import { useAllPuzzles, useGameDispatch } from "@/components/game/game-provider";
 import type { TerminalCommandHelpers } from "@/components/game/engines/terminal/use-terminal-engine";
-import { INDEX_HTML_CONTENT } from "./constants";
-import { isPort443Complete, isPort80Complete, isPort80RedirectConfigured } from "./ssl-utils";
-import { buildSuccessModal } from "./modal-builders";
 import type { PuzzleState } from "@/components/game/game-provider";
+import {
+	useAllPuzzles,
+	useGameDispatch,
+} from "@/components/game/game-provider";
+import { INDEX_HTML_CONTENT } from "./constants";
+import { buildSuccessModal } from "./modal-builders";
+import {
+	isPort80Complete,
+	isPort80RedirectConfigured,
+	isPort443Complete,
+} from "./ssl-utils";
 
 interface UseSslTerminalArgs {
 	hasRedirect: boolean;
@@ -41,7 +48,8 @@ export const useSslTerminal = ({
 			const tokens = trimmedInput.split(/\s+/);
 			const command = tokens[0]?.toLowerCase();
 
-			const getDomain = () => port80Domain || certificateDomain || "example.com";
+			const getDomain = () =>
+				port80Domain || certificateDomain || "example.com";
 
 			const isHttpReady = isPort80Complete(port80Canvas);
 			const isHttpsReadyNow = isPort443Complete(port443Canvas);
@@ -74,14 +82,20 @@ export const useSslTerminal = ({
 				// Find URL (last argument or after flags)
 				let url = "";
 				for (let i = tokens.length - 1; i >= 1; i--) {
-					if (tokens[i].startsWith("http://") || tokens[i].startsWith("https://")) {
+					if (
+						tokens[i].startsWith("http://") ||
+						tokens[i].startsWith("https://")
+					) {
 						url = tokens[i];
 						break;
 					}
 				}
 
 				if (!url) {
-					helpers.writeOutput("Error: No URL specified. Usage: curl <url>", "error");
+					helpers.writeOutput(
+						"Error: No URL specified. Usage: curl <url>",
+						"error",
+					);
 					return;
 				}
 
@@ -93,7 +107,10 @@ export const useSslTerminal = ({
 						const domain = getDomain();
 						if (verbose) {
 							helpers.writeOutput(`* Trying ${domain}...`, "output");
-							helpers.writeOutput(`* Connected to ${domain} (127.0.0.1) port 80`, "output");
+							helpers.writeOutput(
+								`* Connected to ${domain} (127.0.0.1) port 80`,
+								"output",
+							);
 						}
 						helpers.writeOutput("HTTP/1.1 301 Moved Permanently", "output");
 						helpers.writeOutput(`Location: https://${domain}/`, "output");
@@ -102,7 +119,10 @@ export const useSslTerminal = ({
 					} else if (isHttpReady) {
 						if (verbose) {
 							helpers.writeOutput(`* Trying ${getDomain()}...`, "output");
-							helpers.writeOutput(`* Connected to ${getDomain()} (127.0.0.1) port 80`, "output");
+							helpers.writeOutput(
+								`* Connected to ${getDomain()} (127.0.0.1) port 80`,
+								"output",
+							);
 						}
 						helpers.writeOutput("HTTP/1.1 200 OK", "output");
 						helpers.writeOutput("Content-Type: text/html", "output");
@@ -111,7 +131,10 @@ export const useSslTerminal = ({
 							helpers.writeOutput(INDEX_HTML_CONTENT, "output");
 						}
 					} else {
-						helpers.writeOutput("Error: Connection refused. Webserver not configured.", "error");
+						helpers.writeOutput(
+							"Error: Connection refused. Webserver not configured.",
+							"error",
+						);
 					}
 					return;
 				}
@@ -119,23 +142,38 @@ export const useSslTerminal = ({
 				// Handle https:// requests
 				if (targetUrl.startsWith("https://")) {
 					if (insecure) {
-						helpers.writeOutput("Error: --insecure flag not supported in this simulation.", "error");
+						helpers.writeOutput(
+							"Error: --insecure flag not supported in this simulation.",
+							"error",
+						);
 						return;
 					}
 
 					if (!isHttpsReadyNow) {
-						helpers.writeOutput("Error: SSL handshake failed. Certificate not found.", "error");
+						helpers.writeOutput(
+							"Error: SSL handshake failed. Certificate not found.",
+							"error",
+						);
 						return;
 					}
 
 					const domain = getDomain();
 					if (verbose) {
 						helpers.writeOutput(`* Trying ${domain}:443...`, "output");
-						helpers.writeOutput(`* Connected to ${domain} (127.0.0.1) port 443`, "output");
-						helpers.writeOutput("* TLS 1.3 connection using TLS_AES_256_GCM_SHA384", "output");
+						helpers.writeOutput(
+							`* Connected to ${domain} (127.0.0.1) port 443`,
+							"output",
+						);
+						helpers.writeOutput(
+							"* TLS 1.3 connection using TLS_AES_256_GCM_SHA384",
+							"output",
+						);
 						helpers.writeOutput("* Server certificate:", "output");
 						helpers.writeOutput(`*  subject: ${domain}`, "output");
-						helpers.writeOutput("*  issuer: Let's Encrypt Authority X3", "output");
+						helpers.writeOutput(
+							"*  issuer: Let's Encrypt Authority X3",
+							"output",
+						);
 						helpers.writeOutput("*  SSL certificate verify ok.", "output");
 					}
 
@@ -165,7 +203,10 @@ export const useSslTerminal = ({
 					return;
 				}
 
-				helpers.writeOutput("Error: Unknown URL scheme. Use http:// or https://", "error");
+				helpers.writeOutput(
+					"Error: Unknown URL scheme. Use http:// or https://",
+					"error",
+				);
 				return;
 			}
 
@@ -176,7 +217,10 @@ export const useSslTerminal = ({
 				if (subCommand === "s_client") {
 					let url = "";
 					for (let i = tokens.length - 1; i >= 2; i--) {
-						if (tokens[i].startsWith("https://") || tokens[i].startsWith("http://")) {
+						if (
+							tokens[i].startsWith("https://") ||
+							tokens[i].startsWith("http://")
+						) {
 							url = tokens[i];
 							break;
 						}
@@ -190,12 +234,18 @@ export const useSslTerminal = ({
 					const targetUrl = url.toLowerCase();
 
 					if (!targetUrl.startsWith("https://")) {
-						helpers.writeOutput("Error: s_client requires an https:// URL", "error");
+						helpers.writeOutput(
+							"Error: s_client requires an https:// URL",
+							"error",
+						);
 						return;
 					}
 
 					if (!isHttpsReadyNow) {
-						helpers.writeOutput("Error: SSL handshake failed. The server doesn't have a certificate configured.", "error");
+						helpers.writeOutput(
+							"Error: SSL handshake failed. The server doesn't have a certificate configured.",
+							"error",
+						);
 						return;
 					}
 
@@ -242,7 +292,10 @@ export const useSslTerminal = ({
 				return;
 			}
 
-			helpers.writeOutput(`Unknown command: ${command}. Type 'help' for available commands.`, "error");
+			helpers.writeOutput(
+				`Unknown command: ${command}. Type 'help' for available commands.`,
+				"error",
+			);
 		},
 		[
 			hasRedirect,

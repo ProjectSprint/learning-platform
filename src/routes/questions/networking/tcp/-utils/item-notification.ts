@@ -1,4 +1,4 @@
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 
 type TcpStateLabel = {
 	label: string;
@@ -24,7 +24,6 @@ const flagStateMessages: Record<string, TcpStateLabel> = {
 	"in-transit": { label: "Sending..." },
 	received: { label: "Arrived" },
 };
-
 
 /**
  * Get display label for an item type.
@@ -57,7 +56,9 @@ export const getTcpItemLabel = (itemType: string): string => {
 /**
  * Get status message for a placed item.
  */
-export const getTcpStatusMessage = (placedItem: PlacedItem): string | null => {
+export const getTcpStatusMessage = (
+	placedItem: BoardItemLocation,
+): string | null => {
 	const { type, data } = placedItem;
 	const tcpState = typeof data?.tcpState === "string" ? data.tcpState : "idle";
 

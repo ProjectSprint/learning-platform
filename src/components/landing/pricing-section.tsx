@@ -1,12 +1,12 @@
 import {
 	Box,
+	Button,
 	Container,
 	Heading,
+	List,
+	SimpleGrid,
 	Text,
 	VStack,
-	SimpleGrid,
-	Button,
-	List,
 } from "@chakra-ui/react";
 import { Link } from "@tanstack/react-router";
 
@@ -151,17 +151,14 @@ function PricingCard({
 					</Text>
 				</Box>
 
-				<Text
-					fontSize="14px"
-					color={highlighted ? "gray.300" : "#525252"}
-				>
+				<Text fontSize="14px" color={highlighted ? "gray.300" : "#525252"}>
 					{description}
 				</Text>
 
 				<List.Root gap={3}>
-					{features.map((feature, index) => (
+					{features.map((feature) => (
 						<List.Item
-							key={index}
+							key={feature}
 							display="flex"
 							alignItems="center"
 							gap={3}
@@ -236,8 +233,8 @@ export function PricingSection() {
 							As cheap as it gets!
 						</Heading>
 						<Text fontSize="20px" color="#525252">
-							Quality education shouldn't break the bank. Our pricing is designed
-							to be accessible to everyone serious about learning.
+							Quality education shouldn't break the bank. Our pricing is
+							designed to be accessible to everyone serious about learning.
 						</Text>
 					</VStack>
 

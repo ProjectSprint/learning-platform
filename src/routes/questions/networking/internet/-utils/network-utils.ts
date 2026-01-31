@@ -1,4 +1,4 @@
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 
 export const PRIVATE_IP_RANGES = [
 	/^10\./,
@@ -88,15 +88,15 @@ export const validateIpRange = (
 };
 
 export interface InternetNetworkSnapshot {
-	pc: PlacedItem | undefined;
-	cable: PlacedItem | undefined;
-	routerLan: PlacedItem | undefined;
-	routerNat: PlacedItem | undefined;
-	routerWan: PlacedItem | undefined;
-	fiber: PlacedItem | undefined;
-	igw: PlacedItem | undefined;
-	dns: PlacedItem | undefined;
-	google: PlacedItem | undefined;
+	pc: BoardItemLocation | undefined;
+	cable: BoardItemLocation | undefined;
+	routerLan: BoardItemLocation | undefined;
+	routerNat: BoardItemLocation | undefined;
+	routerWan: BoardItemLocation | undefined;
+	fiber: BoardItemLocation | undefined;
+	igw: BoardItemLocation | undefined;
+	dns: BoardItemLocation | undefined;
+	google: BoardItemLocation | undefined;
 	pcConnectedToRouterLan: boolean;
 	routerWanConnectedToIgw: boolean;
 	isFullyConnected: boolean;
@@ -104,9 +104,9 @@ export interface InternetNetworkSnapshot {
 }
 
 export const buildInternetNetworkSnapshot = (
-	placedItems: PlacedItem[],
+	placedItems: BoardItemLocation[],
 ): InternetNetworkSnapshot => {
-	const byCoord = new Map<string, PlacedItem>();
+	const byCoord = new Map<string, BoardItemLocation>();
 	placedItems.forEach((item) => {
 		byCoord.set(`${item.blockX}-${item.blockY}`, item);
 	});
@@ -136,7 +136,7 @@ export const buildInternetNetworkSnapshot = (
 	const connectionErrors: string[] = [];
 	let isFullyConnected = true;
 
-	const placedDevices = devices.filter(Boolean) as PlacedItem[];
+	const placedDevices = devices.filter(Boolean) as BoardItemLocation[];
 
 	if (placedDevices.length !== devices.length) {
 		isFullyConnected = false;

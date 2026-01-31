@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-
-import { InternetQuestion } from "./-page";
 import {
 	getNextQuestionPath,
 	markNetworkingQuestionComplete,
 } from "../-utils/module-progress";
+import { InternetQuestion } from "./-page";
 
 const InternetQuestionRoute = () => {
 	const navigate = useNavigate();

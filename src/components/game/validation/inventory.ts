@@ -1,16 +1,12 @@
 // Inventory validation and normalization utilities
 
-import type {
-	InventoryGroup,
-	InventoryGroupConfig,
-	InventoryItem,
-} from "../core/types";
+import type { InventoryGroup, InventoryGroupConfig, Item } from "../core/types";
 import { MAX_INVENTORY_ITEMS } from "./sanitize";
 
 export const DEFAULT_INVENTORY_GROUP_ID = "default";
 export const DEFAULT_INVENTORY_TITLE = "Inventory";
 
-export const normalizeInventory = (items: InventoryItem[]): InventoryItem[] =>
+export const normalizeInventory = (items: Item[]): Item[] =>
 	items
 		.filter(
 			(item) =>
@@ -81,7 +77,7 @@ export const normalizeInventoryGroups = (
 export const findInventoryItem = (
 	groups: InventoryGroup[],
 	itemId: string,
-): { groupIndex: number; itemIndex: number; item: InventoryItem } | null => {
+): { groupIndex: number; itemIndex: number; item: Item } | null => {
 	for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
 		const itemIndex = groups[groupIndex].items.findIndex(
 			(item) => item.id === itemId,

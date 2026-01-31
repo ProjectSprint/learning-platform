@@ -1,4 +1,4 @@
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 
 const ITEM_LABELS: Record<string, string> = {
 	"syn-packet": "SYN",
@@ -28,7 +28,7 @@ const FRAME_STATE_LABELS: Record<string, string> = {
 export const getUdpItemLabel = (itemType: string) =>
 	ITEM_LABELS[itemType] ?? itemType;
 
-export const getUdpStatusMessage = (item: PlacedItem): string | null => {
+export const getUdpStatusMessage = (item: BoardItemLocation): string | null => {
 	if (item.type === "frame") {
 		const state =
 			typeof item.data?.state === "string" ? item.data.state : "ready";

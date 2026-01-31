@@ -1,7 +1,4 @@
-import type {
-	InventoryItem,
-	PuzzleConfig,
-} from "@/components/game/game-provider";
+import type { Item, PuzzleConfig } from "@/components/game/game-provider";
 
 export const QUESTION_ID = "tcp-fragmentation";
 export const QUESTION_TITLE = "📄 Deliver message.txt";
@@ -33,7 +30,7 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, PuzzleConfig> = {
 		id: "tcp-server",
 		title: "Server",
 		puzzleId: "server",
-		size: { base: [3, 4] },
+		size: { base: [2, 6], xl: [3, 4] },
 		maxItems: 12,
 	},
 };
@@ -48,7 +45,7 @@ export const INVENTORY_GROUP_IDS = {
 export const FILE_ITEM_ID = "message-file-1";
 export const NOTES_FILE_ITEM_ID = "notes-file-1";
 
-export const FILE_INVENTORY_ITEMS: InventoryItem[] = [
+export const FILE_INVENTORY_ITEMS: Item[] = [
 	{
 		id: FILE_ITEM_ID,
 		type: "message-file",
@@ -59,7 +56,7 @@ export const FILE_INVENTORY_ITEMS: InventoryItem[] = [
 	},
 ];
 
-export const NOTES_FILE_ITEM: InventoryItem = {
+export const NOTES_FILE_ITEM: Item = {
 	id: NOTES_FILE_ITEM_ID,
 	type: "notes-file",
 	name: "notes.txt",
@@ -85,7 +82,7 @@ export const NOTES_PACKET_IDS = [
 
 export const SPLIT_PACKET_IDS = [...MESSAGE_PACKET_IDS, ...NOTES_PACKET_IDS];
 
-export const MESSAGE_PACKET_ITEMS: InventoryItem[] = MESSAGE_PACKET_IDS.map(
+export const MESSAGE_PACKET_ITEMS: Item[] = MESSAGE_PACKET_IDS.map(
 	(packetId, index) => ({
 		id: packetId,
 		type: "split-packet",
@@ -101,7 +98,7 @@ export const MESSAGE_PACKET_ITEMS: InventoryItem[] = MESSAGE_PACKET_IDS.map(
 	}),
 );
 
-export const NOTES_PACKET_ITEMS: InventoryItem[] = NOTES_PACKET_IDS.map(
+export const NOTES_PACKET_ITEMS: Item[] = NOTES_PACKET_IDS.map(
 	(packetId, index) => ({
 		id: packetId,
 		type: "split-packet",
@@ -117,7 +114,7 @@ export const NOTES_PACKET_ITEMS: InventoryItem[] = NOTES_PACKET_IDS.map(
 	}),
 );
 
-export const TCP_TOOL_ITEMS: Record<"syn" | "ack" | "fin", InventoryItem> = {
+export const TCP_TOOL_ITEMS: Record<"syn" | "ack" | "fin", Item> = {
 	syn: {
 		id: "syn-flag-1",
 		type: "syn-flag",
@@ -144,7 +141,7 @@ export const TCP_TOOL_ITEMS: Record<"syn" | "ack" | "fin", InventoryItem> = {
 	},
 };
 
-export const SYSTEM_PACKET_ITEMS: Record<"synAck" | "finAck", InventoryItem> = {
+export const SYSTEM_PACKET_ITEMS: Record<"synAck" | "finAck", Item> = {
 	synAck: {
 		id: "syn-ack-flag-1",
 		type: "syn-ack-flag",

@@ -1,7 +1,7 @@
 import { Box } from "@chakra-ui/react";
 import {
-	Outlet,
 	createFileRoute,
+	Outlet,
 	useNavigate,
 	useRouterState,
 } from "@tanstack/react-router";

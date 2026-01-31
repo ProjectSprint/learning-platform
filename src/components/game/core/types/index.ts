@@ -19,16 +19,16 @@ export type { IconInfo } from "./icon";
 export type {
 	InventoryGroup,
 	InventoryGroupConfig,
-	InventoryItem,
+	Item,
 } from "./inventory";
 // Modal types
 export type { ModalInstance, OverlayState } from "./modal";
 // Placed item types
-export type { PlacedItem, PlacedItemStatus } from "./placed-item";
+export type { BoardItemLocation, BoardItemStatus } from "./placed-item";
 export type {
 	Block,
 	BlockStatus,
-	Placement,
+	BoardItemLocationSeed,
 	PuzzleBreakpoint,
 	PuzzleConfig,
 	PuzzleSize,

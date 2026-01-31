@@ -1,7 +1,7 @@
 // Network utility functions for IP validation and network topology analysis
 // Contains functions for parsing IP ranges, validating IPs, and building network snapshots
 
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 import { DHCP_CANVAS_IDS, PRIVATE_IP_RANGES } from "./constants";
 
 export type DeviceConnection = {
@@ -9,7 +9,7 @@ export type DeviceConnection = {
 	toId: string;
 };
 
-export type BoardPlacements = Record<string, PlacedItem[]>;
+export type BoardPlacements = Record<string, BoardItemLocation[]>;
 
 /**
  * Validates that an IP address string is valid

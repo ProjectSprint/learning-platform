@@ -1,6 +1,6 @@
 // Item label and status notifications for the webserver-ssl question
 
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 
 /**
  * Get display label for an item type
@@ -32,7 +32,7 @@ export const getSslItemLabel = (itemType: string): string => {
  * Get status message for a placed item
  */
 export const getSslStatusMessage = (
-	placedItem: PlacedItem,
+	placedItem: BoardItemLocation,
 	canvasId?: string,
 ): string | null => {
 	const { type, status, data } = placedItem;
@@ -112,7 +112,9 @@ export const getSslStatusMessage = (
 /**
  * Get full status description for a placed item (for modals)
  */
-export const getFullStatusDescription = (placedItem: PlacedItem): string => {
+export const getFullStatusDescription = (
+	placedItem: BoardItemLocation,
+): string => {
 	const { type, status, data } = placedItem;
 
 	switch (type) {

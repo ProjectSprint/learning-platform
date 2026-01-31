@@ -3,9 +3,9 @@ import { findInventoryItem } from "../../validation/inventory";
 import { sanitizeDeviceConfig } from "../../validation/sanitize";
 import type { GameAction } from "../actions";
 import type {
+	BoardItemLocation,
+	BoardItemStatus,
 	GameState,
-	PlacedItem,
-	PlacedItemStatus,
 	PuzzleState,
 } from "../types";
 import { resolvePuzzleState, updatePuzzleState } from "./puzzle-state";
@@ -49,7 +49,7 @@ export const puzzleReducer = (
 				return state;
 			}
 
-			const placedItem: PlacedItem = {
+			const placedItem: BoardItemLocation = {
 				id: item.id,
 				itemId: item.id,
 				type: item.type,
@@ -455,7 +455,7 @@ export const puzzleReducer = (
 
 				nextPlacedItems[itemIndex] = {
 					...currentItem,
-					...(newStatus && { status: newStatus as PlacedItemStatus }),
+					...(newStatus && { status: newStatus as BoardItemStatus }),
 					data: {
 						...currentItem.data,
 						...dataConfig,

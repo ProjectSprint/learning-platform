@@ -3,7 +3,7 @@
 
 import type {
 	InventoryGroupConfig,
-	InventoryItem,
+	Item,
 	PuzzleConfig,
 	TerminalEntry,
 } from "@/components/game/game-provider";
@@ -59,7 +59,7 @@ export type InternetCanvasKey =
 	| "google";
 
 // Initial inventory items available for the internet gateway question
-export const INVENTORY_ITEMS: InventoryItem[] = [
+export const INVENTORY_ITEMS: Item[] = [
 	{
 		id: "cable-1",
 		type: "cable",

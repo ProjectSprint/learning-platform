@@ -9,7 +9,11 @@ import type {
 	ModalFieldValidator,
 	ModalInstance,
 } from "@/components/game/modal";
-import { DEFAULT_DOMAIN, INDEX_HTML_CONTENT, TLS_HANDSHAKE_STEPS } from "./constants";
+import {
+	DEFAULT_DOMAIN,
+	INDEX_HTML_CONTENT,
+	TLS_HANDSHAKE_STEPS,
+} from "./constants";
 
 // Domain validator
 const validateDomain: ModalFieldValidator<string> = (input) => {
@@ -102,7 +106,9 @@ export const buildBrowserStatusModal = (
 	// TLS handshake visualization for HTTPS
 	if (hasTlsHandshake) {
 		content.push(
-			buildText(`\n${TLS_HANDSHAKE_STEPS.map((s) => `${s.step}. ${s.phase} (${s.direction})`).join("\n")}`),
+			buildText(
+				`\n${TLS_HANDSHAKE_STEPS.map((s) => `${s.step}. ${s.phase} (${s.direction})`).join("\n")}`,
+			),
 		);
 	}
 
@@ -217,7 +223,9 @@ export const buildWebserver443StatusModal = (
 			id: "certificate",
 			kind: "readonly",
 			label: "Domain Certificate",
-			value: hasCertificate ? `✓ Installed (${config.domain || "example.com"})` : "Not installed",
+			value: hasCertificate
+				? `✓ Installed (${config.domain || "example.com"})`
+				: "Not installed",
 		}),
 	);
 
@@ -238,11 +246,23 @@ export const buildWebserver443StatusModal = (
 
 	// SSL status indicator
 	if (!hasPrivateKey && !hasCertificate) {
-		content.push(buildText("\n❌ Missing SSL\n   ├─ Private Key: Not installed\n   └─ Domain Certificate: Not installed"));
+		content.push(
+			buildText(
+				"\n❌ Missing SSL\n   ├─ Private Key: Not installed\n   └─ Domain Certificate: Not installed",
+			),
+		);
 	} else if (hasPrivateKey && !hasCertificate) {
-		content.push(buildText("\n⚠️ Incomplete SSL\n   ├─ Private Key: ✓ Installed\n   └─ Domain Certificate: Not installed"));
+		content.push(
+			buildText(
+				"\n⚠️ Incomplete SSL\n   ├─ Private Key: ✓ Installed\n   └─ Domain Certificate: Not installed",
+			),
+		);
 	} else if (!hasPrivateKey && hasCertificate) {
-		content.push(buildText("\n⚠️ Incomplete SSL\n   ├─ Private Key: Not installed\n   └─ Domain Certificate: ✓ Installed"));
+		content.push(
+			buildText(
+				"\n⚠️ Incomplete SSL\n   ├─ Private Key: Not installed\n   └─ Domain Certificate: ✓ Installed",
+			),
+		);
 	} else {
 		content.push(
 			buildText(
@@ -280,15 +300,18 @@ export const buildCertificateRequestModal = (
 				buildText("Status: ✅ Issued"),
 				buildText("Type: RSA 2048-bit"),
 				buildText(""),
-				buildText("The certificate is being used on your HTTPS webserver. Drag the Private Key and Domain Certificate items to the Port 443 canvas."),
+				buildText(
+					"The certificate is being used on your HTTPS webserver. Drag the Private Key and Domain Certificate items to the Port 443 canvas.",
+				),
 			],
 			actions: [closeAction()],
 		};
 	}
 
-	const existingPort80Domain = typeof port80CanvasConfig?.domain === "string"
-		? port80CanvasConfig.domain
-		: DEFAULT_DOMAIN;
+	const existingPort80Domain =
+		typeof port80CanvasConfig?.domain === "string"
+			? port80CanvasConfig.domain
+			: DEFAULT_DOMAIN;
 
 	const actions: ModalAction[] = [
 		{
@@ -304,7 +327,10 @@ export const buildCertificateRequestModal = (
 			variant: "primary",
 			validate: true,
 			closesModal: true,
-			onClick: async ({ values, dispatch }: ModalActionContext): Promise<void> => {
+			onClick: async ({
+				values,
+				dispatch,
+			}: ModalActionContext): Promise<void> => {
 				const domain = String(values.domain ?? "").trim();
 
 				if (!domain) {
@@ -378,7 +404,10 @@ export const buildCertificateRequestModal = (
 /**
  * Private Key Info Modal
  */
-export const buildPrivateKeyInfoModal = (deviceId: string, installed: boolean): ModalInstance => {
+export const buildPrivateKeyInfoModal = (
+	deviceId: string,
+	installed: boolean,
+): ModalInstance => {
 	return {
 		id: `private-key-info-${deviceId}`,
 		title: "Private Key",
@@ -388,7 +417,9 @@ export const buildPrivateKeyInfoModal = (deviceId: string, installed: boolean): 
 			buildText("- Used to decrypt incoming HTTPS traffic"),
 			buildText("- Must be installed on your webserver (port 443)"),
 			buildText("- NEVER share this with anyone!"),
-			buildText(`\nStatus: ${installed ? "Installed on server" : "In Inventory"}`),
+			buildText(
+				`\nStatus: ${installed ? "Installed on server" : "In Inventory"}`,
+			),
 		],
 		actions: [closeAction()],
 	};
@@ -397,7 +428,10 @@ export const buildPrivateKeyInfoModal = (deviceId: string, installed: boolean): 
 /**
  * Certificate Info Modal
  */
-export const buildCertificateInfoModal = (deviceId: string, installed: boolean): ModalInstance => {
+export const buildCertificateInfoModal = (
+	deviceId: string,
+	installed: boolean,
+): ModalInstance => {
 	return {
 		id: `certificate-info-${deviceId}`,
 		title: "Domain Certificate",
@@ -406,9 +440,15 @@ export const buildCertificateInfoModal = (deviceId: string, installed: boolean):
 			buildText("\nSubject: example.com"),
 			buildText("Issuer: Let's Encrypt Authority X3"),
 			buildText("Valid: 90 days"),
-			buildText("\nThis certificate is sent to browsers to prove your server's identity."),
-			buildText("It contains your public key (browsers use this to encrypt data to you)."),
-			buildText(`\nStatus: ${installed ? "Installed on server" : "In Inventory"}`),
+			buildText(
+				"\nThis certificate is sent to browsers to prove your server's identity.",
+			),
+			buildText(
+				"It contains your public key (browsers use this to encrypt data to you).",
+			),
+			buildText(
+				`\nStatus: ${installed ? "Installed on server" : "In Inventory"}`,
+			),
 		],
 		actions: [closeAction()],
 	};
@@ -442,9 +482,7 @@ export const buildIndexHtmlViewModal = (deviceId: string): ModalInstance => {
 	return {
 		id: `index-html-view-${deviceId}`,
 		title: "index.html",
-		content: [
-			buildText(INDEX_HTML_CONTENT),
-		],
+		content: [buildText(INDEX_HTML_CONTENT)],
 		actions: [closeAction()],
 	};
 };
@@ -461,9 +499,13 @@ export const buildTlsHandshakeModal = (): ModalInstance => {
 		id: "tls-handshake",
 		title: "🔒 TLS Handshake Complete ✓",
 		content: [
-			buildText("Your browser has established a secure connection with the server!\n"),
+			buildText(
+				"Your browser has established a secure connection with the server!\n",
+			),
 			buildText(stepsText),
-			buildText("\nThe connection is now encrypted. All data exchanged is secure!"),
+			buildText(
+				"\nThe connection is now encrypted. All data exchanged is secure!",
+			),
 		],
 		actions: [closeAction()],
 	};
@@ -472,21 +514,41 @@ export const buildTlsHandshakeModal = (): ModalInstance => {
 /**
  * Success Modal
  */
-export const buildSuccessModal = (onQuestionComplete?: VoidFunction): ModalInstance => {
+export const buildSuccessModal = (
+	onQuestionComplete?: VoidFunction,
+): ModalInstance => {
 	return {
 		id: "success",
 		title: "🔒 Website Secured!",
 		content: [
-			buildText("Congratulations! You've successfully secured your website with HTTPS."),
+			buildText(
+				"Congratulations! You've successfully secured your website with HTTPS.",
+			),
 			buildText("\nYou learned:"),
-			buildText("- **Port 80 (HTTP)** serves unencrypted content - anyone can read it!"),
-			buildText("- **Port 443 (HTTPS)** serves encrypted content - only you and the server can read it"),
-			buildText("- **Let's Encrypt** is a free Certificate Authority that verifies domain ownership"),
-			buildText("- **Private Key** stays secret on your server (decrypts incoming data)"),
-			buildText("- **Certificate** is shared with browsers (proves your identity)"),
-			buildText("- **SSL Handshake** establishes a secure connection before any data is sent"),
-			buildText("- **HTTP→HTTPS Redirect** ensures all visitors use the secure connection"),
-			buildText("\nThe 🔒 in your browser means the certificate is valid and the connection is encrypted!"),
+			buildText(
+				"- **Port 80 (HTTP)** serves unencrypted content - anyone can read it!",
+			),
+			buildText(
+				"- **Port 443 (HTTPS)** serves encrypted content - only you and the server can read it",
+			),
+			buildText(
+				"- **Let's Encrypt** is a free Certificate Authority that verifies domain ownership",
+			),
+			buildText(
+				"- **Private Key** stays secret on your server (decrypts incoming data)",
+			),
+			buildText(
+				"- **Certificate** is shared with browsers (proves your identity)",
+			),
+			buildText(
+				"- **SSL Handshake** establishes a secure connection before any data is sent",
+			),
+			buildText(
+				"- **HTTP→HTTPS Redirect** ensures all visitors use the secure connection",
+			),
+			buildText(
+				"\nThe 🔒 in your browser means the certificate is valid and the connection is encrypted!",
+			),
 		],
 		actions: [
 			{

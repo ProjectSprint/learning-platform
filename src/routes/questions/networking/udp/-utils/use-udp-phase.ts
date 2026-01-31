@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 import {
 	useAllPuzzles,
 	useGameDispatch,
@@ -133,7 +133,7 @@ export const useUdpPhase = ({
 	}, [active, phase, registerTimer]);
 
 	const handleFrameDrop = useCallback(
-		(item: PlacedItem) => {
+		(item: BoardItemLocation) => {
 			const frameNumber =
 				typeof item.data?.frameNumber === "number" ? item.data.frameNumber : 0;
 			const expectedFrame = lastSentFrameRef.current + 1;

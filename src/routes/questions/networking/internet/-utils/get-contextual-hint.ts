@@ -1,16 +1,16 @@
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 
 export interface InternetNetworkState {
-	placedItems: PlacedItem[];
-	pc: PlacedItem | undefined;
-	cable: PlacedItem | undefined;
-	routerLan: PlacedItem | undefined;
-	routerNat: PlacedItem | undefined;
-	routerWan: PlacedItem | undefined;
-	fiber: PlacedItem | undefined;
-	igw: PlacedItem | undefined;
-	dns: PlacedItem | undefined;
-	google: PlacedItem | undefined;
+	placedItems: BoardItemLocation[];
+	pc: BoardItemLocation | undefined;
+	cable: BoardItemLocation | undefined;
+	routerLan: BoardItemLocation | undefined;
+	routerNat: BoardItemLocation | undefined;
+	routerWan: BoardItemLocation | undefined;
+	fiber: BoardItemLocation | undefined;
+	igw: BoardItemLocation | undefined;
+	dns: BoardItemLocation | undefined;
+	google: BoardItemLocation | undefined;
 	allDevicesPlaced: boolean;
 	routerLanConfigured: boolean;
 	routerNatConfigured: boolean;

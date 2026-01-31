@@ -1,8 +1,8 @@
 import { Box } from "@chakra-ui/react";
-import { HeroSection } from "./hero-section";
-import { TetrisSection } from "./tetris-section";
 import { CarouselSection } from "./carousel-section";
+import { HeroSection } from "./hero-section";
 import { PricingSection } from "./pricing-section";
+import { TetrisSection } from "./tetris-section";
 
 export function LandingPage() {
 	return (

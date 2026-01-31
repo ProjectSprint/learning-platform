@@ -1,4 +1,8 @@
-import type { ModalAction, ModalContentBlock, ModalInstance } from "@/components/game/modal";
+import type {
+	ModalAction,
+	ModalContentBlock,
+	ModalInstance,
+} from "@/components/game/modal";
 
 const closeAction = (label = "Continue"): ModalAction => ({
 	id: "close",
@@ -34,7 +38,9 @@ export const buildNewClientModal = (): ModalInstance => ({
 	actions: [closeAction("Handle Connection")],
 });
 
-export const buildTimeoutModal = (onReconnect?: VoidFunction): ModalInstance => ({
+export const buildTimeoutModal = (
+	onReconnect?: VoidFunction,
+): ModalInstance => ({
 	id: "tcp-timeout",
 	title: "⚠️ Connection Timeout!",
 	content: [

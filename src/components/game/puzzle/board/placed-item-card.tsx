@@ -2,11 +2,11 @@ import { Box, Text } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { memo, type RefCallback } from "react";
 
-import type { PlacedItem } from "../../core/types";
+import type { BoardItemLocation } from "../../core/types";
 import type { ItemLabelGetter, StatusMessageGetter } from "./types";
 
 type PlacedItemCardProps = {
-	item: PlacedItem;
+	item: BoardItemLocation;
 	puzzleId?: string;
 	x: number;
 	y: number;

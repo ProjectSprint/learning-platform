@@ -35,7 +35,10 @@ export const useNetworkingTerminal = ({
 			}
 
 			if (parts[0] !== "ping") {
-				helpers.writeOutput('Error: Unknown command. Type "help" for available commands.', "error");
+				helpers.writeOutput(
+					'Error: Unknown command. Type "help" for available commands.',
+					"error",
+				);
 				return;
 			}
 

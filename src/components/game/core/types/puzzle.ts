@@ -1,9 +1,11 @@
-import type { PlacedItem } from "./placed-item";
+import type { BoardItemLocation, BoardItemStatus } from "./placed-item";
 
-export type Placement = {
+export type BoardItemLocationSeed = {
+	itemId: string;
 	blockX: number;
 	blockY: number;
-	itemType: string;
+	status?: BoardItemStatus;
+	data?: Record<string, unknown>;
 };
 
 export type PuzzleBreakpoint = "base" | "sm" | "md" | "lg" | "xl" | "2xl";
@@ -21,7 +23,7 @@ export type PuzzleConfig = {
 	orientation?: "horizontal" | "vertical";
 	puzzleId?: string;
 	maxItems?: number;
-	initialPlacements?: Placement[];
+	initialPlacements?: BoardItemLocationSeed[];
 };
 
 export type BlockStatus = "empty" | "hover" | "occupied" | "invalid";
@@ -36,6 +38,6 @@ export type Block = {
 export type PuzzleState = {
 	config: PuzzleConfig;
 	blocks: Block[][];
-	placedItems: PlacedItem[];
+	placedItems: BoardItemLocation[];
 	selectedBlock: { x: number; y: number } | null;
 };

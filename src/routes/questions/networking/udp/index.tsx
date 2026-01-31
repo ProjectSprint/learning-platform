@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-
-import { UdpQuestion } from "./-page";
 import {
 	getNextQuestionPath,
 	markNetworkingQuestionComplete,
 } from "../-utils/module-progress";
+import { UdpQuestion } from "./-page";
 
 const UdpQuestionRoute = () => {
 	const navigate = useNavigate();

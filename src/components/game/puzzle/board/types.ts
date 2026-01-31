@@ -1,12 +1,12 @@
-import type { PlacedItem } from "../../core/types";
+import type { BoardItemLocation } from "../../core/types";
 
 export type ItemLabelGetter = (itemType: string) => string;
 export type StatusMessageGetter = (
-	placedItem: PlacedItem,
+	placedItem: BoardItemLocation,
 	puzzleId?: string,
 ) => string | null;
-export type PlacedItemClickHandler = (placedItem: PlacedItem) => void;
-export type ItemClickableCheck = (placedItem: PlacedItem) => boolean;
+export type PlacedItemClickHandler = (placedItem: BoardItemLocation) => void;
+export type ItemClickableCheck = (placedItem: BoardItemLocation) => boolean;
 
 export type DragPreview = {
 	itemId: string;

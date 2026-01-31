@@ -1,12 +1,12 @@
-import type { PlacedItem } from "@/components/game/game-provider";
+import type { BoardItemLocation } from "@/components/game/game-provider";
 import type { DeviceConnection } from "./network-utils";
 
 export interface NetworkState {
-	placedItems: PlacedItem[];
+	placedItems: BoardItemLocation[];
 	connections: DeviceConnection[];
-	router: PlacedItem | undefined;
-	pc1: PlacedItem | undefined;
-	pc2: PlacedItem | undefined;
+	router: BoardItemLocation | undefined;
+	pc1: BoardItemLocation | undefined;
+	pc2: BoardItemLocation | undefined;
 	connectedPcIds: Set<string>;
 	routerConfigured: boolean;
 	dhcpEnabled: boolean;

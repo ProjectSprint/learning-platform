@@ -1,8 +1,8 @@
 import type { TerminalCommandHelpers } from "@/components/game/engines";
 import type {
+	BoardItemLocation,
 	GamePhase,
 	InventoryGroupConfig,
-	PlacedItem,
 	PuzzleConfig,
 	QuestionStatus,
 	TerminalState,
@@ -49,12 +49,15 @@ export type CanvasRule<ConditionKey extends string = string> =
 
 export type Labels = {
 	getItemLabel: (itemType: string) => string;
-	getStatusMessage: (item: PlacedItem) => string | null;
+	getStatusMessage: (item: BoardItemLocation) => string | null;
 };
 
 export type Handlers = {
 	onCommand: (input: string, helpers: TerminalCommandHelpers) => void;
-	onItemClickByType: Record<string, (args: { item: PlacedItem }) => void>;
+	onItemClickByType: Record<
+		string,
+		(args: { item: BoardItemLocation }) => void
+	>;
 	isItemClickableByType: Record<string, boolean>;
 };
 

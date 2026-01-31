@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { PlacedItem, PuzzleState } from "@/components/game/game-provider";
+import type {
+	BoardItemLocation,
+	PuzzleState,
+} from "@/components/game/game-provider";
 import { useGameState } from "@/components/game/game-provider";
 import type { EngineLifecycleCallbacks } from "../engine-types";
 import {
@@ -9,7 +12,7 @@ import {
 
 export interface DragEngineState {
 	puzzle: PuzzleState;
-	placedItems: PlacedItem[];
+	placedItems: BoardItemLocation[];
 }
 
 export interface DragEngineConfig<TContext = unknown>

@@ -1,7 +1,7 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { useCallback, useMemo, useRef } from "react";
-import type { IconInfo, InventoryItem } from "../../game-provider";
+import type { IconInfo, Item } from "../../game-provider";
 import { useGameState } from "../../game-provider";
 import { InfoTooltip } from "../../help";
 import { useDragContext } from "../drag";
@@ -18,7 +18,7 @@ export type TooltipInfo = {
 };
 
 type InventorySlotProps = {
-	item: InventoryItem;
+	item: Item;
 	isEmpty: boolean;
 	isDragging: boolean;
 	slotWidth: number;
@@ -125,7 +125,7 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 	);
 
 	const handlePointerDown = useCallback(
-		(item: InventoryItem, event: React.PointerEvent<HTMLDivElement>) => {
+		(item: Item, event: React.PointerEvent<HTMLDivElement>) => {
 			// Check if item is draggable (default true if not specified)
 			if (item.draggable === false) {
 				return;
