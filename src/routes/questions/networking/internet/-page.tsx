@@ -417,38 +417,47 @@ const InternetGame = ({
 		return [
 			{
 				id: "client-conn-1",
-				from: { puzzleId: "local", anchor: { base: "br", lg: "tr" } },
-				to: { puzzleId: "conn-1", anchor: "tl" },
+				from: { puzzleId: "local", anchor: { base: "br", md: "tr", lg: "tr" } },
+				to: { puzzleId: "conn-1", anchor: { base: "br", md: "tl", lg: "tl" } },
 				style: baseStyle,
 			},
 			{
 				id: "conn-1-router",
-				from: { puzzleId: "conn-1", anchor: "tl" },
-				to: { puzzleId: "router", anchor: "tl" },
+				from: {
+					puzzleId: "conn-1",
+					anchor: { base: "br", md: "br", lg: "tr" },
+				},
+				to: { puzzleId: "router", anchor: { base: "br", md: "tr", lg: "tl" } },
 				style: baseStyle,
 			},
 			{
 				id: "router-conn-2",
-				from: { puzzleId: "router", anchor: "tl" },
-				to: { puzzleId: "conn-2", anchor: "tl" },
+				from: {
+					puzzleId: "router",
+					anchor: { base: "br", md: "bl", lg: "tr" },
+				},
+				to: { puzzleId: "conn-2", anchor: { base: "br", md: "tr", lg: "tl" } },
 				style: baseStyle,
 			},
 			{
 				id: "conn-2-igw",
-				from: { puzzleId: "conn-2", anchor: "tl" },
-				to: { puzzleId: "igw", anchor: "tl" },
+				from: {
+					puzzleId: "conn-2",
+					anchor: { base: "br", md: "tr", lg: "tr" },
+				},
+				to: { puzzleId: "igw", anchor: { base: "br", md: "tl", lg: "tl" } },
 				style: baseStyle,
 			},
 			{
 				id: "igw-dns",
-				from: { puzzleId: "igw", anchor: "tl" },
-				to: { puzzleId: "dns", anchor: "tl" },
+				from: { puzzleId: "igw", anchor: { base: "br", md: "tr", lg: "tr" } },
+				to: { puzzleId: "dns", anchor: { base: "br", md: "tl", lg: "tl" } },
 				style: baseStyle,
 			},
 			{
 				id: "dns-google",
-				from: { puzzleId: "dns", anchor: "tl" },
-				to: { puzzleId: "google", anchor: "tl" },
+				from: { puzzleId: "dns", anchor: { base: "br", md: "br", lg: "tr" } },
+				to: { puzzleId: "google", anchor: { base: "br", md: "tr", lg: "tl" } },
 				style: baseStyle,
 			},
 		];
@@ -484,7 +493,7 @@ const InternetGame = ({
 
 	const layoutMode =
 		useBreakpointValue({
-			base: "stack",
+			base: "structured",
 			sm: "structured",
 			md: "structured",
 			lg: "columns",
