@@ -9,6 +9,15 @@ import type {
 import { useGameState } from "@/components/game/game-provider";
 import { useBoardRegistry } from "./board-registry";
 
+const breakpointFallbacks: Record<ArrowBreakpoint, ArrowBreakpoint[]> = {
+	base: ["base"],
+	sm: ["sm", "base"],
+	md: ["md", "sm", "base"],
+	lg: ["lg", "md", "sm", "base"],
+	xl: ["xl", "lg", "md", "sm", "base"],
+	"2xl": ["2xl", "xl", "lg", "md", "sm", "base"],
+};
+
 const resolveAnchorValue = (
 	anchor: ArrowAnchorValue,
 	breakpoint: ArrowBreakpoint,
@@ -17,7 +26,15 @@ const resolveAnchorValue = (
 		return anchor;
 	}
 
-	return anchor[breakpoint] ?? anchor.base ?? "tl";
+	const fallbacks = breakpointFallbacks[breakpoint] ?? ["base"];
+	for (const key of fallbacks) {
+		const value = anchor[key];
+		if (value) {
+			return value;
+		}
+	}
+
+	return "tl";
 };
 
 const resolveEndpointBox = (
