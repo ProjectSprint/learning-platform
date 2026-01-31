@@ -58,14 +58,6 @@ export type {
 	UpdateInventoryGroupAction,
 	UpdateItemTooltipAction,
 } from "./state/actions";
-// Migration utilities
-export {
-	isNewState,
-	isOldState,
-	migrateNewToOld,
-	migrateOldToNew,
-	normalizeState,
-} from "./state/migration";
 // Reducers
 export {
 	applicationReducer,

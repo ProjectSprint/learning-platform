@@ -1,9 +1,10 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { Entity } from "@/components/game/domain/entity/Entity";
+import type { GridPosition, GridSpace } from "@/components/game/domain/space";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
-	type BoardItemLocation,
 	GameProvider,
 	useGameDispatch,
 	useGameState,
@@ -11,15 +12,16 @@ import {
 import { ContextualHint, useContextualHint } from "@/components/game/hint";
 import { Modal } from "@/components/game/modal";
 import {
+	DragProvider,
+	useDragContext,
+} from "@/components/game/presentation/interaction/drag/DragContext";
+import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
+import { GridSpaceView } from "@/components/game/presentation/space/GridSpaceView";
+import { PoolSpaceView } from "@/components/game/presentation/space/PoolSpaceView";
+import {
 	BoardArrowSurface,
 	BoardRegistryProvider,
-	PuzzleBoard,
 } from "@/components/game/puzzle/board";
-import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
-import {
-	InventoryDrawer,
-	type InventoryDrawerHandle,
-} from "@/components/game/puzzle/inventory";
 import {
 	type ConditionContext,
 	clearBoardArrows,
@@ -38,16 +40,13 @@ import type { QuestionProps } from "@/components/module";
 import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
-	CANVAS_PUZZLES,
 	DHCP_CANVAS_IDS,
-	INVENTORY_GROUPS,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
-	TERMINAL_INTRO_ENTRIES,
-	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
+import { initializeDhcpQuestion } from "./-utils/init-spaces";
 import {
 	getNetworkingItemLabel,
 	getNetworkingStatusMessage,
@@ -68,18 +67,11 @@ const DHCP_SPEC_BASE: Omit<QuestionSpec<DhcpConditionKey>, "handlers"> = {
 		description: QUESTION_DESCRIPTION,
 	},
 	init: {
-		kind: "multi",
+		kind: "multi" as const,
 		payload: {
 			questionId: QUESTION_ID,
-			canvases: CANVAS_PUZZLES,
-			inventoryGroups: INVENTORY_GROUPS,
-			terminal: {
-				visible: false,
-				prompt: TERMINAL_PROMPT,
-				history: TERMINAL_INTRO_ENTRIES,
-			},
-			phase: "setup",
-			questionStatus: "in_progress",
+			canvases: {},
+			inventoryGroups: [],
 		},
 	},
 	phaseRules: [
@@ -125,7 +117,6 @@ const NetworkingGame = ({
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
-	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
 	const dragEngine = useDragEngine();
 	const networkState = useNetworkState({ dragEngine });
 
@@ -138,20 +129,21 @@ const NetworkingGame = ({
 		onCommand: handleNetworkingCommand,
 	});
 
-	const itemClickHandlers = useMemo(
+	// Item click handlers - kept for compatibility but adapted for entities
+	const entityClickHandlers = useMemo(
 		() => ({
-			router: ({ item }: { item: BoardItemLocation }) => {
-				const currentConfig = item.data ?? {};
+			router: (entity: Entity) => {
+				const currentConfig = entity.data ?? {};
 				dispatch({
 					type: "OPEN_MODAL",
-					payload: buildRouterConfigModal(item.id, currentConfig),
+					payload: buildRouterConfigModal(entity.id, currentConfig),
 				});
 			},
-			pc: ({ item }: { item: BoardItemLocation }) => {
-				const currentConfig = item.data ?? {};
+			pc: (entity: Entity) => {
+				const currentConfig = entity.data ?? {};
 				dispatch({
 					type: "OPEN_MODAL",
-					payload: buildPcConfigModal(item.id, currentConfig),
+					payload: buildPcConfigModal(entity.id, currentConfig),
 				});
 			},
 		}),
@@ -163,33 +155,24 @@ const NetworkingGame = ({
 			...DHCP_SPEC_BASE,
 			handlers: {
 				onCommand: handleNetworkingCommand,
-				onItemClickByType: itemClickHandlers,
+				onItemClickByType: {}, // Legacy - not used in new implementation
 				isItemClickableByType: { router: true, pc: true },
 			},
-			init: {
-				...DHCP_SPEC_BASE.init,
-				payload: {
-					...DHCP_SPEC_BASE.init.payload,
-					canvases: CANVAS_PUZZLES,
-				},
-			},
 		}),
-		[handleNetworkingCommand, itemClickHandlers],
+		[handleNetworkingCommand],
 	);
 
+	// Initialize question
 	useEffect(() => {
 		if (initializedRef.current) {
 			return;
 		}
 
 		initializedRef.current = true;
-		dispatch({
-			type: "INIT_MULTI_CANVAS",
-			payload: spec.init.payload,
-		});
-		inventoryDrawerRef.current?.expand();
-	}, [dispatch, spec.init.payload]);
+		initializeDhcpQuestion(dispatch);
+	}, [dispatch]);
 
+	// Phase management
 	useEffect(() => {
 		const context: ConditionContext<DhcpConditionKey> = {
 			dragStatus: dragEngine.progress.status,
@@ -213,6 +196,7 @@ const NetworkingGame = ({
 		state.question.status,
 	]);
 
+	// Terminal visibility
 	useEffect(() => {
 		if (shouldShowTerminal && !state.terminal.visible) {
 			dispatch({ type: "OPEN_TERMINAL" });
@@ -223,6 +207,7 @@ const NetworkingGame = ({
 		}
 	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
 
+	// Arrows
 	const arrows = useMemo<Arrow[]>(
 		() => [
 			{
@@ -350,19 +335,20 @@ const NetworkingGame = ({
 	);
 	useContextualHint(contextualHint);
 
-	const handlePlacedItemClick = useCallback(
-		(item: BoardItemLocation) => {
-			const handler = spec.handlers.onItemClickByType[item.type];
+	const handleEntityClick = useCallback(
+		(entity: Entity) => {
+			const handler =
+				entityClickHandlers[entity.type as keyof typeof entityClickHandlers];
 			if (handler) {
-				handler({ item });
+				handler(entity);
 			}
 		},
-		[spec.handlers.onItemClickByType],
+		[entityClickHandlers],
 	);
 
-	const isItemClickable = useCallback(
-		(item: BoardItemLocation) =>
-			spec.handlers.isItemClickableByType[item.type] === true,
+	const isEntityClickable = useCallback(
+		(entity: Entity) =>
+			spec.handlers.isItemClickableByType[entity.type] === true,
 		[spec.handlers.isItemClickableByType],
 	);
 
@@ -421,13 +407,11 @@ const NetworkingGame = ({
 											area={canvasAreas[canvasId]}
 											minW={0}
 										>
-											<PuzzleBoard
-												puzzleId={canvasId}
+											<GridSpaceAdapter
+												spaceId={canvasId}
 												title={config.name ?? canvasId}
-												getItemLabel={spec.labels.getItemLabel}
-												getStatusMessage={spec.labels.getStatusMessage}
-												onPlacedItemClick={handlePlacedItemClick}
-												isItemClickable={isItemClickable}
+												onEntityClick={handleEntityClick}
+												isEntityClickable={isEntityClickable}
 											/>
 										</GridItem>
 									);
@@ -436,7 +420,7 @@ const NetworkingGame = ({
 						</BoardArrowSurface>
 					</BoardRegistryProvider>
 
-					<InventoryDrawer ref={inventoryDrawerRef} />
+					<InventoryAdapter />
 
 					<ContextualHint />
 
@@ -465,8 +449,232 @@ const NetworkingGame = ({
 					/>
 				</Flex>
 				<Modal />
-				<DragOverlay getItemLabel={spec.labels.getItemLabel} />
+				<DragOverlay getEntityLabel={(type) => type} />
 			</Box>
 		</DragProvider>
+	);
+};
+
+/**
+ * Adapter component that bridges GridSpaceView with the game state
+ */
+const GridSpaceAdapter = ({
+	spaceId,
+	title,
+	onEntityClick,
+	isEntityClickable,
+}: {
+	spaceId: string;
+	title: string;
+	onEntityClick: (entity: Entity) => void;
+	isEntityClickable: (entity: Entity) => boolean;
+}) => {
+	const state = useGameState();
+	const dispatch = useGameDispatch();
+
+	const space = state.spaces.get(spaceId) as GridSpace | undefined;
+
+	const entities = useMemo(() => {
+		if (!space) return [];
+
+		const result: Array<{ entity: Entity; position: GridPosition }> = [];
+
+		for (const entity of state.entities.values()) {
+			if (space.contains(entity)) {
+				const position = space.getPosition(entity);
+				if (position && "row" in position && "col" in position) {
+					result.push({ entity, position });
+				}
+			}
+		}
+
+		return result;
+	}, [space, state.entities]);
+
+	const canPlaceAt = useCallback(
+		(entityId: string, position: GridPosition, targetSpaceId: string) => {
+			const entity = state.entities.get(entityId);
+			if (!entity) return false;
+
+			const targetSpace = state.spaces.get(targetSpaceId) as
+				| GridSpace
+				| undefined;
+			if (!targetSpace) return false;
+
+			// Check allowed places
+			if ("allowedPlaces" in entity.data) {
+				const allowedPlaces = entity.data.allowedPlaces;
+				if (
+					Array.isArray(allowedPlaces) &&
+					!allowedPlaces.includes(targetSpaceId) &&
+					!allowedPlaces.includes("inventory")
+				) {
+					return false;
+				}
+			}
+
+			return targetSpace.canAccept(entity, position);
+		},
+		[state.entities, state.spaces],
+	);
+
+	const onPlaceEntity = useCallback(
+		(
+			entityId: string,
+			_fromPosition: GridPosition | null,
+			toPosition: GridPosition,
+		) => {
+			const entity = state.entities.get(entityId);
+			if (!entity) return false;
+
+			// Find source space
+			let sourceSpaceId: string | null = null;
+			for (const [sid, s] of state.spaces) {
+				if (s.contains(entity)) {
+					sourceSpaceId = sid;
+					break;
+				}
+			}
+
+			if (sourceSpaceId === spaceId) {
+				// Moving within same space
+				dispatch({
+					type: "UPDATE_ENTITY_POSITION",
+					payload: {
+						entityId,
+						spaceId,
+						position: toPosition,
+					},
+				});
+				return true;
+			}
+
+			// Moving from another space
+			if (sourceSpaceId) {
+				dispatch({
+					type: "MOVE_ENTITY_BETWEEN_SPACES",
+					payload: {
+						entityId,
+						fromSpaceId: sourceSpaceId,
+						toSpaceId: spaceId,
+						toPosition: toPosition,
+					},
+				});
+				return true;
+			}
+
+			return false;
+		},
+		[dispatch, spaceId, state.entities, state.spaces],
+	);
+
+	const getEntityLabel = useCallback((entity: Entity) => {
+		return entity.name ?? entity.type;
+	}, []);
+
+	const getEntityStatus = useCallback((entity: Entity) => {
+		const status = entity.getStateValue<string>("status");
+		return {
+			status: status as "success" | "warning" | "error" | undefined,
+			message: null,
+		};
+	}, []);
+
+	if (!space) {
+		return null;
+	}
+
+	return (
+		<GridSpaceView
+			space={space}
+			entities={entities}
+			title={title}
+			getEntityLabel={getEntityLabel}
+			getEntityStatus={getEntityStatus}
+			onEntityClick={onEntityClick}
+			isEntityClickable={isEntityClickable}
+			canPlaceAt={canPlaceAt}
+			onPlaceEntity={onPlaceEntity}
+		/>
+	);
+};
+
+/**
+ * Adapter component for the inventory pool space
+ */
+const InventoryAdapter = () => {
+	const state = useGameState();
+	const { setActiveDrag, setLastDropResult } = useDragContext();
+
+	const inventorySpace = state.spaces.get("inventory");
+
+	// Get all entities in inventory
+	const entities = useMemo(() => {
+		if (!inventorySpace) return [];
+
+		const result: Entity[] = [];
+		for (const entity of state.entities.values()) {
+			if (inventorySpace.contains(entity)) {
+				result.push(entity);
+			}
+		}
+
+		return result;
+	}, [inventorySpace, state.entities]);
+
+	// Get IDs of entities placed in grid spaces
+	const placedEntityIds = useMemo(() => {
+		const ids = new Set<string>();
+		for (const [spaceId, space] of state.spaces) {
+			if (spaceId === "inventory") continue;
+
+			for (const entity of state.entities.values()) {
+				if (space.contains(entity)) {
+					ids.add(entity.id);
+				}
+			}
+		}
+		return ids;
+	}, [state.spaces, state.entities]);
+
+	const handleEntityDragStart = useCallback(
+		(entity: Entity, event: React.PointerEvent) => {
+			event.preventDefault();
+			const target = event.currentTarget;
+			const rect = target.getBoundingClientRect();
+
+			setLastDropResult(null);
+
+			setActiveDrag({
+				source: "pool",
+				sourceSpaceId: "inventory",
+				data: {
+					entityId: entity.id,
+					entityType: entity.type,
+					entityName: entity.name,
+					isReposition: false,
+				},
+				element: target as HTMLElement,
+				initialRect: rect,
+			});
+		},
+		[setActiveDrag, setLastDropResult],
+	);
+
+	if (!inventorySpace) {
+		return null;
+	}
+
+	return (
+		<Box mt={4}>
+			<PoolSpaceView
+				// biome-ignore lint/suspicious/noExplicitAny: PoolSpace type compatibility
+				space={inventorySpace as any}
+				entities={entities}
+				placedEntityIds={placedEntityIds}
+				title="Inventory"
+				onEntityDragStart={handleEntityDragStart}
+			/>
+		</Box>
 	);
 };

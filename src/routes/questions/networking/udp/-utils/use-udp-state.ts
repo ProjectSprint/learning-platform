@@ -4,7 +4,7 @@
  */
 
 import { useMemo } from "react";
-import { useNewGameState } from "@/components/game/game-provider";
+import { useGameState } from "@/components/game/game-provider";
 import { UDP_CLIENT_IDS } from "./constants";
 import type { UdpPhase } from "./types";
 
@@ -12,8 +12,8 @@ export type UdpNotice = { message: string; tone: "error" | "info" } | null;
 
 const TOTAL_FRAMES = 6;
 
-export const useUdpStateV2 = () => {
-	useNewGameState();
+export const useUdpState = () => {
+	useGameState();
 
 	// For now, just provide minimal state
 	// The old UDP state logic will be adapted gradually

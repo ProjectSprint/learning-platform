@@ -1,7 +1,17 @@
+/**
+ * Network state hook adapted for new Space/Entity model.
+ * Provides the same interface as the original useNetworkState but works with the new state format.
+ */
+
 import { useEffect, useMemo } from "react";
+import type { Entity } from "@/components/game/domain/entity/Entity";
+import { GridSpace } from "@/components/game/domain/space/GridSpace";
 import type { DragEngine } from "@/components/game/engines";
 import type { BoardItemLocation } from "@/components/game/game-provider";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import {
+	useGameDispatch,
+	useGameState,
+} from "@/components/game/game-provider";
 import { DHCP_CANVAS_IDS } from "./constants";
 import {
 	type BoardPlacements,
@@ -16,24 +26,75 @@ interface UseNetworkStateArgs {
 	dragEngine: DragEngine | null;
 }
 
+/**
+ * Convert Entity with position to BoardItemLocation for compatibility with network-utils
+ */
+const entityToBoardItem = (
+	entity: Entity,
+	space: GridSpace,
+): BoardItemLocation | null => {
+	const position = space.getPosition(entity);
+	if (!position || !("row" in position && "col" in position)) {
+		return null;
+	}
+
+	return {
+		id: entity.id,
+		itemId: entity.id,
+		type: entity.type,
+		blockX: position.col,
+		blockY: position.row,
+		status: entity.getStateValue("status") ?? "normal",
+		data: entity.data,
+	};
+};
+
+/**
+ * Hook to manage network state for DHCP question using new Space/Entity model.
+ * Maintains the same interface as the original for compatibility.
+ */
 export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
-	const puzzles = state.puzzles ?? {};
 
-	const placements = useMemo<BoardPlacements>(
-		() => ({
-			[DHCP_CANVAS_IDS.pc1]: puzzles[DHCP_CANVAS_IDS.pc1]?.placedItems ?? [],
-			[DHCP_CANVAS_IDS.conn1]:
-				puzzles[DHCP_CANVAS_IDS.conn1]?.placedItems ?? [],
-			[DHCP_CANVAS_IDS.router]:
-				puzzles[DHCP_CANVAS_IDS.router]?.placedItems ?? [],
-			[DHCP_CANVAS_IDS.conn2]:
-				puzzles[DHCP_CANVAS_IDS.conn2]?.placedItems ?? [],
-			[DHCP_CANVAS_IDS.pc2]: puzzles[DHCP_CANVAS_IDS.pc2]?.placedItems ?? [],
-		}),
-		[puzzles],
-	);
+	// Get all grid spaces
+	const spaces = useMemo(() => {
+		const result: Record<string, GridSpace | undefined> = {};
+		for (const canvasId of Object.values(DHCP_CANVAS_IDS)) {
+			const space = state.spaces.get(canvasId);
+			result[canvasId] = space instanceof GridSpace ? space : undefined;
+		}
+		return result;
+	}, [state.spaces]);
+
+	// Convert entities to BoardItemLocation format for compatibility
+	const placements = useMemo<BoardPlacements>(() => {
+		const result: BoardPlacements = {
+			[DHCP_CANVAS_IDS.pc1]: [],
+			[DHCP_CANVAS_IDS.conn1]: [],
+			[DHCP_CANVAS_IDS.router]: [],
+			[DHCP_CANVAS_IDS.conn2]: [],
+			[DHCP_CANVAS_IDS.pc2]: [],
+		};
+
+		for (const [canvasId, space] of Object.entries(spaces)) {
+			if (!space) continue;
+
+			const items: BoardItemLocation[] = [];
+			for (const entity of state.entities.values()) {
+				if (space.contains(entity)) {
+					const boardItem = entityToBoardItem(entity, space);
+					if (boardItem) {
+						items.push(boardItem);
+					}
+				}
+			}
+
+			result[canvasId] = items;
+		}
+
+		return result;
+	}, [spaces, state.entities]);
 
 	const placedItems = useMemo(
 		() => Object.values(placements).flat(),
@@ -79,6 +140,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	const routerSettingsOpen =
 		state.overlay.activeModal?.id?.startsWith("router-config") ?? false;
 
+	// Update device statuses based on network state
 	useEffect(() => {
 		if (state.question.status === "completed") {
 			return;
@@ -104,55 +166,59 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 			});
 		}
 
+		// Update router status
 		if (network.router) {
 			const desiredRouterStatus = routerConfigured ? "success" : "error";
-			if (network.router.status !== desiredRouterStatus) {
+			const entity = state.entities.get(network.router.id);
+			if (entity && entity.getStateValue("status") !== desiredRouterStatus) {
 				dispatch({
-					type: "CONFIGURE_DEVICE",
+					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						deviceId: network.router.id,
-						config: {
-							status: desiredRouterStatus,
-						},
+						entityId: network.router.id,
+						state: { status: desiredRouterStatus },
 					},
 				});
 			}
 		}
 
+		// Update cable statuses
 		network.cables.forEach((cable) => {
 			const isConnected = network.connectedCableIds.has(cable.id);
 			const desiredStatus = isConnected ? "success" : "warning";
-			if (cable.status !== desiredStatus) {
+			const entity = state.entities.get(cable.id);
+			if (entity && entity.getStateValue("status") !== desiredStatus) {
 				dispatch({
-					type: "CONFIGURE_DEVICE",
+					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						deviceId: cable.id,
-						config: {
-							status: desiredStatus,
-						},
+						entityId: cable.id,
+						state: { status: desiredStatus },
 					},
 				});
 			}
 		});
 
+		// Update PC statuses and IPs
 		[network.pc1, network.pc2].forEach((pc) => {
 			if (!pc) {
 				return;
 			}
 
+			const entity = state.entities.get(pc.id);
+			if (!entity) return;
+
 			const shouldHaveIp =
 				routerConfigured && network.connectedPcIds.has(pc.id);
 			const desiredIp = shouldHaveIp ? (desiredIps.get(pc.id) ?? null) : null;
-			const currentIp =
-				typeof pc.data?.ip === "string" ? (pc.data.ip as string) : null;
+			const currentIp = entity.getStateValue<string>("ip") ?? null;
 			const desiredStatus = desiredIp ? "success" : "warning";
+			const currentStatus = entity.getStateValue("status");
 
-			if (currentIp !== desiredIp || pc.status !== desiredStatus) {
+			if (currentIp !== desiredIp || currentStatus !== desiredStatus) {
 				dispatch({
-					type: "CONFIGURE_DEVICE",
+					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						deviceId: pc.id,
-						config: {
+						entityId: pc.id,
+						state: {
 							ip: desiredIp,
 							status: desiredStatus,
 						},
@@ -171,8 +237,10 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		network.router,
 		routerConfigured,
 		state.question.status,
+		state.entities,
 	]);
 
+	// Manage drag engine progress
 	useEffect(() => {
 		if (!dragEngine) return;
 		if (state.question.status === "completed") return;

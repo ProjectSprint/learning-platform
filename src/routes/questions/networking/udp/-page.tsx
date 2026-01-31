@@ -1,147 +1,39 @@
+import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { Entity } from "@/components/game/domain/entity/Entity";
+import type { GridPosition, GridSpace } from "@/components/game/domain/space";
+import { useDragEngine } from "@/components/game/engines";
 import {
-	Box,
-	Flex,
-	type FlexProps,
-	Text,
-	useBreakpointValue,
-} from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import {
-	type Arrow,
-	type GamePhase,
 	GameProvider,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
-import { ContextualHint, useContextualHint } from "@/components/game/hint";
+import { ContextualHint } from "@/components/game/hint";
 import { Modal } from "@/components/game/modal";
 import {
-	BoardArrowSurface,
-	BoardRegistryProvider,
-	PuzzleBoard,
-} from "@/components/game/puzzle/board";
-import { CustomBoard } from "@/components/game/puzzle/custom-board";
-import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
+	DragProvider,
+	useDragContext,
+} from "@/components/game/presentation/interaction/drag/DragContext";
+import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
+import { GridSpaceView } from "@/components/game/presentation/space/GridSpaceView";
+import { PoolSpaceView } from "@/components/game/presentation/space/PoolSpaceView";
+import { BoardRegistryProvider } from "@/components/game/puzzle/board";
 import {
-	resolvePuzzleSizeValue,
-	usePuzzleBreakpoint,
-} from "@/components/game/puzzle/grid";
-import {
-	InventoryDrawer,
-	type InventoryDrawerHandle,
-} from "@/components/game/puzzle/inventory";
-import {
-	type ConditionContext,
-	clearBoardArrows,
-	type QuestionSpec,
-	resolvePhase,
-	setBoardArrows,
-} from "@/components/game/question";
+	TerminalInput,
+	TerminalLayout,
+	TerminalView,
+	useTerminalInput,
+} from "@/components/game/terminal";
 import type { QuestionProps } from "@/components/module";
 
 import {
 	CANVAS_CONFIGS,
-	CANVAS_PUZZLES,
-	DATA_PACKET_COUNT,
-	INVENTORY_GROUPS,
 	QUESTION_DESCRIPTION,
-	QUESTION_ID,
 	QUESTION_TITLE,
 	TCP_CANVAS_ORDER,
-	TCP_CLIENT_IDS,
-	UDP_CANVAS_ORDER,
 } from "./-utils/constants";
-import { getContextualHint } from "./-utils/get-contextual-hint";
-import {
-	getUdpItemLabel,
-	getUdpStatusMessage,
-} from "./-utils/item-notification";
-import type { ActiveMode, PacketReceiptStatus } from "./-utils/types";
-import { useTcpPhase } from "./-utils/use-tcp-phase";
-import { useUdpPhase } from "./-utils/use-udp-phase";
-
-const UDP_INTRO_TEXT = [
-	"UDP: Fire and Forget",
-	"Drop frames into the Outbox. They'll be sent to ALL clients automatically.",
-	"No handshakes. No acknowledgments. No waiting.",
-];
-
-type UdpConditionKey = "questionStatus";
-
-type ClientProgressContentProps = {
-	title?: string;
-	description: string;
-	frames?: boolean[];
-	frameStatuses?: PacketReceiptStatus[];
-	frameIds?: number[];
-	frameDirection?: FlexProps["direction"];
-	showTitle?: boolean;
-};
-
-const ClientProgressContent = ({
-	title,
-	description,
-	frames,
-	frameStatuses,
-	frameIds,
-	frameDirection,
-	showTitle = true,
-}: ClientProgressContentProps) => {
-	const resolvedFrameIds =
-		frameIds ??
-		frameStatuses?.map((_, index) => index + 1) ??
-		frames?.map((_, index) => index + 1) ??
-		[];
-
-	return (
-		<Flex direction="column" gap={1}>
-			{showTitle && title ? (
-				<Text fontSize="sm" fontWeight="bold" mb={1} whiteSpace="normal">
-					{title}
-				</Text>
-			) : null}
-			<Text
-				fontSize="xs"
-				color="gray.400"
-				whiteSpace="normal"
-				wordBreak="break-word"
-				order={{ base: 2, md: 3 }}
-				mb={{ base: 2, md: 0 }}
-			>
-				{description}
-			</Text>
-			<Flex
-				gap={1}
-				mb={{ base: 0, md: 2 }}
-				direction={frameDirection ?? { base: "column", md: "row" }}
-				align={{ base: "flex-start", md: "center" }}
-				order={{ base: 3, md: 2 }}
-			>
-				{resolvedFrameIds.map((frameId, index) => {
-					const status =
-						frameStatuses?.[index] ??
-						((frames?.[index] ?? false) ? "received" : "missing");
-					const color =
-						status === "received"
-							? "green.400"
-							: status === "out-of-order"
-								? "yellow.400"
-								: "gray.600";
-					return (
-						<Box
-							key={`frame-${frameId}`}
-							width="12px"
-							height="12px"
-							bg={color}
-							borderRadius="2px"
-						/>
-					);
-				})}
-			</Flex>
-		</Flex>
-	);
-};
+import { initializeUdpQuestion } from "./-utils/init-spaces";
+import { useUdpState } from "./-utils/use-udp-state";
 
 export const UdpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -152,224 +44,57 @@ export const UdpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 };
 
 const UdpGame = ({
-	onQuestionComplete,
+	onQuestionComplete: _onQuestionComplete,
 }: {
 	onQuestionComplete: () => void;
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const initializedRef = useRef(false);
-	const [activeMode, setActiveMode] = useState<ActiveMode>("tcp");
-	const puzzleBreakpoint = usePuzzleBreakpoint();
-	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
-	const expandInventory = useCallback(() => {
-		inventoryDrawerRef.current?.expand();
-	}, []);
+	const terminalInput = useTerminalInput();
+	const isCompleted = state.question.status === "completed";
+	const shouldShowTerminal = state.phase === "terminal";
+	useDragEngine();
+	useUdpState();
 
-	const tcpState = useTcpPhase({
-		active: activeMode === "tcp",
-		onTransitionToUdp: () => setActiveMode("udp"),
-		onInventoryExpand: expandInventory,
-	});
+	// Initialize question
+	useEffect(() => {
+		if (initializedRef.current) {
+			return;
+		}
 
-	const udpState = useUdpPhase({
-		active: activeMode === "udp",
-		onQuestionComplete,
-	});
+		initializedRef.current = true;
+		initializeUdpQuestion(dispatch);
+	}, [dispatch]);
 
-	const spec = useMemo<QuestionSpec<UdpConditionKey>>(
-		() => ({
-			meta: {
-				id: QUESTION_ID,
-				title: QUESTION_TITLE,
-				description: QUESTION_DESCRIPTION,
-			},
-			init: {
-				kind: "multi",
-				payload: {
-					questionId: QUESTION_ID,
-					canvases: CANVAS_PUZZLES,
-					inventoryGroups: INVENTORY_GROUPS,
-					phase: "setup",
-					questionStatus: "in_progress",
-				},
-			},
-			phaseRules: [
-				{
-					kind: "set",
-					when: { kind: "eq", key: "questionStatus", value: "completed" },
-					to: "completed",
-				},
-			],
-			labels: {
-				getItemLabel: getUdpItemLabel,
-				getStatusMessage: getUdpStatusMessage,
-			},
-			handlers: {
-				onCommand: () => {},
-				onItemClickByType: {},
-				isItemClickableByType: {},
-			},
-		}),
+	// Terminal visibility
+	useEffect(() => {
+		if (shouldShowTerminal && !state.terminal.visible) {
+			dispatch({ type: "OPEN_TERMINAL" });
+			return;
+		}
+		if (!shouldShowTerminal && state.terminal.visible) {
+			dispatch({ type: "CLOSE_TERMINAL" });
+		}
+	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
+
+	const canvasAreas = useMemo(
+		() =>
+			({
+				"client-a-inbox": "client-a-inbox",
+				"client-b-inbox": "client-b-inbox",
+				"client-c-inbox": "client-c-inbox",
+				"client-d-inbox": "client-d-inbox",
+				internet: "internet",
+			}) as Record<string, string>,
 		[],
 	);
 
-	useEffect(() => {
-		if (initializedRef.current) return;
+	const handleEntityClick = useCallback((_entity: Entity) => {
+		// UDP doesn't have clickable entities for now
+	}, []);
 
-		initializedRef.current = true;
-		dispatch({
-			type: "INIT_MULTI_CANVAS",
-			payload: spec.init.payload,
-		});
-		inventoryDrawerRef.current?.expand();
-	}, [dispatch, spec.init.payload]);
-
-	useEffect(() => {
-		const basePhase: GamePhase = "playing";
-		const context: ConditionContext<UdpConditionKey> = {
-			questionStatus: state.question.status,
-		};
-
-		const resolved = resolvePhase(
-			spec.phaseRules,
-			context,
-			state.phase,
-			basePhase,
-		);
-
-		if (state.phase !== resolved.nextPhase) {
-			dispatch({ type: "SET_PHASE", payload: { phase: resolved.nextPhase } });
-		}
-	}, [dispatch, spec.phaseRules, state.phase, state.question.status]);
-
-	const contextualHint = getContextualHint({
-		mode: activeMode,
-		tcpPhase: tcpState.phase,
-		udpPhase: udpState.phase,
-		expectedFrame: udpState.expectedFrame,
-		packetsSent: tcpState.packetsSent,
-	});
-	useContextualHint(contextualHint ?? "");
-
-	const notice = tcpState.notice ?? udpState.notice;
-
-	const tcpClientProgress = useMemo(() => {
-		const activeClients = tcpState.showClientD
-			? TCP_CLIENT_IDS
-			: TCP_CLIENT_IDS.filter((clientId) => clientId !== "d");
-		return activeClients.map((clientId) => ({
-			clientId,
-			frameStatuses:
-				tcpState.clientPacketStatus?.[clientId] ??
-				Array.from(
-					{ length: DATA_PACKET_COUNT },
-					() => "missing" as PacketReceiptStatus,
-				),
-			description: tcpState.clientStatus[clientId] ?? "🟢 Connected",
-		}));
-	}, [
-		tcpState.clientPacketStatus,
-		tcpState.clientStatus,
-		tcpState.showClientD,
-	]);
-
-	const tcpClientProgressById = useMemo(
-		() =>
-			new Map<string, (typeof tcpClientProgress)[number]>(
-				tcpClientProgress.map((client) => [client.clientId, client]),
-			),
-		[tcpClientProgress],
-	);
-
-	const arrowBow = useBreakpointValue({ base: 1, lg: 1 }) ?? 1;
-	const boardArrows = useMemo<Arrow[]>(() => {
-		const baseStyle = {
-			stroke: "rgba(56, 189, 248, 0.85)",
-			strokeWidth: 2,
-			headSize: 12,
-			bow: arrowBow,
-		};
-
-		if (activeMode === "tcp") {
-			return [
-				{
-					id: "internet-client-a",
-					from: { puzzleId: "internet", anchor: "tl" },
-					to: {
-						puzzleId: "client-a-inbox",
-						anchor: "tl",
-					},
-					style: baseStyle,
-				},
-				{
-					id: "internet-client-b",
-					from: { puzzleId: "internet", anchor: "tl" },
-					to: {
-						puzzleId: "client-b-inbox",
-						anchor: "tl",
-					},
-					style: baseStyle,
-				},
-				{
-					id: "internet-client-c",
-					from: { puzzleId: "internet", anchor: "tl" },
-					to: {
-						puzzleId: "client-c-inbox",
-						anchor: "tl",
-					},
-					style: baseStyle,
-				},
-			];
-		}
-
-		return [
-			{
-				id: "udp-internet-client-a",
-				from: { puzzleId: "internet", anchor: "tl" },
-				to: {
-					puzzleId: "client-a",
-					anchor: "tl",
-				},
-				style: baseStyle,
-			},
-			{
-				id: "udp-internet-client-b",
-				from: { puzzleId: "internet", anchor: "tl" },
-				to: {
-					puzzleId: "client-b",
-					anchor: "tl",
-				},
-				style: baseStyle,
-			},
-			{
-				id: "udp-internet-client-c",
-				from: { puzzleId: "internet", anchor: "tl" },
-				to: {
-					puzzleId: "client-c",
-					anchor: "tl",
-				},
-				style: baseStyle,
-			},
-		];
-	}, [activeMode, arrowBow]);
-
-	useEffect(() => {
-		setBoardArrows(dispatch, boardArrows);
-		return () => {
-			clearBoardArrows(dispatch);
-		};
-	}, [boardArrows, dispatch]);
-
-	const tcpClientCanvases = useMemo(() => {
-		const baseClients = TCP_CANVAS_ORDER.filter(
-			(canvasKey) => canvasKey !== "internet",
-		);
-		if (!tcpState.showClientD) {
-			return baseClients;
-		}
-		return [...baseClients, "client-d-inbox"] as const;
-	}, [tcpState.showClientD]);
+	const isEntityClickable = useCallback((_entity: Entity) => false, []);
 
 	return (
 		<DragProvider>
@@ -384,10 +109,10 @@ const UdpGame = ({
 			>
 				<Flex
 					direction="column"
-					px={{ base: 2, md: 12, lg: 24 }}
-					py={{ base: 2, md: 6 }}
+					px={{ base: 4, md: 12, lg: 24 }}
+					py={{ base: 4, md: 6 }}
 				>
-					<Box textAlign="left" mb={{ base: 2, md: 4 }} pb={{ base: 1, md: 0 }}>
+					<Box textAlign="left" mb={4}>
 						<Text
 							fontSize={{ base: "2xl", md: "4xl" }}
 							fontWeight="bold"
@@ -401,243 +126,294 @@ const UdpGame = ({
 					</Box>
 
 					<BoardRegistryProvider>
-						<BoardArrowSurface>
-							{activeMode === "tcp" ? (
-								<Flex direction="column" gap={{ base: 3, md: 4 }}>
-									<Flex
-										direction="row"
-										gap={{ base: 2, md: 4 }}
-										align="flex-start"
-										wrap="wrap"
+						<Grid
+							templateAreas={{
+								base: `"client-a-inbox" "client-b-inbox" "client-c-inbox" "internet"`,
+								md: `"client-a-inbox client-b-inbox client-c-inbox" "internet internet internet"`,
+							}}
+							templateColumns={{
+								base: "1fr",
+								md: "repeat(3, minmax(0, 1fr))",
+							}}
+							gap={{ base: 2, md: 4 }}
+							alignItems="stretch"
+						>
+							{TCP_CANVAS_ORDER.map((canvasId) => {
+								const config = CANVAS_CONFIGS[canvasId];
+								if (!config) return null;
+								return (
+									<GridItem
+										key={canvasId}
+										area={canvasAreas[canvasId]}
+										minW={0}
 									>
-										{tcpClientCanvases.map((key) => {
-											const config = CANVAS_CONFIGS[key];
-											if (!config) return null;
-											const isClientInbox = key.includes("client-");
-											const clientId = key
-												.replace("client-", "")
-												.replace("-inbox", "");
-											const progress = isClientInbox
-												? tcpClientProgressById.get(clientId)
-												: null;
-											if (!isClientInbox || !clientId) {
-												return (
-													<Box
-														key={key}
-														flexGrow={
-															resolvePuzzleSizeValue(
-																config.layout.size,
-																puzzleBreakpoint,
-															)[0]
-														}
-														flexBasis={0}
-														minW={{
-															base: "150px",
-															sm: "180px",
-															md: "200px",
-															xl: "0",
-														}}
-													>
-														<PuzzleBoard
-															puzzleId={key}
-															title={config.name ?? key}
-															getItemLabel={spec.labels.getItemLabel}
-															getStatusMessage={spec.labels.getStatusMessage}
-														/>
-													</Box>
-												);
-											}
-
-											return (
-												<Box
-													key={key}
-													flexGrow={
-														resolvePuzzleSizeValue(
-															config.layout.size,
-															puzzleBreakpoint,
-														)[0]
-													}
-													flexBasis={0}
-													minW={{
-														base: "150px",
-														sm: "180px",
-														md: "200px",
-														xl: "0",
-													}}
-													position="relative"
-												>
-													<Box opacity={0} pointerEvents="auto">
-														<PuzzleBoard
-															puzzleId={key}
-															title={config.name ?? key}
-															getItemLabel={spec.labels.getItemLabel}
-															getStatusMessage={spec.labels.getStatusMessage}
-														/>
-													</Box>
-													<CustomBoard
-														puzzleId={`client-${clientId}`}
-														position="absolute"
-														inset={0}
-														bg="gray.900"
-														border="1px solid"
-														borderColor="gray.800"
-														borderRadius="md"
-														px={3}
-														py={3}
-														pointerEvents="none"
-													>
-														<ClientProgressContent
-															title={`Client ${clientId.toUpperCase()}`}
-															description={
-																progress?.description ??
-																tcpState.clientStatus[clientId] ??
-																"🟢 Connected"
-															}
-															frameStatuses={
-																progress?.frameStatuses ??
-																Array.from(
-																	{ length: DATA_PACKET_COUNT },
-																	() => "missing" as PacketReceiptStatus,
-																)
-															}
-														/>
-													</CustomBoard>
-												</Box>
-											);
-										})}
-									</Flex>
-
-									<Box
-										flexGrow={CANVAS_CONFIGS.internet.cols}
-										flexBasis={0}
-										minW={{ base: "100%", md: "260px" }}
-									>
-										<PuzzleBoard
-											puzzleId="internet"
-											title={CANVAS_CONFIGS.internet.name ?? "internet"}
-											getItemLabel={spec.labels.getItemLabel}
-											getStatusMessage={spec.labels.getStatusMessage}
+										<GridSpaceAdapter
+											spaceId={canvasId}
+											title={config.name ?? canvasId}
+											onEntityClick={handleEntityClick}
+											isEntityClickable={isEntityClickable}
 										/>
-									</Box>
-
-									<Text fontSize="sm" color="gray.400">
-										Packets sent: {tcpState.packetsSent}/18
-									</Text>
-								</Flex>
-							) : (
-								<Flex direction="column" gap={{ base: 3, md: 4 }}>
-									{udpState.phase === "intro" && (
-										<Box
-											bg="gray.900"
-											border="1px solid"
-											borderColor="gray.800"
-											borderRadius="md"
-											px={4}
-											py={3}
-										>
-											{UDP_INTRO_TEXT.map((line) => (
-												<Text key={line} fontSize="sm" color="gray.200">
-													{line}
-												</Text>
-											))}
-										</Box>
-									)}
-
-									<Flex direction="column" gap={{ base: 2, md: 4 }}>
-										<Flex
-											direction={{ base: "column", sm: "row" }}
-											gap={{ base: 2, md: 3 }}
-											wrap={{ base: "nowrap", sm: "nowrap", lg: "wrap" }}
-											align={{
-												base: "stretch",
-												sm: "stretch",
-												lg: "flex-start",
-											}}
-										>
-											{udpState.clientProgress.map((client) => (
-												<CustomBoard
-													key={client.clientId}
-													puzzleId={`client-${client.clientId}`}
-													bg="gray.900"
-													border="1px solid"
-													borderColor="gray.800"
-													borderRadius="md"
-													px={3}
-													py={3}
-													flex={{ base: "unset", sm: 1, md: 1, lg: "unset" }}
-													minW={{ base: "100%", sm: "0", md: "0", lg: "200px" }}
-												>
-													<ClientProgressContent
-														title={`Client ${client.clientId.toUpperCase()}`}
-														description={
-															client.receivedCount === 0
-																? "Waiting for frames..."
-																: `${client.percent}% received — good enough for streaming`
-														}
-														frames={client.frames}
-														frameDirection={{ base: "row", md: "row" }}
-													/>
-												</CustomBoard>
-											))}
-										</Flex>
-
-										<Flex direction="row" gap={{ base: 2, md: 4 }} wrap="wrap">
-											{UDP_CANVAS_ORDER.map((key) => {
-												const config = CANVAS_CONFIGS[key];
-												if (!config) return null;
-												const title =
-													key === "internet" ? "Outbox" : (config.name ?? key);
-												return (
-													<Box
-														key={key}
-														flexGrow={
-															resolvePuzzleSizeValue(
-																config.layout.size,
-																puzzleBreakpoint,
-															)[0]
-														}
-														flexBasis={0}
-														minW={{ base: "100%", md: "260px" }}
-													>
-														<PuzzleBoard
-															puzzleId={key}
-															title={title}
-															getItemLabel={spec.labels.getItemLabel}
-															getStatusMessage={spec.labels.getStatusMessage}
-														/>
-													</Box>
-												);
-											})}
-										</Flex>
-									</Flex>
-								</Flex>
-							)}
-						</BoardArrowSurface>
+									</GridItem>
+								);
+							})}
+						</Grid>
 					</BoardRegistryProvider>
 
-					<InventoryDrawer ref={inventoryDrawerRef} />
-
-					{notice && (
-						<Box
-							bg={notice.tone === "error" ? "red.900" : "blue.900"}
-							border="1px solid"
-							borderColor={notice.tone === "error" ? "red.700" : "blue.700"}
-							borderRadius="md"
-							px={4}
-							py={2}
-							textAlign="center"
-						>
-							<Text fontSize="sm" color="gray.100">
-								{notice.message}
-							</Text>
-						</Box>
-					)}
+					<InventoryAdapter />
 
 					<ContextualHint />
+
+					<TerminalLayout
+						visible={state.terminal.visible}
+						focusRef={terminalInput.inputRef}
+						view={
+							<TerminalView
+								history={state.terminal.history}
+								prompt={state.terminal.prompt}
+								isCompleted={isCompleted}
+							/>
+						}
+						input={
+							<TerminalInput
+								value={terminalInput.value}
+								onChange={terminalInput.onChange}
+								onKeyDown={terminalInput.onKeyDown}
+								inputRef={terminalInput.inputRef}
+								placeholder={
+									isCompleted ? "Terminal disabled" : "Type a command"
+								}
+								disabled={isCompleted}
+							/>
+						}
+					/>
 				</Flex>
 				<Modal />
-				<DragOverlay getItemLabel={spec.labels.getItemLabel} />
+				<DragOverlay getEntityLabel={(type) => type} />
 			</Box>
 		</DragProvider>
+	);
+};
+
+/**
+ * Adapter component that bridges GridSpaceView with the game state
+ */
+const GridSpaceAdapter = ({
+	spaceId,
+	title,
+	onEntityClick,
+	isEntityClickable,
+}: {
+	spaceId: string;
+	title: string;
+	onEntityClick: (entity: Entity) => void;
+	isEntityClickable: (entity: Entity) => boolean;
+}) => {
+	const state = useGameState();
+	const dispatch = useGameDispatch();
+
+	const space = state.spaces.get(spaceId) as GridSpace | undefined;
+
+	const entities = useMemo(() => {
+		if (!space) return [];
+
+		const result: Array<{ entity: Entity; position: GridPosition }> = [];
+
+		for (const entity of state.entities.values()) {
+			if (space.contains(entity)) {
+				const position = space.getPosition(entity);
+				if (position && "row" in position && "col" in position) {
+					result.push({ entity, position });
+				}
+			}
+		}
+
+		return result;
+	}, [space, state.entities]);
+
+	const canPlaceAt = useCallback(
+		(entityId: string, position: GridPosition, targetSpaceId: string) => {
+			const entity = state.entities.get(entityId);
+			if (!entity) return false;
+
+			const targetSpace = state.spaces.get(targetSpaceId) as
+				| GridSpace
+				| undefined;
+			if (!targetSpace) return false;
+
+			// Check allowed places
+			if ("allowedPlaces" in entity.data) {
+				const allowedPlaces = entity.data.allowedPlaces;
+				if (
+					Array.isArray(allowedPlaces) &&
+					!allowedPlaces.includes(targetSpaceId) &&
+					!allowedPlaces.includes("inventory")
+				) {
+					return false;
+				}
+			}
+
+			return targetSpace.canAccept(entity, position);
+		},
+		[state.entities, state.spaces],
+	);
+
+	const onPlaceEntity = useCallback(
+		(
+			entityId: string,
+			_fromPosition: GridPosition | null,
+			toPosition: GridPosition,
+		) => {
+			const entity = state.entities.get(entityId);
+			if (!entity) return false;
+
+			// Find source space
+			let sourceSpaceId: string | null = null;
+			for (const [sid, s] of state.spaces) {
+				if (s.contains(entity)) {
+					sourceSpaceId = sid;
+					break;
+				}
+			}
+
+			if (sourceSpaceId === spaceId) {
+				// Moving within same space
+				dispatch({
+					type: "UPDATE_ENTITY_POSITION",
+					payload: {
+						entityId,
+						spaceId,
+						position: toPosition,
+					},
+				});
+				return true;
+			}
+
+			// Moving from another space
+			if (sourceSpaceId) {
+				dispatch({
+					type: "MOVE_ENTITY_BETWEEN_SPACES",
+					payload: {
+						entityId,
+						fromSpaceId: sourceSpaceId,
+						toSpaceId: spaceId,
+						toPosition: toPosition,
+					},
+				});
+				return true;
+			}
+
+			return false;
+		},
+		[dispatch, spaceId, state.entities, state.spaces],
+	);
+
+	const getEntityLabel = useCallback((entity: Entity) => {
+		return entity.name ?? entity.type;
+	}, []);
+
+	const getEntityStatus = useCallback((entity: Entity) => {
+		const status = entity.getStateValue<string>("status");
+		return {
+			status: status as "success" | "warning" | "error" | undefined,
+			message: null,
+		};
+	}, []);
+
+	if (!space) {
+		return null;
+	}
+
+	return (
+		<GridSpaceView
+			space={space}
+			entities={entities}
+			title={title}
+			getEntityLabel={getEntityLabel}
+			getEntityStatus={getEntityStatus}
+			onEntityClick={onEntityClick}
+			isEntityClickable={isEntityClickable}
+			canPlaceAt={canPlaceAt}
+			onPlaceEntity={onPlaceEntity}
+		/>
+	);
+};
+
+/**
+ * Adapter component for the inventory pool space
+ */
+const InventoryAdapter = () => {
+	const state = useGameState();
+	const { setActiveDrag, setLastDropResult } = useDragContext();
+
+	const inventorySpace = state.spaces.get("inventory");
+
+	// Get all entities in inventory
+	const entities = useMemo(() => {
+		if (!inventorySpace) return [];
+
+		const result: Entity[] = [];
+		for (const entity of state.entities.values()) {
+			if (inventorySpace.contains(entity)) {
+				result.push(entity);
+			}
+		}
+
+		return result;
+	}, [inventorySpace, state.entities]);
+
+	// Get IDs of entities placed in grid spaces
+	const placedEntityIds = useMemo(() => {
+		const ids = new Set<string>();
+		for (const [spaceId, space] of state.spaces) {
+			if (spaceId === "inventory") continue;
+
+			for (const entity of state.entities.values()) {
+				if (space.contains(entity)) {
+					ids.add(entity.id);
+				}
+			}
+		}
+		return ids;
+	}, [state.spaces, state.entities]);
+
+	const handleEntityDragStart = useCallback(
+		(entity: Entity, event: React.PointerEvent) => {
+			event.preventDefault();
+			const target = event.currentTarget;
+			const rect = target.getBoundingClientRect();
+
+			setLastDropResult(null);
+
+			setActiveDrag({
+				source: "pool",
+				sourceSpaceId: "inventory",
+				data: {
+					entityId: entity.id,
+					entityType: entity.type,
+					entityName: entity.name,
+					isReposition: false,
+				},
+				element: target as HTMLElement,
+				initialRect: rect,
+			});
+		},
+		[setActiveDrag, setLastDropResult],
+	);
+
+	if (!inventorySpace) {
+		return null;
+	}
+
+	return (
+		<Box mt={4}>
+			<PoolSpaceView
+				// biome-ignore lint/suspicious/noExplicitAny: PoolSpace type compatibility
+				space={inventorySpace as any}
+				entities={entities}
+				placedEntityIds={placedEntityIds}
+				title="Inventory"
+				onEntityDragStart={handleEntityDragStart}
+			/>
+		</Box>
 	);
 };

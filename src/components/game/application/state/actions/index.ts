@@ -36,9 +36,19 @@ export type {
 	TransferItemAction,
 	UpdateEntityPositionAction,
 } from "./space";
+export type {
+	ArrowAction,
+	HintAction,
+	ModalAction,
+	TerminalAction,
+	UIAction,
+} from "./ui";
+export type { CoreAction } from "./core";
 
+import type { CoreAction } from "./core";
 import type { EntityAction, LegacyEntityAction } from "./entity";
 import type { LegacySpaceAction, SpaceAction } from "./space";
+import type { UIAction } from "./ui";
 
 /**
  * Union of all application layer actions.
@@ -54,4 +64,4 @@ export type LegacyAction = LegacySpaceAction | LegacyEntityAction;
  * Combined action type including both new and legacy actions.
  * This allows for gradual migration.
  */
-export type Action = ApplicationAction | LegacyAction;
+export type Action = ApplicationAction | LegacyAction | UIAction | CoreAction;

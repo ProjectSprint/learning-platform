@@ -43,7 +43,11 @@
       "Bash(npm test:*)",
       "Bash(pnpm check:biome:*)",
       "Bash(git check-ignore:*)",
-      "Bash(pnpm biome check:*)"
+      "Bash(pnpm biome check:*)",
+      "Bash(git restore:*)",
+      "Bash(for file in src/routes/questions/networking/dhcp/-utils/use-network-state.ts src/routes/questions/networking/dhcp/-page.tsx src/routes/questions/networking/tcp/-utils/use-tcp-state.ts src/routes/questions/networking/tcp/-page.tsx src/routes/questions/networking/internet/-utils/use-internet-state.ts src/routes/questions/networking/internet/-page.tsx src/routes/questions/networking/udp/-utils/use-udp-state.ts src/routes/questions/networking/udp/-page.tsx src/routes/questions/networking/webserver-ssl/-utils/use-ssl-state.ts src/routes/questions/networking/webserver-ssl/-page.tsx)",
+      "Bash(do sed -i 's/useNewGameState/useGameState/g' \"$file\")",
+      "Bash(done)"
     ]
   }
 }

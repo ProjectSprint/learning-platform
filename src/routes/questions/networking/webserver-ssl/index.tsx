@@ -4,7 +4,7 @@ import {
 	getNextQuestionPath,
 	markNetworkingQuestionComplete,
 } from "../-utils/module-progress";
-import { WebserverSslQuestion } from "./-page";
+import { WebServerSslQuestion } from "./-page";
 
 const WebserverSslQuestionRoute = () => {
 	const navigate = useNavigate();
@@ -15,7 +15,7 @@ const WebserverSslQuestionRoute = () => {
 		void navigate({ to: nextPath ?? "/questions/networking" });
 	};
 
-	return <WebserverSslQuestion onQuestionComplete={handleQuestionComplete} />;
+	return <WebServerSslQuestion onQuestionComplete={handleQuestionComplete} />;
 };
 
 export const Route = createFileRoute("/questions/networking/webserver-ssl/")({

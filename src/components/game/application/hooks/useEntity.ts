@@ -4,7 +4,7 @@
  */
 
 import type { Entity } from "../../domain/entity";
-import { useNewGameState } from "../../game-provider";
+import { useGameState } from "../../game-provider";
 
 /**
  * Hook to get an entity by its ID.
@@ -21,7 +21,7 @@ import { useNewGameState } from "../../game-provider";
  * ```
  */
 export const useEntity = (entityId: string): Entity | undefined => {
-	const state = useNewGameState();
+	const state = useGameState();
 	return state.entities.get(entityId);
 };
 
@@ -37,7 +37,7 @@ export const useEntity = (entityId: string): Entity | undefined => {
  * ```
  */
 export const useEntities = (): Map<string, Entity> => {
-	const state = useNewGameState();
+	const state = useGameState();
 	return state.entities;
 };
 
@@ -54,7 +54,7 @@ export const useEntities = (): Map<string, Entity> => {
  * ```
  */
 export const useEntitiesByType = (type: string): Entity[] => {
-	const state = useNewGameState();
+	const state = useGameState();
 	return Array.from(state.entities.values()).filter((e) => e.type === type);
 };
 
@@ -111,7 +111,7 @@ export const useEntityStateValue = <T = unknown>(
  * ```
  */
 export const useEntityExists = (entityId: string): boolean => {
-	const state = useNewGameState();
+	const state = useGameState();
 	return state.entities.has(entityId);
 };
 
@@ -130,7 +130,7 @@ export const useEntityExists = (entityId: string): boolean => {
  * ```
  */
 export const useEntitySpace = (entityId: string) => {
-	const state = useNewGameState();
+	const state = useGameState();
 	const entity = state.entities.get(entityId);
 
 	if (!entity) {
@@ -164,7 +164,7 @@ export const useEntitySpace = (entityId: string) => {
 export const useEntityPosition = (
 	entityId: string,
 ): Record<string, unknown> | undefined | null => {
-	const state = useNewGameState();
+	const state = useGameState();
 	const entity = state.entities.get(entityId);
 
 	if (!entity) {

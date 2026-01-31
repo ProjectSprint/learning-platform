@@ -4,7 +4,7 @@
  */
 
 import type { Space } from "../../domain/space";
-import { useNewGameState } from "../../game-provider";
+import { useGameState } from "../../game-provider";
 
 /**
  * Hook to get a space by its ID.
@@ -21,7 +21,7 @@ import { useNewGameState } from "../../game-provider";
  * ```
  */
 export const useSpace = (spaceId: string): Space | undefined => {
-	const state = useNewGameState();
+	const state = useGameState();
 	return state.spaces.get(spaceId);
 };
 
@@ -39,7 +39,7 @@ export const useSpace = (spaceId: string): Space | undefined => {
  * ```
  */
 export const useSpaces = (): Map<string, Space> => {
-	const state = useNewGameState();
+	const state = useGameState();
 	return state.spaces;
 };
 
