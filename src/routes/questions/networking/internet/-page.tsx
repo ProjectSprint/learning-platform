@@ -417,7 +417,7 @@ const InternetGame = ({
 		return [
 			{
 				id: "client-conn-1",
-				from: { puzzleId: "local", anchor: "tl" },
+				from: { puzzleId: "local", anchor: { base: "br", lg: "tr" } },
 				to: { puzzleId: "conn-1", anchor: "tl" },
 				style: baseStyle,
 			},
@@ -485,8 +485,8 @@ const InternetGame = ({
 	const layoutMode =
 		useBreakpointValue({
 			base: "stack",
-			sm: "stack",
-			md: "columns",
+			sm: "structured",
+			md: "structured",
 			lg: "columns",
 			xl: "row",
 		}) ?? "row";
@@ -570,6 +570,20 @@ const InternetGame = ({
 									<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
 										{COLUMN_TWO.map((key) => renderBoard(key, "100%"))}
 									</Flex>
+								</Flex>
+							) : layoutMode === "structured" ? (
+								<Flex direction="column" gap={{ base: 2, md: 4 }}>
+									<Flex direction="row" gap={{ base: 2, md: 4 }}>
+										{renderBoard("local", "0")}
+										{renderBoard("conn-1", "0")}
+									</Flex>
+									{renderBoard("router", "100%")}
+									<Flex direction="row" gap={{ base: 2, md: 4 }}>
+										{renderBoard("conn-2", "0")}
+										{renderBoard("igw", "0")}
+										{renderBoard("dns", "0")}
+									</Flex>
+									{renderBoard("google", "100%")}
 								</Flex>
 							) : (
 								<Flex direction="column" gap={{ base: 2, md: 4 }}>
