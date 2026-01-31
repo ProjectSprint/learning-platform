@@ -378,7 +378,7 @@ const TcpGame = ({
 														base: "column",
 														sm: "row",
 														md: "row",
-														lg: "column",
+														lg: "row",
 														xl: "column",
 													}}
 													gap={{ base: 2, md: 4 }}
