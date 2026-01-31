@@ -402,6 +402,8 @@ const TcpGame = ({
 														px={3}
 														py={2}
 														mt={{ base: 0, sm: 0, lg: 2, xl: 2 }}
+														display="flex"
+														flexDirection="column"
 													>
 														<Text fontSize="xs" color="gray.400" mb={1}>
 															Server terminal
@@ -416,7 +418,8 @@ const TcpGame = ({
 																borderRadius: "md",
 																px: 3,
 																py: 2,
-																height: "120px",
+																height: "100%",
+																flex: "1",
 															}}
 														/>
 														{(tcpState.connectionActive ||
