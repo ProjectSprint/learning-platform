@@ -1,4 +1,4 @@
-import type { ModalInstance } from "../../modal";
+import type { ModalInstance } from "../../presentation/modal";
 
 export type { ModalInstance };
 

@@ -93,7 +93,7 @@ import { useDragEngine } from '@/components/game/engines/drag/use-drag-engine';
 // Space/Entity Components
 import { GridSpaceView } from '@/components/game/presentation/space/GridSpaceView';
 import { PoolSpaceView } from '@/components/game/presentation/space/PoolSpaceView';
-import { TerminalView } from '@/components/game/terminal';
+import { TerminalView } from '@/components/game/presentation/terminal';
 
 // Domain Models
 import { GridSpace } from '@/components/game/domain/space';

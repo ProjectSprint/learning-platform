@@ -18,13 +18,16 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
-import { ContextualHint, useContextualHint } from "@/components/game/hint";
-import { Modal } from "@/components/game/modal";
+import {
+	ContextualHint,
+	useContextualHint,
+} from "@/components/game/presentation/hint";
 import {
 	DragProvider,
 	useDragContext,
 } from "@/components/game/presentation/interaction/drag/DragContext";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
+import { Modal } from "@/components/game/presentation/modal";
 import {
 	BoardArrowSurface,
 	BoardRegistryProvider,
@@ -36,7 +39,7 @@ import {
 	TerminalLayout,
 	TerminalView,
 	useTerminalInput,
-} from "@/components/game/terminal";
+} from "@/components/game/presentation/terminal";
 import type { QuestionProps } from "@/components/module";
 
 import {

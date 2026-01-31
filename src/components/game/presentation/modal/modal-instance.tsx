@@ -10,7 +10,7 @@ import {
 import { useMemo, useState } from "react";
 
 import { useGameDispatch } from "../../game-provider";
-import { HelpLink } from "../help";
+import { HelpLink } from "../../ui/help";
 import type {
 	ModalAction,
 	ModalContentBlock,

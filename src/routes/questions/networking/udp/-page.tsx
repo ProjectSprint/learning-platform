@@ -8,13 +8,13 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
-import { ContextualHint } from "@/components/game/hint";
-import { Modal } from "@/components/game/modal";
+import { ContextualHint } from "@/components/game/presentation/hint";
 import {
 	DragProvider,
 	useDragContext,
 } from "@/components/game/presentation/interaction/drag/DragContext";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
+import { Modal } from "@/components/game/presentation/modal";
 import { BoardRegistryProvider } from "@/components/game/presentation/space/arrow";
 import { GridSpaceView } from "@/components/game/presentation/space/GridSpaceView";
 import { PoolSpaceView } from "@/components/game/presentation/space/PoolSpaceView";
@@ -23,7 +23,7 @@ import {
 	TerminalLayout,
 	TerminalView,
 	useTerminalInput,
-} from "@/components/game/terminal";
+} from "@/components/game/presentation/terminal";
 import type { QuestionProps } from "@/components/module";
 
 import {

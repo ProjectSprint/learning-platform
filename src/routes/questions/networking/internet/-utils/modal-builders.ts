@@ -4,7 +4,7 @@
 import type {
 	ModalFieldValidator,
 	ModalInstance,
-} from "@/components/game/modal";
+} from "@/components/game/presentation/modal";
 
 const PRIVATE_IP_RANGES = [
 	/^10\./,

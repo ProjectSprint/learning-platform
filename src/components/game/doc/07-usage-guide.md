@@ -181,7 +181,7 @@ function DragDropGame() {
 
 ```tsx
 import { useTerminalEngine } from '@/components/game/engines/terminal/use-terminal-engine';
-import { TerminalView } from '@/components/game/terminal';
+import { TerminalView } from '@/components/game/presentation/terminal';
 import { useGameDispatch } from '@/components/game/game-provider';
 
 function TerminalGame() {
@@ -548,7 +548,7 @@ export default NetworkTopologyGame;
 ```tsx
 import { GameProvider } from '@/components/game/game-provider';
 import { useTerminalEngine } from '@/components/game/engines/terminal/use-terminal-engine';
-import { TerminalView } from '@/components/game/terminal';
+import { TerminalView } from '@/components/game/presentation/terminal';
 import { useState } from 'react';
 
 type NetworkState = {
