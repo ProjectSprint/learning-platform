@@ -8,7 +8,7 @@ import {
 	useGameState,
 } from "../../game-provider";
 import { type DragData, type DragHandle, useDragContext } from "../drag";
-import type { GridMetrics } from "../grid";
+import { type GridMetrics, useResolvedPuzzleSize } from "../grid";
 import { useBoardRegistry } from "./arrow";
 import { GridCell } from "./grid-cell";
 import { PlacedItemCard } from "./placed-item-card";
@@ -65,7 +65,6 @@ export const PuzzleBoard = ({
 	const resolvedPuzzleId =
 		puzzleId ?? puzzle.config.puzzleId ?? puzzle.config.id ?? "default";
 	const { registerBoard } = useBoardRegistry();
-	const containerRef = useRef<HTMLDivElement | null>(null);
 	const boardRef = useRef<HTMLDivElement | null>(null);
 	const placedItemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const draggablesRef = useRef<DragHandle[]>([]);
@@ -82,6 +81,7 @@ export const PuzzleBoard = ({
 		gapY: 0,
 	});
 	const orientation = puzzle.config.orientation ?? "horizontal";
+	const [columns, rows] = useResolvedPuzzleSize(puzzle.config.size);
 
 	const placedItemsByKey = useMemo(() => {
 		const map = new Map<string, PlacedItem>();
@@ -91,21 +91,26 @@ export const PuzzleBoard = ({
 		return map;
 	}, [puzzle.placedItems]);
 
+	const visibleBlocks = useMemo(
+		() => puzzle.blocks.slice(0, rows).map((row) => row.slice(0, columns)),
+		[puzzle.blocks, columns, rows],
+	);
+
 	const orderedBlocks = useMemo(() => {
 		if (orientation !== "vertical") {
-			return puzzle.blocks.flat();
+			return visibleBlocks.flat();
 		}
 		const blocks: Block[] = [];
-		for (let x = 0; x < puzzle.config.columns; x += 1) {
-			for (let y = 0; y < puzzle.config.rows; y += 1) {
-				const block = puzzle.blocks[y]?.[x];
+		for (let x = 0; x < columns; x += 1) {
+			for (let y = 0; y < rows; y += 1) {
+				const block = visibleBlocks[y]?.[x];
 				if (block) {
 					blocks.push(block);
 				}
 			}
 		}
 		return blocks;
-	}, [puzzle.blocks, puzzle.config.columns, puzzle.config.rows, orientation]);
+	}, [visibleBlocks, columns, rows, orientation]);
 
 	useEffect(() => {
 		const element = boardRef.current;
@@ -134,15 +139,14 @@ export const PuzzleBoard = ({
 	}, []);
 
 	useEffect(() => {
-		registerBoard(resolvedPuzzleId, containerRef.current);
+		registerBoard(resolvedPuzzleId, boardRef.current);
 		return () => {
 			registerBoard(resolvedPuzzleId, null);
 		};
 	}, [registerBoard, resolvedPuzzleId]);
 
 	const blockWidth =
-		(boardSize.width - boardSize.gapX * (puzzle.config.columns - 1)) /
-			puzzle.config.columns || 0;
+		(boardSize.width - boardSize.gapX * (columns - 1)) / columns || 0;
 	const blockHeight =
 		useBreakpointValue({ base: 48, sm: 54, md: 60 }) ?? BLOCK_HEIGHT;
 	const stepX = blockWidth + boardSize.gapX;
@@ -167,8 +171,8 @@ export const PuzzleBoard = ({
 			if (
 				target.blockX < 0 ||
 				target.blockY < 0 ||
-				target.blockX >= puzzle.config.columns ||
-				target.blockY >= puzzle.config.rows
+				target.blockX >= columns ||
+				target.blockY >= rows
 			) {
 				return false;
 			}
@@ -193,12 +197,7 @@ export const PuzzleBoard = ({
 
 			return !isOccupied;
 		},
-		[
-			puzzle.config.columns,
-			puzzle.config.rows,
-			placedItemsByKey,
-			state.inventory.groups,
-		],
+		[columns, rows, placedItemsByKey, state.inventory.groups],
 	);
 
 	const getSwapTarget = useCallback(
@@ -309,6 +308,8 @@ export const PuzzleBoard = ({
 		stepX,
 		stepY,
 		gridMetrics,
+		columns,
+		rows,
 		canPlaceItemAt,
 		placeOrRepositionItem,
 		getSwapTarget,
@@ -338,7 +339,6 @@ export const PuzzleBoard = ({
 
 	return (
 		<Box
-			ref={containerRef}
 			className="puzzle-board"
 			data-puzzle-board
 			bg="gray.950"
@@ -367,8 +367,8 @@ export const PuzzleBoard = ({
 				display="grid"
 				data-puzzle-board
 				data-puzzle-id={resolvedPuzzleId}
-				gridTemplateColumns={`repeat(${puzzle.config.columns}, minmax(0, 1fr))`}
-				gridTemplateRows={`repeat(${puzzle.config.rows}, ${blockHeight}px)`}
+				gridTemplateColumns={`repeat(${columns}, minmax(0, 1fr))`}
+				gridTemplateRows={`repeat(${rows}, ${blockHeight}px)`}
 				gridAutoFlow={orientation === "vertical" ? "column" : "row"}
 				gap={2}
 			>

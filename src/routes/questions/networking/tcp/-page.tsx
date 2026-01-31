@@ -18,6 +18,10 @@ import {
 } from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import {
+	resolvePuzzleSizeValue,
+	usePuzzleBreakpoint,
+} from "@/components/game/puzzle/grid";
+import {
 	InventoryDrawer,
 	type InventoryDrawerHandle,
 } from "@/components/game/puzzle/inventory";
@@ -115,6 +119,7 @@ const TcpGame = ({
 	);
 
 	const tcpState = useTcpState({ onInventoryExpand: expandInventory });
+	const puzzleBreakpoint = usePuzzleBreakpoint();
 	const shouldShowTerminal =
 		tcpState.phase === "terminal" ||
 		tcpState.connectionClosed ||
@@ -367,7 +372,9 @@ const TcpGame = ({
 									return (
 										<Box
 											key={key}
-											flexGrow={config.columns}
+											flexGrow={
+												resolvePuzzleSizeValue(config.size, puzzleBreakpoint)[0]
+											}
 											flexBasis={0}
 											minW={{ base: "100%", xl: "0" }}
 											order={{ base: baseOrder, xl: xlOrder }}

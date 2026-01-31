@@ -28,6 +28,8 @@ type UseBoardInteractionsOptions = {
 	stepX: number;
 	stepY: number;
 	gridMetrics: GridMetrics;
+	columns: number;
+	rows: number;
 	canPlaceItemAt: (
 		data: DragData,
 		target: { blockX: number; blockY: number },
@@ -67,6 +69,8 @@ export const useBoardInteractions = ({
 	stepX,
 	stepY,
 	gridMetrics,
+	columns,
+	rows,
 	canPlaceItemAt,
 	placeOrRepositionItem,
 	getSwapTarget,
@@ -151,8 +155,8 @@ export const useBoardInteractions = ({
 		blockHeight,
 		stepX,
 		stepY,
-		columns: puzzle.config.columns,
-		rows: puzzle.config.rows,
+		columns,
+		rows,
 		canPlaceItemAt,
 		placeOrRepositionItem,
 		proxyRef,

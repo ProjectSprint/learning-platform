@@ -10,7 +10,11 @@ import type {
 	PlacedItemClickHandler,
 } from "../board/types";
 import type { GridMetrics } from "../grid";
-import { convertPixelToBlock } from "../grid";
+import {
+	convertPixelToBlock,
+	resolvePuzzleSizeValue,
+	usePuzzleBreakpoint,
+} from "../grid";
 import {
 	type ActiveDrag,
 	createDraggable,
@@ -81,6 +85,11 @@ export const useBoardDrag = ({
 }: UseBoardDragOptions) => {
 	const activeDragRef = useRef<ActiveDrag | null>(null);
 	const callbacksRef = useRef({ getSwapTarget, placeOrRepositionItem });
+	const puzzleBreakpoint = usePuzzleBreakpoint();
+	const [columns, rows] = resolvePuzzleSizeValue(
+		puzzle.config.size,
+		puzzleBreakpoint,
+	);
 
 	useEffect(() => {
 		activeDragRef.current = activeDrag;
@@ -179,10 +188,7 @@ export const useBoardDrag = ({
 					);
 
 					const isOutOfBounds =
-						blockX < 0 ||
-						blockY < 0 ||
-						blockX >= puzzle.config.columns ||
-						blockY >= puzzle.config.rows;
+						blockX < 0 || blockY < 0 || blockX >= columns || blockY >= rows;
 
 					if (isOutOfBounds) {
 						setHoveredBlock(null);
@@ -294,6 +300,10 @@ export const useBoardDrag = ({
 						);
 
 						if (targetPuzzle && targetElement) {
+							const [targetColumns, targetRows] = resolvePuzzleSizeValue(
+								targetPuzzle.config.size,
+								puzzleBreakpoint,
+							);
 							const rect = targetElement.getBoundingClientRect();
 							const styles = window.getComputedStyle(targetElement);
 							const gapX = Number.parseFloat(
@@ -303,8 +313,7 @@ export const useBoardDrag = ({
 								styles.rowGap || styles.gap || "0",
 							);
 							const targetBlockWidth =
-								(rect.width - gapX * (targetPuzzle.config.columns - 1)) /
-									targetPuzzle.config.columns || 0;
+								(rect.width - gapX * (targetColumns - 1)) / targetColumns || 0;
 
 							const { blockX, blockY } = convertPixelToBlock(
 								this.pointerX - rect.left,
@@ -320,8 +329,8 @@ export const useBoardDrag = ({
 							const isInsideTarget =
 								blockX >= 0 &&
 								blockY >= 0 &&
-								blockX < targetPuzzle.config.columns &&
-								blockY < targetPuzzle.config.rows;
+								blockX < targetColumns &&
+								blockY < targetRows;
 
 							if (isInsideTarget) {
 								const targetBlock = targetPuzzle.blocks[blockY]?.[blockX];
@@ -438,9 +447,10 @@ export const useBoardDrag = ({
 	}, [
 		blockHeight,
 		blockWidth,
+		columns,
+		rows,
 		puzzle.placedItems,
-		puzzle.config.columns,
-		puzzle.config.rows,
+		puzzleBreakpoint,
 		resolvedPuzzleId,
 		dispatch,
 		getSwapTarget,

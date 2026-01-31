@@ -24,6 +24,10 @@ import {
 import { CustomBoard } from "@/components/game/puzzle/custom-board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import {
+	resolvePuzzleSizeValue,
+	usePuzzleBreakpoint,
+} from "@/components/game/puzzle/grid";
+import {
 	InventoryDrawer,
 	type InventoryDrawerHandle,
 } from "@/components/game/puzzle/inventory";
@@ -156,6 +160,7 @@ const UdpGame = ({
 	const state = useGameState();
 	const initializedRef = useRef(false);
 	const [activeMode, setActiveMode] = useState<ActiveMode>("tcp");
+	const puzzleBreakpoint = usePuzzleBreakpoint();
 	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
 	const expandInventory = useCallback(() => {
 		inventoryDrawerRef.current?.expand();
@@ -416,7 +421,12 @@ const UdpGame = ({
 												return (
 													<Box
 														key={key}
-														flexGrow={config.columns}
+														flexGrow={
+															resolvePuzzleSizeValue(
+																config.size,
+																puzzleBreakpoint,
+															)[0]
+														}
 														flexBasis={0}
 														minW={{
 															base: "150px",
@@ -438,7 +448,12 @@ const UdpGame = ({
 											return (
 												<Box
 													key={key}
-													flexGrow={config.columns}
+													flexGrow={
+														resolvePuzzleSizeValue(
+															config.size,
+															puzzleBreakpoint,
+														)[0]
+													}
 													flexBasis={0}
 													minW={{
 														base: "150px",
@@ -572,7 +587,12 @@ const UdpGame = ({
 												return (
 													<Box
 														key={key}
-														flexGrow={config.columns}
+														flexGrow={
+															resolvePuzzleSizeValue(
+																config.size,
+																puzzleBreakpoint,
+															)[0]
+														}
 														flexBasis={0}
 														minW={{ base: "100%", md: "260px" }}
 													>

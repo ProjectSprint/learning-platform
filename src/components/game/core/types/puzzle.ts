@@ -6,11 +6,18 @@ export type Placement = {
 	itemType: string;
 };
 
+export type PuzzleBreakpoint = "base" | "sm" | "md" | "lg" | "xl" | "2xl";
+
+export type PuzzleSize = [number, number];
+
+export type PuzzleSizeValue =
+	| PuzzleSize
+	| Partial<Record<PuzzleBreakpoint, PuzzleSize>>;
+
 export type PuzzleConfig = {
 	id: string;
 	title?: string;
-	columns: number;
-	rows: number;
+	size: PuzzleSizeValue;
 	orientation?: "horizontal" | "vertical";
 	puzzleId?: string;
 	maxItems?: number;

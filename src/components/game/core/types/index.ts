@@ -29,7 +29,10 @@ export type {
 	Block,
 	BlockStatus,
 	Placement,
+	PuzzleBreakpoint,
 	PuzzleConfig,
+	PuzzleSize,
+	PuzzleSizeValue,
 	PuzzleState,
 } from "./puzzle";
 

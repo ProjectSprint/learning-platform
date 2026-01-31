@@ -23,6 +23,10 @@ import {
 } from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import {
+	resolvePuzzleSizeValue,
+	usePuzzleBreakpoint,
+} from "@/components/game/puzzle/grid";
+import {
 	InventoryDrawer,
 	type InventoryDrawerHandle,
 } from "@/components/game/puzzle/inventory";
@@ -153,6 +157,7 @@ const InternetGame = ({
 	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
 	const dragEngine = useDragEngine();
 	const internetState = useInternetState({ dragEngine });
+	const puzzleBreakpoint = usePuzzleBreakpoint();
 	const placedItemById = useMemo(() => {
 		const map = new Map<string, PlacedItem>();
 		for (const entry of internetState.placedItems) {
@@ -417,47 +422,74 @@ const InternetGame = ({
 		return [
 			{
 				id: "client-conn-1",
-				from: { puzzleId: "local", anchor: { base: "br", md: "tr", lg: "tr" } },
-				to: { puzzleId: "conn-1", anchor: { base: "br", md: "tl", lg: "tl" } },
+				from: {
+					puzzleId: "local",
+					anchor: { base: "br", md: "tr", lg: "tr", xl: "tr" },
+				},
+				to: {
+					puzzleId: "conn-1",
+					anchor: { base: "bl", md: "tl", lg: "tl", xl: "tl" },
+				},
 				style: baseStyle,
 			},
 			{
 				id: "conn-1-router",
 				from: {
 					puzzleId: "conn-1",
-					anchor: { base: "br", md: "br", lg: "tr" },
+					anchor: { base: "br", md: "br", lg: "tr", xl: "tr" },
 				},
-				to: { puzzleId: "router", anchor: { base: "br", md: "tr", lg: "tl" } },
+				to: {
+					puzzleId: "router",
+					anchor: { base: "tr", md: "tr", lg: "tl", xl: "tl" },
+				},
 				style: baseStyle,
 			},
 			{
 				id: "router-conn-2",
 				from: {
 					puzzleId: "router",
-					anchor: { base: "br", md: "bl", lg: "tr" },
+					anchor: { base: "bl", md: "bl", lg: "bl", xl: "tr" },
 				},
-				to: { puzzleId: "conn-2", anchor: { base: "br", md: "tr", lg: "tl" } },
+				to: {
+					puzzleId: "conn-2",
+					anchor: { base: "tr", md: "tr", lg: "tl", xl: "tl" },
+				},
 				style: baseStyle,
 			},
 			{
 				id: "conn-2-igw",
 				from: {
 					puzzleId: "conn-2",
-					anchor: { base: "br", md: "tr", lg: "tr" },
+					anchor: { base: "br", md: "tr", lg: "tr", xl: "tr" },
 				},
-				to: { puzzleId: "igw", anchor: { base: "br", md: "tl", lg: "tl" } },
+				to: {
+					puzzleId: "igw",
+					anchor: { base: "bl", md: "tl", lg: "tl", xl: "tl" },
+				},
 				style: baseStyle,
 			},
 			{
 				id: "igw-dns",
-				from: { puzzleId: "igw", anchor: { base: "br", md: "tr", lg: "tr" } },
-				to: { puzzleId: "dns", anchor: { base: "br", md: "tl", lg: "tl" } },
+				from: {
+					puzzleId: "igw",
+					anchor: { base: "br", md: "tr", lg: "tr", xl: "tr" },
+				},
+				to: {
+					puzzleId: "dns",
+					anchor: { base: "bl", md: "tl", lg: "tl", xl: "tl" },
+				},
 				style: baseStyle,
 			},
 			{
 				id: "dns-google",
-				from: { puzzleId: "dns", anchor: { base: "br", md: "br", lg: "tr" } },
-				to: { puzzleId: "google", anchor: { base: "br", md: "tr", lg: "tl" } },
+				from: {
+					puzzleId: "dns",
+					anchor: { base: "br", md: "br", lg: "tr", xl: "tr" },
+				},
+				to: {
+					puzzleId: "google",
+					anchor: { base: "tr", md: "tr", lg: "tl", xl: "tl" },
+				},
 				style: baseStyle,
 			},
 		];
@@ -504,9 +536,10 @@ const InternetGame = ({
 		(key: InternetCanvasKey, minW: BoxProps["minW"]) => {
 			const config = CANVAS_CONFIGS[key];
 			const title = config.title ?? key;
+			const [columns] = resolvePuzzleSizeValue(config.size, puzzleBreakpoint);
 
 			return (
-				<Box key={key} flexGrow={config.columns} flexBasis={0} minW={minW}>
+				<Box key={key} flexGrow={columns} flexBasis={0} minW={minW}>
 					<PuzzleBoard
 						puzzleId={key}
 						title={title}
@@ -521,6 +554,7 @@ const InternetGame = ({
 		[
 			handlePlacedItemClick,
 			isItemClickable,
+			puzzleBreakpoint,
 			spec.labels.getItemLabel,
 			spec.labels.getStatusMessage,
 		],

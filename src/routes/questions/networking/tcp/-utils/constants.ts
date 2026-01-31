@@ -1,6 +1,6 @@
 import type {
-	PuzzleConfig,
 	InventoryItem,
+	PuzzleConfig,
 } from "@/components/game/game-provider";
 
 export const QUESTION_ID = "tcp-fragmentation";
@@ -19,24 +19,21 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, PuzzleConfig> = {
 		id: "tcp-splitter",
 		title: "Content Splitter",
 		puzzleId: "splitter",
-		columns: 1,
-		rows: 1,
+		size: { base: [1, 1] },
 		maxItems: 1,
 	},
 	internet: {
 		id: "tcp-internet",
 		title: "Internet",
 		puzzleId: "internet",
-		columns: 3,
-		rows: 1,
+		size: { base: [3, 1] },
 		maxItems: 3,
 	},
 	server: {
 		id: "tcp-server",
 		title: "Server",
 		puzzleId: "server",
-		columns: 3,
-		rows: 4,
+		size: { base: [3, 4] },
 		maxItems: 12,
 	},
 };

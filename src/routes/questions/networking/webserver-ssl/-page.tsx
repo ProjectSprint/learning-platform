@@ -17,6 +17,10 @@ import { Modal } from "@/components/game/modal";
 import { PuzzleBoard } from "@/components/game/puzzle/board";
 import { DragOverlay, DragProvider } from "@/components/game/puzzle/drag";
 import {
+	resolvePuzzleSizeValue,
+	usePuzzleBreakpoint,
+} from "@/components/game/puzzle/grid";
+import {
 	InventoryDrawer,
 	type InventoryDrawerHandle,
 } from "@/components/game/puzzle/inventory";
@@ -103,6 +107,7 @@ const WebserverSslGame = ({
 	const inventoryDrawerRef = useRef<InventoryDrawerHandle | null>(null);
 	const [prevSecureState, setPrevSecureState] = useState(false);
 	const [sslCanvasesUnlocked, setSslCanvasesUnlocked] = useState(false);
+	const puzzleBreakpoint = usePuzzleBreakpoint();
 
 	// Track which inventory groups have been shown to avoid redundant dispatches
 	const inventoryShownRef = useRef({
@@ -624,7 +629,9 @@ const WebserverSslGame = ({
 							return (
 								<Box
 									key={key}
-									flexGrow={config.columns}
+									flexGrow={
+										resolvePuzzleSizeValue(config.size, puzzleBreakpoint)[0]
+									}
 									flexBasis={0}
 									minW={{ base: "100%", xl: "0" }}
 								>

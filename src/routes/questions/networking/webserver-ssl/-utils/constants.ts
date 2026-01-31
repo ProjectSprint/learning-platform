@@ -2,8 +2,8 @@
 // Contains all static configuration: items, canvases, inventory groups
 
 import type {
-	PuzzleConfig,
 	InventoryItem,
+	PuzzleConfig,
 	TerminalEntry,
 } from "@/components/game/game-provider";
 
@@ -32,32 +32,28 @@ export const CANVAS_CONFIGS: Record<WebSslCanvasKey, PuzzleConfig> = {
 		id: "ssl-browser",
 		title: "Browser",
 		puzzleId: "browser",
-		columns: 1,
-		rows: 1,
+		size: { base: [1, 1] },
 		maxItems: 1,
 	},
 	"port-80": {
 		id: "ssl-port-80",
 		title: "HTTP Webserver",
 		puzzleId: "port-80",
-		columns: 3,
-		rows: 1,
+		size: { base: [3, 1] },
 		maxItems: 3,
 	},
 	letsencrypt: {
 		id: "ssl-letsencrypt",
 		title: "Let's Encrypt",
 		puzzleId: "letsencrypt",
-		columns: 1,
-		rows: 1,
+		size: { base: [1, 1] },
 		maxItems: 1,
 	},
 	"port-443": {
 		id: "ssl-port-443",
 		title: "HTTPS Webserver",
 		puzzleId: "port-443",
-		columns: 5,
-		rows: 1,
+		size: { base: [5, 1] },
 		maxItems: 5,
 	},
 };

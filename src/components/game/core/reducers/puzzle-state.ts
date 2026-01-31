@@ -1,12 +1,15 @@
-import { createBlockGrid } from "../../puzzle/grid";
+import { createBlockGrid, getMaxPuzzleSize } from "../../puzzle/grid";
 import type { GameState, PuzzleConfig, PuzzleState } from "../types";
 
-export const createPuzzleState = (config: PuzzleConfig): PuzzleState => ({
-	config,
-	blocks: createBlockGrid(config.columns, config.rows),
-	placedItems: [],
-	selectedBlock: null,
-});
+export const createPuzzleState = (config: PuzzleConfig): PuzzleState => {
+	const [columns, rows] = getMaxPuzzleSize(config.size);
+	return {
+		config,
+		blocks: createBlockGrid(columns, rows),
+		placedItems: [],
+		selectedBlock: null,
+	};
+};
 
 export const resolvePuzzleState = (state: GameState, puzzleId?: string) => {
 	if (!puzzleId) {

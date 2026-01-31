@@ -17,8 +17,7 @@ import { createPuzzleState } from "./puzzle-state";
 
 const defaultPuzzleConfig: PuzzleConfig = {
 	id: "default-puzzle",
-	columns: 6,
-	rows: 4,
+	size: { base: [6, 4] },
 	orientation: "horizontal",
 };
 

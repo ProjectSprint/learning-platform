@@ -7,6 +7,10 @@ import {
 	useGameState,
 } from "@/components/game/game-provider";
 import {
+	resolvePuzzleSizeValue,
+	usePuzzleBreakpoint,
+} from "@/components/game/puzzle/grid";
+import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
 	GOOGLE_IP,
@@ -28,6 +32,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const state = useGameState();
 	const canvases = useAllPuzzles();
 	const dispatch = useGameDispatch();
+	const puzzleBreakpoint = usePuzzleBreakpoint();
 
 	const { combinedItems, itemCanvasKeys } = useMemo(() => {
 		const items: PlacedItem[] = [];
@@ -48,14 +53,15 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				}
 			}
 
-			offsetX += config.columns;
+			const [columns] = resolvePuzzleSizeValue(config.size, puzzleBreakpoint);
+			offsetX += columns;
 		}
 
 		return {
 			combinedItems: items,
 			itemCanvasKeys: keys,
 		};
-	}, [canvases]);
+	}, [canvases, puzzleBreakpoint]);
 
 	const resolveCanvasKey = useCallback(
 		(itemId: string) => itemCanvasKeys.get(itemId),
@@ -367,6 +373,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		hasValidPppoeCredentials,
 		routerNatConfigured,
 		state.question.status,
+		googleReachable,
 	]);
 
 	// Phase transitions
