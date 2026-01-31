@@ -1,7 +1,7 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { useCallback, useMemo, useRef } from "react";
-import type { IconInfo, Item } from "../../game-provider";
+import type { IconInfo, Item, ItemTooltip } from "../../game-provider";
 import { useGameState } from "../../game-provider";
 import { InfoTooltip } from "../../help";
 import { useDragContext } from "../drag";
@@ -12,11 +12,6 @@ export const useInventorySlotSize = () => {
 	return { width, height };
 };
 
-export type TooltipInfo = {
-	content: string;
-	seeMoreHref: string;
-};
-
 type InventorySlotProps = {
 	item: Item;
 	isEmpty: boolean;
@@ -25,7 +20,7 @@ type InventorySlotProps = {
 	slotHeight: number;
 	onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
 	slotRef?: React.RefCallback<HTMLDivElement>;
-	tooltip?: TooltipInfo;
+	tooltip?: ItemTooltip;
 	iconInfo?: IconInfo;
 };
 
@@ -96,11 +91,7 @@ const InventorySlot = ({
 	);
 };
 
-export type InventoryPanelProps = {
-	tooltips?: Record<string, TooltipInfo>;
-};
-
-export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
+export const InventoryPanel = () => {
 	const { inventory, puzzles, puzzle } = useGameState();
 	const { activeDrag, setActiveDrag, setLastDropResult } = useDragContext();
 	const slotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -213,7 +204,7 @@ export const InventoryPanel = ({ tooltips }: InventoryPanelProps) => {
 									const isDragging =
 										activeDrag?.source === "inventory" &&
 										activeDrag.data.itemId === item.id;
-									const tooltip = tooltips?.[item.type];
+									const tooltip = item.tooltip;
 									const iconInfo = item.icon;
 									return (
 										<InventorySlot

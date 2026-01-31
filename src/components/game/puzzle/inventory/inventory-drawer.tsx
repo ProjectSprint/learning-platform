@@ -11,7 +11,7 @@ import {
 
 import { useGameState } from "@/components/game/game-provider";
 import { useDragContext } from "../drag";
-import { InventoryPanel, type InventoryPanelProps } from "./inventory-panel";
+import { InventoryPanel } from "./inventory-panel";
 
 export type InventoryDrawerHandle = {
 	expand: () => void;
@@ -19,7 +19,7 @@ export type InventoryDrawerHandle = {
 	toggle: () => void;
 };
 
-type InventoryDrawerProps = InventoryPanelProps & {
+type InventoryDrawerProps = {
 	drawerWidth?: string;
 	hoverGutterWidth?: string;
 	closeGutterWidth?: string;
@@ -37,7 +37,6 @@ export const InventoryDrawer = forwardRef<
 >(
 	(
 		{
-			tooltips,
 			drawerWidth,
 			hoverGutterWidth = "10vw",
 			closeGutterWidth,
@@ -309,7 +308,7 @@ export const InventoryDrawer = forwardRef<
 							display="flex"
 							justifyContent="center"
 						>
-							<InventoryPanel tooltips={tooltips} />
+							<InventoryPanel />
 						</Box>
 					</Flex>
 				</Box>
@@ -411,7 +410,7 @@ export const InventoryDrawer = forwardRef<
 						</Flex>
 
 						<Box flex="1" overflowY="auto" px={4} py={4}>
-							<InventoryPanel tooltips={tooltips} />
+							<InventoryPanel />
 						</Box>
 					</Flex>
 				</Box>

@@ -1,4 +1,9 @@
-import type { Item, PuzzleConfig } from "@/components/game/game-provider";
+import type { Item } from "@/components/game/game-provider";
+import {
+	createGridCanvasConfig,
+	createPuzzleConfigs,
+	type GridCanvasConfig,
+} from "../../-utils/grid-space";
 
 export const QUESTION_ID = "tcp-fragmentation";
 export const QUESTION_TITLE = "📄 Deliver message.txt";
@@ -11,29 +16,28 @@ export type TcpCanvasKey = "splitter" | "internet" | "server";
 
 export const CANVAS_ORDER: TcpCanvasKey[] = ["splitter", "internet", "server"];
 
-export const CANVAS_CONFIGS: Record<TcpCanvasKey, PuzzleConfig> = {
-	splitter: {
-		id: "tcp-splitter",
-		title: "Content Splitter",
-		puzzleId: "splitter",
+export const CANVAS_CONFIGS: Record<TcpCanvasKey, GridCanvasConfig> = {
+	splitter: createGridCanvasConfig({
+		id: "splitter",
+		name: "Content Splitter",
 		size: { base: [1, 1] },
-		maxItems: 1,
-	},
-	internet: {
-		id: "tcp-internet",
-		title: "Internet",
-		puzzleId: "internet",
+		maxCapacity: 1,
+	}),
+	internet: createGridCanvasConfig({
+		id: "internet",
+		name: "Internet",
 		size: { base: [3, 1] },
-		maxItems: 3,
-	},
-	server: {
-		id: "tcp-server",
-		title: "Server",
-		puzzleId: "server",
+		maxCapacity: 3,
+	}),
+	server: createGridCanvasConfig({
+		id: "server",
+		name: "Server",
 		size: { base: [2, 6], xl: [3, 4] },
-		maxItems: 12,
-	},
+		maxCapacity: 12,
+	}),
 };
+
+export const CANVAS_PUZZLES = createPuzzleConfigs(CANVAS_CONFIGS);
 
 export const INVENTORY_GROUP_IDS = {
 	files: "files",
@@ -45,6 +49,43 @@ export const INVENTORY_GROUP_IDS = {
 export const FILE_ITEM_ID = "message-file-1";
 export const NOTES_FILE_ITEM_ID = "notes-file-1";
 
+const TOOLTIP_MESSAGE_FILE = {
+	content:
+		"A large file that must be split into smaller packets before it can travel across the network.",
+	seeMoreHref: "https://en.wikipedia.org/wiki/Packet_(information_technology)",
+};
+
+const TOOLTIP_NOTES_FILE = {
+	content:
+		"Another file that needs to be split into packets before it can traverse the network.",
+	seeMoreHref: "https://en.wikipedia.org/wiki/Packet_(information_technology)",
+};
+
+const TOOLTIP_SPLIT_PACKET = {
+	content:
+		"A fragment of the original file. It must be delivered in order to reassemble the message.",
+	seeMoreHref:
+		"https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Reliable_delivery",
+};
+
+const TOOLTIP_SYN = {
+	content: "SYN starts a TCP handshake to establish a connection.",
+	seeMoreHref:
+		"https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment",
+};
+
+const TOOLTIP_ACK = {
+	content: "ACK completes the handshake so data can flow.",
+	seeMoreHref:
+		"https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment",
+};
+
+const TOOLTIP_FIN = {
+	content: "FIN closes a TCP connection cleanly after data transfer.",
+	seeMoreHref:
+		"https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_termination",
+};
+
 export const FILE_INVENTORY_ITEMS: Item[] = [
 	{
 		id: FILE_ITEM_ID,
@@ -53,6 +94,7 @@ export const FILE_INVENTORY_ITEMS: Item[] = [
 		allowedPlaces: ["inventory", "internet", "splitter"],
 		icon: { icon: "mdi:file-document-outline", color: "#93C5FD" },
 		data: { tcpState: "ready" },
+		tooltip: TOOLTIP_MESSAGE_FILE,
 	},
 ];
 
@@ -63,6 +105,7 @@ export const NOTES_FILE_ITEM: Item = {
 	allowedPlaces: ["inventory", "internet", "splitter"],
 	icon: { icon: "mdi:file-document-outline", color: "#60A5FA" },
 	data: { tcpState: "ready" },
+	tooltip: TOOLTIP_NOTES_FILE,
 };
 
 export const MESSAGE_PACKET_IDS = [
@@ -95,6 +138,7 @@ export const MESSAGE_PACKET_ITEMS: Item[] = MESSAGE_PACKET_IDS.map(
 			tcpState: "idle",
 			fileKey: "message",
 		},
+		tooltip: TOOLTIP_SPLIT_PACKET,
 	}),
 );
 
@@ -111,6 +155,7 @@ export const NOTES_PACKET_ITEMS: Item[] = NOTES_PACKET_IDS.map(
 			tcpState: "idle",
 			fileKey: "notes",
 		},
+		tooltip: TOOLTIP_SPLIT_PACKET,
 	}),
 );
 
@@ -122,6 +167,7 @@ export const TCP_TOOL_ITEMS: Record<"syn" | "ack" | "fin", Item> = {
 		allowedPlaces: ["inventory", "internet", "server"],
 		icon: { icon: "mdi:flag-outline", color: "#FBBF24" },
 		data: { tcpState: "idle" },
+		tooltip: TOOLTIP_SYN,
 	},
 	ack: {
 		id: "ack-flag-1",
@@ -130,6 +176,7 @@ export const TCP_TOOL_ITEMS: Record<"syn" | "ack" | "fin", Item> = {
 		allowedPlaces: ["inventory", "internet", "server"],
 		icon: { icon: "mdi:flag", color: "#10B981" },
 		data: { tcpState: "idle" },
+		tooltip: TOOLTIP_ACK,
 	},
 	fin: {
 		id: "fin-flag-1",
@@ -138,6 +185,7 @@ export const TCP_TOOL_ITEMS: Record<"syn" | "ack" | "fin", Item> = {
 		allowedPlaces: ["inventory", "internet", "server"],
 		icon: { icon: "mdi:flag-remove", color: "#F97316" },
 		data: { tcpState: "idle" },
+		tooltip: TOOLTIP_FIN,
 	},
 };
 

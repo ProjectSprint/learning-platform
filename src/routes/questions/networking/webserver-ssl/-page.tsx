@@ -45,6 +45,7 @@ import {
 	BASIC_INVENTORY_ITEMS,
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
+	CANVAS_PUZZLES,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
@@ -54,7 +55,6 @@ import {
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
 	getSslItemLabel,
 	getSslStatusMessage,
@@ -264,7 +264,7 @@ const WebserverSslGame = ({
 				kind: "multi",
 				payload: {
 					questionId: QUESTION_ID,
-					canvases: CANVAS_CONFIGS,
+					canvases: CANVAS_PUZZLES,
 					inventoryGroups,
 					terminal: {
 						visible: false,
@@ -624,20 +624,23 @@ const WebserverSslGame = ({
 								return null;
 							}
 
-							const canvasId = config.puzzleId ?? key;
+							const canvasId = config.id;
 
 							return (
 								<Box
 									key={key}
 									flexGrow={
-										resolvePuzzleSizeValue(config.size, puzzleBreakpoint)[0]
+										resolvePuzzleSizeValue(
+											config.layout.size,
+											puzzleBreakpoint,
+										)[0]
 									}
 									flexBasis={0}
 									minW={{ base: "100%", xl: "0" }}
 								>
 									<PuzzleBoard
 										puzzleId={canvasId}
-										title={config.title ?? key}
+										title={config.name ?? key}
 										getItemLabel={spec.labels.getItemLabel}
 										getStatusMessage={spec.labels.getStatusMessage}
 										onPlacedItemClick={handlePlacedItemClick}
@@ -648,10 +651,7 @@ const WebserverSslGame = ({
 						})}
 					</Flex>
 
-					<InventoryDrawer
-						ref={inventoryDrawerRef}
-						tooltips={INVENTORY_TOOLTIPS}
-					/>
+					<InventoryDrawer ref={inventoryDrawerRef} />
 
 					<ContextualHint />
 

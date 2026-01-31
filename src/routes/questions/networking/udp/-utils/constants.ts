@@ -1,13 +1,46 @@
 import type {
 	InventoryGroupConfig,
 	Item,
-	PuzzleConfig,
 } from "@/components/game/game-provider";
+import {
+	createGridCanvasConfig,
+	createPuzzleConfigs,
+	type GridCanvasConfig,
+} from "../../-utils/grid-space";
 
 export const QUESTION_ID = "udp-video-streaming";
 export const QUESTION_TITLE = "📺 Stream movie.mp4 to 3 viewers";
 export const QUESTION_DESCRIPTION =
 	"Your viewers are waiting! Establish connections and deliver the video stream to all clients.";
+
+const TOOLTIP_SYN = {
+	content: "SYN starts a TCP handshake to establish a connection.",
+	seeMoreHref:
+		"https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment",
+};
+
+const TOOLTIP_SYN_ACK = {
+	content: "SYN-ACK confirms the server received the SYN and is ready.",
+	seeMoreHref:
+		"https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment",
+};
+
+const TOOLTIP_ACK = {
+	content: "ACK completes the TCP handshake so data can flow.",
+	seeMoreHref:
+		"https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment",
+};
+
+const TOOLTIP_DATA = {
+	content: "A video packet that must be acknowledged in TCP.",
+	seeMoreHref:
+		"https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Reliable_delivery",
+};
+
+const TOOLTIP_FRAME = {
+	content: "A UDP frame broadcast to all viewers without waiting for ACKs.",
+	seeMoreHref: "https://en.wikipedia.org/wiki/User_Datagram_Protocol",
+};
 
 export const TCP_CLIENT_IDS = ["a", "b", "c", "d"] as const;
 export const INITIAL_TCP_CLIENT_IDS = ["a", "b", "c"] as const;
@@ -48,64 +81,58 @@ export const TCP_CANVAS_ORDER: UdpCanvasKey[] = [
 
 export const UDP_CANVAS_ORDER: UdpCanvasKey[] = ["internet"];
 
-export const CANVAS_CONFIGS: Record<UdpCanvasKey, PuzzleConfig> = {
-	internet: {
-		id: "udp-internet",
-		title: "Internet",
-		puzzleId: "internet",
+export const CANVAS_CONFIGS: Record<UdpCanvasKey, GridCanvasConfig> = {
+	internet: createGridCanvasConfig({
+		id: "internet",
+		name: "Internet",
 		size: { base: [3, 1] },
-		maxItems: 3,
-	},
-	"client-a-inbox": {
-		id: "udp-client-a-inbox",
-		title: "Client A",
-		puzzleId: "client-a-inbox",
+		maxCapacity: 3,
+	}),
+	"client-a-inbox": createGridCanvasConfig({
+		id: "client-a-inbox",
+		name: "Client A",
 		size: { base: [2, 2] },
-		maxItems: 4,
-	},
-	"client-b-inbox": {
-		id: "udp-client-b-inbox",
-		title: "Client B",
-		puzzleId: "client-b-inbox",
+		maxCapacity: 4,
+	}),
+	"client-b-inbox": createGridCanvasConfig({
+		id: "client-b-inbox",
+		name: "Client B",
 		size: { base: [2, 2] },
-		maxItems: 4,
-	},
-	"client-c-inbox": {
-		id: "udp-client-c-inbox",
-		title: "Client C",
-		puzzleId: "client-c-inbox",
+		maxCapacity: 4,
+	}),
+	"client-c-inbox": createGridCanvasConfig({
+		id: "client-c-inbox",
+		name: "Client C",
 		size: { base: [2, 2] },
-		maxItems: 4,
-	},
-	"client-d-inbox": {
-		id: "udp-client-d-inbox",
-		title: "Client D",
-		puzzleId: "client-d-inbox",
+		maxCapacity: 4,
+	}),
+	"client-d-inbox": createGridCanvasConfig({
+		id: "client-d-inbox",
+		name: "Client D",
 		size: { base: [2, 2] },
-		maxItems: 4,
-	},
-	"client-a": {
-		id: "udp-client-a",
-		title: "Client A",
-		puzzleId: "client-a",
+		maxCapacity: 4,
+	}),
+	"client-a": createGridCanvasConfig({
+		id: "client-a",
+		name: "Client A",
 		size: { base: [1, 1] },
-		maxItems: 0,
-	},
-	"client-b": {
-		id: "udp-client-b",
-		title: "Client B",
-		puzzleId: "client-b",
+		maxCapacity: 0,
+	}),
+	"client-b": createGridCanvasConfig({
+		id: "client-b",
+		name: "Client B",
 		size: { base: [1, 1] },
-		maxItems: 0,
-	},
-	"client-c": {
-		id: "udp-client-c",
-		title: "Client C",
-		puzzleId: "client-c",
+		maxCapacity: 0,
+	}),
+	"client-c": createGridCanvasConfig({
+		id: "client-c",
+		name: "Client C",
 		size: { base: [1, 1] },
-		maxItems: 0,
-	},
+		maxCapacity: 0,
+	}),
 };
+
+export const CANVAS_PUZZLES = createPuzzleConfigs(CANVAS_CONFIGS);
 
 export const INVENTORY_GROUP_IDS = {
 	received: "received",
@@ -136,6 +163,7 @@ export const buildSynPacket = (clientId: TcpClientId): Item => ({
 	],
 	icon: { icon: "mdi:handshake-outline", color: "#FBBF24" },
 	data: { clientId, tcpState: "pending" },
+	tooltip: TOOLTIP_SYN,
 });
 
 export const buildReceivedSynPacket = (clientId: TcpClientId): Item => ({
@@ -166,6 +194,7 @@ export const buildSynAckPacket = (clientId: TcpClientId): Item => ({
 	],
 	icon: { icon: "mdi:handshake", color: "#F59E0B" },
 	data: { clientId, tcpState: "pending" },
+	tooltip: TOOLTIP_SYN_ACK,
 });
 
 export const buildAckPacket = (clientId: TcpClientId): Item => ({
@@ -181,6 +210,7 @@ export const buildAckPacket = (clientId: TcpClientId): Item => ({
 	],
 	icon: { icon: "mdi:check-circle-outline", color: "#10B981" },
 	data: { clientId, tcpState: "pending" },
+	tooltip: TOOLTIP_ACK,
 });
 
 export const buildDataPacket = (clientId: TcpClientId, seq: number): Item => ({
@@ -197,6 +227,7 @@ export const buildDataPacket = (clientId: TcpClientId, seq: number): Item => ({
 	],
 	icon: { icon: "mdi:filmstrip", color: "#60A5FA" },
 	data: { clientId, seq, tcpState: "pending" },
+	tooltip: TOOLTIP_DATA,
 });
 
 export const buildFrameItem = (frameNumber: number): Item => ({
@@ -206,6 +237,7 @@ export const buildFrameItem = (frameNumber: number): Item => ({
 	allowedPlaces: ["inventory", "internet"],
 	icon: { icon: "mdi:filmstrip-box", color: "#8B5CF6" },
 	data: { frameNumber, state: "ready" },
+	tooltip: TOOLTIP_FRAME,
 });
 
 export const SYN_PACKETS: Item[] = INITIAL_TCP_CLIENT_IDS.map((clientId) =>

@@ -35,7 +35,12 @@
       "Bash(git push)",
       "Bash(bd create:*)",
       "Bash(git mv:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run:*)",
+      "Bash(pnpm check:tsc:*)",
+      "Bash(wc:*)",
+      "Bash(npm test:*)"
     ]
   }
 }

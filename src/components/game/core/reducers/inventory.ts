@@ -135,6 +135,36 @@ export const inventoryReducer = (
 				inventory: { groups: nextGroups },
 			};
 		}
+		case "UPDATE_ITEM_TOOLTIP": {
+			const { itemId, tooltip } = action.payload;
+			let updated = false;
+
+			const nextGroups = state.inventory.groups.map((group) => {
+				let groupUpdated = false;
+				const nextItems = group.items.map((item) => {
+					if (item.id !== itemId) {
+						return item;
+					}
+					groupUpdated = true;
+					updated = true;
+					return {
+						...item,
+						tooltip: tooltip ?? undefined,
+					};
+				});
+
+				return groupUpdated ? { ...group, items: nextItems } : group;
+			});
+
+			if (!updated) {
+				return state;
+			}
+
+			return {
+				...state,
+				inventory: { groups: nextGroups },
+			};
+		}
 		case "PURGE_ITEMS": {
 			const itemIds = new Set(action.payload.itemIds);
 			if (itemIds.size === 0) {

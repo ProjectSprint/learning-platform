@@ -53,7 +53,10 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				}
 			}
 
-			const [columns] = resolvePuzzleSizeValue(config.size, puzzleBreakpoint);
+			const [columns] = resolvePuzzleSizeValue(
+				config.layout.size,
+				puzzleBreakpoint,
+			);
 			offsetX += columns;
 		}
 

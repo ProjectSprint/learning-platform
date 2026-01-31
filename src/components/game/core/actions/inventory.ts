@@ -1,4 +1,4 @@
-import type { InventoryGroupConfig, Item } from "../types";
+import type { InventoryGroupConfig, Item, ItemTooltip } from "../types";
 
 export type InventoryAction =
 	| {
@@ -12,6 +12,13 @@ export type InventoryAction =
 				title?: string;
 				visible?: boolean;
 				items?: Item[];
+			};
+	  }
+	| {
+			type: "UPDATE_ITEM_TOOLTIP";
+			payload: {
+				itemId: string;
+				tooltip?: ItemTooltip | null;
 			};
 	  }
 	| {

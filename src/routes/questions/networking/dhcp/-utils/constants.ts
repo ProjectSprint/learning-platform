@@ -4,9 +4,13 @@
 import type {
 	InventoryGroupConfig,
 	Item,
-	PuzzleConfig,
 	TerminalEntry,
 } from "@/components/game/game-provider";
+import {
+	createGridCanvasConfig,
+	createPuzzleConfigs,
+	type GridCanvasConfig,
+} from "../../-utils/grid-space";
 
 export const QUESTION_ID = "networking";
 export const QUESTION_TITLE = "🏡 Setup your home connection!";
@@ -28,6 +32,18 @@ export const TERMINAL_INTRO_ENTRIES: TerminalEntry[] = [
 		timestamp: 1,
 	},
 ];
+
+const TOOLTIP_CABLE = {
+	content:
+		"Ethernet cables connect devices in a network, enabling data transfer between computers and routers.",
+	seeMoreHref: "https://www.google.com/search?q=what+is+ethernet+cable",
+};
+
+const TOOLTIP_ROUTER = {
+	content:
+		"A router connects multiple devices in a network and directs traffic between them.",
+	seeMoreHref: "https://www.google.com/search?q=what+is+a+router",
+};
 
 // Initial inventory items available for the networking question
 export const INVENTORY_ITEMS: Item[] = [
@@ -51,6 +67,7 @@ export const INVENTORY_ITEMS: Item[] = [
 		name: "Router",
 		allowedPlaces: ["inventory", "router-board"],
 		icon: { icon: "streamline-flex-color:router-wifi-network" },
+		tooltip: TOOLTIP_ROUTER,
 	},
 	{
 		id: "cable-1",
@@ -58,6 +75,7 @@ export const INVENTORY_ITEMS: Item[] = [
 		name: "Cable",
 		allowedPlaces: ["inventory", "connector-left", "connector-right"],
 		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
+		tooltip: TOOLTIP_CABLE,
 	},
 	{
 		id: "cable-2",
@@ -65,6 +83,7 @@ export const INVENTORY_ITEMS: Item[] = [
 		name: "Cable",
 		allowedPlaces: ["inventory", "connector-left", "connector-right"],
 		icon: { icon: "mdi:ethernet-cable", color: "#2596be" },
+		tooltip: TOOLTIP_CABLE,
 	},
 ];
 
@@ -93,43 +112,40 @@ export const CANVAS_ORDER = [
 	DHCP_CANVAS_IDS.pc2,
 ];
 
-export const CANVAS_CONFIGS: Record<string, PuzzleConfig> = {
-	[DHCP_CANVAS_IDS.pc1]: {
-		id: "dhcp-pc-1",
-		title: "PC-1",
-		puzzleId: DHCP_CANVAS_IDS.pc1,
+export const CANVAS_CONFIGS: Record<string, GridCanvasConfig> = {
+	[DHCP_CANVAS_IDS.pc1]: createGridCanvasConfig({
+		id: DHCP_CANVAS_IDS.pc1,
+		name: "PC-1",
 		size: { base: [1, 1] },
-		maxItems: 1,
-	},
-	[DHCP_CANVAS_IDS.conn1]: {
-		id: "dhcp-connector-left",
-		title: "Connector",
-		puzzleId: DHCP_CANVAS_IDS.conn1,
+		maxCapacity: 1,
+	}),
+	[DHCP_CANVAS_IDS.conn1]: createGridCanvasConfig({
+		id: DHCP_CANVAS_IDS.conn1,
+		name: "Connector",
 		size: { base: [1, 1] },
-		maxItems: 1,
-	},
-	[DHCP_CANVAS_IDS.router]: {
-		id: "dhcp-router",
-		title: "Router",
-		puzzleId: DHCP_CANVAS_IDS.router,
+		maxCapacity: 1,
+	}),
+	[DHCP_CANVAS_IDS.router]: createGridCanvasConfig({
+		id: DHCP_CANVAS_IDS.router,
+		name: "Router",
 		size: { base: [1, 1] },
-		maxItems: 1,
-	},
-	[DHCP_CANVAS_IDS.conn2]: {
-		id: "dhcp-connector-right",
-		title: "Connector",
-		puzzleId: DHCP_CANVAS_IDS.conn2,
+		maxCapacity: 1,
+	}),
+	[DHCP_CANVAS_IDS.conn2]: createGridCanvasConfig({
+		id: DHCP_CANVAS_IDS.conn2,
+		name: "Connector",
 		size: { base: [1, 1] },
-		maxItems: 1,
-	},
-	[DHCP_CANVAS_IDS.pc2]: {
-		id: "dhcp-pc-2",
-		title: "PC-2",
-		puzzleId: DHCP_CANVAS_IDS.pc2,
+		maxCapacity: 1,
+	}),
+	[DHCP_CANVAS_IDS.pc2]: createGridCanvasConfig({
+		id: DHCP_CANVAS_IDS.pc2,
+		name: "PC-2",
 		size: { base: [1, 1] },
-		maxItems: 1,
-	},
+		maxCapacity: 1,
+	}),
 };
+
+export const CANVAS_PUZZLES = createPuzzleConfigs(CANVAS_CONFIGS);
 
 // Private IP address ranges for validation
 export const PRIVATE_IP_RANGES = [

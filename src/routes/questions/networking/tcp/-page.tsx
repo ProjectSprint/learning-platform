@@ -43,6 +43,7 @@ import type { QuestionProps } from "@/components/module";
 import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
+	CANVAS_PUZZLES,
 	FILE_INVENTORY_ITEMS,
 	INVENTORY_GROUP_IDS,
 	QUESTION_DESCRIPTION,
@@ -51,7 +52,6 @@ import {
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
 	getTcpItemLabel,
 	getTcpStatusMessage,
@@ -144,7 +144,7 @@ const TcpGame = ({
 				kind: "multi",
 				payload: {
 					questionId: QUESTION_ID,
-					canvases: CANVAS_CONFIGS,
+					canvases: CANVAS_PUZZLES,
 					inventoryGroups,
 					terminal: {
 						visible: false,
@@ -373,7 +373,10 @@ const TcpGame = ({
 										<Box
 											key={key}
 											flexGrow={
-												resolvePuzzleSizeValue(config.size, puzzleBreakpoint)[0]
+												resolvePuzzleSizeValue(
+													config.layout.size,
+													puzzleBreakpoint,
+												)[0]
 											}
 											flexBasis={0}
 											minW={{ base: "100%", xl: "0" }}
@@ -394,7 +397,7 @@ const TcpGame = ({
 													<Box flex="1" minW={{ base: "100%", sm: "0" }}>
 														<PuzzleBoard
 															puzzleId={key}
-															title={config.title ?? key}
+															title={config.name ?? key}
 															getItemLabel={spec.labels.getItemLabel}
 															getStatusMessage={spec.labels.getStatusMessage}
 														/>
@@ -462,7 +465,7 @@ const TcpGame = ({
 											) : (
 												<PuzzleBoard
 													puzzleId={key}
-													title={config.title ?? key}
+													title={config.name ?? key}
 													getItemLabel={spec.labels.getItemLabel}
 													getStatusMessage={spec.labels.getStatusMessage}
 												/>
@@ -490,10 +493,7 @@ const TcpGame = ({
 						</Box>
 					)}
 
-					<InventoryDrawer
-						ref={inventoryDrawerRef}
-						tooltips={INVENTORY_TOOLTIPS}
-					/>
+					<InventoryDrawer ref={inventoryDrawerRef} />
 
 					<ContextualHint />
 

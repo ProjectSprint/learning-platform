@@ -1,11 +1,12 @@
 // Constants for the webserver-ssl question
 // Contains all static configuration: items, canvases, inventory groups
 
-import type {
-	Item,
-	PuzzleConfig,
-	TerminalEntry,
-} from "@/components/game/game-provider";
+import type { Item, TerminalEntry } from "@/components/game/game-provider";
+import {
+	createGridCanvasConfig,
+	createPuzzleConfigs,
+	type GridCanvasConfig,
+} from "../../-utils/grid-space";
 
 export const QUESTION_ID = "webserver-ssl";
 export const QUESTION_TITLE = "🔒 Secure Your Website!";
@@ -27,36 +28,34 @@ export const CANVAS_ORDER: WebSslCanvasKey[] = [
 	"port-443",
 ];
 
-export const CANVAS_CONFIGS: Record<WebSslCanvasKey, PuzzleConfig> = {
-	browser: {
-		id: "ssl-browser",
-		title: "Browser",
-		puzzleId: "browser",
+export const CANVAS_CONFIGS: Record<WebSslCanvasKey, GridCanvasConfig> = {
+	browser: createGridCanvasConfig({
+		id: "browser",
+		name: "Browser",
 		size: { base: [1, 1] },
-		maxItems: 1,
-	},
-	"port-80": {
-		id: "ssl-port-80",
-		title: "HTTP Webserver",
-		puzzleId: "port-80",
+		maxCapacity: 1,
+	}),
+	"port-80": createGridCanvasConfig({
+		id: "port-80",
+		name: "HTTP Webserver",
 		size: { base: [3, 1] },
-		maxItems: 3,
-	},
-	letsencrypt: {
-		id: "ssl-letsencrypt",
-		title: "Let's Encrypt",
-		puzzleId: "letsencrypt",
+		maxCapacity: 3,
+	}),
+	letsencrypt: createGridCanvasConfig({
+		id: "letsencrypt",
+		name: "Let's Encrypt",
 		size: { base: [1, 1] },
-		maxItems: 1,
-	},
-	"port-443": {
-		id: "ssl-port-443",
-		title: "HTTPS Webserver",
-		puzzleId: "port-443",
+		maxCapacity: 1,
+	}),
+	"port-443": createGridCanvasConfig({
+		id: "port-443",
+		name: "HTTPS Webserver",
 		size: { base: [5, 1] },
-		maxItems: 5,
-	},
+		maxCapacity: 5,
+	}),
 };
+
+export const CANVAS_PUZZLES = createPuzzleConfigs(CANVAS_CONFIGS);
 
 export const DEFAULT_DOMAIN = "example.com";
 export const DEFAULT_INDEX_HTML = "/var/www/html/index.html";
@@ -111,6 +110,59 @@ export const TERMINAL_INTRO_ENTRIES: TerminalEntry[] = [
 	},
 ];
 
+const TOOLTIP_BROWSER = {
+	content:
+		"A web browser is software that allows users to access websites. You'll use it to test your webserver configuration.",
+	seeMoreHref:
+		"https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_web_browser",
+};
+
+const TOOLTIP_WEBSERVER_80 = {
+	content:
+		"An HTTP webserver serves unencrypted content on port 80. Anyone on the network can see what's being sent!",
+	seeMoreHref:
+		"https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_web_server",
+};
+
+const TOOLTIP_WEBSERVER_443 = {
+	content:
+		"An HTTPS webserver serves encrypted content on port 443. It requires an SSL certificate and private key.",
+	seeMoreHref:
+		"https://developer.mozilla.org/en-US/docs/Web/Security/Secure_contexts",
+};
+
+const TOOLTIP_DOMAIN = {
+	content:
+		"A domain name (like example.com) is the address where your website can be found on the internet.",
+	seeMoreHref:
+		"https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_domain_name",
+};
+
+const TOOLTIP_INDEX_HTML = {
+	content:
+		"The index.html file is the default page your webserver serves when someone visits your website.",
+	seeMoreHref:
+		"https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML/Document_and_website_structure",
+};
+
+const TOOLTIP_PRIVATE_KEY = {
+	content:
+		"🔑 The private key is SECRET. It stays on your server and is used to decrypt incoming HTTPS traffic. NEVER share it with anyone!",
+	seeMoreHref: "https://www.digicert.com/faq/what-is-a-private-key.htm",
+};
+
+const TOOLTIP_CERTIFICATE = {
+	content:
+		"📜 The domain certificate contains your public key and proves your server's identity to browsers. It's PUBLIC - you share it with visitors.",
+	seeMoreHref: "https://www.digicert.com/faq/what-is-an-ssl-certificate.htm",
+};
+
+const TOOLTIP_REDIRECT = {
+	content:
+		"↪️ A redirect sends HTTP visitors to HTTPS automatically. This ensures everyone uses the secure connection, even if they type http://",
+	seeMoreHref: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections",
+};
+
 export const INDEX_HTML_CONTENT = `<!DOCTYPE html>
 <html>
 <head>
@@ -146,6 +198,7 @@ export const BASIC_INVENTORY_ITEMS: Item[] = [
 		name: "Browser",
 		allowedPlaces: ["inventory", "browser"],
 		icon: { icon: "mdi:web" },
+		tooltip: TOOLTIP_BROWSER,
 	},
 	{
 		id: "webserver-80-1",
@@ -153,6 +206,7 @@ export const BASIC_INVENTORY_ITEMS: Item[] = [
 		name: "Webserver (HTTP)",
 		allowedPlaces: ["inventory", "port-80"],
 		icon: { icon: "mdi:server" },
+		tooltip: TOOLTIP_WEBSERVER_80,
 	},
 	{
 		id: "domain-1",
@@ -160,6 +214,7 @@ export const BASIC_INVENTORY_ITEMS: Item[] = [
 		name: "Domain",
 		allowedPlaces: ["inventory", "port-80", "port-443", "letsencrypt"],
 		icon: { icon: "mdi:domain" },
+		tooltip: TOOLTIP_DOMAIN,
 	},
 	{
 		id: "index-html-1",
@@ -167,6 +222,7 @@ export const BASIC_INVENTORY_ITEMS: Item[] = [
 		name: "index.html",
 		allowedPlaces: ["inventory", "port-80", "port-443"],
 		icon: { icon: "mdi:file-code" },
+		tooltip: TOOLTIP_INDEX_HTML,
 	},
 ];
 
@@ -178,6 +234,7 @@ export const SSL_SETUP_INVENTORY_ITEMS: Item[] = [
 		name: "Webserver (HTTPS)",
 		allowedPlaces: ["inventory", "port-443"],
 		icon: { icon: "mdi:server-security" },
+		tooltip: TOOLTIP_WEBSERVER_443,
 	},
 	{
 		id: "domain-2",
@@ -185,6 +242,7 @@ export const SSL_SETUP_INVENTORY_ITEMS: Item[] = [
 		name: "Domain",
 		allowedPlaces: ["inventory", "port-80", "port-443", "letsencrypt"],
 		icon: { icon: "mdi:domain" },
+		tooltip: TOOLTIP_DOMAIN,
 	},
 	{
 		id: "domain-3",
@@ -192,6 +250,7 @@ export const SSL_SETUP_INVENTORY_ITEMS: Item[] = [
 		name: "Domain",
 		allowedPlaces: ["inventory", "port-80", "port-443", "letsencrypt"],
 		icon: { icon: "mdi:domain" },
+		tooltip: TOOLTIP_DOMAIN,
 	},
 	{
 		id: "redirect-https-1",
@@ -199,6 +258,7 @@ export const SSL_SETUP_INVENTORY_ITEMS: Item[] = [
 		name: "Redirect HTTP to HTTPS",
 		allowedPlaces: ["inventory", "port-80"],
 		icon: { icon: "mdi:arrow-right-bold" },
+		tooltip: TOOLTIP_REDIRECT,
 	},
 ];
 
@@ -210,6 +270,7 @@ export const SSL_ITEMS_INVENTORY: Item[] = [
 		name: "Private Key",
 		allowedPlaces: ["inventory", "port-443"],
 		icon: { icon: "mdi:key" },
+		tooltip: TOOLTIP_PRIVATE_KEY,
 	},
 	{
 		id: "certificate-1",
@@ -217,6 +278,7 @@ export const SSL_ITEMS_INVENTORY: Item[] = [
 		name: "Domain Certificate",
 		allowedPlaces: ["inventory", "port-443"],
 		icon: { icon: "mdi:card-account-details" },
+		tooltip: TOOLTIP_CERTIFICATE,
 	},
 ];
 

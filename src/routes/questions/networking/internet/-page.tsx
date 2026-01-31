@@ -48,6 +48,7 @@ import type { QuestionProps } from "@/components/module";
 import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
+	CANVAS_PUZZLES,
 	INVENTORY_GROUPS,
 	type InternetCanvasKey,
 	QUESTION_DESCRIPTION,
@@ -57,7 +58,6 @@ import {
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
 	getInternetItemLabel,
 	getInternetStatusMessage,
@@ -95,7 +95,7 @@ const INTERNET_SPEC_BASE: Omit<
 		kind: "multi",
 		payload: {
 			questionId: QUESTION_ID,
-			canvases: CANVAS_CONFIGS,
+			canvases: CANVAS_PUZZLES,
 			inventoryGroups: INVENTORY_GROUPS,
 			terminal: {
 				visible: false,
@@ -535,8 +535,11 @@ const InternetGame = ({
 	const renderBoard = useCallback(
 		(key: InternetCanvasKey, minW: BoxProps["minW"]) => {
 			const config = CANVAS_CONFIGS[key];
-			const title = config.title ?? key;
-			const [columns] = resolvePuzzleSizeValue(config.size, puzzleBreakpoint);
+			const title = config.name ?? key;
+			const [columns] = resolvePuzzleSizeValue(
+				config.layout.size,
+				puzzleBreakpoint,
+			);
 
 			return (
 				<Box key={key} flexGrow={columns} flexBasis={0} minW={minW}>
@@ -650,10 +653,7 @@ const InternetGame = ({
 						</BoardArrowSurface>
 					</BoardRegistryProvider>
 
-					<InventoryDrawer
-						ref={inventoryDrawerRef}
-						tooltips={INVENTORY_TOOLTIPS}
-					/>
+					<InventoryDrawer ref={inventoryDrawerRef} />
 
 					<ContextualHint />
 

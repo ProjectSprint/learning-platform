@@ -1,11 +1,17 @@
 import type { IconInfo } from "./icon";
 
+export type ItemTooltip = {
+	content: string;
+	seeMoreHref?: string;
+};
+
 export type Item = {
 	id: string;
 	type: string;
 	name?: string;
 	allowedPlaces: string[];
 	icon?: IconInfo;
+	tooltip?: ItemTooltip;
 	data?: Record<string, unknown>;
 	draggable?: boolean;
 	category?: string;

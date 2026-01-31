@@ -42,6 +42,7 @@ import type { QuestionProps } from "@/components/module";
 
 import {
 	CANVAS_CONFIGS,
+	CANVAS_PUZZLES,
 	DATA_PACKET_COUNT,
 	INVENTORY_GROUPS,
 	QUESTION_DESCRIPTION,
@@ -52,7 +53,6 @@ import {
 	UDP_CANVAS_ORDER,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
 	getUdpItemLabel,
 	getUdpStatusMessage,
@@ -188,7 +188,7 @@ const UdpGame = ({
 				kind: "multi",
 				payload: {
 					questionId: QUESTION_ID,
-					canvases: CANVAS_CONFIGS,
+					canvases: CANVAS_PUZZLES,
 					inventoryGroups: INVENTORY_GROUPS,
 					phase: "setup",
 					questionStatus: "in_progress",
@@ -250,7 +250,7 @@ const UdpGame = ({
 		expectedFrame: udpState.expectedFrame,
 		packetsSent: tcpState.packetsSent,
 	});
-	useContextualHint(contextualHint);
+	useContextualHint(contextualHint ?? "");
 
 	const notice = tcpState.notice ?? udpState.notice;
 
@@ -275,7 +275,10 @@ const UdpGame = ({
 	]);
 
 	const tcpClientProgressById = useMemo(
-		() => new Map(tcpClientProgress.map((client) => [client.clientId, client])),
+		() =>
+			new Map<string, (typeof tcpClientProgress)[number]>(
+				tcpClientProgress.map((client) => [client.clientId, client]),
+			),
 		[tcpClientProgress],
 	);
 
@@ -423,7 +426,7 @@ const UdpGame = ({
 														key={key}
 														flexGrow={
 															resolvePuzzleSizeValue(
-																config.size,
+																config.layout.size,
 																puzzleBreakpoint,
 															)[0]
 														}
@@ -437,7 +440,7 @@ const UdpGame = ({
 													>
 														<PuzzleBoard
 															puzzleId={key}
-															title={config.title ?? key}
+															title={config.name ?? key}
 															getItemLabel={spec.labels.getItemLabel}
 															getStatusMessage={spec.labels.getStatusMessage}
 														/>
@@ -450,7 +453,7 @@ const UdpGame = ({
 													key={key}
 													flexGrow={
 														resolvePuzzleSizeValue(
-															config.size,
+															config.layout.size,
 															puzzleBreakpoint,
 														)[0]
 													}
@@ -466,7 +469,7 @@ const UdpGame = ({
 													<Box opacity={0} pointerEvents="auto">
 														<PuzzleBoard
 															puzzleId={key}
-															title={config.title ?? key}
+															title={config.name ?? key}
 															getItemLabel={spec.labels.getItemLabel}
 															getStatusMessage={spec.labels.getStatusMessage}
 														/>
@@ -505,13 +508,13 @@ const UdpGame = ({
 									</Flex>
 
 									<Box
-										flexGrow={CANVAS_CONFIGS.internet.columns}
+										flexGrow={CANVAS_CONFIGS.internet.cols}
 										flexBasis={0}
 										minW={{ base: "100%", md: "260px" }}
 									>
 										<PuzzleBoard
 											puzzleId="internet"
-											title={CANVAS_CONFIGS.internet.title ?? "internet"}
+											title={CANVAS_CONFIGS.internet.name ?? "internet"}
 											getItemLabel={spec.labels.getItemLabel}
 											getStatusMessage={spec.labels.getStatusMessage}
 										/>
@@ -583,13 +586,13 @@ const UdpGame = ({
 												const config = CANVAS_CONFIGS[key];
 												if (!config) return null;
 												const title =
-													key === "internet" ? "Outbox" : (config.title ?? key);
+													key === "internet" ? "Outbox" : (config.name ?? key);
 												return (
 													<Box
 														key={key}
 														flexGrow={
 															resolvePuzzleSizeValue(
-																config.size,
+																config.layout.size,
 																puzzleBreakpoint,
 															)[0]
 														}
@@ -612,10 +615,7 @@ const UdpGame = ({
 						</BoardArrowSurface>
 					</BoardRegistryProvider>
 
-					<InventoryDrawer
-						ref={inventoryDrawerRef}
-						tooltips={INVENTORY_TOOLTIPS}
-					/>
+					<InventoryDrawer ref={inventoryDrawerRef} />
 
 					{notice && (
 						<Box

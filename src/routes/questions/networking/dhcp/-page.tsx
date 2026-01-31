@@ -38,6 +38,7 @@ import type { QuestionProps } from "@/components/module";
 import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
+	CANVAS_PUZZLES,
 	DHCP_CANVAS_IDS,
 	INVENTORY_GROUPS,
 	QUESTION_DESCRIPTION,
@@ -47,7 +48,6 @@ import {
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import { INVENTORY_TOOLTIPS } from "./-utils/inventory-tooltips";
 import {
 	getNetworkingItemLabel,
 	getNetworkingStatusMessage,
@@ -71,7 +71,7 @@ const DHCP_SPEC_BASE: Omit<QuestionSpec<DhcpConditionKey>, "handlers"> = {
 		kind: "multi",
 		payload: {
 			questionId: QUESTION_ID,
-			canvases: CANVAS_CONFIGS,
+			canvases: CANVAS_PUZZLES,
 			inventoryGroups: INVENTORY_GROUPS,
 			terminal: {
 				visible: false,
@@ -170,7 +170,7 @@ const NetworkingGame = ({
 				...DHCP_SPEC_BASE.init,
 				payload: {
 					...DHCP_SPEC_BASE.init.payload,
-					canvases: CANVAS_CONFIGS,
+					canvases: CANVAS_PUZZLES,
 				},
 			},
 		}),
@@ -423,7 +423,7 @@ const NetworkingGame = ({
 										>
 											<PuzzleBoard
 												puzzleId={canvasId}
-												title={config.title ?? canvasId}
+												title={config.name ?? canvasId}
 												getItemLabel={spec.labels.getItemLabel}
 												getStatusMessage={spec.labels.getStatusMessage}
 												onPlacedItemClick={handlePlacedItemClick}
@@ -436,10 +436,7 @@ const NetworkingGame = ({
 						</BoardArrowSurface>
 					</BoardRegistryProvider>
 
-					<InventoryDrawer
-						ref={inventoryDrawerRef}
-						tooltips={INVENTORY_TOOLTIPS}
-					/>
+					<InventoryDrawer ref={inventoryDrawerRef} />
 
 					<ContextualHint />
 

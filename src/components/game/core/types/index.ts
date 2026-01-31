@@ -20,6 +20,7 @@ export type {
 	InventoryGroup,
 	InventoryGroupConfig,
 	Item,
+	ItemTooltip,
 } from "./inventory";
 // Modal types
 export type { ModalInstance, OverlayState } from "./modal";
