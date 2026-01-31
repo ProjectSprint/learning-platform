@@ -5,7 +5,10 @@
 import type { CoreAction } from "../actions/core";
 import type { GameState } from "../types";
 
-export const coreReducer = (state: GameState, action: CoreAction): GameState => {
+export const coreReducer = (
+	state: GameState,
+	action: CoreAction,
+): GameState => {
 	switch (action.type) {
 		case "SET_PHASE":
 			return {

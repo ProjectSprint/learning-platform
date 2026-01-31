@@ -8,10 +8,7 @@ import type { Entity } from "@/components/game/domain/entity/Entity";
 import { GridSpace } from "@/components/game/domain/space/GridSpace";
 import type { DragEngine } from "@/components/game/engines";
 import type { BoardItemLocation } from "@/components/game/game-provider";
-import {
-	useGameDispatch,
-	useGameState,
-} from "@/components/game/game-provider";
+import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import {
 	CANVAS_ORDER,
 	GOOGLE_IP,

@@ -3,12 +3,16 @@
  * These handle the UI-related state that doesn't fit into the Space/Entity model.
  */
 
+import type {
+	Arrow,
+	TerminalEntry,
+	TerminalEntryType,
+} from "../../../core/types";
 import {
 	MAX_HISTORY_ENTRIES,
 	sanitizeTerminalInput,
 	sanitizeTerminalOutput,
 } from "../../../validation/sanitize";
-import type { Arrow, TerminalEntry, TerminalEntryType } from "../../../core/types";
 import type { UIAction } from "../actions/ui";
 import type { GameState } from "../types";
 

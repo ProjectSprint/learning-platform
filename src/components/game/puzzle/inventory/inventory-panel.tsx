@@ -1,6 +1,7 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { useCallback, useMemo, useRef } from "react";
+import { createCompatState } from "../../application/compat/state-conversion";
 import type { IconInfo, Item, ItemTooltip } from "../../game-provider";
 import { useGameState } from "../../game-provider";
 import { InfoTooltip } from "../../help";
@@ -92,12 +93,17 @@ const InventorySlot = ({
 };
 
 export const InventoryPanel = () => {
-	const { inventory, puzzles, puzzle } = useGameState();
+	const state = useGameState();
+	const { inventory, puzzles, puzzle } = useMemo(
+		() => createCompatState(state),
+		[state],
+	);
 	const { activeDrag, setActiveDrag, setLastDropResult } = useDragContext();
 	const slotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const slotSize = useInventorySlotSize();
 	const visibleGroups = useMemo(
-		() => inventory.groups.filter((group) => group.visible),
+		() =>
+			inventory.groups.filter((group: { visible?: boolean }) => group.visible),
 		[inventory.groups],
 	);
 
@@ -108,8 +114,10 @@ export const InventoryPanel = () => {
 			if (puzzle) {
 				allPuzzles.push(puzzle);
 			}
-			return allPuzzles.some((p) =>
-				p.placedItems.some((placed) => placed.itemId === itemId),
+			return allPuzzles.some((p: { placedItems: Array<{ itemId: string }> }) =>
+				p.placedItems.some(
+					(placed: { itemId: string }) => placed.itemId === itemId,
+				),
 			);
 		},
 		[puzzles, puzzle],
@@ -165,67 +173,69 @@ export const InventoryPanel = () => {
 			width="fit-content"
 			overflow="visible"
 		>
-			{visibleGroups.map((group) => {
-				const items = group.items;
-				const firstEmptySlot =
-					items.find((item) => !isItemOnPuzzle(item.id))?.id ?? null;
+			{visibleGroups.map(
+				(group: { id: string; items: Item[]; title?: string }) => {
+					const items = group.items;
+					const firstEmptySlot =
+						items.find((item: Item) => !isItemOnPuzzle(item.id))?.id ?? null;
 
-				return (
-					<Box
-						key={group.id}
-						data-first-empty-slot={firstEmptySlot}
-						bg="gray.900"
-						borderTop="1px solid"
-						borderColor="gray.800"
-						p={{ base: 2, md: 3 }}
-						overflow="visible"
-					>
-						<Text fontSize="sm" fontWeight="bold" mb={3} color="gray.200">
-							{group.title}
-						</Text>
-
-						<Flex
-							as="ul"
-							role="list"
-							direction="row"
-							gap={2}
-							wrap="wrap"
-							listStyleType="none"
-							p={0}
-							m={0}
+					return (
+						<Box
+							key={group.id}
+							data-first-empty-slot={firstEmptySlot}
+							bg="gray.900"
+							borderTop="1px solid"
+							borderColor="gray.800"
+							p={{ base: 2, md: 3 }}
+							overflow="visible"
 						>
-							{items.length === 0 ? (
-								<Text fontSize="sm" color="gray.500">
-									No items.
-								</Text>
-							) : (
-								items.map((item) => {
-									const isInInventory = !isItemOnPuzzle(item.id);
-									const isDragging =
-										activeDrag?.source === "inventory" &&
-										activeDrag.data.itemId === item.id;
-									const tooltip = item.tooltip;
-									const iconInfo = item.icon;
-									return (
-										<InventorySlot
-											key={item.id}
-											item={item}
-											isEmpty={!isInInventory}
-											isDragging={isDragging}
-											slotWidth={slotSize.width}
-											slotHeight={slotSize.height}
-											onPointerDown={(e) => handlePointerDown(item, e)}
-											slotRef={setSlotRef(item.id)}
-											tooltip={tooltip}
-											iconInfo={iconInfo}
-										/>
-									);
-								})
-							)}
-						</Flex>
-					</Box>
-				);
-			})}
+							<Text fontSize="sm" fontWeight="bold" mb={3} color="gray.200">
+								{group.title}
+							</Text>
+
+							<Flex
+								as="ul"
+								role="list"
+								direction="row"
+								gap={2}
+								wrap="wrap"
+								listStyleType="none"
+								p={0}
+								m={0}
+							>
+								{items.length === 0 ? (
+									<Text fontSize="sm" color="gray.500">
+										No items.
+									</Text>
+								) : (
+									items.map((item: Item) => {
+										const isInInventory = !isItemOnPuzzle(item.id);
+										const isDragging =
+											activeDrag?.source === "inventory" &&
+											activeDrag.data.itemId === item.id;
+										const tooltip = item.tooltip;
+										const iconInfo = item.icon;
+										return (
+											<InventorySlot
+												key={item.id}
+												item={item}
+												isEmpty={!isInInventory}
+												isDragging={isDragging}
+												slotWidth={slotSize.width}
+												slotHeight={slotSize.height}
+												onPointerDown={(e) => handlePointerDown(item, e)}
+												slotRef={setSlotRef(item.id)}
+												tooltip={tooltip}
+												iconInfo={iconInfo}
+											/>
+										);
+									})
+								)}
+							</Flex>
+						</Box>
+					);
+				},
+			)}
 		</Flex>
 	);
 };

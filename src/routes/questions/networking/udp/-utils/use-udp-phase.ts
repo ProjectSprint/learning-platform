@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { BoardItemLocation } from "@/components/game/game-provider";
+import { createCompatState } from "@/components/game/application/compat/state-conversion";
+import type { BoardItemLocation, Item } from "@/components/game/game-provider";
 import {
 	useAllPuzzles,
 	useGameDispatch,
@@ -26,6 +27,7 @@ export const useUdpPhase = ({
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const canvases = useAllPuzzles();
+	const compat = useMemo(() => createCompatState(state), [state]);
 
 	const [phase, setPhase] = useState<UdpPhase>("intro");
 	const [lastSentFrame, setLastSentFrame] = useState(0);
@@ -98,18 +100,18 @@ export const useUdpPhase = ({
 	const removeInventoryItem = useCallback(
 		(itemId: string) => {
 			const existing =
-				state.inventory.groups.find(
+				compat.inventory.groups.find(
 					(group) => group.id === INVENTORY_GROUP_IDS.frames,
 				)?.items ?? [];
 			dispatch({
 				type: "UPDATE_INVENTORY_GROUP",
 				payload: {
 					id: INVENTORY_GROUP_IDS.frames,
-					items: existing.filter((item) => item.id !== itemId),
+					items: existing.filter((item: Item) => item.id !== itemId),
 				},
 			});
 		},
-		[dispatch, state.inventory.groups],
+		[dispatch, compat.inventory.groups],
 	);
 
 	useEffect(() => {

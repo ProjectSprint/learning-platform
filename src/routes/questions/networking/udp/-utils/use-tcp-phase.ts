@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createCompatState } from "@/components/game/application/compat/state-conversion";
 import type { BoardItemLocation, Item } from "@/components/game/game-provider";
 import {
 	useAllPuzzles,
@@ -69,6 +70,7 @@ export const useTcpPhase = ({
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const canvases = useAllPuzzles();
+	const compat = useMemo(() => createCompatState(state), [state]);
 
 	const [phase, setPhase] = useState<TcpPhase>("handshake-synack");
 	const [packetsSent, setPacketsSent] = useState(0);
@@ -174,8 +176,9 @@ export const useTcpPhase = ({
 
 	const getInventoryGroupItems = useCallback(
 		(id: string) =>
-			state.inventory.groups.find((group) => group.id === id)?.items ?? [],
-		[state.inventory.groups],
+			compat.inventory.groups.find((group: { id: string }) => group.id === id)
+				?.items ?? [],
+		[compat.inventory.groups],
 	);
 
 	const updateInventoryGroup = useCallback(
@@ -190,9 +193,9 @@ export const useTcpPhase = ({
 			});
 
 			if (updates.items && onInventoryExpand) {
-				const existingIds = new Set(existingItems.map((item) => item.id));
+				const existingIds = new Set(existingItems.map((item: Item) => item.id));
 				const hasNewItem = updates.items.some(
-					(item) => !existingIds.has(item.id),
+					(item: Item) => !existingIds.has(item.id),
 				);
 				if (hasNewItem) {
 					onInventoryExpand();
@@ -205,7 +208,7 @@ export const useTcpPhase = ({
 	const ensureInventoryItems = useCallback(
 		(id: string, items: Item[], visible?: boolean) => {
 			const existing = getInventoryGroupItems(id);
-			const map = new Map(existing.map((item) => [item.id, item]));
+			const map = new Map(existing.map((item: Item) => [item.id, item]));
 			for (const item of items) {
 				map.set(item.id, item);
 			}
@@ -220,7 +223,7 @@ export const useTcpPhase = ({
 	const removeInventoryItem = useCallback(
 		(id: string, itemId: string) => {
 			const existing = getInventoryGroupItems(id);
-			const nextItems = existing.filter((item) => item.id !== itemId);
+			const nextItems = existing.filter((item: Item) => item.id !== itemId);
 			updateInventoryGroup(id, {
 				items: nextItems,
 				visible:
@@ -234,7 +237,9 @@ export const useTcpPhase = ({
 
 	const findItemLocationLatest = useCallback((itemId: string) => {
 		for (const [canvasId, canvas] of Object.entries(canvasesRef.current)) {
-			const item = canvas.placedItems.find((entry) => entry.id === itemId);
+			const item = canvas.placedItems.find(
+				(entry: BoardItemLocation) => entry.id === itemId,
+			);
 			if (item) {
 				return { item, canvasId };
 			}
@@ -903,10 +908,10 @@ export const useTcpPhase = ({
 		const internetCanvas = canvases.internet;
 		if (!internetCanvas) return;
 		const currentIds = new Set(
-			internetCanvas.placedItems.map((item) => item.id),
+			internetCanvas.placedItems.map((item: BoardItemLocation) => item.id),
 		);
 		const newItems = internetCanvas.placedItems.filter(
-			(item) => !prevInternetIdsRef.current.has(item.id),
+			(item: BoardItemLocation) => !prevInternetIdsRef.current.has(item.id),
 		);
 
 		for (const item of newItems) {
@@ -933,11 +938,11 @@ export const useTcpPhase = ({
 			const inboxCanvas = canvases[inboxId];
 			if (!inboxCanvas) continue;
 			const currentIds = new Set(
-				inboxCanvas.placedItems.map((item) => item.id),
+				inboxCanvas.placedItems.map((item: BoardItemLocation) => item.id),
 			);
 			const prevIds = prevInboxIdsRef.current[inboxId] ?? new Set();
 			const newItems = inboxCanvas.placedItems.filter(
-				(item) => !prevIds.has(item.id),
+				(item: BoardItemLocation) => !prevIds.has(item.id),
 			);
 
 			for (const item of newItems) {

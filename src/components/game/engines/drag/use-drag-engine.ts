@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { createCompatState } from "@/components/game/application/compat/state-conversion";
 import type {
 	BoardItemLocation,
 	PuzzleState,
@@ -34,12 +35,14 @@ export const useDragEngine = <TContext = unknown>(
 	const controller = useEngineProgress<TContext>(progressOptions);
 	const hasAutoStarted = useRef(false);
 
+	const compat = useMemo(() => createCompatState(gameState), [gameState]);
+
 	const state: DragEngineState = useMemo(
 		() => ({
-			puzzle: gameState.puzzle,
-			placedItems: gameState.puzzle.placedItems,
+			puzzle: compat.puzzle,
+			placedItems: compat.puzzle.placedItems,
 		}),
-		[gameState.puzzle],
+		[compat.puzzle],
 	);
 
 	useEffect(() => {

@@ -3,7 +3,11 @@
  * These are legacy actions from the old system that still work with UI components.
  */
 
-import type { Arrow, ModalInstance, TerminalEntryType } from "../../../core/types";
+import type {
+	Arrow,
+	ModalInstance,
+	TerminalEntryType,
+} from "../../../core/types";
 
 // Arrow actions
 export type ArrowAction =

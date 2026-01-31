@@ -8,7 +8,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-
+import { createCompatState } from "@/components/game/application/compat/state-conversion";
 import { useGameState } from "@/components/game/game-provider";
 import { useDragContext } from "../drag";
 import { InventoryPanel } from "./inventory-panel";
@@ -47,7 +47,8 @@ export const InventoryDrawer = forwardRef<
 		},
 		ref,
 	) => {
-		const { inventory } = useGameState();
+		const state = useGameState();
+		const { inventory } = useMemo(() => createCompatState(state), [state]);
 		const [isExpanded, setIsExpanded] = useState(initialExpanded);
 		const [hoverLocked, setHoverLocked] = useState(false);
 		const { activeDrag, lastDropResult, setLastDropResult } = useDragContext();
@@ -70,7 +71,8 @@ export const InventoryDrawer = forwardRef<
 		const itemCount = useMemo(
 			() =>
 				inventory.groups.reduce(
-					(total, group) => total + group.items.length,
+					(total: number, group: { items: unknown[] }) =>
+						total + group.items.length,
 					0,
 				),
 			[inventory.groups],
@@ -78,8 +80,8 @@ export const InventoryDrawer = forwardRef<
 		const visibleGroupIds = useMemo(
 			() =>
 				inventory.groups
-					.filter((group) => group.visible)
-					.map((group) => group.id),
+					.filter((group: { visible?: boolean }) => group.visible)
+					.map((group: { id: string }) => group.id),
 			[inventory.groups],
 		);
 		const prevItemCountRef = useRef<number | null>(null);
@@ -158,7 +160,7 @@ export const InventoryDrawer = forwardRef<
 			const currentVisible = new Set(visibleGroupIds);
 			if (prevVisibleGroupsRef.current) {
 				const hasNewVisibleGroup = Array.from(currentVisible).some(
-					(id) => !prevVisibleGroupsRef.current?.has(id),
+					(id: string) => !prevVisibleGroupsRef.current?.has(id),
 				);
 				if (hasNewVisibleGroup) {
 					expandDrawer("auto");

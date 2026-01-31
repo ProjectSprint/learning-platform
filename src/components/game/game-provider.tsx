@@ -10,12 +10,9 @@ import {
 // Type Exports
 // ============================================================================
 
+export type { Action as GameAction } from "./application/state/actions";
 // Core game state (new architecture)
 export type { GameState } from "./application/state/types";
-export type { Action as GameAction } from "./application/state/actions";
-export type { Entity } from "./domain/entity";
-export type { Space } from "./domain/space";
-
 // Legacy types still used by UI components
 export type {
 	Arrow,
@@ -45,6 +42,8 @@ export type {
 	TerminalEntryType,
 	TerminalState,
 } from "./core/types";
+export type { Entity } from "./domain/entity";
+export type { Space } from "./domain/space";
 
 // ============================================================================
 // Imports
@@ -82,6 +81,12 @@ export {
 } from "./application/hooks/useSpace";
 
 export { findInventoryItem } from "./validation/inventory";
+
+// ============================================================================
+// Compatibility Layer (Legacy support)
+// ============================================================================
+
+export { useAllPuzzles } from "./application/compat/hooks";
 
 // ============================================================================
 // Context Setup

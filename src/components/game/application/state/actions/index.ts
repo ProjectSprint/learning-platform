@@ -3,6 +3,7 @@
  * Exports all action types and creators for the new domain-driven architecture.
  */
 
+export type { CoreAction } from "./core";
 export type {
 	// Legacy aliases
 	AddInventoryGroupAction,
@@ -43,7 +44,6 @@ export type {
 	TerminalAction,
 	UIAction,
 } from "./ui";
-export type { CoreAction } from "./core";
 
 import type { CoreAction } from "./core";
 import type { EntityAction, LegacyEntityAction } from "./entity";

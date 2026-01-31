@@ -1,5 +1,6 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createCompatState } from "../../application/compat/state-conversion";
 import {
 	type Block,
 	type BoardItemLocation,
@@ -59,9 +60,15 @@ export const PuzzleBoard = ({
 		targetPuzzleIdRef,
 		setLastDropResult,
 	} = useDragContext();
+
+	// Convert new state to old format for compatibility
+	const compat = useMemo(
+		() => createCompatState(state, puzzleId),
+		[state, puzzleId],
+	);
 	const puzzle = puzzleId
-		? (state.puzzles?.[puzzleId] ?? state.puzzle)
-		: state.puzzle;
+		? (compat.puzzles[puzzleId] ?? compat.puzzle)
+		: compat.puzzle;
 	const resolvedPuzzleId =
 		puzzleId ?? puzzle.config.puzzleId ?? puzzle.config.id ?? "default";
 	const { registerBoard } = useBoardRegistry();
@@ -92,7 +99,8 @@ export const PuzzleBoard = ({
 	}, [puzzle.placedItems]);
 
 	const visibleBlocks = useMemo(
-		() => puzzle.blocks.slice(0, rows).map((row) => row.slice(0, columns)),
+		() =>
+			puzzle.blocks.slice(0, rows).map((row: Block[]) => row.slice(0, columns)),
 		[puzzle.blocks, columns, rows],
 	);
 
@@ -180,7 +188,7 @@ export const PuzzleBoard = ({
 			// Check allowedPlaces for the target puzzle
 			if (targetPuzzleId) {
 				const inventoryMatch = findInventoryItem(
-					state.inventory.groups,
+					compat.inventory.groups,
 					data.itemId,
 				);
 				if (
@@ -197,7 +205,7 @@ export const PuzzleBoard = ({
 
 			return !isOccupied;
 		},
-		[columns, rows, placedItemsByKey, state.inventory.groups],
+		[columns, rows, placedItemsByKey, compat.inventory.groups],
 	);
 
 	const getSwapTarget = useCallback(
@@ -298,8 +306,12 @@ export const PuzzleBoard = ({
 		puzzle,
 		resolvedPuzzleId,
 		puzzleId,
-		state,
-		dispatch,
+		state: state as unknown as Parameters<
+			typeof useBoardInteractions
+		>[0]["state"],
+		dispatch: dispatch as unknown as Parameters<
+			typeof useBoardInteractions
+		>[0]["dispatch"],
 		boardRef,
 		placedItemRefs,
 		draggablesRef,
@@ -372,7 +384,7 @@ export const PuzzleBoard = ({
 				gridAutoFlow={orientation === "vertical" ? "column" : "row"}
 				gap={2}
 			>
-				{orderedBlocks.map((block) => {
+				{orderedBlocks.map((block: Block) => {
 					const key = `${block.x}-${block.y}`;
 					const placedItem = placedItemsByKey.get(key);
 					const isHovered =
@@ -395,7 +407,7 @@ export const PuzzleBoard = ({
 					);
 				})}
 
-				{puzzle.placedItems.map((item) => {
+				{puzzle.placedItems.map((item: BoardItemLocation) => {
 					const isDragging = draggingItemId === item.id;
 					return (
 						<PlacedItemCard
