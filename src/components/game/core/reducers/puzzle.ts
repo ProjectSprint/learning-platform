@@ -1,4 +1,3 @@
-import { updateBlock } from "../../puzzle/grid";
 import { findInventoryItem } from "../../validation/inventory";
 import { sanitizeDeviceConfig } from "../../validation/sanitize";
 import type { GameAction } from "../actions";
@@ -8,6 +7,7 @@ import type {
 	GameState,
 	PuzzleState,
 } from "../types";
+import { updateBlock } from "./legacy-utils";
 import { resolvePuzzleState, updatePuzzleState } from "./puzzle-state";
 
 export const puzzleReducer = (

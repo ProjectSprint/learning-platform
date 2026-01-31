@@ -1,10 +1,10 @@
-import { updateBlock } from "../../puzzle/grid";
 import {
 	normalizeInventory,
 	normalizeInventoryGroup,
 } from "../../validation/inventory";
 import type { GameAction } from "../actions";
 import type { GameState, InventoryGroup, Item, PuzzleState } from "../types";
+import { updateBlock } from "./legacy-utils";
 
 const removeInventoryItems = (
 	groups: InventoryGroup[],

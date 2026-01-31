@@ -22,12 +22,12 @@ import {
 	useDragContext,
 } from "@/components/game/presentation/interaction/drag/DragContext";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
-import { GridSpaceView } from "@/components/game/presentation/space/GridSpaceView";
-import { PoolSpaceView } from "@/components/game/presentation/space/PoolSpaceView";
 import {
 	BoardArrowSurface,
 	BoardRegistryProvider,
-} from "@/components/game/puzzle/board";
+} from "@/components/game/presentation/space/arrow";
+import { GridSpaceView } from "@/components/game/presentation/space/GridSpaceView";
+import { PoolSpaceView } from "@/components/game/presentation/space/PoolSpaceView";
 import {
 	type ConditionContext,
 	clearBoardArrows,

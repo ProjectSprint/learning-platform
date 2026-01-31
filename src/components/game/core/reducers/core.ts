@@ -1,4 +1,3 @@
-import { updateBlock } from "../../puzzle/grid";
 import {
 	DEFAULT_INVENTORY_GROUP_ID,
 	DEFAULT_INVENTORY_TITLE,
@@ -13,6 +12,7 @@ import type {
 	PuzzleConfig,
 	PuzzleState,
 } from "../types";
+import { updateBlock } from "./legacy-utils";
 import { createPuzzleState } from "./puzzle-state";
 
 const defaultPuzzleConfig: PuzzleConfig = {

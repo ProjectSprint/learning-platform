@@ -1,5 +1,48 @@
-import { createBlockGrid, getMaxPuzzleSize } from "../../puzzle/grid";
-import type { GameState, PuzzleConfig, PuzzleState } from "../types";
+import type {
+	Block,
+	BlockStatus,
+	GameState,
+	PuzzleConfig,
+	PuzzleSize,
+	PuzzleSizeValue,
+	PuzzleState,
+} from "../types";
+
+/**
+ * @internal Inlined from legacy puzzle/grid for cleanup
+ */
+const getMaxPuzzleSize = (size: PuzzleSizeValue): PuzzleSize => {
+	if (Array.isArray(size)) {
+		return size;
+	}
+	const values = Object.values(size).filter(Boolean) as PuzzleSize[];
+	if (values.length === 0) {
+		return [1, 1];
+	}
+	let maxColumns = 1;
+	let maxRows = 1;
+	for (const [columns, rows] of values) {
+		if (columns > maxColumns) {
+			maxColumns = columns;
+		}
+		if (rows > maxRows) {
+			maxRows = rows;
+		}
+	}
+	return [maxColumns, maxRows];
+};
+
+/**
+ * @internal Inlined from legacy puzzle/grid for cleanup
+ */
+const createBlockGrid = (columns: number, rows: number): Block[][] =>
+	Array.from({ length: rows }, (_, rowIndex) =>
+		Array.from({ length: columns }, (_, colIndex) => ({
+			x: colIndex,
+			y: rowIndex,
+			status: "empty" as BlockStatus,
+		})),
+	);
 
 export const createPuzzleState = (config: PuzzleConfig): PuzzleState => {
 	const [columns, rows] = getMaxPuzzleSize(config.size);

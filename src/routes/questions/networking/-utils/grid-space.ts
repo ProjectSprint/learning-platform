@@ -1,9 +1,37 @@
 import type {
 	PuzzleConfig,
+	PuzzleSize,
 	PuzzleSizeValue,
 } from "@/components/game/core/types";
 import type { GridSpaceConfig } from "@/components/game/domain/space";
-import { getMaxPuzzleSize } from "@/components/game/puzzle/grid";
+
+/**
+ * Get the maximum grid size from a PuzzleSizeValue (handles responsive values).
+ * @internal Inlined from legacy puzzle/grid for cleanup
+ */
+const getMaxPuzzleSize = (size: PuzzleSizeValue): PuzzleSize => {
+	if (Array.isArray(size)) {
+		return size;
+	}
+
+	const values = Object.values(size).filter(Boolean) as PuzzleSize[];
+	if (values.length === 0) {
+		return [1, 1];
+	}
+
+	let maxColumns = 1;
+	let maxRows = 1;
+	for (const [columns, rows] of values) {
+		if (columns > maxColumns) {
+			maxColumns = columns;
+		}
+		if (rows > maxRows) {
+			maxRows = rows;
+		}
+	}
+
+	return [maxColumns, maxRows];
+};
 
 export const DEFAULT_GRID_METRICS = {
 	cellWidth: 64,

@@ -15,9 +15,9 @@ import {
 	useDragContext,
 } from "@/components/game/presentation/interaction/drag/DragContext";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
+import { BoardRegistryProvider } from "@/components/game/presentation/space/arrow";
 import { GridSpaceView } from "@/components/game/presentation/space/GridSpaceView";
 import { PoolSpaceView } from "@/components/game/presentation/space/PoolSpaceView";
-import { BoardRegistryProvider } from "@/components/game/puzzle/board";
 import {
 	TerminalInput,
 	TerminalLayout,
