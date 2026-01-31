@@ -1,6 +1,10 @@
 // Inventory validation and normalization utilities
 
-import type { InventoryGroup, InventoryGroupConfig, Item } from "../core/types";
+import type {
+	InventoryGroup,
+	InventoryGroupConfig,
+	Item,
+} from "../../core/types";
 import { MAX_INVENTORY_ITEMS } from "./sanitize";
 
 export const DEFAULT_INVENTORY_GROUP_ID = "default";

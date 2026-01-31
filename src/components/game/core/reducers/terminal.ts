@@ -2,7 +2,7 @@ import {
 	MAX_HISTORY_ENTRIES,
 	sanitizeTerminalInput,
 	sanitizeTerminalOutput,
-} from "../../validation/sanitize";
+} from "../../domain/validation/sanitize";
 import type { GameAction } from "../actions";
 import type { GameState, TerminalEntry, TerminalEntryType } from "../types";
 

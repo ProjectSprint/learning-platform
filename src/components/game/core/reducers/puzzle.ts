@@ -1,5 +1,5 @@
-import { findInventoryItem } from "../../validation/inventory";
-import { sanitizeDeviceConfig } from "../../validation/sanitize";
+import { findInventoryItem } from "../../domain/validation/inventory";
+import { sanitizeDeviceConfig } from "../../domain/validation/sanitize";
 import type { GameAction } from "../actions";
 import type {
 	BoardItemLocation,

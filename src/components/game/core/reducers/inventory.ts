@@ -1,7 +1,7 @@
 import {
 	normalizeInventory,
 	normalizeInventoryGroup,
-} from "../../validation/inventory";
+} from "../../domain/validation/inventory";
 import type { GameAction } from "../actions";
 import type { GameState, InventoryGroup, Item, PuzzleState } from "../types";
 import { updateBlock } from "./legacy-utils";

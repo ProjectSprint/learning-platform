@@ -12,7 +12,7 @@ import {
 	MAX_HISTORY_ENTRIES,
 	sanitizeTerminalInput,
 	sanitizeTerminalOutput,
-} from "../../../validation/sanitize";
+} from "../../../domain/validation/sanitize";
 import type { UIAction } from "../actions/ui";
 import type { GameState } from "../types";
 

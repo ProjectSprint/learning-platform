@@ -80,7 +80,7 @@ export {
 	useSpaces,
 } from "./application/hooks/useSpace";
 
-export { findInventoryItem } from "./validation/inventory";
+export { findInventoryItem } from "./domain/validation/inventory";
 
 // ============================================================================
 // Compatibility Layer (Legacy support)

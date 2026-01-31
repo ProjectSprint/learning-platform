@@ -3,7 +3,7 @@ import {
 	DEFAULT_INVENTORY_TITLE,
 	findInventoryItem,
 	normalizeInventoryGroups,
-} from "../../validation/inventory";
+} from "../../domain/validation/inventory";
 import type { GameAction } from "../actions";
 import type {
 	BoardItemLocation,
