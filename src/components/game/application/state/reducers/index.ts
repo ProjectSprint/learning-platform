@@ -3,6 +3,11 @@
  * Combines all reducers for the new domain-driven architecture.
  */
 
+// Enable Immer MapSet plugin for Map and Set support in drafts
+import { enableMapSet } from "immer";
+
+enableMapSet();
+
 import type { Action } from "../actions";
 import type { GameState } from "../types";
 import { coreReducer as appCoreReducer } from "./core";
