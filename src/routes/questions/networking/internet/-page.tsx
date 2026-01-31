@@ -6,7 +6,16 @@ import {
 	useBreakpointValue,
 } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+	clearBoardArrows,
+	setBoardArrows,
+} from "@/components/game/application/actions";
 import type { Entity } from "@/components/game/domain/entity/Entity";
+import {
+	type ConditionContext,
+	type QuestionSpec,
+	resolvePhase,
+} from "@/components/game/domain/question";
 import type { GridPosition, GridSpace } from "@/components/game/domain/space";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
@@ -28,13 +37,6 @@ import {
 } from "@/components/game/presentation/space/arrow";
 import { GridSpaceView } from "@/components/game/presentation/space/GridSpaceView";
 import { PoolSpaceView } from "@/components/game/presentation/space/PoolSpaceView";
-import {
-	type ConditionContext,
-	clearBoardArrows,
-	type QuestionSpec,
-	resolvePhase,
-	setBoardArrows,
-} from "@/components/game/question";
 import {
 	TerminalInput,
 	TerminalLayout,

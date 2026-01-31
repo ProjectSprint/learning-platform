@@ -105,6 +105,7 @@ When creating a task, each task should:
     - What to do
     - Do's and don't
     - References to related files
+    - Current progress
     - `pnpm check:biome` and `pnpm check:tsc`
 
 ## Landing the Plane (Session Completion)
@@ -124,6 +125,8 @@ When creating a task, each task should:
 - NEVER stop before commit - that leaves work stranded locally
 - If commit fails, resolve and retry until it succeeds
 - I code alongside you, so if there's unrelated changes, it's from me
+- You will often get get limited by the token limit midway, so update the progress frequently
+- If midway you found task that could be split midway, then split it by creating a new task and update the existing
 
 ## Knowledge Updates (2026-01-31)
 - Networking questions now define `CANVAS_CONFIGS` as GridSpace configs (with `layout.size`) and derive `CANVAS_PUZZLES` for `INIT_MULTI_CANVAS`.
