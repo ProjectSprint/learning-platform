@@ -6,44 +6,57 @@
 
 ```tsx
 import { GameProvider } from '@/components/game/game-provider';
-import { PuzzleBoard } from '@/components/game/puzzle/board';
-import { InventoryPanel } from '@/components/game/puzzle/inventory';
+import { GridSpaceView } from '@/components/game/presentation/space/GridSpaceView';
+import { PoolSpaceView } from '@/components/game/presentation/space/PoolSpaceView';
+import { GridSpace } from '@/components/game/domain/space';
+import { PoolSpace } from '@/components/game/domain/space';
+import { Entity } from '@/components/game/domain/entity';
+import { useState, useEffect } from 'react';
 
 function App() {
   return (
-    <GameProvider
-      initialState={{
-        phase: 'playing',
-        inventory: {
-          groups: [
-            {
-              id: 'items',
-              title: 'Items',
-              visible: true,
-              items: [
-                {
-                  id: 'item-1',
-                  type: 'block',
-                  name: 'Block',
-                  allowedPlaces: ['*']
-                }
-              ]
-            }
-          ]
-        },
-        // ... other state
-      }}
-    >
+    <GameProvider initialState={{ phase: 'playing' }}>
       <GameContainer />
     </GameProvider>
   );
 }
 
 function GameContainer() {
+  const [gridSpace, setGridSpace] = useState(null);
+  const [poolSpace, setPoolSpace] = useState(null);
+
+  useEffect(() => {
+    // Create a grid space for gameplay
+    const grid = new GridSpace({
+      id: 'game-grid',
+      rows: 4,
+      cols: 5,
+      metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+    });
+
+    // Create a pool space for items
+    const pool = new PoolSpace({
+      id: 'items-pool',
+      layout: { type: 'horizontal-wrap', gap: 8 },
+    });
+
+    // Add some entities to the pool
+    const entity = new Entity({
+      id: 'item-1',
+      type: 'block',
+      name: 'Block',
+      visual: { icon: '🧱' },
+    });
+    pool.add(entity);
+
+    setGridSpace(grid);
+    setPoolSpace(pool);
+  }, []);
+
   return (
     <div>
-      <InventoryPanel />
-      <PuzzleBoard />
+      {poolSpace && <PoolSpaceView space={poolSpace} />}
+      {gridSpace && <GridSpaceView space={gridSpace} />}
     </div>
   );
 }
@@ -102,39 +115,63 @@ function GameInitializer() {
 ### Pattern 1: Drag and Drop Game
 
 ```tsx
-import { useDragEngine } from '@/components/game/engines/drag/use-drag-engine';
-import { useGameState, useGameDispatch } from '@/components/game/game-provider';
-import { PuzzleBoard } from '@/components/game/puzzle/board';
-import { InventoryPanel } from '@/components/game/puzzle/inventory';
+import { GridSpaceView } from '@/components/game/presentation/space/GridSpaceView';
+import { PoolSpaceView } from '@/components/game/presentation/space/PoolSpaceView';
+import { GridSpace, PoolSpace } from '@/components/game/domain/space';
+import { Entity } from '@/components/game/domain/entity';
+import { useState, useEffect } from 'react';
 
 function DragDropGame() {
-  const state = useGameState();
-  const dispatch = useGameDispatch();
+  const [gridSpace, setGridSpace] = useState(null);
+  const [poolSpace, setPoolSpace] = useState(null);
+  const [completed, setCompleted] = useState(false);
 
-  const engine = useDragEngine({
-    autoStart: true,
-    onFinished: () => {
-      console.log('Puzzle completed!');
-      dispatch({ type: 'SET_PHASE', payload: { phase: 'completed' } });
-    }
-  });
+  useEffect(() => {
+    // Create spaces
+    const grid = new GridSpace({
+      id: 'network-grid',
+      rows: 4,
+      cols: 5,
+      metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+    });
+
+    const pool = new PoolSpace({ id: 'devices', layout: { type: 'horizontal-wrap' } });
+
+    // Create entities
+    ['router', 'switch', 'server'].forEach((type, i) => {
+      const entity = new Entity({
+        id: `${type}-${i}`,
+        type,
+        name: type.charAt(0).toUpperCase() + type.slice(1),
+        visual: { icon: type === 'router' ? '🔀' : type === 'switch' ? '🔌' : '🖥️' },
+      });
+      pool.add(entity);
+    });
+
+    setGridSpace(grid);
+    setPoolSpace(pool);
+  }, []);
 
   // Check completion
   useEffect(() => {
-    const requiredItems = ['router', 'switch', 'server'];
-    const placedTypes = engine.state.placedItems.map(i => i.type);
-    const allPlaced = requiredItems.every(t => placedTypes.includes(t));
+    if (!gridSpace) return;
 
-    if (allPlaced && engine.progress.status === 'started') {
-      engine.finish();
+    const requiredTypes = ['router', 'switch', 'server'];
+    const entities = gridSpace.getEntities();
+    const placedTypes = entities.map(e => e.type);
+    const allPlaced = requiredTypes.every(t => placedTypes.includes(t));
+
+    if (allPlaced && !completed) {
+      setCompleted(true);
+      console.log('Game completed!');
     }
-  }, [engine]);
+  }, [gridSpace]);
 
   return (
     <div className="game-container">
-      <InventoryPanel />
-      <PuzzleBoard />
-      <div>Status: {engine.progress.status}</div>
+      {poolSpace && <PoolSpaceView space={poolSpace} />}
+      {gridSpace && <GridSpaceView space={gridSpace} />}
+      <div>Status: {completed ? 'completed' : 'playing'}</div>
     </div>
   );
 }
@@ -210,65 +247,49 @@ function TerminalGame() {
 }
 ```
 
-### Pattern 3: Multi-Puzzle Game
+### Pattern 3: Multi-Space Game
 
 ```tsx
-function MultiPuzzleGame() {
-  const dispatch = useGameDispatch();
-  const puzzles = useAllPuzzles();
+import { GridSpaceView } from '@/components/game/presentation/space/GridSpaceView';
+import { GridSpace } from '@/components/game/domain/space';
+import { Entity } from '@/components/game/domain/entity';
+
+function MultiSpaceGame() {
+  const [spaces, setSpaces] = useState({});
 
   useEffect(() => {
-    dispatch({
-      type: 'INIT_MULTI_CANVAS',
-      payload: {
-        questionId: 'multi-puzzle-1',
-        canvases: {
-          'network-1': {
-            id: 'network-1',
-            title: 'Office Network',
-            columns: 5,
-            rows: 4,
-            maxItems: 5
-          },
-          'network-2': {
-            id: 'network-2',
-            title: 'Home Network',
-            columns: 4,
-            rows: 3,
-            maxItems: 3
-          }
-        },
-        inventoryGroups: [
-          {
-            id: 'devices',
-            title: 'Devices',
-            items: [
-              {
-                id: 'router',
-                type: 'router',
-                allowedPlaces: ['network-1', 'network-2'],  // Both puzzles
-                quantity: 2
-              },
-              {
-                id: 'server',
-                type: 'server',
-                allowedPlaces: ['network-1'],  // Only office network
-                quantity: 1
-              }
-            ]
-          }
-        ]
-      }
+    // Create multiple spaces
+    const officeNetwork = new GridSpace({
+      id: 'network-1',
+      rows: 4,
+      cols: 5,
+      metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+      maxCapacity: 5,
+    });
+
+    const homeNetwork = new GridSpace({
+      id: 'network-2',
+      rows: 3,
+      cols: 4,
+      metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+      maxCapacity: 3,
+    });
+
+    setSpaces({
+      'network-1': { space: officeNetwork, title: 'Office Network' },
+      'network-2': { space: homeNetwork, title: 'Home Network' },
     });
   }, []);
 
   return (
-    <div className="multi-puzzle">
-      {Object.entries(puzzles).map(([id, puzzle]) => (
-        <div key={id} className="puzzle-section">
-          <h3>{puzzle.config.title}</h3>
-          <PuzzleBoard puzzleId={id} />
-          <div>Items: {puzzle.placedItems.length} / {puzzle.config.maxItems}</div>
+    <div className="multi-space-game">
+      {Object.entries(spaces).map(([id, { space, title }]) => (
+        <div key={id} className="space-section">
+          <h3>{title}</h3>
+          <GridSpaceView space={space} />
+          <div>
+            Entities: {space.getEntities().length} / {space.capacity().max || '∞'}
+          </div>
         </div>
       ))}
     </div>
@@ -375,28 +396,37 @@ function DeviceConfigGame() {
 }
 ```
 
-### Pattern 5: Item Transfer Between Puzzles
+### Pattern 5: Entity Transfer Between Spaces
 
 ```tsx
-function TransferItemsExample() {
-  const dispatch = useGameDispatch();
+import { GridSpace } from '@/components/game/domain/space';
+import { Entity } from '@/components/game/domain/entity';
 
-  const transferItem = () => {
-    dispatch({
-      type: 'TRANSFER_ITEM',
-      payload: {
-        itemId: 'router-1',
-        fromPuzzle: 'network-1',
-        fromBlockX: 0,
-        fromBlockY: 0,
-        toPuzzle: 'network-2',
-        toBlockX: 1,
-        toBlockY: 1
-      }
-    });
+function TransferEntitiesExample() {
+  const [spaces, setSpaces] = useState({ space1: null, space2: null });
+
+  const transferEntity = () => {
+    const { space1, space2 } = spaces;
+    if (!space1 || !space2) return;
+
+    // Find entity in space1
+    const entity = space1.getEntities().find(e => e.id === 'router-1');
+    if (!entity) return;
+
+    // Get current position
+    const currentPos = space1.getPosition(entity);
+
+    // Remove from space1
+    space1.remove(entity);
+
+    // Add to space2 at new position
+    space2.add(entity, { row: 1, col: 1 });
+
+    // Trigger re-render
+    setSpaces({ ...spaces });
   };
 
-  return <button onClick={transferItem}>Transfer Router</button>;
+  return <button onClick={transferEntity}>Transfer Router</button>;
 }
 ```
 
@@ -407,11 +437,12 @@ function TransferItemsExample() {
 ### Example 1: Network Topology Builder
 
 ```tsx
-import { GameProvider, useGameDispatch, useGameState } from '@/components/game/game-provider';
-import { useDragEngine } from '@/components/game/engines/drag/use-drag-engine';
-import { PuzzleBoard } from '@/components/game/puzzle/board';
-import { InventoryPanel } from '@/components/game/puzzle/inventory';
-import { useEffect } from 'react';
+import { GameProvider } from '@/components/game/game-provider';
+import { GridSpaceView } from '@/components/game/presentation/space/GridSpaceView';
+import { PoolSpaceView } from '@/components/game/presentation/space/PoolSpaceView';
+import { GridSpace, PoolSpace } from '@/components/game/domain/space';
+import { Entity } from '@/components/game/domain/entity';
+import { useState, useEffect } from 'react';
 
 function NetworkTopologyGame() {
   return (
@@ -422,147 +453,78 @@ function NetworkTopologyGame() {
 }
 
 function NetworkGameContent() {
-  const dispatch = useGameDispatch();
+  const [gridSpace, setGridSpace] = useState(null);
+  const [poolSpace, setPoolSpace] = useState(null);
+  const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
-    dispatch({
-      type: 'INIT_MULTI_CANVAS',
-      payload: {
-        questionId: 'network-topology',
-        canvases: {
-          'topology': {
-            id: 'topology',
-            title: 'Network Diagram',
-            columns: 6,
-            rows: 5,
-            maxItems: 10
-          }
-        },
-        inventoryGroups: [
-          {
-            id: 'devices',
-            title: 'Network Devices',
-            items: [
-              {
-                id: 'router',
-                type: 'router',
-                name: 'Router',
-                allowedPlaces: ['topology'],
-                quantity: 2,
-                icon: { type: 'emoji', value: '🔀' }
-              },
-              {
-                id: 'switch',
-                type: 'switch',
-                name: 'Switch',
-                allowedPlaces: ['topology'],
-                quantity: 3,
-                icon: { type: 'emoji', value: '🔌' }
-              },
-              {
-                id: 'server',
-                type: 'server',
-                name: 'Server',
-                allowedPlaces: ['topology'],
-                quantity: 2,
-                icon: { type: 'emoji', value: '🖥️' }
-              },
-              {
-                id: 'client',
-                type: 'client',
-                name: 'Client PC',
-                allowedPlaces: ['topology'],
-                quantity: 5,
-                icon: { type: 'emoji', value: '💻' }
-              }
-            ]
-          }
-        ],
-        phase: 'playing'
+    // Create grid space for network diagram
+    const grid = new GridSpace({
+      id: 'topology',
+      rows: 5,
+      cols: 6,
+      metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+      maxCapacity: 10,
+    });
+
+    // Create pool for available devices
+    const pool = new PoolSpace({
+      id: 'devices',
+      layout: { type: 'vertical', gap: 8 },
+    });
+
+    // Add device entities to pool
+    const deviceTypes = [
+      { type: 'router', icon: '🔀', count: 2 },
+      { type: 'switch', icon: '🔌', count: 3 },
+      { type: 'server', icon: '🖥️', count: 2 },
+      { type: 'client', icon: '💻', count: 5 },
+    ];
+
+    deviceTypes.forEach(({ type, icon, count }) => {
+      for (let i = 0; i < count; i++) {
+        const entity = new Entity({
+          id: `${type}-${i}`,
+          type,
+          name: type.charAt(0).toUpperCase() + type.slice(1),
+          visual: { icon },
+        });
+        pool.add(entity);
       }
     });
-  }, [dispatch]);
 
-  return <NetworkGame />;
-}
-
-function NetworkGame() {
-  const state = useGameState();
-  const dispatch = useGameDispatch();
-
-  const engine = useDragEngine({
-    autoStart: true,
-    onFinished: () => {
-      dispatch({
-        type: 'OPEN_MODAL',
-        payload: {
-          title: 'Topology Complete!',
-          content: [
-            { kind: 'text', text: 'Great job! Your network topology is complete.' }
-          ],
-          actions: [
-            {
-              id: 'ok',
-              label: 'OK',
-              variant: 'primary',
-              closesModal: true
-            }
-          ]
-        }
-      });
-    }
-  });
+    setGridSpace(grid);
+    setPoolSpace(pool);
+  }, []);
 
   // Validation logic
   useEffect(() => {
-    const { placedItems } = engine.state;
+    if (!gridSpace) return;
 
-    // Check if minimum requirements are met
-    const hasRouter = placedItems.some(i => i.type === 'router');
-    const hasSwitch = placedItems.some(i => i.type === 'switch');
-    const hasServer = placedItems.some(i => i.type === 'server');
-    const clientCount = placedItems.filter(i => i.type === 'client').length;
+    const entities = gridSpace.getEntities();
+    const hasRouter = entities.some(e => e.type === 'router');
+    const hasSwitch = entities.some(e => e.type === 'switch');
+    const hasServer = entities.some(e => e.type === 'server');
+    const clientCount = entities.filter(e => e.type === 'client').length;
 
-    // Update item statuses based on validation
-    placedItems.forEach(item => {
-      let status: PlacedItemStatus = 'normal';
-
-      if (item.type === 'router' && hasSwitch && hasServer) {
-        status = 'success';
-      } else if (item.type === 'client' && !hasRouter) {
-        status = 'error';
-      }
-
-      if (item.status !== status) {
-        dispatch({
-          type: 'CONFIGURE_DEVICE',
-          payload: {
-            deviceId: item.id,
-            config: { status }
-          }
-        });
-      }
-    });
-
-    // Complete when valid topology exists
     if (hasRouter && hasSwitch && hasServer && clientCount >= 2) {
-      if (engine.progress.status === 'started') {
-        engine.finish();
-      }
+      setCompleted(true);
     }
-  }, [engine.state.placedItems, engine, dispatch]);
+  }, [gridSpace]);
 
   return (
     <div className="network-game">
       <div className="header">
         <h1>Build Your Network</h1>
-        <div>Items Placed: {state.puzzle.placedItems.length} / 10</div>
-        <div>Status: {engine.progress.status}</div>
+        <div>
+          Entities Placed: {gridSpace?.getEntities().length || 0} / 10
+        </div>
+        <div>Status: {completed ? 'completed' : 'building'}</div>
       </div>
 
       <div className="game-area">
-        <InventoryPanel />
-        <PuzzleBoard />
+        {poolSpace && <PoolSpaceView space={poolSpace} />}
+        {gridSpace && <GridSpaceView space={gridSpace} />}
       </div>
 
       <div className="requirements">
@@ -738,42 +700,47 @@ dispatch({ type: 'INIT_MULTI_CANVAS', payload: { /* ... */ } });
 ### 2. Validate Before Actions
 
 ```tsx
-// ✅ Good: Check state before dispatching
-const placeItem = () => {
-  const block = state.puzzle.blocks[y][x];
-  if (block.status === 'empty') {
-    dispatch({ type: 'PLACE_ITEM', payload: { /* ... */ } });
+// ✅ Good: Check space constraints before adding
+const addEntity = (entity, position) => {
+  if (gridSpace.canAccept(entity, position)) {
+    const success = gridSpace.add(entity, position);
+    if (success) {
+      setGridSpace({ ...gridSpace }); // Trigger re-render
+    }
   }
 };
 
-// ❌ Bad: Dispatch without checking
-const placeItem = () => {
-  dispatch({ type: 'PLACE_ITEM', payload: { /* ... */ } });
+// ✅ Good: Check capacity
+const addEntity = (entity) => {
+  if (!poolSpace.isFull()) {
+    poolSpace.add(entity);
+    setPoolSpace({ ...poolSpace });
+  }
 };
 ```
 
-### 3. Use Engines for Reactive Logic
+### 3. Use Reactive State Management
 
 ```tsx
-// ✅ Good: Use engine for game logic
-const engine = useDragEngine({
-  onFinished: () => {
-    // Handle completion
-  }
-});
+// ✅ Good: Watch space state for completion
+const [gridSpace, setGridSpace] = useState(null);
 
 useEffect(() => {
-  if (checkCompletion(engine.state)) {
-    engine.finish();
-  }
-}, [engine.state]);
+  if (!gridSpace) return;
 
-// ❌ Bad: Manual state watching
-useEffect(() => {
-  if (state.puzzle.placedItems.length === 10) {
-    // Completion logic
+  const entities = gridSpace.getEntities();
+  if (entities.length === 10) {
+    console.log('Space is full!');
   }
-}, [state.puzzle.placedItems]);
+}, [gridSpace]);
+
+// ✅ Good: Use callback props
+<GridSpaceView
+  space={gridSpace}
+  onEntityAdd={(entity, position) => {
+    console.log('Entity added:', entity.id);
+  }}
+/>
 ```
 
 ### 4. Clean Up Terminal History

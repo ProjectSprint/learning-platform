@@ -16,8 +16,7 @@ Complete documentation for the interactive game engine framework.
    - Game state structure
    - Game phases
    - Actions and dispatch
-   - Puzzle system fundamentals
-   - Inventory system
+   - Space/Entity architecture
    - Terminal system
    - Modal system
    - Engines
@@ -34,8 +33,8 @@ Complete documentation for the interactive game engine framework.
 
 4. **[Actions API](./04-actions-api.md)**
    - Core actions
-   - Puzzle actions (PLACE_ITEM, REMOVE_ITEM, etc.)
-   - Inventory actions
+   - Space actions (add entity, remove entity, move entity)
+   - Entity actions
    - Terminal actions
    - Modal actions
    - Action patterns and examples
@@ -91,17 +90,19 @@ import {
 import { useTerminalEngine } from '@/components/game/engines/terminal/use-terminal-engine';
 import { useDragEngine } from '@/components/game/engines/drag/use-drag-engine';
 
-// Components
-import { PuzzleBoard } from '@/components/game/puzzle/board';
-import { InventoryPanel } from '@/components/game/puzzle/inventory';
+// Space/Entity Components
+import { GridSpaceView } from '@/components/game/presentation/space/GridSpaceView';
+import { PoolSpaceView } from '@/components/game/presentation/space/PoolSpaceView';
 import { TerminalView } from '@/components/game/terminal';
+
+// Domain Models
+import { GridSpace } from '@/components/game/domain/space';
+import { Entity } from '@/components/game/domain/entity';
 
 // Types
 import type {
   GameState,
   GameAction,
-  PuzzleConfig,
-  InventoryItem,
   ModalInstance
 } from '@/components/game/game-provider';
 ```
@@ -109,7 +110,11 @@ import type {
 ### Basic Setup
 
 ```tsx
-import { GameProvider, useGameDispatch } from '@/components/game/game-provider';
+import { GameProvider } from '@/components/game/game-provider';
+import { GridSpace } from '@/components/game/domain/space';
+import { Entity } from '@/components/game/domain/entity';
+import { GridSpaceView } from '@/components/game/presentation/space/GridSpaceView';
+import { useSpace } from '@/components/game/hooks';
 
 function App() {
   return (
@@ -120,34 +125,39 @@ function App() {
 }
 
 function YourGame() {
-  const dispatch = useGameDispatch();
+  const [spaces, setSpaces] = useState({});
 
-  // Initialize game
   useEffect(() => {
-    dispatch({
-      type: 'INIT_MULTI_CANVAS',
-      payload: {
-        questionId: 'game-1',
-        canvases: {
-          'puzzle-1': {
-            id: 'puzzle-1',
-            columns: 5,
-            rows: 4
-          }
-        },
-        inventoryGroups: [
-          {
-            id: 'items',
-            title: 'Items',
-            items: [/* ... */]
-          }
-        ],
-        phase: 'playing'
-      }
+    // Create a grid space
+    const gridSpace = new GridSpace({
+      id: 'game-grid',
+      rows: 4,
+      cols: 5,
+      metrics: {
+        cellWidth: 64,
+        cellHeight: 64,
+        gapX: 4,
+        gapY: 4,
+      },
     });
-  }, [dispatch]);
 
-  return <div>Your game content</div>;
+    // Create entities
+    const entity = new Entity({
+      id: 'item-1',
+      type: 'game-piece',
+      visual: { icon: '🎮' },
+    });
+
+    setSpaces({ 'game-grid': gridSpace });
+  }, []);
+
+  return (
+    <div>
+      {spaces['game-grid'] && (
+        <GridSpaceView space={spaces['game-grid']} />
+      )}
+    </div>
+  );
 }
 ```
 
@@ -157,14 +167,14 @@ function YourGame() {
 
 | Feature | Supported | Documentation |
 |---------|-----------|---------------|
-| Single puzzle | ✅ Yes | [State Management](./03-state-management.md) |
-| Multiple puzzles | ✅ Yes | [State Management](./03-state-management.md#multi-puzzle-management) |
+| GridSpace (2D layouts) | ✅ Yes | [Space Architecture](./09-space-architecture.md) |
+| PoolSpace (collections) | ✅ Yes | [Space Architecture](./09-space-architecture.md) |
+| Multiple spaces | ✅ Yes | [Space Architecture](./09-space-architecture.md) |
 | Drag and drop | ✅ Yes | [Engines](./05-engines.md#drag-engine) |
 | Terminal interface | ✅ Yes | [Engines](./05-engines.md#terminal-engine) |
 | Modal dialogs | ✅ Yes | [Core Concepts](./02-core-concepts.md#modal-system) |
-| Inventory management | ✅ Yes | [Core Concepts](./02-core-concepts.md#inventory-system) |
-| Item validation | ✅ Yes | [Limitations](./06-limitations.md#validation-rules) |
-| Custom engines | ✅ Yes | [Engines](./05-engines.md#creating-custom-engines) |
+| Entity management | ✅ Yes | [Space Architecture](./09-space-architecture.md) |
+| Custom spaces | ✅ Yes | [Adding New Spaces](./10-adding-new-spaces.md) |
 | State persistence | ⚠️ Manual | [Limitations](./06-limitations.md#5-no-built-in-persistence) |
 | Undo/Redo | ❌ No | [Limitations](./06-limitations.md#2-no-undoredo) |
 | Multiplayer | ❌ No | - |
@@ -176,12 +186,12 @@ function YourGame() {
 ### Network Topology Builder
 Build interactive network diagrams with drag-and-drop device placement.
 
-**See:** [Usage Guide - Network Topology Example](./07-usage-guide.md#example-1-network-topology-builder)
+**See:** [Space Architecture](./09-space-architecture.md)
 
 **Key Features:**
-- Drag and drop network devices
-- Multi-item inventory
-- Item validation
+- GridSpace for network layout
+- Entity-based devices
+- Position validation
 - Completion detection
 
 ### Terminal Simulator
@@ -206,16 +216,16 @@ Guide users through device or system configuration.
 - Conditional logic
 - Data persistence
 
-### Puzzle Games
-Create grid-based puzzle games with item placement.
+### Interactive Games
+Create grid-based games with entity placement and interaction.
 
-**See:** [Usage Guide - Drag and Drop Game](./07-usage-guide.md#pattern-1-drag-and-drop-game)
+**See:** [Space Architecture](./09-space-architecture.md)
 
 **Key Features:**
-- Grid-based layout
-- Item placement rules
+- Flexible space types (Grid, Pool, custom)
+- Entity state management
+- Placement constraints
 - Completion checking
-- Score tracking
 
 ---
 
@@ -228,8 +238,8 @@ Create grid-based puzzle games with item placement.
 │  │              GameState (Context)               │    │
 │  │                                                 │    │
 │  │  • phase                                        │    │
-│  │  • inventory { groups }                        │    │
-│  │  • puzzle / puzzles                            │    │
+│  │  • spaces { [id]: Space }                      │    │
+│  │  • entities { [id]: Entity }                   │    │
 │  │  • terminal                                    │    │
 │  │  • overlay (modals)                            │    │
 │  │  • question                                    │    │
@@ -239,7 +249,7 @@ Create grid-based puzzle games with item placement.
 │  ┌────────────────────────────────────────────────┐    │
 │  │           Reducer Pipeline                     │    │
 │  │                                                 │    │
-│  │  CoreReducer → InventoryReducer → PuzzleReducer  │
+│  │  CoreReducer → SpaceReducer → EntityReducer      │
 │  │  → TerminalReducer → ModalReducer             │    │
 │  └────────────────────────────────────────────────┘    │
 │                          ↑                               │
@@ -254,8 +264,8 @@ Create grid-based puzzle games with item placement.
     ┌──────▼──────┐                  ┌──────▼──────┐
     │  Components  │                  │   Engines   │
     │              │                  │             │
-    │ • PuzzleBoard│                  │ • Terminal  │
-    │ • Inventory  │                  │ • Drag      │
+    │ • SpaceView  │                  │ • Terminal  │
+    │ • EntityCard │                  │ • Drag      │
     │ • Terminal   │                  │ • Custom    │
     │ • Modal      │                  │             │
     └──────────────┘                  └─────────────┘
@@ -267,28 +277,27 @@ Create grid-based puzzle games with item placement.
 
 ### ✅ What the Engine Can Do
 
-1. **Puzzle Management**
-   - Create single or multiple puzzle boards
-   - Configure grid size (columns × rows)
-   - Set maximum item limits per puzzle
-   - Support horizontal/vertical orientation
-   - Initialize with pre-placed items
+1. **Space Management**
+   - Create multiple spaces (Grid, Pool, custom types)
+   - Configure space dimensions and constraints
+   - Set capacity limits per space
+   - Support different layouts (grid, flow, custom)
+   - Position entities within spaces
 
-2. **Item Management**
-   - Organize items in groups
-   - Control item visibility
-   - Track item quantities
-   - Define placement rules (allowedPlaces)
-   - Store custom metadata
-   - Display icons (emoji or lucide)
+2. **Entity Management**
+   - Create entities with types and properties
+   - Store entity state (dynamic data)
+   - Store entity data (static properties)
+   - Visual configuration (icons, colors)
+   - Behavior attachment
 
-3. **Item Interactions**
-   - Place items from inventory to puzzle
-   - Remove items from puzzle
-   - Reposition items on same puzzle
-   - Transfer items between puzzles
-   - Swap items
-   - Configure placed items
+3. **Entity Interactions**
+   - Add entities to spaces
+   - Remove entities from spaces
+   - Move entities within/between spaces
+   - Query entity positions
+   - Update entity state
+   - Validate placements
 
 4. **Terminal Features**
    - Process user commands
