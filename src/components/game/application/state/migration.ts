@@ -357,9 +357,7 @@ export const isNewState = (state: unknown): state is NewGameState => {
 		entities?: unknown;
 	};
 
-	return (
-		candidate.spaces instanceof Map && candidate.entities instanceof Map
-	);
+	return candidate.spaces instanceof Map && candidate.entities instanceof Map;
 };
 
 /**

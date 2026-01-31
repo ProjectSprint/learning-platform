@@ -1,5 +1,8 @@
+import type {
+	PuzzleConfig,
+	PuzzleSizeValue,
+} from "@/components/game/core/types";
 import type { GridSpaceConfig } from "@/components/game/domain/space";
-import type { PuzzleConfig, PuzzleSizeValue } from "@/components/game/core/types";
 import { getMaxPuzzleSize } from "@/components/game/puzzle/grid";
 
 export const DEFAULT_GRID_METRICS = {
@@ -55,17 +58,17 @@ export const createPuzzleConfigs = <K extends string>(
 ): Record<K, PuzzleConfig> => {
 	const entries = (Object.entries(configs) as Array<[K, GridCanvasConfig]>).map(
 		([key, config]) => {
-		const puzzleConfig: PuzzleConfig = {
-			id: config.id,
-			title: config.name,
-			puzzleId: config.id,
-			size: config.layout.size,
-			orientation: config.layout.orientation,
-			maxItems: config.maxCapacity,
-		};
+			const puzzleConfig: PuzzleConfig = {
+				id: config.id,
+				title: config.name,
+				puzzleId: config.id,
+				size: config.layout.size,
+				orientation: config.layout.orientation,
+				maxItems: config.maxCapacity,
+			};
 
-		return [key, puzzleConfig];
-	},
+			return [key, puzzleConfig];
+		},
 	);
 
 	return Object.fromEntries(entries) as Record<K, PuzzleConfig>;
