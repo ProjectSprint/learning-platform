@@ -10,7 +10,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import type { Entity } from "../../domain/entity/Entity";
 import type { Item, ItemTooltip } from "../../domain/entity/Item";
-import { InfoTooltip } from "../../help";
+import { InfoTooltip } from "../../ui/help";
 
 /**
  * Props for the EntityCard component.
