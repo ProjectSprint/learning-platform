@@ -124,3 +124,7 @@ When creating a task, each task should:
 - NEVER stop before commit - that leaves work stranded locally
 - If commit fails, resolve and retry until it succeeds
 - I code alongside you, so if there's unexpeced changes, it's from me
+
+## Knowledge Updates (2026-01-31)
+- Networking questions now define `CANVAS_CONFIGS` as GridSpace configs (with `layout.size`) and derive `CANVAS_PUZZLES` for `INIT_MULTI_CANVAS`.
+- Shared helper: `src/routes/questions/networking/-utils/grid-space.ts` (`createGridCanvasConfig`, `createPuzzleConfigs`).
