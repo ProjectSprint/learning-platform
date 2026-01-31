@@ -41,7 +41,9 @@
       "Bash(pnpm check:tsc:*)",
       "Bash(wc:*)",
       "Bash(npm test:*)",
-      "Bash(pnpm check:biome:*)"
+      "Bash(pnpm check:biome:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(pnpm biome check:*)"
     ]
   }
 }
