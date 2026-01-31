@@ -1,6 +1,7 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Entity } from "@/components/game/domain/entity/Entity";
+import type { Item } from "@/components/game/domain/entity/Item";
 import type { GridPosition, GridSpace } from "@/components/game/domain/space";
 import { useDragEngine } from "@/components/game/engines";
 import {
@@ -241,10 +242,9 @@ const GridSpaceAdapter = ({
 			if (!targetSpace) return false;
 
 			// Check allowed places
-			if ("allowedPlaces" in entity.data) {
-				const allowedPlaces = entity.data.allowedPlaces;
+			if ("allowedPlaces" in entity) {
+				const allowedPlaces = (entity as Item).allowedPlaces;
 				if (
-					Array.isArray(allowedPlaces) &&
 					!allowedPlaces.includes(targetSpaceId) &&
 					!allowedPlaces.includes("inventory")
 				) {
