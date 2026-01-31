@@ -73,6 +73,53 @@ A **Space** is a container that organizes entities with positional or structural
 └─────────────────────────────────────────┘
 ```
 
+## Folder Organization
+
+The Space/Entity system is organized across the architecture layers:
+
+```
+src/components/game/
+├── domain/                    # Business Logic Layer
+│   ├── entity/               # Entity models and behaviors
+│   ├── space/                # Space types (GridSpace, PoolSpace, etc.)
+│   ├── behavior/             # Entity behavior systems
+│   ├── question/             # Question specifications (AST, evaluation)
+│   └── validation/           # Business rules (sanitization, normalization)
+│
+├── infrastructure/            # Low-Level Primitives
+│   └── grid/                 # Grid mathematics (SquareGrid, HexGrid)
+│
+├── application/               # State Management
+│   ├── state/                # Redux actions and reducers
+│   ├── hooks/                # React hooks (useSpace, useEntity)
+│   └── actions/              # Action dispatchers (arrows, etc.)
+│
+├── presentation/              # UI Components
+│   ├── space/                # Space view components (GridSpaceView, PoolSpaceView)
+│   ├── entity/               # Entity view components (EntityCard)
+│   ├── terminal/             # Terminal UI (input, layout, view)
+│   ├── hint/                 # Hint system UI (contextual hints)
+│   └── modal/                # Modal dialogs (forms, validation)
+│
+├── ui/                        # Shared UI Widgets
+│   └── help/                 # Help components (HelpLink, InfoTooltip)
+│
+├── core/                      # Foundation
+│   └── types/                # Type definitions
+│
+└── engines/                   # Specialized Mechanics
+    ├── terminal/             # Terminal command processing
+    └── drag/                 # Drag-and-drop engine
+```
+
+**Key Points:**
+- **Domain layer** contains all business logic, including question specs and validation rules
+- **Presentation layer** contains all UI components, including terminal, hints, and modals
+- **Application layer** connects UI to domain through state management
+- Each layer has a clear responsibility and follows unidirectional dependencies
+
+For a complete guide on where to place new code, see [Architecture Quick Reference](../ARCHITECTURE.md).
+
 ## GridSpace Example
 
 ### Creating a GridSpace

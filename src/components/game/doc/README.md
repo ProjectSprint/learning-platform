@@ -12,7 +12,13 @@ Complete documentation for the interactive game engine framework.
    - Architecture overview
    - Directory structure
 
-2. **[Core Concepts](./02-core-concepts.md)**
+2. **[Architecture Quick Reference](../ARCHITECTURE.md)**
+   - Where to place new code
+   - Folder structure guide
+   - Decision tree for code placement
+   - Architecture rules and patterns
+
+3. **[Core Concepts](./02-core-concepts.md)**
    - Game state structure
    - Game phases
    - Actions and dispatch
@@ -23,7 +29,7 @@ Complete documentation for the interactive game engine framework.
 
 ### Reference Documentation
 
-3. **[State Management](./03-state-management.md)**
+4. **[State Management](./03-state-management.md)**
    - Provider setup
    - Accessing state
    - Dispatching actions
@@ -31,7 +37,7 @@ Complete documentation for the interactive game engine framework.
    - State immutability
    - Performance considerations
 
-4. **[Actions API](./04-actions-api.md)**
+5. **[Actions API](./04-actions-api.md)**
    - Core actions
    - Space actions (add entity, remove entity, move entity)
    - Entity actions
@@ -39,14 +45,14 @@ Complete documentation for the interactive game engine framework.
    - Modal actions
    - Action patterns and examples
 
-5. **[Engines](./05-engines.md)**
+6. **[Engines](./05-engines.md)**
    - Engine lifecycle
    - Terminal Engine
    - Drag Engine
    - Creating custom engines
    - Engine patterns
 
-6. **[Limitations](./06-limitations.md)**
+7. **[Limitations](./06-limitations.md)**
    - System limits
    - Validation rules
    - Known limitations
@@ -56,13 +62,13 @@ Complete documentation for the interactive game engine framework.
 
 ### Practical Guides
 
-7. **[Usage Guide](./07-usage-guide.md)**
+8. **[Usage Guide](./07-usage-guide.md)**
    - Quick start
    - Common patterns
    - Complete examples
    - Best practices
 
-8. **[API Contract](./08-api-contract.md)**
+9. **[API Contract](./08-api-contract.md)**
    - State guarantees
    - Action contracts
    - Engine contracts
