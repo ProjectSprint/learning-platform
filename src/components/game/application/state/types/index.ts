@@ -1,6 +1,6 @@
 /**
  * Application layer state types.
- * These types represent the new domain-driven state structure using Spaces and Entities.
+ * These types represent the new domain-driven state structure using plain data.
  */
 
 import type {
@@ -11,22 +11,22 @@ import type {
 	QuestionStatus,
 	TerminalState,
 } from "../../../core/types";
-import type { Entity } from "../../../domain/entity";
-import type { Space } from "../../../domain/space";
+import type { EntityData } from "../../../domain/entity/entity-data";
+import type { SpaceData } from "../../../domain/space/space-data";
 
 /**
- * New GameState type using domain models.
- * This is the refactored state structure that will replace the old GameState.
+ * New GameState type using plain domain data.
+ * Uses Record instead of Map for Immer compatibility.
  */
 export type GameState = {
 	/** Current phase of the game */
 	phase: GamePhase;
 
 	/** All spaces in the game, keyed by space ID */
-	spaces: Map<string, Space>;
+	spaces: Record<string, SpaceData>;
 
 	/** All entities in the game, keyed by entity ID */
-	entities: Map<string, Entity>;
+	entities: Record<string, EntityData>;
 
 	/** Visual arrows connecting elements */
 	arrows: Arrow[];
@@ -42,9 +42,6 @@ export type GameState = {
 
 	/** Current question information */
 	question: { id: string; status: QuestionStatus };
-
-	/** Sequence number for updates */
-	sequence: number;
 };
 
 /**

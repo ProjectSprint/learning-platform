@@ -3,7 +3,7 @@
  * These actions handle operations on spaces (creating, removing, adding/removing entities).
  */
 
-import type { Space } from "../../../domain/space";
+import type { SpaceData } from "../../../domain/space/space-data";
 
 /**
  * Action to create a new space.
@@ -11,7 +11,7 @@ import type { Space } from "../../../domain/space";
 export type CreateSpaceAction = {
 	type: "CREATE_SPACE";
 	payload: {
-		space: Space;
+		space: SpaceData;
 	};
 };
 

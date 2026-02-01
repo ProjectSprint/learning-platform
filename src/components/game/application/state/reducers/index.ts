@@ -3,13 +3,6 @@
  * Combines all reducers for the new domain-driven architecture.
  */
 
-// Enable Immer MapSet plugin for Map and Set support in drafts
-// Also disable auto-freeze since Space/Entity objects are mutated in-place via method calls
-import { enableMapSet, setAutoFreeze } from "immer";
-
-enableMapSet();
-setAutoFreeze(false);
-
 import type { Action } from "../actions";
 import type { GameState } from "../types";
 import { coreReducer as appCoreReducer } from "./core";
@@ -98,8 +91,8 @@ export const applicationReducer = (
 export const createDefaultState = (): GameState => {
 	return {
 		phase: "setup",
-		spaces: new Map(),
-		entities: new Map(),
+		spaces: {},
+		entities: {},
 		arrows: [],
 		terminal: {
 			visible: false,
@@ -117,7 +110,6 @@ export const createDefaultState = (): GameState => {
 			id: "",
 			status: "in_progress",
 		},
-		sequence: 0,
 	};
 };
 

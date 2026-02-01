@@ -8,7 +8,7 @@ import type {
 	Item,
 	ItemTooltip,
 } from "../../../core/types";
-import type { Entity, EntityConfig } from "../../../domain/entity";
+import type { EntityData } from "../../../domain/entity/entity-data";
 
 /**
  * Action to create a new entity.
@@ -16,7 +16,7 @@ import type { Entity, EntityConfig } from "../../../domain/entity";
 export type CreateEntityAction = {
 	type: "CREATE_ENTITY";
 	payload: {
-		entity: Entity;
+		entity: EntityData;
 	};
 };
 
@@ -27,7 +27,11 @@ export type UpdateEntityAction = {
 	type: "UPDATE_ENTITY";
 	payload: {
 		entityId: string;
-		updates: Partial<EntityConfig>;
+		updates: {
+			visual?: EntityData["visual"];
+			data?: EntityData["data"];
+			state?: EntityData["state"];
+		};
 	};
 };
 

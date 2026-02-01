@@ -39,19 +39,17 @@ const addHistoryEntry = (history: TerminalEntry[], entry: TerminalEntry) => {
 };
 
 const createEntry = (
-	state: GameState,
 	type: TerminalEntryType,
 	content: string,
-): { entry: TerminalEntry; sequence: number } => {
-	const nextSequence = state.sequence + 1;
+	timestamp = Date.now(),
+): { entry: TerminalEntry } => {
 	return {
 		entry: {
-			id: `entry-${nextSequence}`,
+			id: `entry-${timestamp}`,
 			type,
 			content,
-			timestamp: nextSequence,
+			timestamp,
 		},
-		sequence: nextSequence,
 	};
 };
 
@@ -158,10 +156,9 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 				return state;
 			}
 
-			const { entry, sequence } = createEntry(state, "input", input);
+			const { entry } = createEntry("input", input);
 			return {
 				...state,
-				sequence,
 				terminal: {
 					...state.terminal,
 					history: addHistoryEntry(state.terminal.history, entry),
@@ -174,14 +171,9 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 				return state;
 			}
 
-			const { entry, sequence } = createEntry(
-				state,
-				action.payload.type,
-				content,
-			);
+			const { entry } = createEntry(action.payload.type, content);
 			return {
 				...state,
-				sequence,
 				terminal: {
 					...state.terminal,
 					history: addHistoryEntry(state.terminal.history, entry),

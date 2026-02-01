@@ -1,18 +1,20 @@
 /**
  * Entity reducer.
  * Handles state updates for entity-related actions using Immer for immutability.
+ * Uses FP functions from domain/entity/entity-fns for entity operations.
  */
 
 import { produce } from "immer";
-import { type Entity, Item } from "../../../domain/entity";
+import { createItemData } from "../../../domain/entity/entity-fns";
+import type { SpaceData } from "../../../domain/space/space-data";
+import {
+	gridContains,
+	gridRemove,
+	poolContains,
+	poolRemove,
+} from "../../../domain/space/space-fns";
 import type { EntityAction, LegacyEntityAction } from "../actions/entity";
 import type { GameState } from "../types";
-
-/**
- * Type helper to cast Immer draft objects to their original types.
- * Immer wraps objects in Draft<T> which can cause type issues with complex objects.
- */
-const asEntity = (entity: unknown): Entity => entity as Entity;
 
 /**
  * Reduces entity-related actions to update the game state.
@@ -32,19 +34,18 @@ export const entityReducer = (
 				const { entity } = action.payload;
 
 				// Check for duplicate IDs
-				if (draft.entities.has(entity.id)) {
+				if (entity.id in draft.entities) {
 					return;
 				}
 
-				draft.entities.set(entity.id, entity);
-				draft.sequence += 1;
+				draft.entities[entity.id] = entity;
 			});
 		}
 
 		case "UPDATE_ENTITY": {
 			return produce(state, (draft) => {
 				const { entityId, updates } = action.payload;
-				const entity = draft.entities.get(entityId);
+				const entity = draft.entities[entityId];
 
 				if (!entity) {
 					return;
@@ -62,48 +63,46 @@ export const entityReducer = (
 
 				// Update state properties
 				if (updates.state) {
-					entity.updateState(updates.state);
+					Object.assign(entity.state, updates.state);
 				}
-
-				draft.sequence += 1;
 			});
 		}
 
 		case "UPDATE_ENTITY_STATE": {
 			return produce(state, (draft) => {
 				const { entityId, state: stateUpdates } = action.payload;
-				const entity = draft.entities.get(entityId);
+				const entity = draft.entities[entityId];
 
 				if (!entity) {
 					return;
 				}
 
-				entity.updateState(stateUpdates);
-				draft.sequence += 1;
+				Object.assign(entity.state, stateUpdates);
 			});
 		}
 
 		case "DELETE_ENTITY": {
 			return produce(state, (draft) => {
 				const { entityId } = action.payload;
-				const entity = draft.entities.get(entityId);
+				const entity = draft.entities[entityId];
 
 				if (!entity) {
 					return;
 				}
 
-				const e = asEntity(entity);
-
 				// Remove entity from all spaces
-				for (const space of draft.spaces.values()) {
-					if (space.contains(e)) {
-						space.remove(e);
+				for (const space of Object.values(draft.spaces)) {
+					if (spaceContains(space, entityId)) {
+						if (space.kind === "grid") {
+							gridRemove(space, entityId);
+						} else if (space.kind === "pool") {
+							poolRemove(space, entityId);
+						}
 					}
 				}
 
 				// Remove the entity
-				draft.entities.delete(entityId);
-				draft.sequence += 1;
+				delete draft.entities[entityId];
 			});
 		}
 
@@ -115,30 +114,23 @@ export const entityReducer = (
 					return;
 				}
 
-				const entitiesToRemove = entityIds
-					.map((id) => draft.entities.get(id))
-					.filter((e): e is Entity => e !== undefined)
-					.map((e) => asEntity(e));
-
-				if (entitiesToRemove.length === 0) {
-					return;
-				}
-
 				// Remove entities from all spaces
-				for (const space of draft.spaces.values()) {
-					for (const entity of entitiesToRemove) {
-						if (space.contains(entity)) {
-							space.remove(entity);
+				for (const space of Object.values(draft.spaces)) {
+					for (const id of entityIds) {
+						if (spaceContains(space, id)) {
+							if (space.kind === "grid") {
+								gridRemove(space, id);
+							} else if (space.kind === "pool") {
+								poolRemove(space, id);
+							}
 						}
 					}
 				}
 
 				// Remove the entities
 				for (const id of entityIds) {
-					draft.entities.delete(id);
+					delete draft.entities[id];
 				}
-
-				draft.sequence += 1;
 			});
 		}
 
@@ -149,16 +141,14 @@ export const entityReducer = (
 			return produce(state, (draft) => {
 				const { group } = action.payload;
 
-				// Create a pool space for this inventory group if it doesn't exist
-				// This is a simplified mapping - actual migration would be more complex
 				for (const itemConfig of group.items) {
 					// Check for duplicates
-					if (draft.entities.has(itemConfig.id)) {
+					if (itemConfig.id in draft.entities) {
 						continue;
 					}
 
-					// Create entity from item config
-					const entity = new Item({
+					// Create entity from item config using createItemData
+					const entity = createItemData({
 						id: itemConfig.id,
 						name: itemConfig.name,
 						icon: itemConfig.icon,
@@ -167,10 +157,8 @@ export const entityReducer = (
 						allowedPlaces: itemConfig.allowedPlaces,
 					});
 
-					draft.entities.set(entity.id, entity);
+					draft.entities[entity.id] = entity;
 				}
-
-				draft.sequence += 1;
 			});
 		}
 
@@ -184,7 +172,7 @@ export const entityReducer = (
 				}
 
 				for (const itemConfig of items) {
-					const entity = draft.entities.get(itemConfig.id);
+					const entity = draft.entities[itemConfig.id];
 					if (entity) {
 						// Update existing entity
 						if (itemConfig.data) {
@@ -192,7 +180,7 @@ export const entityReducer = (
 						}
 					} else {
 						// Create new entity
-						const newEntity = new Item({
+						const newEntity = createItemData({
 							id: itemConfig.id,
 							name: itemConfig.name,
 							icon: itemConfig.icon,
@@ -200,11 +188,9 @@ export const entityReducer = (
 							tooltip: itemConfig.tooltip,
 							allowedPlaces: itemConfig.allowedPlaces,
 						});
-						draft.entities.set(newEntity.id, newEntity);
+						draft.entities[newEntity.id] = newEntity;
 					}
 				}
-
-				draft.sequence += 1;
 			});
 		}
 
@@ -256,3 +242,14 @@ export const entityReducer = (
 			return state;
 	}
 };
+
+/**
+ * Helper function to check if a space contains an entity (polymorphic).
+ */
+function spaceContains(space: SpaceData, entityId: string): boolean {
+	return space.kind === "grid"
+		? gridContains(space, entityId)
+		: space.kind === "pool"
+			? poolContains(space, entityId)
+			: false;
+}
