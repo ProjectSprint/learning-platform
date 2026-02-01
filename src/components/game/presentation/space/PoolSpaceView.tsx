@@ -9,8 +9,8 @@
 
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useMemo, useRef } from "react";
-import type { Entity } from "../../domain/entity/Entity";
-import type { PoolSpace } from "../../domain/space/PoolSpace";
+import type { EntityData } from "../../domain/entity/entity-data";
+import type { PoolSpaceData } from "../../domain/space/space-data";
 import { EntityCard } from "../entity/EntityCard";
 import { useDragContext } from "../interaction/drag/DragContext";
 import { useEntityCardSize } from "../interaction/drag/DragOverlay";
@@ -20,15 +20,15 @@ import { useEntityCardSize } from "../interaction/drag/DragOverlay";
  */
 export type PoolSpaceViewProps = {
 	/** The pool space to render */
-	space: PoolSpace;
+	space: PoolSpaceData;
 	/** Entities currently in this space */
-	entities: Entity[];
+	entities: EntityData[];
 	/** Entities that are placed in other spaces (to show as empty slots) */
 	placedEntityIds?: Set<string>;
 	/** Optional title for the space */
 	title?: string;
 	/** Callback when an entity is clicked for dragging */
-	onEntityDragStart?: (entity: Entity, event: React.PointerEvent) => void;
+	onEntityDragStart?: (entity: EntityData, event: React.PointerEvent) => void;
 };
 
 /**
@@ -68,7 +68,7 @@ export const PoolSpaceView = ({
 
 	// Handle pointer down for drag start
 	const handlePointerDown = useCallback(
-		(entity: Entity, event: React.PointerEvent<HTMLDivElement>) => {
+		(entity: EntityData, event: React.PointerEvent<HTMLDivElement>) => {
 			// Check if entity is draggable
 			if ("draggable" in entity && entity.draggable === false) {
 				return;

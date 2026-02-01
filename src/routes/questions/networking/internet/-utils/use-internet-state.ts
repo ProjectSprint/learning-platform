@@ -4,10 +4,14 @@
  */
 
 import { useEffect, useMemo } from "react";
-import type { Entity } from "@/components/game/domain/entity/Entity";
-import { GridSpace } from "@/components/game/domain/space/GridSpace";
+import type { EntityData } from "@/components/game/domain/entity/entity-data";
+import type { GridSpaceData } from "@/components/game/domain/space/space-data";
+import { gridGetPosition } from "@/components/game/domain/space/space-fns";
 import type { DragEngine } from "@/components/game/engines";
-import type { BoardItemLocation } from "@/components/game/game-provider";
+import type {
+	BoardItemLocation,
+	BoardItemStatus,
+} from "@/components/game/game-provider";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import {
 	CANVAS_ORDER,
@@ -31,10 +35,10 @@ interface UseInternetStateArgs {
  * Convert Entity with position to BoardItemLocation for compatibility with network-utils
  */
 const entityToBoardItem = (
-	entity: Entity,
-	space: GridSpace,
+	entity: EntityData,
+	space: GridSpaceData,
 ): BoardItemLocation | null => {
-	const position = space.getPosition(entity);
+	const position = gridGetPosition(space, entity.id);
 	if (!position || !("row" in position && "col" in position)) {
 		return null;
 	}
@@ -45,7 +49,7 @@ const entityToBoardItem = (
 		type: entity.type,
 		blockX: position.col,
 		blockY: position.row,
-		status: entity.getStateValue("status") ?? "normal",
+		status: (entity.state.status as BoardItemStatus | undefined) ?? "normal",
 		data: entity.data,
 	};
 };
@@ -60,7 +64,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 	// Get all grid spaces
 	const spaces = useMemo(() => {
-		const result: Record<InternetCanvasKey, GridSpace | undefined> = {
+		const result: Record<InternetCanvasKey, GridSpaceData | undefined> = {
 			local: undefined,
 			"conn-1": undefined,
 			router: undefined,
@@ -70,8 +74,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			google: undefined,
 		};
 		for (const canvasId of CANVAS_ORDER) {
-			const space = state.spaces.get(canvasId);
-			result[canvasId] = space instanceof GridSpace ? space : undefined;
+			const space = state.spaces[canvasId];
+			result[canvasId] = space?.kind === "grid" ? space : undefined;
 		}
 		return result;
 	}, [state.spaces]);
@@ -88,8 +92,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				continue;
 			}
 
-			for (const entity of state.entities.values()) {
-				if (space.contains(entity)) {
+			for (const entity of Object.values(state.entities)) {
+				if (entity.id in space.entityPositions) {
 					const boardItem = entityToBoardItem(entity, space);
 					if (boardItem) {
 						// Adjust X coordinate based on canvas offset
@@ -221,8 +225,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const startLastOctet = startOctets[3];
 			const desiredIp = `${baseOctets.join(".")}.${startLastOctet}`;
 
-			const entity = state.entities.get(network.pc.id);
-			const currentIp = entity?.getStateValue<string>("ip") ?? null;
+			const entity = state.entities[network.pc.id];
+			const currentIp = entity?.state.ip ?? null;
 
 			if (currentIp !== desiredIp) {
 				dispatch({
@@ -238,8 +242,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			(!routerLanConfigured || !network.pcConnectedToRouterLan)
 		) {
 			// Remove IP if router LAN not configured or PC not connected
-			const entity = state.entities.get(network.pc.id);
-			const currentIp = entity?.getStateValue<string>("ip") ?? null;
+			const entity = state.entities[network.pc.id];
+			const currentIp = entity?.state.ip ?? null;
 			if (currentIp !== null) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
@@ -268,8 +272,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// PC status: error → warning → success based on IP and internet access
 		if (network.pc) {
-			const entity = state.entities.get(network.pc.id);
-			const hasPcIp = entity?.getStateValue<string>("ip") !== undefined;
+			const entity = state.entities[network.pc.id];
+			const hasPcIp = entity?.state.ip !== undefined;
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasPcIp) {
 				desiredStatus = "error";
@@ -278,7 +282,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			} else {
 				desiredStatus = "success";
 			}
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -291,7 +295,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// Router LAN status: error → warning → success based on config
 		if (network.routerLan) {
-			const entity = state.entities.get(network.routerLan.id);
+			const entity = state.entities[network.routerLan.id];
 			let desiredStatus: "error" | "warning" | "success";
 			if (!dhcpEnabled || !hasValidIpRange) {
 				desiredStatus = "error";
@@ -300,7 +304,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			} else {
 				desiredStatus = "success";
 			}
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -313,9 +317,9 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// Router NAT status: error → success based on natEnabled
 		if (network.routerNat) {
-			const entity = state.entities.get(network.routerNat.id);
+			const entity = state.entities[network.routerNat.id];
 			const desiredStatus = natEnabled ? "success" : "error";
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -328,7 +332,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// Router WAN status: error → warning → success based on PPPoE config AND connection to fiber/IGW/internet
 		if (network.routerWan) {
-			const entity = state.entities.get(network.routerWan.id);
+			const entity = state.entities[network.routerWan.id];
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasValidPppoeCredentials) {
 				desiredStatus = "error";
@@ -342,7 +346,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				// Fully configured and connected
 				desiredStatus = "success";
 			}
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -355,9 +359,9 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// IGW status: warning → success based on WAN connection
 		if (network.igw) {
-			const entity = state.entities.get(network.igw.id);
+			const entity = state.entities[network.igw.id];
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -370,9 +374,9 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// DNS status: error → success based on router LAN DNS config
 		if (network.dns) {
-			const entity = state.entities.get(network.dns.id);
+			const entity = state.entities[network.dns.id];
 			const desiredStatus = hasValidDnsServer ? "success" : "error";
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -385,7 +389,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// Google status: error → warning → success based on full connectivity
 		if (network.google) {
-			const entity = state.entities.get(network.google.id);
+			const entity = state.entities[network.google.id];
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasValidDnsServer) {
 				desiredStatus = "error";
@@ -394,7 +398,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			} else {
 				desiredStatus = "success";
 			}
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -407,11 +411,11 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// Cable status - success when connecting PC to Router LAN
 		if (network.cable) {
-			const entity = state.entities.get(network.cable.id);
+			const entity = state.entities[network.cable.id];
 			const desiredStatus = network.pcConnectedToRouterLan
 				? "success"
 				: "warning";
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -424,11 +428,11 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 		// Fiber status - success when connecting Router WAN to IGW
 		if (network.fiber) {
-			const entity = state.entities.get(network.fiber.id);
+			const entity = state.entities[network.fiber.id];
 			const desiredStatus = network.routerWanConnectedToIgw
 				? "success"
 				: "warning";
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {

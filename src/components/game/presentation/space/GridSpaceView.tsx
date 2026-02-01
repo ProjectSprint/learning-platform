@@ -9,10 +9,14 @@
 
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Entity } from "../../domain/entity/Entity";
-import type { GridPosition, GridSpace } from "../../domain/space/GridSpace";
+import type { EntityData } from "../../domain/entity/entity-data";
+import type {
+	GridPosition,
+	GridSpaceData,
+} from "../../domain/space/space-data";
 import { type EntityStatus, PlacedEntity } from "../entity/PlacedEntity";
 import { useDragContext } from "../interaction/drag/DragContext";
+import { useBoardRegistry } from "./arrow";
 import { GridCell } from "./GridCell";
 
 const DEFAULT_CELL_HEIGHT = 60;
@@ -34,24 +38,24 @@ type DragPreview = {
  */
 export type GridSpaceViewProps = {
 	/** The grid space to render */
-	space: GridSpace;
+	space: GridSpaceData;
 	/** Entities positioned in this space */
-	entities: Array<{ entity: Entity; position: GridPosition }>;
+	entities: Array<{ entity: EntityData; position: GridPosition }>;
 	/** Optional title for the space */
 	title?: string;
 	/** Grid orientation */
 	orientation?: "horizontal" | "vertical";
 	/** Function to get display label for an entity */
-	getEntityLabel?: (entity: Entity) => string;
+	getEntityLabel?: (entity: EntityData) => string;
 	/** Function to get status for a placed entity */
-	getEntityStatus?: (entity: Entity) => {
+	getEntityStatus?: (entity: EntityData) => {
 		status?: EntityStatus;
 		message?: string | null;
 	};
 	/** Callback when an entity in the grid is clicked */
-	onEntityClick?: (entity: Entity, position: GridPosition) => void;
+	onEntityClick?: (entity: EntityData, position: GridPosition) => void;
 	/** Check if an entity can be clicked */
-	isEntityClickable?: (entity: Entity) => boolean;
+	isEntityClickable?: (entity: EntityData) => boolean;
 	/** Callback to check if an entity can be placed at a position */
 	canPlaceAt?: (
 		entityId: string,
@@ -66,7 +70,8 @@ export type GridSpaceViewProps = {
 	) => boolean;
 };
 
-const defaultGetEntityLabel = (entity: Entity) => entity.name ?? entity.type;
+const defaultGetEntityLabel = (entity: EntityData) =>
+	entity.name ?? entity.type;
 const defaultGetEntityStatus = () => ({});
 const defaultIsEntityClickable = () => true;
 
@@ -119,13 +124,27 @@ export const GridSpaceView = ({
 
 	// Create map of entities by position
 	const entitiesByPosition = useMemo(() => {
-		const map = new Map<string, { entity: Entity; position: GridPosition }>();
+		const map = new Map<
+			string,
+			{ entity: EntityData; position: GridPosition }
+		>();
 		for (const item of entities) {
 			const key = `${item.position.row}-${item.position.col}`;
 			map.set(key, item);
 		}
 		return map;
 	}, [entities]);
+
+	// Register board with arrow registry for arrows to find this element
+	const { registerBoard } = useBoardRegistry();
+	useEffect(() => {
+		if (boardRef.current) {
+			registerBoard(space.id, boardRef.current);
+		}
+		return () => {
+			registerBoard(space.id, null);
+		};
+	}, [space.id, registerBoard]);
 
 	// Track board size for grid calculations
 	useEffect(() => {
@@ -186,7 +205,7 @@ export const GridSpaceView = ({
 	// Handle drag from grid
 	const handleEntityPointerDown = useCallback(
 		(
-			entity: Entity,
+			entity: EntityData,
 			position: GridPosition,
 			event: React.PointerEvent<HTMLDivElement>,
 		) => {

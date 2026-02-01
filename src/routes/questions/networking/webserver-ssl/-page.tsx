@@ -1,7 +1,16 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { Entity } from "@/components/game/domain/entity/Entity";
-import type { GridPosition, GridSpace } from "@/components/game/domain/space";
+import type { EntityData } from "@/components/game/domain/entity/entity-data";
+import { isItemData } from "@/components/game/domain/entity/entity-data";
+import type {
+	GridPosition,
+	GridSpaceData,
+} from "@/components/game/domain/space/space-data";
+import {
+	gridCanAccept,
+	gridGetPosition,
+	spaceContains,
+} from "@/components/game/domain/space/space-fns";
 import { useDragEngine } from "@/components/game/engines";
 import {
 	GameProvider,
@@ -88,11 +97,11 @@ const SslGame = ({
 		[],
 	);
 
-	const handleEntityClick = useCallback((_entity: Entity) => {
+	const handleEntityClick = useCallback((_entity: EntityData) => {
 		// SSL might have clickable entities in the future (e.g., certificate modal)
 	}, []);
 
-	const isEntityClickable = useCallback((_entity: Entity) => false, []);
+	const isEntityClickable = useCallback((_entity: EntityData) => false, []);
 
 	return (
 		<DragProvider>
@@ -205,22 +214,22 @@ const GridSpaceAdapter = ({
 }: {
 	spaceId: string;
 	title: string;
-	onEntityClick: (entity: Entity) => void;
-	isEntityClickable: (entity: Entity) => boolean;
+	onEntityClick: (entity: EntityData) => void;
+	isEntityClickable: (entity: EntityData) => boolean;
 }) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
 
-	const space = state.spaces.get(spaceId) as GridSpace | undefined;
+	const space = state.spaces[spaceId] as GridSpaceData | undefined;
 
 	const entities = useMemo(() => {
 		if (!space) return [];
 
-		const result: Array<{ entity: Entity; position: GridPosition }> = [];
+		const result: Array<{ entity: EntityData; position: GridPosition }> = [];
 
-		for (const entity of state.entities.values()) {
-			if (space.contains(entity)) {
-				const position = space.getPosition(entity);
+		for (const entity of Object.values(state.entities)) {
+			if (spaceContains(space, entity.id)) {
+				const position = gridGetPosition(space, entity.id);
 				if (position && "row" in position && "col" in position) {
 					result.push({ entity, position });
 				}
@@ -232,19 +241,18 @@ const GridSpaceAdapter = ({
 
 	const canPlaceAt = useCallback(
 		(entityId: string, position: GridPosition, targetSpaceId: string) => {
-			const entity = state.entities.get(entityId);
+			const entity = state.entities[entityId];
 			if (!entity) return false;
 
-			const targetSpace = state.spaces.get(targetSpaceId) as
-				| GridSpace
+			const targetSpace = state.spaces[targetSpaceId] as
+				| GridSpaceData
 				| undefined;
 			if (!targetSpace) return false;
 
 			// Check allowed places
-			if ("allowedPlaces" in entity.data) {
-				const allowedPlaces = entity.data.allowedPlaces;
+			if (isItemData(entity)) {
+				const allowedPlaces = entity.allowedPlaces;
 				if (
-					Array.isArray(allowedPlaces) &&
 					!allowedPlaces.includes(targetSpaceId) &&
 					!allowedPlaces.includes("inventory")
 				) {
@@ -252,7 +260,7 @@ const GridSpaceAdapter = ({
 				}
 			}
 
-			return targetSpace.canAccept(entity, position);
+			return gridCanAccept(targetSpace, entityId, position);
 		},
 		[state.entities, state.spaces],
 	);
@@ -263,13 +271,13 @@ const GridSpaceAdapter = ({
 			_fromPosition: GridPosition | null,
 			toPosition: GridPosition,
 		) => {
-			const entity = state.entities.get(entityId);
+			const entity = state.entities[entityId];
 			if (!entity) return false;
 
 			// Find source space
 			let sourceSpaceId: string | null = null;
-			for (const [sid, s] of state.spaces) {
-				if (s.contains(entity)) {
+			for (const [sid, s] of Object.entries(state.spaces)) {
+				if (spaceContains(s, entity.id)) {
 					sourceSpaceId = sid;
 					break;
 				}
@@ -307,14 +315,18 @@ const GridSpaceAdapter = ({
 		[dispatch, spaceId, state.entities, state.spaces],
 	);
 
-	const getEntityLabel = useCallback((entity: Entity) => {
+	const getEntityLabel = useCallback((entity: EntityData) => {
 		return entity.name ?? entity.type;
 	}, []);
 
-	const getEntityStatus = useCallback((entity: Entity) => {
-		const status = entity.getStateValue<string>("status");
+	const getEntityStatus = useCallback((entity: EntityData) => {
+		const status = entity.state.status as
+			| "success"
+			| "warning"
+			| "error"
+			| undefined;
 		return {
-			status: status as "success" | "warning" | "error" | undefined,
+			status,
 			message: null,
 		};
 	}, []);
@@ -345,15 +357,18 @@ const InventoryAdapter = () => {
 	const state = useGameState();
 	const { setActiveDrag, setLastDropResult } = useDragContext();
 
-	const inventorySpace = state.spaces.get("inventory");
+	const inventorySpace =
+		state.spaces.inventory?.kind === "pool"
+			? state.spaces.inventory
+			: undefined;
 
 	// Get all entities in inventory
 	const entities = useMemo(() => {
 		if (!inventorySpace) return [];
 
-		const result: Entity[] = [];
-		for (const entity of state.entities.values()) {
-			if (inventorySpace.contains(entity)) {
+		const result: EntityData[] = [];
+		for (const entity of Object.values(state.entities)) {
+			if (spaceContains(inventorySpace, entity.id)) {
 				result.push(entity);
 			}
 		}
@@ -364,11 +379,11 @@ const InventoryAdapter = () => {
 	// Get IDs of entities placed in grid spaces
 	const placedEntityIds = useMemo(() => {
 		const ids = new Set<string>();
-		for (const [spaceId, space] of state.spaces) {
+		for (const [spaceId, space] of Object.entries(state.spaces)) {
 			if (spaceId === "inventory") continue;
 
-			for (const entity of state.entities.values()) {
-				if (space.contains(entity)) {
+			for (const entity of Object.values(state.entities)) {
+				if (spaceContains(space, entity.id)) {
 					ids.add(entity.id);
 				}
 			}
@@ -377,7 +392,7 @@ const InventoryAdapter = () => {
 	}, [state.spaces, state.entities]);
 
 	const handleEntityDragStart = useCallback(
-		(entity: Entity, event: React.PointerEvent) => {
+		(entity: EntityData, event: React.PointerEvent) => {
 			event.preventDefault();
 			const target = event.currentTarget;
 			const rect = target.getBoundingClientRect();
@@ -407,8 +422,7 @@ const InventoryAdapter = () => {
 	return (
 		<Box mt={4}>
 			<PoolSpaceView
-				// biome-ignore lint/suspicious/noExplicitAny: PoolSpace type compatibility
-				space={inventorySpace as any}
+				space={inventorySpace}
 				entities={entities}
 				placedEntityIds={placedEntityIds}
 				title="Inventory"

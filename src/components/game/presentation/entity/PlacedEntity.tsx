@@ -10,8 +10,7 @@
 import { Box, Text } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { memo, type RefCallback } from "react";
-import type { Entity } from "../../domain/entity/Entity";
-import type { Item } from "../../domain/entity/Item";
+import type { EntityData, ItemData } from "../../domain/entity/entity-data";
 
 /**
  * Status type for placed entities.
@@ -23,7 +22,7 @@ export type EntityStatus = "success" | "warning" | "error" | "info" | undefined;
  */
 export type PlacedEntityProps = {
 	/** The entity to render */
-	entity: Entity;
+	entity: EntityData;
 	/** X position in pixels */
 	x: number;
 	/** Y position in pixels */
@@ -104,7 +103,7 @@ export const PlacedEntity = memo(
 
 		// Check if this is an Item entity
 		const isItem = "icon" in entity && entity.icon !== undefined;
-		const item = isItem ? (entity as Item) : null;
+		const item = isItem ? (entity as ItemData) : null;
 		const iconInfo = item?.icon ?? entity.visual.icon;
 
 		return (

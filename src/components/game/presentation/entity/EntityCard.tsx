@@ -8,8 +8,11 @@
 
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
-import type { Entity } from "../../domain/entity/Entity";
-import type { Item, ItemTooltip } from "../../domain/entity/Item";
+import type {
+	EntityData,
+	ItemData,
+	ItemTooltip,
+} from "../../domain/entity/entity-data";
 import { InfoTooltip } from "../../ui/help";
 
 /**
@@ -17,7 +20,7 @@ import { InfoTooltip } from "../../ui/help";
  */
 export type EntityCardProps = {
 	/** The entity to render */
-	entity: Entity;
+	entity: EntityData;
 	/** Whether the entity is currently being dragged */
 	isDragging?: boolean;
 	/** Whether the entity slot should appear empty (entity placed elsewhere) */
@@ -60,7 +63,7 @@ export const EntityCard = ({
 }: EntityCardProps) => {
 	// Check if this is an Item entity (has draggable property)
 	const isItem = "draggable" in entity;
-	const item = isItem ? (entity as Item) : null;
+	const item = isItem ? (entity as ItemData) : null;
 	const isNonDraggable = item?.draggable === false;
 
 	// Get display properties

@@ -4,10 +4,14 @@
  */
 
 import { useEffect, useMemo } from "react";
-import type { Entity } from "@/components/game/domain/entity/Entity";
-import { GridSpace } from "@/components/game/domain/space/GridSpace";
+import type { EntityData } from "@/components/game/domain/entity/entity-data";
+import type { GridSpaceData } from "@/components/game/domain/space/space-data";
+import { gridGetPosition } from "@/components/game/domain/space/space-fns";
 import type { DragEngine } from "@/components/game/engines";
-import type { BoardItemLocation } from "@/components/game/game-provider";
+import type {
+	BoardItemLocation,
+	BoardItemStatus,
+} from "@/components/game/game-provider";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import { DHCP_CANVAS_IDS } from "./constants";
 import {
@@ -27,10 +31,10 @@ interface UseNetworkStateArgs {
  * Convert Entity with position to BoardItemLocation for compatibility with network-utils
  */
 const entityToBoardItem = (
-	entity: Entity,
-	space: GridSpace,
+	entity: EntityData,
+	space: GridSpaceData,
 ): BoardItemLocation | null => {
-	const position = space.getPosition(entity);
+	const position = gridGetPosition(space, entity.id);
 	if (!position || !("row" in position && "col" in position)) {
 		return null;
 	}
@@ -41,7 +45,7 @@ const entityToBoardItem = (
 		type: entity.type,
 		blockX: position.col,
 		blockY: position.row,
-		status: entity.getStateValue("status") ?? "normal",
+		status: (entity.state.status as BoardItemStatus | undefined) ?? "normal",
 		data: entity.data,
 	};
 };
@@ -56,10 +60,10 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 
 	// Get all grid spaces
 	const spaces = useMemo(() => {
-		const result: Record<string, GridSpace | undefined> = {};
+		const result: Record<string, GridSpaceData | undefined> = {};
 		for (const canvasId of Object.values(DHCP_CANVAS_IDS)) {
-			const space = state.spaces.get(canvasId);
-			result[canvasId] = space instanceof GridSpace ? space : undefined;
+			const space = state.spaces[canvasId];
+			result[canvasId] = space?.kind === "grid" ? space : undefined;
 		}
 		return result;
 	}, [state.spaces]);
@@ -78,8 +82,8 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 			if (!space) continue;
 
 			const items: BoardItemLocation[] = [];
-			for (const entity of state.entities.values()) {
-				if (space.contains(entity)) {
+			for (const entity of Object.values(state.entities)) {
+				if (entity.id in space.entityPositions) {
 					const boardItem = entityToBoardItem(entity, space);
 					if (boardItem) {
 						items.push(boardItem);
@@ -166,8 +170,8 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		// Update router status
 		if (network.router) {
 			const desiredRouterStatus = routerConfigured ? "success" : "error";
-			const entity = state.entities.get(network.router.id);
-			if (entity && entity.getStateValue("status") !== desiredRouterStatus) {
+			const entity = state.entities[network.router.id];
+			if (entity && entity.state.status !== desiredRouterStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -182,8 +186,8 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		network.cables.forEach((cable) => {
 			const isConnected = network.connectedCableIds.has(cable.id);
 			const desiredStatus = isConnected ? "success" : "warning";
-			const entity = state.entities.get(cable.id);
-			if (entity && entity.getStateValue("status") !== desiredStatus) {
+			const entity = state.entities[cable.id];
+			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
@@ -200,15 +204,15 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 				return;
 			}
 
-			const entity = state.entities.get(pc.id);
+			const entity = state.entities[pc.id];
 			if (!entity) return;
 
 			const shouldHaveIp =
 				routerConfigured && network.connectedPcIds.has(pc.id);
 			const desiredIp = shouldHaveIp ? (desiredIps.get(pc.id) ?? null) : null;
-			const currentIp = entity.getStateValue<string>("ip") ?? null;
+			const currentIp = entity.state.ip ?? null;
 			const desiredStatus = desiredIp ? "success" : "warning";
-			const currentStatus = entity.getStateValue("status");
+			const currentStatus = entity.state.status;
 
 			if (currentIp !== desiredIp || currentStatus !== desiredStatus) {
 				dispatch({

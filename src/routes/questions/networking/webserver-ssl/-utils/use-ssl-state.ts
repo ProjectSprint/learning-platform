@@ -4,28 +4,37 @@
  */
 
 import { useCallback, useMemo } from "react";
-import type { Entity } from "@/components/game/domain/entity/Entity";
-import type { GridSpace } from "@/components/game/domain/space";
+import type { EntityData } from "@/components/game/domain/entity/entity-data";
+import type { GridSpaceData } from "@/components/game/domain/space/space-data";
+import { spaceContains } from "@/components/game/domain/space/space-fns";
 import { useGameState } from "@/components/game/game-provider";
 
 export const useSslState = () => {
 	const state = useGameState();
 
 	// Get canvas spaces
-	const browserCanvas = state.spaces.get("browser") as GridSpace | undefined;
-	const port80Canvas = state.spaces.get("port-80") as GridSpace | undefined;
-	const letsencryptCanvas = state.spaces.get("letsencrypt") as
-		| GridSpace
-		| undefined;
-	const port443Canvas = state.spaces.get("port-443") as GridSpace | undefined;
+	const browserCanvas =
+		state.spaces.browser?.kind === "grid" ? state.spaces.browser : undefined;
+	const port80Canvas =
+		state.spaces["port-80"]?.kind === "grid"
+			? state.spaces["port-80"]
+			: undefined;
+	const letsencryptCanvas =
+		state.spaces.letsencrypt?.kind === "grid"
+			? state.spaces.letsencrypt
+			: undefined;
+	const port443Canvas =
+		state.spaces["port-443"]?.kind === "grid"
+			? state.spaces["port-443"]
+			: undefined;
 
 	// Get entities in each canvas
 	const getEntitiesInSpace = useCallback(
-		(space: GridSpace | undefined) => {
+		(space: GridSpaceData | undefined) => {
 			if (!space) return [];
-			const entities: Entity[] = [];
-			for (const entity of state.entities.values()) {
-				if (space.contains(entity)) {
+			const entities: EntityData[] = [];
+			for (const entity of Object.values(state.entities)) {
+				if (spaceContains(space, entity.id)) {
 					entities.push(entity);
 				}
 			}
@@ -76,7 +85,9 @@ export const useSslState = () => {
 
 	const certificateIssued = useMemo(() => {
 		const domainEntity = letsencryptEntities.find((e) => e.type === "domain");
-		return domainEntity?.getStateValue("certificateIssued") === true;
+		return (
+			(domainEntity?.state.certificateIssued as boolean | undefined) === true
+		);
 	}, [letsencryptEntities]);
 
 	const browserStatus: "error" | "warning" | "success" = useMemo(() => {

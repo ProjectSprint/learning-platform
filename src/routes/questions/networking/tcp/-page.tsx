@@ -1,8 +1,17 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { Entity } from "@/components/game/domain/entity/Entity";
-import type { Item } from "@/components/game/domain/entity/Item";
-import type { GridPosition, GridSpace } from "@/components/game/domain/space";
+import type { EntityData } from "@/components/game/domain/entity/entity-data";
+import { isItemData } from "@/components/game/domain/entity/entity-data";
+import type {
+	GridPosition,
+	GridSpaceData,
+} from "@/components/game/domain/space/space-data";
+import {
+	gridCanAccept,
+	gridGetEntitiesAt,
+	gridGetOccupiedPositions,
+	spaceContains,
+} from "@/components/game/domain/space/space-fns";
 import { useDragEngine } from "@/components/game/engines";
 import {
 	GameProvider,
@@ -88,11 +97,11 @@ const TcpGame = ({
 		[],
 	);
 
-	const handleEntityClick = useCallback((_entity: Entity) => {
+	const handleEntityClick = useCallback((_entity: EntityData) => {
 		// TCP doesn't have clickable entities for now
 	}, []);
 
-	const isEntityClickable = useCallback((_entity: Entity) => false, []);
+	const isEntityClickable = useCallback((_entity: EntityData) => false, []);
 
 	return (
 		<DragProvider>
@@ -203,29 +212,26 @@ const GridSpaceAdapter = ({
 }: {
 	spaceId: string;
 	title: string;
-	onEntityClick: (entity: Entity) => void;
-	isEntityClickable: (entity: Entity) => boolean;
+	onEntityClick: (entity: EntityData) => void;
+	isEntityClickable: (entity: EntityData) => boolean;
 }) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
 
-	const space = state.spaces.get(spaceId) as GridSpace | undefined;
+	const space = state.spaces[spaceId] as GridSpaceData | undefined;
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: space object ref never changes due to mutation pattern, state.sequence tracks changes
 	const entities = useMemo(() => {
 		if (!space) return [];
 
-		// Read directly from the space's internal state to avoid stale reference issues
-		// space.getEntities() returns entity IDs, we need to look up actual entities
-		const result: Array<{ entity: Entity; position: GridPosition }> = [];
+		const result: Array<{ entity: EntityData; position: GridPosition }> = [];
 
 		// Get all occupied positions from the space
-		const occupiedPositions = space.getOccupiedPositions();
+		const occupiedPositions = gridGetOccupiedPositions(space);
 
 		for (const position of occupiedPositions) {
-			const entityIds = space.getEntitiesAt(position);
+			const entityIds = gridGetEntitiesAt(space, position);
 			for (const entityId of entityIds) {
-				const entity = state.entities.get(entityId);
+				const entity = state.entities[entityId];
 				if (entity) {
 					result.push({ entity, position });
 				}
@@ -233,26 +239,25 @@ const GridSpaceAdapter = ({
 		}
 
 		return result;
-	}, [spaceId, state.entities, state.sequence]);
+	}, [space, state.entities]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: state.sequence tracks in-place mutations to non-draftable Space/Entity objects
 	const canPlaceAt = useCallback(
 		(entityId: string, position: GridPosition, targetSpaceId: string) => {
-			const entity = state.entities.get(entityId);
+			const entity = state.entities[entityId];
 			if (!entity) {
 				return false;
 			}
 
-			const targetSpace = state.spaces.get(targetSpaceId) as
-				| GridSpace
+			const targetSpace = state.spaces[targetSpaceId] as
+				| GridSpaceData
 				| undefined;
 			if (!targetSpace) {
 				return false;
 			}
 
 			// Check allowed places
-			if ("allowedPlaces" in entity) {
-				const allowedPlaces = (entity as Item).allowedPlaces;
+			if (isItemData(entity)) {
+				const allowedPlaces = entity.allowedPlaces;
 				if (
 					!allowedPlaces.includes(targetSpaceId) &&
 					!allowedPlaces.includes("inventory")
@@ -261,25 +266,24 @@ const GridSpaceAdapter = ({
 				}
 			}
 
-			return targetSpace.canAccept(entity, position);
+			return gridCanAccept(targetSpace, entityId, position);
 		},
-		[state.entities, state.spaces, state.sequence],
+		[state.entities, state.spaces],
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: state.sequence tracks in-place mutations to non-draftable Space/Entity objects
 	const onPlaceEntity = useCallback(
 		(
 			entityId: string,
 			_fromPosition: GridPosition | null,
 			toPosition: GridPosition,
 		) => {
-			const entity = state.entities.get(entityId);
+			const entity = state.entities[entityId];
 			if (!entity) return false;
 
 			// Find source space
 			let sourceSpaceId: string | null = null;
-			for (const [sid, s] of state.spaces) {
-				if (s.contains(entity)) {
+			for (const [sid, s] of Object.entries(state.spaces)) {
+				if (spaceContains(s, entity.id)) {
 					sourceSpaceId = sid;
 					break;
 				}
@@ -314,17 +318,21 @@ const GridSpaceAdapter = ({
 
 			return false;
 		},
-		[dispatch, spaceId, state.entities, state.spaces, state.sequence],
+		[dispatch, spaceId, state.entities, state.spaces],
 	);
 
-	const getEntityLabel = useCallback((entity: Entity) => {
+	const getEntityLabel = useCallback((entity: EntityData) => {
 		return entity.name ?? entity.type;
 	}, []);
 
-	const getEntityStatus = useCallback((entity: Entity) => {
-		const status = entity.getStateValue<string>("status");
+	const getEntityStatus = useCallback((entity: EntityData) => {
+		const status = entity.state.status as
+			| "success"
+			| "warning"
+			| "error"
+			| undefined;
 		return {
-			status: status as "success" | "warning" | "error" | undefined,
+			status,
 			message: null,
 		};
 	}, []);
@@ -355,41 +363,42 @@ const InventoryAdapter = () => {
 	const state = useGameState();
 	const { setActiveDrag, setLastDropResult } = useDragContext();
 
-	const inventorySpace = state.spaces.get("inventory");
+	const inventorySpace =
+		state.spaces.inventory?.kind === "pool"
+			? state.spaces.inventory
+			: undefined;
 
 	// Get all entities in inventory
-	// biome-ignore lint/correctness/useExhaustiveDependencies: state.sequence tracks in-place mutations to non-draftable Space/Entity objects
 	const entities = useMemo(() => {
 		if (!inventorySpace) return [];
 
-		const result: Entity[] = [];
-		for (const entity of state.entities.values()) {
-			if (inventorySpace.contains(entity)) {
+		const result: EntityData[] = [];
+		for (const entity of Object.values(state.entities)) {
+			if (spaceContains(inventorySpace, entity.id)) {
 				result.push(entity);
 			}
 		}
 
 		return result;
-	}, [inventorySpace, state.entities, state.sequence]);
+	}, [inventorySpace, state.entities]);
 
 	// Get IDs of entities placed in grid spaces
-	// biome-ignore lint/correctness/useExhaustiveDependencies: state.sequence tracks in-place mutations to non-draftable Space/Entity objects
 	const placedEntityIds = useMemo(() => {
 		const ids = new Set<string>();
-		for (const [spaceId, space] of state.spaces) {
+		for (const [spaceId, space] of Object.entries(state.spaces)) {
 			if (spaceId === "inventory") continue;
 
-			for (const entity of state.entities.values()) {
-				if (space.contains(entity)) {
+			for (const entity of Object.values(state.entities)) {
+				if (spaceContains(space, entity.id)) {
 					ids.add(entity.id);
 				}
 			}
 		}
 		return ids;
-	}, [state.spaces, state.entities, state.sequence]);
+	}, [state.spaces, state.entities]);
 
 	const handleEntityDragStart = useCallback(
-		(entity: Entity, event: React.PointerEvent) => {
+		(entity: EntityData, event: React.PointerEvent) => {
 			event.preventDefault();
 			const target = event.currentTarget;
 			const rect = target.getBoundingClientRect();
@@ -419,8 +428,7 @@ const InventoryAdapter = () => {
 	return (
 		<Box mt={4}>
 			<PoolSpaceView
-				// biome-ignore lint/suspicious/noExplicitAny: PoolSpace type compatibility
-				space={inventorySpace as any}
+				space={inventorySpace}
 				entities={entities}
 				placedEntityIds={placedEntityIds}
 				title="Inventory"
