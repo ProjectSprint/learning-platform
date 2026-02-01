@@ -4,10 +4,7 @@
  */
 
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
-import {
-	createGridSpaceData,
-	createPoolSpaceData,
-} from "@/components/game/domain/space/space-fns";
+import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
 	ACK_PACKETS,
 	CANVAS_CONFIGS,
@@ -31,18 +28,8 @@ type GameDispatch = (action: any) => void;
 export const initializeSpaces = (dispatch: GameDispatch) => {
 	// Create grid spaces for TCP phase
 	for (const canvasId of TCP_CANVAS_ORDER) {
-		const config = CANVAS_CONFIGS[canvasId];
-		if (!config) continue;
-
-		const gridSpace = createGridSpaceData({
-			id: config.id,
-			name: config.name,
-			rows: config.rows,
-			cols: config.cols,
-			metrics: config.metrics,
-			maxCapacity: config.maxCapacity,
-			metadata: config.metadata ?? {},
-		});
+		const gridSpace = CANVAS_CONFIGS[canvasId];
+		if (!gridSpace) continue;
 
 		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
 	}
@@ -50,18 +37,8 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 	// Create grid spaces for UDP phase
 	for (const canvasId of UDP_CANVAS_ORDER) {
 		if (TCP_CANVAS_ORDER.includes(canvasId)) continue; // Skip duplicates
-		const config = CANVAS_CONFIGS[canvasId];
-		if (!config) continue;
-
-		const gridSpace = createGridSpaceData({
-			id: config.id,
-			name: config.name,
-			rows: config.rows,
-			cols: config.cols,
-			metrics: config.metrics,
-			maxCapacity: config.maxCapacity,
-			metadata: config.metadata ?? {},
-		});
+		const gridSpace = CANVAS_CONFIGS[canvasId];
+		if (!gridSpace) continue;
 
 		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
 	}

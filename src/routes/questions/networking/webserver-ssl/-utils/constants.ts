@@ -1,12 +1,9 @@
 // Constants for the webserver-ssl question
 // Contains all static configuration: items, canvases, inventory groups
 
+import type { GridSpaceData } from "@/components/game/domain/space";
+import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
 import type { Item, TerminalEntry } from "@/components/game/game-provider";
-import {
-	createGridCanvasConfig,
-	createPuzzleConfigs,
-	type GridCanvasConfig,
-} from "../../-utils/grid-space";
 
 export const QUESTION_ID = "webserver-ssl";
 export const QUESTION_TITLE = "🔒 Secure Your Website!";
@@ -28,34 +25,40 @@ export const CANVAS_ORDER: WebSslCanvasKey[] = [
 	"port-443",
 ];
 
-export const CANVAS_CONFIGS: Record<WebSslCanvasKey, GridCanvasConfig> = {
-	browser: createGridCanvasConfig({
+export const CANVAS_CONFIGS: Record<WebSslCanvasKey, GridSpaceData> = {
+	browser: createGridSpaceData({
 		id: "browser",
 		name: "Browser",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	"port-80": createGridCanvasConfig({
+	"port-80": createGridSpaceData({
 		id: "port-80",
 		name: "HTTP Webserver",
-		size: { base: [3, 1] },
+		rows: 1,
+		cols: 3,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
 	}),
-	letsencrypt: createGridCanvasConfig({
+	letsencrypt: createGridSpaceData({
 		id: "letsencrypt",
 		name: "Let's Encrypt",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	"port-443": createGridCanvasConfig({
+	"port-443": createGridSpaceData({
 		id: "port-443",
 		name: "HTTPS Webserver",
-		size: { base: [5, 1] },
+		rows: 1,
+		cols: 5,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 5,
 	}),
 };
-
-export const CANVAS_PUZZLES = createPuzzleConfigs(CANVAS_CONFIGS);
 
 export const DEFAULT_DOMAIN = "example.com";
 export const DEFAULT_INDEX_HTML = "/var/www/html/index.html";

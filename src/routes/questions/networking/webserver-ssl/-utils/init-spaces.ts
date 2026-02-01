@@ -4,10 +4,7 @@
  */
 
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
-import {
-	createGridSpaceData,
-	createPoolSpaceData,
-} from "@/components/game/domain/space/space-fns";
+import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
 	BASIC_INVENTORY_ITEMS,
 	CANVAS_CONFIGS,
@@ -29,18 +26,8 @@ type GameDispatch = (action: any) => void;
 export const initializeSpaces = (dispatch: GameDispatch) => {
 	// Create grid spaces for each canvas
 	for (const canvasId of CANVAS_ORDER) {
-		const config = CANVAS_CONFIGS[canvasId];
-		if (!config) continue;
-
-		const gridSpace = createGridSpaceData({
-			id: config.id,
-			name: config.name,
-			rows: config.rows,
-			cols: config.cols,
-			metrics: config.metrics,
-			maxCapacity: config.maxCapacity,
-			metadata: config.metadata ?? {},
-		});
+		const gridSpace = CANVAS_CONFIGS[canvasId];
+		if (!gridSpace) continue;
 
 		dispatch({
 			type: "CREATE_SPACE",

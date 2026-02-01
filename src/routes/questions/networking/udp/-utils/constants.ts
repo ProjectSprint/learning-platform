@@ -1,12 +1,9 @@
+import type { GridSpaceData } from "@/components/game/domain/space";
+import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
 import type {
 	InventoryGroupConfig,
 	Item,
 } from "@/components/game/game-provider";
-import {
-	createGridCanvasConfig,
-	createPuzzleConfigs,
-	type GridCanvasConfig,
-} from "../../-utils/grid-space";
 
 export const QUESTION_ID = "udp-video-streaming";
 export const QUESTION_TITLE = "📺 Stream movie.mp4 to 3 viewers";
@@ -81,58 +78,72 @@ export const TCP_CANVAS_ORDER: UdpCanvasKey[] = [
 
 export const UDP_CANVAS_ORDER: UdpCanvasKey[] = ["internet"];
 
-export const CANVAS_CONFIGS: Record<UdpCanvasKey, GridCanvasConfig> = {
-	internet: createGridCanvasConfig({
+export const CANVAS_CONFIGS: Record<UdpCanvasKey, GridSpaceData> = {
+	internet: createGridSpaceData({
 		id: "internet",
 		name: "Internet",
-		size: { base: [3, 1] },
+		rows: 1,
+		cols: 3,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
 	}),
-	"client-a-inbox": createGridCanvasConfig({
+	"client-a-inbox": createGridSpaceData({
 		id: "client-a-inbox",
 		name: "Client A",
-		size: { base: [2, 2] },
+		rows: 2,
+		cols: 2,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
 	}),
-	"client-b-inbox": createGridCanvasConfig({
+	"client-b-inbox": createGridSpaceData({
 		id: "client-b-inbox",
 		name: "Client B",
-		size: { base: [2, 2] },
+		rows: 2,
+		cols: 2,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
 	}),
-	"client-c-inbox": createGridCanvasConfig({
+	"client-c-inbox": createGridSpaceData({
 		id: "client-c-inbox",
 		name: "Client C",
-		size: { base: [2, 2] },
+		rows: 2,
+		cols: 2,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
 	}),
-	"client-d-inbox": createGridCanvasConfig({
+	"client-d-inbox": createGridSpaceData({
 		id: "client-d-inbox",
 		name: "Client D",
-		size: { base: [2, 2] },
+		rows: 2,
+		cols: 2,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
 	}),
-	"client-a": createGridCanvasConfig({
+	"client-a": createGridSpaceData({
 		id: "client-a",
 		name: "Client A",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 0,
 	}),
-	"client-b": createGridCanvasConfig({
+	"client-b": createGridSpaceData({
 		id: "client-b",
 		name: "Client B",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 0,
 	}),
-	"client-c": createGridCanvasConfig({
+	"client-c": createGridSpaceData({
 		id: "client-c",
 		name: "Client C",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 0,
 	}),
 };
-
-export const CANVAS_PUZZLES = createPuzzleConfigs(CANVAS_CONFIGS);
 
 export const INVENTORY_GROUP_IDS = {
 	received: "received",

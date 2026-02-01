@@ -148,22 +148,20 @@ const pos = space.getPosition(entityId);
 **New FP patterns (CURRENT):**
 ```typescript
 // ✅ Use factory functions
-import { createGridSpaceData, createEntityData } from "@/components/game/domain";
+import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
 
 const space = createGridSpaceData({
   id: "...",
-  layout: {
-    size: { rows: 4, cols: 6 },
-    cellSize: { width: 64, height: 64 },
-    gap: { x: 4, y: 4 },
+  name: "...",
+  rows: 4,
+  cols: 6,
+  metrics: {
+    cellWidth: 64,
+    cellHeight: 64,
+    gapX: 4,
+    gapY: 4,
   },
-});
-
-const entity = createEntityData({
-  id: "router-1",
-  type: "router",
-  name: "Router A",
-  visual: { icon: "router-icon" },
+  maxCapacity: 1,
 });
 
 // ✅ Use domain functions (inside Immer reducers)
@@ -218,11 +216,23 @@ const reducer = produce((draft: GameState, action: Action) => {
 });
 ```
 
-6. **Networking Questions - Shared Helper**:
-   - `src/routes/questions/networking/-utils/grid-space.ts` provides:
-     - `createGridCanvasConfig()` - Creates GridSpaceData from grid dimensions
-     - `createPuzzleConfigs()` - Derives CANVAS_PUZZLES from CANVAS_CONFIGS
-   - Networking questions define `CANVAS_CONFIGS` as GridSpace configs
+6. **Networking Questions - Direct GridSpaceData**:
+   - Networking questions define `CANVAS_CONFIGS` as `Record<string, GridSpaceData>`
+   - Each config uses `createGridSpaceData()` directly with `rows`, `cols`, and `metrics`
+   - Example (from `src/routes/questions/networking/dhcp/-utils/constants.ts`):
+   ```typescript
+   export const CANVAS_CONFIGS: Record<string, GridSpaceData> = {
+     pc1: createGridSpaceData({
+       id: "pc-1-board",
+       name: "PC-1",
+       rows: 1,
+       cols: 1,
+       metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+       maxCapacity: 1,
+     }),
+     // ...
+   };
+   ```
 
 **Documentation Updated:**
 - `src/components/game/doc/09-space-architecture.md` - Explains FP data-first approach

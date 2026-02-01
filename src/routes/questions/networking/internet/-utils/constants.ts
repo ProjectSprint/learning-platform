@@ -1,16 +1,13 @@
 // Configuration constants for the internet gateway question
 // Contains all static configuration like inventory items, canvas setup, and question metadata
 
+import type { GridSpaceData } from "@/components/game/domain/space";
+import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
 import type {
 	InventoryGroupConfig,
 	Item,
 	TerminalEntry,
 } from "@/components/game/game-provider";
-import {
-	createGridCanvasConfig,
-	createPuzzleConfigs,
-	type GridCanvasConfig,
-} from "../../-utils/grid-space";
 
 export const QUESTION_ID = "internet-gateway";
 export const QUESTION_TITLE = "🌐 Connect to the Internet!";
@@ -203,52 +200,64 @@ export const CANVAS_ORDER: InternetCanvasKey[] = [
 	"google",
 ];
 
-export const CANVAS_CONFIGS: Record<InternetCanvasKey, GridCanvasConfig> = {
-	local: createGridCanvasConfig({
+export const CANVAS_CONFIGS: Record<InternetCanvasKey, GridSpaceData> = {
+	local: createGridSpaceData({
 		id: "local",
 		name: "Client",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	"conn-1": createGridCanvasConfig({
+	"conn-1": createGridSpaceData({
 		id: "conn-1",
 		name: "Connector",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	router: createGridCanvasConfig({
+	router: createGridSpaceData({
 		id: "router",
 		name: "Router",
-		size: { base: [3, 1] },
+		rows: 1,
+		cols: 3,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
 	}),
-	"conn-2": createGridCanvasConfig({
+	"conn-2": createGridSpaceData({
 		id: "conn-2",
 		name: "Connector",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	igw: createGridCanvasConfig({
+	igw: createGridSpaceData({
 		id: "igw",
 		name: "Internet Gateway",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	dns: createGridCanvasConfig({
+	dns: createGridSpaceData({
 		id: "dns",
 		name: "DNS Server",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	google: createGridCanvasConfig({
+	google: createGridSpaceData({
 		id: "google",
 		name: "Google Server",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
 };
-
-export const CANVAS_PUZZLES = createPuzzleConfigs(CANVAS_CONFIGS);
 
 // Private IP address ranges for validation
 export const PRIVATE_IP_RANGES = [

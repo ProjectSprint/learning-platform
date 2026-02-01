@@ -1,9 +1,6 @@
+import type { GridSpaceData } from "@/components/game/domain/space";
+import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
 import type { Item } from "@/components/game/game-provider";
-import {
-	createGridCanvasConfig,
-	createPuzzleConfigs,
-	type GridCanvasConfig,
-} from "../../-utils/grid-space";
 
 export const QUESTION_ID = "tcp-fragmentation";
 export const QUESTION_TITLE = "📄 Deliver message.txt";
@@ -16,28 +13,32 @@ export type TcpCanvasKey = "splitter" | "internet" | "server";
 
 export const CANVAS_ORDER: TcpCanvasKey[] = ["splitter", "internet", "server"];
 
-export const CANVAS_CONFIGS: Record<TcpCanvasKey, GridCanvasConfig> = {
-	splitter: createGridCanvasConfig({
+export const CANVAS_CONFIGS: Record<TcpCanvasKey, GridSpaceData> = {
+	splitter: createGridSpaceData({
 		id: "splitter",
 		name: "Content Splitter",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	internet: createGridCanvasConfig({
+	internet: createGridSpaceData({
 		id: "internet",
 		name: "Internet",
-		size: { base: [3, 1] },
+		rows: 1,
+		cols: 3,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
 	}),
-	server: createGridCanvasConfig({
+	server: createGridSpaceData({
 		id: "server",
 		name: "Server",
-		size: { base: [2, 6], xl: [3, 4] },
+		rows: 6,
+		cols: 3,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 12,
 	}),
 };
-
-export const CANVAS_PUZZLES = createPuzzleConfigs(CANVAS_CONFIGS);
 
 export const INVENTORY_GROUP_IDS = {
 	files: "files",

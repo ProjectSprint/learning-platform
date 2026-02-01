@@ -1,16 +1,13 @@
 // Configuration constants for the networking question
 // Contains all static configuration like inventory items, canvas setup, and question metadata
 
+import type { GridSpaceData } from "@/components/game/domain/space";
+import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
 import type {
 	InventoryGroupConfig,
 	Item,
 	TerminalEntry,
 } from "@/components/game/game-provider";
-import {
-	createGridCanvasConfig,
-	createPuzzleConfigs,
-	type GridCanvasConfig,
-} from "../../-utils/grid-space";
 
 export const QUESTION_ID = "networking";
 export const QUESTION_TITLE = "🏡 Setup your home connection!";
@@ -112,40 +109,48 @@ export const CANVAS_ORDER = [
 	DHCP_CANVAS_IDS.pc2,
 ];
 
-export const CANVAS_CONFIGS: Record<string, GridCanvasConfig> = {
-	[DHCP_CANVAS_IDS.pc1]: createGridCanvasConfig({
+export const CANVAS_CONFIGS: Record<string, GridSpaceData> = {
+	[DHCP_CANVAS_IDS.pc1]: createGridSpaceData({
 		id: DHCP_CANVAS_IDS.pc1,
 		name: "PC-1",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_CANVAS_IDS.conn1]: createGridCanvasConfig({
+	[DHCP_CANVAS_IDS.conn1]: createGridSpaceData({
 		id: DHCP_CANVAS_IDS.conn1,
 		name: "Connector",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_CANVAS_IDS.router]: createGridCanvasConfig({
+	[DHCP_CANVAS_IDS.router]: createGridSpaceData({
 		id: DHCP_CANVAS_IDS.router,
 		name: "Router",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_CANVAS_IDS.conn2]: createGridCanvasConfig({
+	[DHCP_CANVAS_IDS.conn2]: createGridSpaceData({
 		id: DHCP_CANVAS_IDS.conn2,
 		name: "Connector",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_CANVAS_IDS.pc2]: createGridCanvasConfig({
+	[DHCP_CANVAS_IDS.pc2]: createGridSpaceData({
 		id: DHCP_CANVAS_IDS.pc2,
 		name: "PC-2",
-		size: { base: [1, 1] },
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
 };
-
-export const CANVAS_PUZZLES = createPuzzleConfigs(CANVAS_CONFIGS);
 
 // Private IP address ranges for validation
 export const PRIVATE_IP_RANGES = [
