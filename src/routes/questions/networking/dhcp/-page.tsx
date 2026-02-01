@@ -405,21 +405,32 @@ const NetworkingGame = ({
 											getNetworkingItemLabel(entity.type)
 										}
 										getEntityStatus={(entity) => {
+											const rawStatus =
+												(entity.state.status as string) ?? "normal";
 											const statusMessage = getNetworkingStatusMessage({
 												id: entity.id,
 												itemId: entity.id,
 												type: entity.type,
 												blockX: parseInt((entity.data.x ?? "0") as string, 10),
 												blockY: parseInt((entity.data.y ?? "0") as string, 10),
-												status:
-													(entity.state.status as
-														| "normal"
-														| "warning"
-														| "success"
-														| "error") ?? "normal",
+												status: rawStatus as
+													| "normal"
+													| "warning"
+													| "success"
+													| "error",
 												data: entity.data,
 											});
-											return { message: statusMessage };
+											return {
+												status:
+													rawStatus !== "normal"
+														? (rawStatus as
+																| "success"
+																| "warning"
+																| "error"
+																| "info")
+														: undefined,
+												message: statusMessage,
+											};
 										}}
 									/>
 								</GridItem>
