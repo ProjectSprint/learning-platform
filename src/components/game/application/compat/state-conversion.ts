@@ -15,9 +15,10 @@ import type {
 	PuzzleConfig,
 	PuzzleState,
 } from "../../core/types";
-import type { Entity } from "../../domain/entity";
-import { Item as ItemEntity } from "../../domain/entity";
-import type { GridSpace, Space } from "../../domain/space";
+import type { EntityData } from "../../domain/entity/entity-data";
+import { isItemData } from "../../domain/entity/entity-data";
+import type { SpaceData } from "../../domain/space/space-data";
+import { isGridSpace } from "../../domain/space/space-data";
 import type { GameState } from "../state/types";
 
 const isBoardItemStatus = (value: unknown): value is BoardItemStatus =>
@@ -31,12 +32,12 @@ const isBoardItemStatus = (value: unknown): value is BoardItemStatus =>
  * This allows old components to work with the new Space architecture.
  */
 export function spaceToPuzzleState(
-	space: Space,
-	entities: Map<string, Entity>,
+	space: SpaceData,
+	entities: Record<string, EntityData>,
 	puzzleId?: string,
 ): PuzzleState {
-	// Check if it's a GridSpace
-	if (!(space as GridSpace).rows || !(space as GridSpace).cols) {
+	// Check if it's a GridSpace and extract its properties
+	if (!isGridSpace(space)) {
 		// Return empty puzzle state for non-grid spaces
 		return {
 			config: {
@@ -49,9 +50,8 @@ export function spaceToPuzzleState(
 		};
 	}
 
-	const gridSpace = space as GridSpace;
-	const rows = gridSpace.rows;
-	const cols = gridSpace.cols;
+	const rows = space.rows;
+	const cols = space.cols;
 
 	// Create blocks grid
 	const blocks: Block[][] = [];
@@ -68,67 +68,63 @@ export function spaceToPuzzleState(
 	}
 
 	// Get entities in this space
-	const spaceEntities = space.getEntities();
 	const placedItems: BoardItemLocation[] = [];
 
-	for (const entity of spaceEntities) {
-		const resolvedEntity = entities.get(entity.id);
-		if (!resolvedEntity) {
+	for (const [entityId, position] of Object.entries(space.entityPositions)) {
+		const entity = entities[entityId];
+		if (!entity) {
 			continue;
 		}
 
-		const position = space.getPosition(resolvedEntity);
-		if (!position || !("row" in position) || !("col" in position)) {
+		if (!("row" in position) || !("col" in position)) {
 			continue;
 		}
 
-		const { row, col } = position as { row: number; col: number };
+		const row = position.row;
+		const col = position.col;
 
 		// Mark block as occupied
 		if (blocks[row]?.[col]) {
 			blocks[row][col].status = "occupied";
-			blocks[row][col].itemId = resolvedEntity.id;
+			blocks[row][col].itemId = entity.id;
 		}
 
-		const entityState = resolvedEntity.getState();
+		const entityState = entity.state;
 		const { status: rawStatus, ...restState } = entityState;
 		const status = isBoardItemStatus(rawStatus) ? rawStatus : "normal";
-		const iconFromVisual = resolvedEntity.visual?.icon
+		const iconFromVisual = entity.visual?.icon
 			? {
-					icon: resolvedEntity.visual.icon,
-					color: resolvedEntity.visual.color,
+					icon: entity.visual.icon,
+					color: entity.visual.color,
 				}
 			: undefined;
-		const icon =
-			resolvedEntity instanceof ItemEntity
-				? resolvedEntity.icon
-				: iconFromVisual;
+		const icon = isItemData(entity) ? entity.icon : iconFromVisual;
 
 		// Create placed item
 		placedItems.push({
-			id: resolvedEntity.id,
-			itemId: resolvedEntity.id,
-			type: resolvedEntity.type,
+			id: entity.id,
+			itemId: entity.id,
+			type: entity.type,
 			blockX: col,
 			blockY: row,
 			status,
 			icon,
 			data: {
-				...resolvedEntity.data,
+				...entity.data,
 				...restState,
 			},
 		});
 	}
 
 	// Extract config from space metadata
-	const metadata = space.metadata || {};
+	const metadata = space.metadata ?? {};
 	const config: PuzzleConfig = {
 		id: space.id,
 		puzzleId: puzzleId || space.id,
 		title: (metadata.title as string | undefined) ?? space.name,
 		size: [cols, rows],
 		orientation: metadata.orientation as "horizontal" | "vertical" | undefined,
-		maxItems: space.capacity()?.max,
+		maxItems: space.maxCapacity,
 	};
 
 	return {
@@ -144,36 +140,50 @@ export function spaceToPuzzleState(
  * This allows old inventory components to work with the new Entity architecture.
  */
 export function entitiesToInventory(
-	spaces: Map<string, Space>,
-	entities: Map<string, Entity>,
+	spaces: Record<string, SpaceData>,
+	entities: Record<string, EntityData>,
 ): { groups: InventoryGroup[] } {
 	const groups: InventoryGroup[] = [];
 
 	// Find all pool spaces (typically used for inventory)
-	for (const [spaceId, space] of spaces) {
-		// Check if this is an inventory/pool space by metadata or type
+	for (const [spaceId, space] of Object.entries(spaces)) {
+		// Check if this is an inventory/pool space by metadata or type or kind
 		const isInventory =
-			space.metadata?.isInventory ||
-			space.id.includes("inventory") ||
-			space.id.includes("pool");
+			space.metadata?.isInventory === true ||
+			spaceId.includes("inventory") ||
+			spaceId.includes("pool") ||
+			space.kind === "pool";
 
 		if (!isInventory) {
 			continue;
 		}
 
-		// Get entities in this space
-		const spaceEntities = space.getEntities();
+		// Get entities in this space based on space type
+		const entityIdsInSpace: string[] =
+			space.kind === "pool"
+				? space.entityIds
+				: Object.keys(space.entityPositions ?? {});
 
 		// Convert to legacy inventory items
 		const items: LegacyItem[] = [];
-		for (const entity of spaceEntities) {
-			const resolvedEntity = entities.get(entity.id);
+		for (const entityId of entityIdsInSpace) {
+			const resolvedEntity = entities[entityId];
 			if (!resolvedEntity) {
 				continue;
 			}
 
-			if (resolvedEntity instanceof ItemEntity) {
-				items.push(resolvedEntity.toLegacyItem());
+			if (isItemData(resolvedEntity)) {
+				items.push({
+					id: resolvedEntity.id,
+					type: resolvedEntity.type,
+					name: resolvedEntity.name,
+					allowedPlaces: resolvedEntity.allowedPlaces,
+					icon: resolvedEntity.icon,
+					tooltip: resolvedEntity.tooltip,
+					data: resolvedEntity.data,
+					draggable: resolvedEntity.draggable,
+					category: resolvedEntity.category,
+				});
 				continue;
 			}
 
@@ -229,20 +239,20 @@ export function entitiesToInventory(
  * Falls back to the first GridSpace if not found.
  */
 export function getPuzzleById(
-	spaces: Map<string, Space>,
-	entities: Map<string, Entity>,
+	spaces: Record<string, SpaceData>,
+	entities: Record<string, EntityData>,
 	puzzleId?: string,
 ): PuzzleState {
 	if (puzzleId) {
-		const space = spaces.get(puzzleId);
+		const space = spaces[puzzleId];
 		if (space) {
 			return spaceToPuzzleState(space, entities, puzzleId);
 		}
 	}
 
 	// Find first grid space
-	for (const [id, space] of spaces) {
-		if ((space as GridSpace).rows !== undefined) {
+	for (const [id, space] of Object.entries(spaces)) {
+		if (isGridSpace(space)) {
 			return spaceToPuzzleState(space, entities, id);
 		}
 	}
@@ -260,13 +270,13 @@ export function getPuzzleById(
  * Get all puzzles (GridSpaces) from the state.
  */
 export function getAllPuzzles(
-	spaces: Map<string, Space>,
-	entities: Map<string, Entity>,
+	spaces: Record<string, SpaceData>,
+	entities: Record<string, EntityData>,
 ): Record<string, PuzzleState> {
 	const puzzles: Record<string, PuzzleState> = {};
 
-	for (const [id, space] of spaces) {
-		if ((space as GridSpace).rows !== undefined) {
+	for (const [id, space] of Object.entries(spaces)) {
+		if (isGridSpace(space)) {
 			puzzles[id] = spaceToPuzzleState(space, entities, id);
 		}
 	}

@@ -3,8 +3,11 @@
  * Creates GridSpaces and Entities from the question configuration.
  */
 
-import { Item } from "@/components/game/domain/entity";
-import { GridSpace, PoolSpace } from "@/components/game/domain/space";
+import { createItemData } from "@/components/game/domain/entity/entity-fns";
+import {
+	createGridSpaceData,
+	createPoolSpaceData,
+} from "@/components/game/domain/space/space-fns";
 import {
 	ACK_PACKETS,
 	CANVAS_CONFIGS,
@@ -31,7 +34,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 		const config = CANVAS_CONFIGS[canvasId];
 		if (!config) continue;
 
-		const gridSpace = new GridSpace({
+		const gridSpace = createGridSpaceData({
 			id: config.id,
 			name: config.name,
 			rows: config.rows,
@@ -41,10 +44,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 			metadata: config.metadata ?? {},
 		});
 
-		dispatch({
-			type: "CREATE_SPACE",
-			payload: { space: gridSpace },
-		});
+		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
 	}
 
 	// Create grid spaces for UDP phase
@@ -53,7 +53,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 		const config = CANVAS_CONFIGS[canvasId];
 		if (!config) continue;
 
-		const gridSpace = new GridSpace({
+		const gridSpace = createGridSpaceData({
 			id: config.id,
 			name: config.name,
 			rows: config.rows,
@@ -63,24 +63,17 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 			metadata: config.metadata ?? {},
 		});
 
-		dispatch({
-			type: "CREATE_SPACE",
-			payload: { space: gridSpace },
-		});
+		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
 	}
 
 	// Create pool space for inventory
-	const inventorySpace = new PoolSpace({
+	const inventorySpace = createPoolSpaceData({
 		id: "inventory",
 		name: "Inventory",
-		maxCapacity: undefined,
 		metadata: { visible: true },
 	});
 
-	dispatch({
-		type: "CREATE_SPACE",
-		payload: { space: inventorySpace },
-	});
+	dispatch({ type: "CREATE_SPACE", payload: { space: inventorySpace } });
 };
 
 /**
@@ -89,7 +82,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 export const initializeEntities = (dispatch: GameDispatch) => {
 	// Create SYN packets
 	for (const itemConfig of SYN_PACKETS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,
@@ -107,7 +100,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create SYN-ACK packets
 	for (const itemConfig of SYN_ACK_PACKETS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,
@@ -125,7 +118,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create ACK packets
 	for (const itemConfig of ACK_PACKETS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,
@@ -143,7 +136,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create DATA packets
 	for (const itemConfig of DATA_PACKETS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,
@@ -161,7 +154,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create received SYN packets (non-draggable)
 	for (const itemConfig of RECEIVED_SYN_PACKETS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,
@@ -179,7 +172,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create UDP frame items
 	for (const itemConfig of FRAME_ITEMS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,

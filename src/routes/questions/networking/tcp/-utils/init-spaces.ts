@@ -3,8 +3,11 @@
  * Creates GridSpaces and Entities from the question configuration.
  */
 
-import { Item } from "@/components/game/domain/entity";
-import { GridSpace, PoolSpace } from "@/components/game/domain/space";
+import { createItemData } from "@/components/game/domain/entity/entity-fns";
+import {
+	createGridSpaceData,
+	createPoolSpaceData,
+} from "@/components/game/domain/space/space-fns";
 import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
@@ -30,7 +33,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 		const config = CANVAS_CONFIGS[canvasId];
 		if (!config) continue;
 
-		const gridSpace = new GridSpace({
+		const gridSpace = createGridSpaceData({
 			id: config.id,
 			name: config.name,
 			rows: config.rows,
@@ -47,10 +50,9 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 	}
 
 	// Create pool space for inventory
-	const inventorySpace = new PoolSpace({
+	const inventorySpace = createPoolSpaceData({
 		id: "inventory",
 		name: "Inventory",
-		maxCapacity: undefined,
 		metadata: { visible: true },
 	});
 
@@ -66,7 +68,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 export const initializeEntities = (dispatch: GameDispatch) => {
 	// Create file inventory items
 	for (const itemConfig of FILE_INVENTORY_ITEMS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,
@@ -87,7 +89,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create system packet items (non-draggable)
 	for (const item of Object.values(SYSTEM_PACKET_ITEMS)) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: item.id,
 			name: item.name,
 			icon: item.icon,
@@ -105,7 +107,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create TCP tool items (SYN, ACK, FIN)
 	for (const item of Object.values(TCP_TOOL_ITEMS)) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: item.id,
 			name: item.name,
 			icon: item.icon,
@@ -123,7 +125,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create message packet items
 	for (const item of MESSAGE_PACKET_ITEMS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: item.id,
 			name: item.name,
 			icon: item.icon,
@@ -141,7 +143,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create notes file item
 	{
-		const entity = new Item({
+		const entity = createItemData({
 			id: NOTES_FILE_ITEM.id,
 			name: NOTES_FILE_ITEM.name,
 			icon: NOTES_FILE_ITEM.icon,
@@ -159,7 +161,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create notes packet items
 	for (const item of NOTES_PACKET_ITEMS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: item.id,
 			name: item.name,
 			icon: item.icon,

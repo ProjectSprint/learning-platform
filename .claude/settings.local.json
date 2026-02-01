@@ -58,7 +58,13 @@
       "Bash(pnpm test src/components/game/domain/space/__tests__/GridSpace.test.ts)",
       "Bash(ls -la src/routes/questions/networking/*/)",
       "Bash(git show:*)",
-      "Bash(bd blocked:*)"
+      "Bash(bd blocked:*)",
+      "Bash(pnpm test)",
+      "Bash(pnpm test --run src/components/game/domain/entity/__tests__/entity-fns.test.ts)",
+      "Bash(pnpm test --run)",
+      "Bash(pnpm run check:tsc)",
+      "Bash(pnpm run check:biome --fix)",
+      "Bash(pnpm run check:biome)"
     ]
   }
 }

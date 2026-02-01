@@ -3,8 +3,11 @@
  * Creates GridSpaces and Entities from the question configuration.
  */
 
-import { Item } from "@/components/game/domain/entity";
-import { GridSpace, PoolSpace } from "@/components/game/domain/space";
+import { createItemData } from "@/components/game/domain/entity/entity-fns";
+import {
+	createGridSpaceData,
+	createPoolSpaceData,
+} from "@/components/game/domain/space/space-fns";
 import {
 	BASIC_INVENTORY_ITEMS,
 	CANVAS_CONFIGS,
@@ -29,7 +32,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 		const config = CANVAS_CONFIGS[canvasId];
 		if (!config) continue;
 
-		const gridSpace = new GridSpace({
+		const gridSpace = createGridSpaceData({
 			id: config.id,
 			name: config.name,
 			rows: config.rows,
@@ -46,10 +49,9 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 	}
 
 	// Create pool space for inventory
-	const inventorySpace = new PoolSpace({
+	const inventorySpace = createPoolSpaceData({
 		id: "inventory",
 		name: "Inventory",
-		maxCapacity: undefined,
 		metadata: { visible: true },
 	});
 
@@ -65,7 +67,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 export const initializeEntities = (dispatch: GameDispatch) => {
 	// Create basic inventory items
 	for (const itemConfig of BASIC_INVENTORY_ITEMS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,
@@ -86,7 +88,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create SSL setup items (shown after HTTP works)
 	for (const itemConfig of SSL_SETUP_INVENTORY_ITEMS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,
@@ -104,7 +106,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 
 	// Create SSL certificate items (shown after certificate is issued)
 	for (const itemConfig of SSL_ITEMS_INVENTORY) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,

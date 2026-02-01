@@ -3,8 +3,11 @@
  * Creates GridSpaces and Entities from the question configuration.
  */
 
-import { Item } from "@/components/game/domain/entity";
-import { GridSpace, PoolSpace } from "@/components/game/domain/space";
+import { createItemData } from "@/components/game/domain/entity/entity-fns";
+import {
+	createGridSpaceData,
+	createPoolSpaceData,
+} from "@/components/game/domain/space/space-fns";
 import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
@@ -28,7 +31,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 		const config = CANVAS_CONFIGS[canvasId];
 		if (!config) continue;
 
-		const gridSpace = new GridSpace({
+		const gridSpace = createGridSpaceData({
 			id: config.id,
 			name: config.name,
 			rows: config.rows,
@@ -45,10 +48,9 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 	}
 
 	// Create pool space for inventory
-	const inventorySpace = new PoolSpace({
+	const inventorySpace = createPoolSpaceData({
 		id: "inventory",
 		name: "Inventory",
-		maxCapacity: undefined,
 		metadata: { visible: true },
 	});
 
@@ -63,7 +65,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
  */
 export const initializeEntities = (dispatch: GameDispatch) => {
 	for (const itemConfig of INVENTORY_ITEMS) {
-		const entity = new Item({
+		const entity = createItemData({
 			id: itemConfig.id,
 			name: itemConfig.name,
 			icon: itemConfig.icon,
@@ -76,10 +78,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 		});
 
 		// Create entity
-		dispatch({
-			type: "CREATE_ENTITY",
-			payload: { entity },
-		});
+		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
 
 		// Add to inventory space
 		dispatch({
