@@ -91,6 +91,7 @@ For more details, see README.md and docs/QUICKSTART.md.
 
 ## Task Creation
 When creating a task, each task should:
+- Assumed that the one that will work on it, ISN'T YOU, but someone else, so be holistic about the context
 - Fulfill the principles
     - Maintainability
     - Usability
@@ -100,7 +101,9 @@ When creating a task, each task should:
     - Security
     - Reliability
 - Document
-    - Goal, explain what is the goal of the task, make sure that the goal is understandable midway of the process, so it can be continued when the token limit is refreshed
+    - Problem that we're trying to solve
+    - References of the problem
+    - Goal
     - Detailed task description
     - What to do
     - Do's and don't

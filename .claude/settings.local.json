@@ -49,7 +49,16 @@
       "Bash(do sed -i 's/useNewGameState/useGameState/g' \"$file\")",
       "Bash(done)",
       "Bash(bd dep add:*)",
-      "Bash(claude tasks:*)"
+      "Bash(claude tasks:*)",
+      "Bash(curl:*)",
+      "Bash(pnpm test GridSpace)",
+      "Bash(pnpm test --run src/components/game/domain/space/__tests__/GridSpace.test.ts)",
+      "Bash(pnpm vitest run src/components/game/domain/space/__tests__/GridSpace.test.ts)",
+      "Bash(pnpm vite test src/components/game/domain/space/__tests__/GridSpace.test.ts --run)",
+      "Bash(pnpm test src/components/game/domain/space/__tests__/GridSpace.test.ts)",
+      "Bash(ls -la src/routes/questions/networking/*/)",
+      "Bash(git show:*)",
+      "Bash(bd blocked:*)"
     ]
   }
 }
