@@ -211,32 +211,44 @@ const GridSpaceAdapter = ({
 
 	const space = state.spaces.get(spaceId) as GridSpace | undefined;
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: space object ref never changes due to mutation pattern, state.sequence tracks changes
 	const entities = useMemo(() => {
 		if (!space) return [];
 
+		// Read directly from the space's internal state to avoid stale reference issues
+		// space.getEntities() returns entity IDs, we need to look up actual entities
 		const result: Array<{ entity: Entity; position: GridPosition }> = [];
 
-		for (const entity of state.entities.values()) {
-			if (space.contains(entity)) {
-				const position = space.getPosition(entity);
-				if (position && "row" in position && "col" in position) {
+		// Get all occupied positions from the space
+		const occupiedPositions = space.getOccupiedPositions();
+
+		for (const position of occupiedPositions) {
+			const entityIds = space.getEntitiesAt(position);
+			for (const entityId of entityIds) {
+				const entity = state.entities.get(entityId);
+				if (entity) {
 					result.push({ entity, position });
 				}
 			}
 		}
 
 		return result;
-	}, [space, state.entities]);
+	}, [spaceId, state.entities, state.sequence]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: state.sequence tracks in-place mutations to non-draftable Space/Entity objects
 	const canPlaceAt = useCallback(
 		(entityId: string, position: GridPosition, targetSpaceId: string) => {
 			const entity = state.entities.get(entityId);
-			if (!entity) return false;
+			if (!entity) {
+				return false;
+			}
 
 			const targetSpace = state.spaces.get(targetSpaceId) as
 				| GridSpace
 				| undefined;
-			if (!targetSpace) return false;
+			if (!targetSpace) {
+				return false;
+			}
 
 			// Check allowed places
 			if ("allowedPlaces" in entity) {
@@ -251,9 +263,10 @@ const GridSpaceAdapter = ({
 
 			return targetSpace.canAccept(entity, position);
 		},
-		[state.entities, state.spaces],
+		[state.entities, state.spaces, state.sequence],
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: state.sequence tracks in-place mutations to non-draftable Space/Entity objects
 	const onPlaceEntity = useCallback(
 		(
 			entityId: string,
@@ -301,7 +314,7 @@ const GridSpaceAdapter = ({
 
 			return false;
 		},
-		[dispatch, spaceId, state.entities, state.spaces],
+		[dispatch, spaceId, state.entities, state.spaces, state.sequence],
 	);
 
 	const getEntityLabel = useCallback((entity: Entity) => {
@@ -345,6 +358,7 @@ const InventoryAdapter = () => {
 	const inventorySpace = state.spaces.get("inventory");
 
 	// Get all entities in inventory
+	// biome-ignore lint/correctness/useExhaustiveDependencies: state.sequence tracks in-place mutations to non-draftable Space/Entity objects
 	const entities = useMemo(() => {
 		if (!inventorySpace) return [];
 
@@ -356,9 +370,10 @@ const InventoryAdapter = () => {
 		}
 
 		return result;
-	}, [inventorySpace, state.entities]);
+	}, [inventorySpace, state.entities, state.sequence]);
 
 	// Get IDs of entities placed in grid spaces
+	// biome-ignore lint/correctness/useExhaustiveDependencies: state.sequence tracks in-place mutations to non-draftable Space/Entity objects
 	const placedEntityIds = useMemo(() => {
 		const ids = new Set<string>();
 		for (const [spaceId, space] of state.spaces) {
@@ -371,7 +386,7 @@ const InventoryAdapter = () => {
 			}
 		}
 		return ids;
-	}, [state.spaces, state.entities]);
+	}, [state.spaces, state.entities, state.sequence]);
 
 	const handleEntityDragStart = useCallback(
 		(entity: Entity, event: React.PointerEvent) => {

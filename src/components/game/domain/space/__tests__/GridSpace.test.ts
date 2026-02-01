@@ -269,4 +269,92 @@ describe("GridSpace", () => {
 			expect(space.canAccept(entity2, { row: 0, col: 1 })).toBe(false);
 		});
 	});
+
+	// BUG: Test that mimics the Immer reducer pattern used in the actual code
+	describe("Immer reducer pattern test (DEBUG)", () => {
+		it("should correctly update both entityPositions and grid when adding entity", () => {
+			const space = new GridSpace(config);
+			const entity = createTestEntity("item-1");
+			const position = { row: 0, col: 0 };
+
+			// Before add
+			expect(space.contains(entity)).toBe(false);
+			expect(space.getOccupiedPositions()).toEqual([]);
+			expect(space.getEntitiesAt(position)).toEqual([]);
+
+			// Add entity
+			const result = space.add(entity, position);
+			expect(result).toBe(true);
+
+			// After add - verify BOTH structures are updated
+			// This tests that getOccupiedPositions reads from entityPositions
+			expect(space.contains(entity)).toBe(true);
+			expect(space.getOccupiedPositions()).toEqual([position]);
+			expect(space.getEntitiesAt(position)).toEqual(["item-1"]);
+		});
+
+		it("should maintain immutability of grid reference when adding entity", () => {
+			const space = new GridSpace(config);
+			const entity = createTestEntity("item-1");
+			const position = { row: 0, col: 0 };
+
+			// Capture original grid reference
+			// biome-ignore lint/suspicious/noExplicitAny: Testing immutability of private grid
+			const originalGrid = (space as any).grid;
+
+			// Add entity
+			space.add(entity, position);
+
+			// Since grid is immutable (updateCell returns new instance),
+			// the space should have a NEW grid instance
+			// biome-ignore lint/suspicious/noExplicitAny: Testing immutability of private grid
+			const gridAfter = (space as any).grid;
+
+			// THIS IS KEY: If updateCell returns a new instance, this.grid should be new
+			expect(originalGrid === gridAfter).toBe(false);
+
+			// The new grid should have the entity
+			expect(gridAfter.getCellAt(position)?.data?.entityIds).toEqual([
+				"item-1",
+			]);
+		});
+
+		it("should work with Map-based pattern (mimicking Immer draft.spaces)", () => {
+			// This test mimics the exact Immer reducer pattern used in space.ts
+			const originalSpace = new GridSpace(config);
+			const entity = createTestEntity("item-1");
+			const position = { row: 0, col: 0 };
+
+			// Create a Map and add the space (mimicking state.spaces)
+			const spacesMap = new Map<string, GridSpace>();
+			spacesMap.set(originalSpace.id, originalSpace);
+
+			// Get the space from the map (mimicking draft.spaces.get())
+			const spaceFromMap = spacesMap.get(originalSpace.id);
+			if (!spaceFromMap) {
+				throw new Error("Space not found in map");
+			}
+
+			// Mutate the space (this is what the reducer does)
+			const result = spaceFromMap.add(entity, position);
+			expect(result).toBe(true);
+
+			// Now delete and re-insert to force new reference (what reducer does for Immer)
+			spacesMap.delete(originalSpace.id);
+			spacesMap.set(originalSpace.id, spaceFromMap);
+
+			// Get the space again (this is what the component does)
+			const spaceAfter = spacesMap.get(originalSpace.id);
+
+			// All should be the same object reference (because we're mutating in-place)
+			expect(originalSpace === spaceFromMap).toBe(true);
+			expect(spaceFromMap === spaceAfter).toBe(true);
+			expect(originalSpace === spaceAfter).toBe(true);
+
+			// The space should have the entity
+			expect(spaceAfter?.contains(entity)).toBe(true);
+			expect(spaceAfter?.getOccupiedPositions()).toEqual([position]);
+			expect(spaceAfter?.getEntitiesAt(position)).toEqual(["item-1"]);
+		});
+	});
 });

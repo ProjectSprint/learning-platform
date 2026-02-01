@@ -105,6 +105,7 @@ export const GridSpaceView = ({
 	const entityRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
 	const [hoveredCell, setHoveredCell] = useState<GridPosition | null>(null);
+	const hoveredCellRef = useRef<GridPosition | null>(null);
 	const [draggingEntityId, setDraggingEntityId] = useState<string | null>(null);
 	const [boardSize, setBoardSize] = useState({
 		width: 0,
@@ -224,6 +225,12 @@ export const GridSpaceView = ({
 			setHoveredCell(null);
 			return;
 		}
+		console.log(
+			"[GridSpaceView] drag effect active for space:",
+			space.id,
+			"entity:",
+			activeDrag.data.entityId,
+		);
 
 		const element = boardRef.current;
 
@@ -238,6 +245,7 @@ export const GridSpaceView = ({
 			if (!isInside) {
 				setDragPreview(null);
 				setHoveredCell(null);
+				hoveredCellRef.current = null;
 				targetSpaceIdRef.current = undefined;
 				return;
 			}
@@ -254,10 +262,12 @@ export const GridSpaceView = ({
 			if (row < 0 || row >= rows || col < 0 || col >= cols) {
 				setDragPreview(null);
 				setHoveredCell(null);
+				hoveredCellRef.current = null;
 				return;
 			}
 
 			setHoveredCell({ row, col });
+			hoveredCellRef.current = { row, col };
 
 			// Check if placement is valid
 			const isValid = canPlaceAt
@@ -276,18 +286,48 @@ export const GridSpaceView = ({
 		};
 
 		const handlePointerUp = () => {
-			if (!hoveredCell) {
-				setActiveDrag(null);
-				setDraggingEntityId(null);
+			const currentHoveredCell = hoveredCellRef.current;
+			console.log(
+				"[GridSpaceView] handlePointerUp",
+				"space:",
+				space.id,
+				"hoveredCell:",
+				currentHoveredCell,
+				"activeDrag:",
+				activeDrag?.data?.entityId,
+			);
+			if (!currentHoveredCell) {
+				console.log(
+					"[GridSpaceView] no hoveredCell for space:",
+					space.id,
+					"- skipping (not target)",
+				);
+				// Don't cancel drag here - another GridSpaceView may be the target
 				return;
 			}
 
 			const fromPosition = activeDrag.data.fromPosition ?? null;
 
 			// Attempt to place the entity
+			console.log(
+				"[GridSpaceView] calling onPlaceEntity",
+				"entityId:",
+				activeDrag.data.entityId,
+				"from:",
+				fromPosition,
+				"to:",
+				currentHoveredCell,
+				"hasCallback:",
+				!!onPlaceEntity,
+			);
 			const placed = onPlaceEntity
-				? onPlaceEntity(activeDrag.data.entityId, fromPosition, hoveredCell)
+				? onPlaceEntity(
+						activeDrag.data.entityId,
+						fromPosition,
+						currentHoveredCell,
+					)
 				: false;
+			console.log("[GridSpaceView] onPlaceEntity result:", placed);
 
 			setLastDropResult({
 				source: activeDrag.source,
@@ -298,6 +338,7 @@ export const GridSpaceView = ({
 			setDraggingEntityId(null);
 			setDragPreview(null);
 			setHoveredCell(null);
+			hoveredCellRef.current = null;
 		};
 
 		window.addEventListener("pointermove", handlePointerMove);
@@ -309,7 +350,6 @@ export const GridSpaceView = ({
 		};
 	}, [
 		activeDrag,
-		hoveredCell,
 		stepX,
 		stepY,
 		cellWidth,

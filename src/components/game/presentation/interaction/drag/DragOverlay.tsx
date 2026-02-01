@@ -49,7 +49,8 @@ export const useEntityCardSize = () => {
 export const DragOverlay = ({
 	getEntityLabel = defaultGetEntityLabel,
 }: DragOverlayProps) => {
-	const { activeDrag, proxyRef } = useDragContext();
+	const { activeDrag, proxyRef, setActiveDrag, setLastDropResult } =
+		useDragContext();
 	const cardSize = useEntityCardSize();
 	const cardSizeRef = useRef({
 		width: cardSize.width,
@@ -124,9 +125,27 @@ export const DragOverlay = ({
 			}
 		};
 
+		const handlePointerUp = () => {
+			// Global fallback: cancel drag if no GridSpaceView handled the drop.
+			// Use setTimeout(0) so this runs after all synchronous GridSpaceView handlers.
+			setTimeout(() => {
+				setActiveDrag((current) => {
+					if (current) {
+						setLastDropResult({ source: current.source, placed: false });
+						return null;
+					}
+					return current;
+				});
+			}, 0);
+		};
+
 		window.addEventListener("pointermove", handlePointerMove);
-		return () => window.removeEventListener("pointermove", handlePointerMove);
-	}, [activeDrag, proxyRef]);
+		window.addEventListener("pointerup", handlePointerUp);
+		return () => {
+			window.removeEventListener("pointermove", handlePointerMove);
+			window.removeEventListener("pointerup", handlePointerUp);
+		};
+	}, [activeDrag, proxyRef, setActiveDrag, setLastDropResult]);
 
 	if (!isVisible || !activeDrag) {
 		return null;

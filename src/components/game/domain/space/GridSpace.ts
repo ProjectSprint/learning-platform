@@ -38,6 +38,9 @@ type GridCellData = {
 	entityIds: string[];
 };
 
+/** Counter for creating unique instance IDs for debugging */
+let gridSpaceInstanceCounter = 0;
+
 /**
  * A space that organizes entities in a 2D grid.
  * Composes SquareGrid for grid operations and adds entity management.
@@ -52,6 +55,9 @@ export class GridSpace extends Space {
 	/** Whether to allow multiple entities per cell */
 	private readonly allowMultiplePerCell: boolean;
 
+	/** Unique instance ID for debugging */
+	private readonly instanceId: number;
+
 	/**
 	 * Creates a new GridSpace.
 	 * @param config Grid space configuration
@@ -61,6 +67,9 @@ export class GridSpace extends Space {
 
 		this.allowMultiplePerCell = config.allowMultiplePerCell ?? false;
 		this.entityPositions = new Map();
+
+		// Generate unique instance ID
+		this.instanceId = ++gridSpaceInstanceCounter;
 
 		// Initialize grid with empty cells
 		this.grid = new SquareGrid({
@@ -249,10 +258,20 @@ export class GridSpace extends Space {
 	 * Gets all entities at a specific grid position.
 	 * @param position The grid position
 	 * @returns Array of entity IDs at that position
+	 * @remarks
+	 * CRITICAL: This MUST read from entityPositions, not from this.grid.
+	 * The grid can become stale in Immer reducer patterns due to draft handling,
+	 * but entityPositions is always updated in sync with mutations.
 	 */
 	getEntitiesAt(position: GridPosition): string[] {
-		const cell = this.grid.getCellAt(position);
-		return cell?.data?.entityIds ?? [];
+		// Read from entityPositions for consistency (same as getOccupiedPositions)
+		const result: string[] = [];
+		for (const [entityId, pos] of this.entityPositions.entries()) {
+			if (pos.row === position.row && pos.col === position.col) {
+				result.push(entityId);
+			}
+		}
+		return result;
 	}
 
 	/**
@@ -284,13 +303,10 @@ export class GridSpace extends Space {
 	 * @returns Array of grid coordinates with at least one entity
 	 */
 	getOccupiedPositions(): GridPosition[] {
-		const occupiedPositions: GridPosition[] = [];
-		this.grid.forEach((cell) => {
-			if (cell.data && cell.data.entityIds.length > 0) {
-				occupiedPositions.push(cell.coord);
-			}
-		});
-		return occupiedPositions;
+		// CRITICAL FIX: Read from entityPositions instead of grid
+		// The grid may become stale due to mutation in reducer patterns,
+		// but entityPositions is always updated in sync with mutations.
+		return Array.from(this.entityPositions.values());
 	}
 
 	/**
@@ -300,6 +316,14 @@ export class GridSpace extends Space {
 	 */
 	getGrid(): SquareGrid<GridCellData> {
 		return this.grid;
+	}
+
+	/**
+	 * Gets the unique instance ID for debugging.
+	 * @returns The instance ID
+	 */
+	getInstanceId(): number {
+		return this.instanceId;
 	}
 
 	/**

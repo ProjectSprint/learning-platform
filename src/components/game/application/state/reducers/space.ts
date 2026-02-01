@@ -75,6 +75,9 @@ export const spaceReducer = (
 				// Add the entity to the space
 				const success = space.add(asEntity(entity), position);
 				if (success) {
+					// Force new reference by deleting and re-inserting
+					draft.spaces.delete(spaceId);
+					draft.spaces.set(spaceId, space);
 					draft.sequence += 1;
 				}
 			});
@@ -94,50 +97,184 @@ export const spaceReducer = (
 				// Remove the entity from the space
 				const success = space.remove(asEntity(entity));
 				if (success) {
+					// Force new reference by deleting and re-inserting
+					draft.spaces.delete(spaceId);
+					draft.spaces.set(spaceId, space);
 					draft.sequence += 1;
 				}
 			});
 		}
 
 		case "MOVE_ENTITY_BETWEEN_SPACES": {
-			return produce(state, (draft) => {
-				const { entityId, fromSpaceId, toSpaceId, toPosition } = action.payload;
+			const { entityId, fromSpaceId, toSpaceId, toPosition } = action.payload;
+			const NEW_STATE = produce(state, (draft) => {
+				// Get drafts first
+				const fromSpaceDraft = draft.spaces.get(fromSpaceId);
+				const toSpaceDraft = draft.spaces.get(toSpaceId);
+				const entityDraft = draft.entities.get(entityId);
 
-				const fromSpace = draft.spaces.get(fromSpaceId);
-				const toSpace = draft.spaces.get(toSpaceId);
-				const entity = draft.entities.get(entityId);
-
-				if (!fromSpace || !toSpace || !entity) {
+				if (!fromSpaceDraft || !toSpaceDraft || !entityDraft) {
+					console.log(
+						"[MOVE] FAIL: missing space or entity",
+						"fromSpace:",
+						!!fromSpaceDraft,
+						"toSpace:",
+						!!toSpaceDraft,
+						"entity:",
+						!!entityDraft,
+					);
 					return;
 				}
 
+				// NOTE: We Don't use original() here!
+				// Immer proxies the Map container but NOT the values stored in it.
+				// The Space and Entity class instances are already original objects,
+				// not drafts. We can safely use them directly.
+				const fromSpace = fromSpaceDraft;
+				const toSpace = toSpaceDraft;
+				const entity = entityDraft;
+
 				const e = asEntity(entity);
+
+				console.log(
+					"[MOVE] entityId:",
+					entityId,
+					"from:",
+					fromSpaceId,
+					"to:",
+					toSpaceId,
+					"pos:",
+					toPosition,
+					"toSpace contains BEFORE:",
+					toSpace.contains(e),
+				);
+
+				// Debug: Check if spaces already contain entity
+				console.log(
+					"[MOVE] BEFORE CHECK: fromSpace.contains:",
+					fromSpace.contains(e),
+					"toSpace.contains:",
+					toSpace.contains(e),
+				);
 
 				// Check if the entity is in the source space
 				if (!fromSpace.contains(e)) {
+					// Entity may already be at destination (React StrictMode double-invocation
+					// with non-draftable objects causes the first call to mutate in-place)
+					if (toSpace.contains(e)) {
+						console.log(
+							"[MOVE] already moved (StrictMode), ensuring state signals change",
+						);
+						// Even though already moved, force new references to signal change
+						draft.spaces.delete(fromSpaceId);
+						draft.spaces.set(fromSpaceId, fromSpace);
+						draft.spaces.delete(toSpaceId);
+						draft.spaces.set(toSpaceId, toSpace);
+						draft.sequence += 1;
+						return;
+					}
+					console.log(
+						"[MOVE] FAIL: entity not in source space. entity.id:",
+						e.id,
+					);
 					return;
 				}
 
 				// Check if destination can accept the entity
 				if (!toSpace.canAccept(e, toPosition)) {
+					console.log(
+						"[MOVE] FAIL: destination cannot accept. capacity:",
+						toSpace.capacity(),
+					);
 					return;
 				}
 
-				// Remove from source and add to destination
+				// Capture original position BEFORE removal for rollback
+				const originalPosition = fromSpace.getPosition(e);
+				console.log("[MOVE] originalPosition:", originalPosition);
+
+				// Remove from source and add to destination (mutate in-place)
 				const removed = fromSpace.remove(e);
 				if (!removed) {
+					console.log("[MOVE] FAIL: could not remove from source");
 					return;
 				}
+				console.log(
+					"[MOVE] After remove: fromSpace.contains:",
+					fromSpace.contains(e),
+				);
 
 				const added = toSpace.add(e, toPosition);
 				if (!added) {
-					// Rollback: add back to source
-					fromSpace.add(e);
+					console.log("[MOVE] FAIL: could not add to destination");
+					// Rollback: add back to source at original position
+					if (originalPosition) {
+						const rollbackAdded = fromSpace.add(e, originalPosition);
+						if (!rollbackAdded) {
+							console.log(
+								"[MOVE] ROLLBACK FAILED: could not restore entity to source",
+							);
+						} else {
+							console.log("[MOVE] ROLLBACK SUCCESS: restored entity to source");
+						}
+					}
 					return;
 				}
+				console.log(
+					"[MOVE] After add: toSpace.contains:",
+					toSpace.contains(e),
+					"toSpace.getPosition:",
+					toSpace.getPosition(e),
+				);
+				console.log(
+					"[MOVE] toSpace entityPositions.size:",
+					(toSpace as unknown as { entityPositions: Map<string, unknown> })
+						.entityPositions?.size,
+					"toSpace entityPositions keys:",
+					(toSpace as unknown as { entityPositions: Map<string, unknown> })
+						.entityPositions
+						? Array.from(
+								(
+									toSpace as unknown as {
+										entityPositions: Map<string, unknown>;
+									}
+								).entityPositions.keys(),
+							)
+						: [],
+				);
 
+				console.log("[MOVE] SUCCESS: moved entity", entityId);
+
+				// CRITICAL: Force new references by deleting and re-inserting to signal the change to Immer
+				// Immer proxies the Map but NOT the values stored in it. When we mutate
+				// Space/Entity instances with method calls, the Map doesn't "see" the change.
+				draft.spaces.delete(fromSpaceId);
+				draft.spaces.set(fromSpaceId, fromSpace);
+				draft.spaces.delete(toSpaceId);
+				draft.spaces.set(toSpaceId, toSpace);
 				draft.sequence += 1;
 			});
+
+			// Debug: Check state after produce returns
+			// This is key - we need to see if the space in NEW_STATE has the entity
+			const internetSpace = NEW_STATE.spaces.get(toSpaceId);
+			const entityAfter = NEW_STATE.entities.get(entityId);
+			console.log(
+				"[MOVE] AFTER PRODUCE: internet space exists:",
+				!!internetSpace,
+				"entity exists:",
+				!!entityAfter,
+				"space contains entity:",
+				internetSpace && entityAfter
+					? internetSpace.contains(entityAfter)
+					: "N/A",
+				"space getPosition:",
+				internetSpace && entityAfter
+					? internetSpace.getPosition(entityAfter)
+					: "N/A",
+			);
+
+			return NEW_STATE;
 		}
 
 		case "UPDATE_ENTITY_POSITION": {
@@ -161,6 +298,9 @@ export const spaceReducer = (
 				// Update the position
 				const success = space.setPosition(e, position);
 				if (success) {
+					// Force new reference by deleting and re-inserting
+					draft.spaces.delete(spaceId);
+					draft.spaces.set(spaceId, space);
 					draft.sequence += 1;
 				}
 			});
@@ -197,6 +337,9 @@ export const spaceReducer = (
 					const success2 = space1.setPosition(e2, pos1 ?? {});
 
 					if (success1 && success2) {
+						// Force new reference by deleting and re-inserting
+						draft.spaces.delete(space1Id);
+						draft.spaces.set(space1Id, space1);
 						draft.sequence += 1;
 					}
 				} else {
@@ -223,6 +366,11 @@ export const spaceReducer = (
 						return;
 					}
 
+					// Force new references by deleting and re-inserting
+					draft.spaces.delete(space1Id);
+					draft.spaces.set(space1Id, space1);
+					draft.spaces.delete(space2Id);
+					draft.spaces.set(space2Id, space2);
 					draft.sequence += 1;
 				}
 			});
