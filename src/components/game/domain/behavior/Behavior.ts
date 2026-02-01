@@ -18,7 +18,7 @@
  * - Integration with state management
  */
 
-import type { Entity } from "../entity/Entity";
+import type { EntityData } from "../entity/entity-data";
 
 /**
  * Context passed to behavior methods.
@@ -26,9 +26,9 @@ import type { Entity } from "../entity/Entity";
  */
 export type BehaviorContext = {
 	/** The entity performing the behavior */
-	entity: Entity;
+	entity: EntityData;
 	/** Target entity (if applicable) */
-	target?: Entity;
+	target?: EntityData;
 	/** Additional parameters for the behavior */
 	params?: Record<string, unknown>;
 	/** Current game time */

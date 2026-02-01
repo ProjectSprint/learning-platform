@@ -1,15 +1,48 @@
 /**
  * Space domain exports.
- * Provides access to all space types and related utilities.
+ * Provides access to all space types, data, and utility functions.
  */
 
-export type { GridPosition, GridSpaceConfig } from "./GridSpace";
-export { GridSpace } from "./GridSpace";
-export type { PathPosition, PathSpaceConfig, PathWaypoint } from "./PathSpace";
-export { PathSpace } from "./PathSpace";
-export type { PoolPosition, PoolSpaceConfig } from "./PoolSpace";
-export { PoolSpace } from "./PoolSpace";
-export type { QueuePosition, QueueSpaceConfig } from "./QueueSpace";
-export { QueueSpace } from "./QueueSpace";
-export type { SpaceConfig, SpacePosition } from "./Space";
-export { Space } from "./Space";
+// Types
+export type {
+	GridPosition,
+	GridSpaceConfig,
+	GridSpaceData,
+	PoolSpaceConfig,
+	PoolSpaceData,
+	SpaceBase,
+	SpaceBaseConfig,
+	SpaceData,
+} from "./space-data";
+
+// Type guards
+export { isGridSpace, isPoolSpace, isValidGridPosition } from "./space-data";
+
+// Factory and utility functions
+export {
+	createGridSpaceData,
+	createPoolSpaceData,
+	gridAdd,
+	gridCanAccept,
+	gridContains,
+	gridGetEmptyPositions,
+	gridGetEntitiesAt,
+	gridGetEntityCount,
+	gridGetOccupiedPositions,
+	gridGetPosition,
+	gridIsEmpty,
+	gridIsFull,
+	gridIsOccupied,
+	gridRemove,
+	poolAdd,
+	poolContains,
+	poolGetEntityCount,
+	poolIsEmpty,
+	poolIsFull,
+	poolRemove,
+	spaceContains,
+	spaceGetEntityCount,
+	spaceIsEmpty,
+	spaceIsFull,
+	spaceRemove,
+} from "./space-fns";

@@ -1,9 +1,34 @@
 /**
  * Entity domain exports.
- * Provides access to all entity types and related utilities.
+ * Provides access to all entity types, data, and utility functions.
  */
 
-export type { EntityConfig, EntityVisual } from "./Entity";
-export { Entity } from "./Entity";
-export type { ItemConfig, ItemTooltip } from "./Item";
-export { Item } from "./Item";
+// Types
+export type {
+	EntityData,
+	EntityDataConfig,
+	EntityVisual,
+	ItemData,
+	ItemDataConfig,
+	ItemTooltip,
+} from "./entity-data";
+
+// Type guards
+export { isItemData } from "./entity-data";
+
+// Factory and utility functions
+export {
+	canPlaceIn,
+	cloneEntityData,
+	cloneItemData,
+	createEntityData,
+	createItemData,
+	getEntityStateValue,
+	getItemIcon,
+	getItemTooltip,
+	isDraggable,
+	isInCategory,
+	resetEntityState,
+	setEntityStateValue,
+	updateEntityState,
+} from "./entity-fns";

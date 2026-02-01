@@ -42,11 +42,8 @@ export type {
 	TerminalEntryType,
 	TerminalState,
 } from "./core/types";
-// Legacy domain types (deprecated, kept for compat)
-export type { Entity } from "./domain/entity";
 // New domain data types
 export type { EntityData, ItemData } from "./domain/entity/entity-data";
-export type { Space } from "./domain/space";
 export type {
 	GridSpaceData,
 	PoolSpaceData,
