@@ -131,6 +131,100 @@ When creating a task, each task should:
 - You will often get get limited by the token limit midway, so update the progress frequently
 - If midway you found task that could be split midway, then split it by creating a new task and update the existing
 
-## Knowledge Updates (2026-01-31)
-- Networking questions now define `CANVAS_CONFIGS` as GridSpace configs (with `layout.size`) and derive `CANVAS_PUZZLES` for `INIT_MULTI_CANVAS`.
-- Shared helper: `src/routes/questions/networking/-utils/grid-space.ts` (`createGridCanvasConfig`, `createPuzzleConfigs`).
+## Knowledge Updates (2026-02-01)
+
+### FP Migration Complete (Phases 0-7)
+
+The game architecture has been fully migrated from OOP classes to **plain data + pure functions**.
+
+**Old OOP patterns (DEPRECATED):**
+```typescript
+// DON'T use these patterns anymore
+const space = new GridSpace({ id: "...", rows: 4, cols: 6 });
+space.add(entity, position);
+const pos = space.getPosition(entityId);
+```
+
+**New FP patterns (CURRENT):**
+```typescript
+// ✅ Use factory functions
+import { createGridSpaceData, createEntityData } from "@/components/game/domain";
+
+const space = createGridSpaceData({
+  id: "...",
+  layout: {
+    size: { rows: 4, cols: 6 },
+    cellSize: { width: 64, height: 64 },
+    gap: { x: 4, y: 4 },
+  },
+});
+
+const entity = createEntityData({
+  id: "router-1",
+  type: "router",
+  name: "Router A",
+  visual: { icon: "router-icon" },
+});
+
+// ✅ Use domain functions (inside Immer reducers)
+import { gridAdd, gridGetPosition, gridContains } from "@/components/game/domain";
+
+gridAdd(space, entityId, position);
+const pos = gridGetPosition(space, entityId);
+const hasEntity = gridContains(space, entityId);
+```
+
+**Key FP Patterns:**
+
+1. **Space Data Types** (discriminated union):
+   - `GridSpaceData` - 2D grid layouts with `kind: "grid"`
+   - `PoolSpaceData` - Unordered collections with `kind: "pool"`
+   - Type guards: `isGridSpace()`, `isPoolSpace()`
+   - Factory: `createGridSpaceData()`, `createPoolSpaceData()`
+
+2. **Entity Data Types**:
+   - `EntityData` - Base entity type
+   - `ItemData` - Item subtype with allowedPlaces
+   - Factory: `createEntityData()`, `createItemData()`
+   - Type guard: `isItemData()`
+
+3. **Space Functions** (all in `src/components/game/domain/space/space-fns.ts`):
+   - `gridAdd()`, `gridRemove()`, `gridContains()`, `gridGetPosition()`
+   - `gridCanAccept()`, `gridGetEntitiesAt()`, `gridIsOccupied()`
+   - `poolAdd()`, `poolRemove()`, `poolContains()`
+   - Polymorphic: `spaceContains()`, `spaceRemove()`, `spaceGetEntityCount()`
+
+4. **Entity Functions** (all in `src/components/game/domain/entity/entity-fns.ts`):
+   - `getEntityStateValue()`, `setEntityStateValue()`, `updateEntityState()`
+   - `resetEntityState()`, `cloneEntityData()`, `cloneItemData()`
+   - `isDraggable()`, `canPlaceIn()`, `isInCategory()`
+   - `getItemTooltip()`, `getItemIcon()`
+
+5. **In Immer Reducers** (space functions mutate drafts):
+```typescript
+import { produce } from "immer";
+import { gridAdd, isGridSpace } from "@/components/game/domain/space";
+
+const reducer = produce((draft: GameState, action: Action) => {
+  switch (action.type) {
+    case "ADD_ENTITY": {
+      const space = draft.spaces[action.payload.spaceId];
+      if (space && isGridSpace(space)) {
+        gridAdd(space, action.payload.entityId, action.payload.position);
+      }
+      break;
+    }
+  }
+});
+```
+
+6. **Networking Questions - Shared Helper**:
+   - `src/routes/questions/networking/-utils/grid-space.ts` provides:
+     - `createGridCanvasConfig()` - Creates GridSpaceData from grid dimensions
+     - `createPuzzleConfigs()` - Derives CANVAS_PUZZLES from CANVAS_CONFIGS
+   - Networking questions define `CANVAS_CONFIGS` as GridSpace configs
+
+**Documentation Updated:**
+- `src/components/game/doc/09-space-architecture.md` - Explains FP data-first approach
+- `src/components/game/doc/10-adding-new-spaces.md` - How to add new space types with discriminated unions
+- `src/components/game/doc/07-usage-guide.md` - All examples use FP patterns

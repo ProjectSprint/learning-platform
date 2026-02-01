@@ -2,16 +2,18 @@
 
 ## Overview
 
-The Space/Entity architecture is the core design pattern for organizing game objects in the learning platform. It replaces the legacy puzzle/board/inventory system with a flexible, extensible model.
+The Space/Entity architecture is the core design pattern for organizing game objects in the learning platform. It replaces the legacy puzzle/board/inventory system with a flexible, extensible model based on **plain data types and pure functions**.
 
 ## Core Concepts
 
-### Entity
+### Entity (Data-First Approach)
 
-An **Entity** is any interactive game object - items, devices, packets, or characters.
+An **Entity** is plain data representing any interactive game object - items, devices, packets, or characters.
 
 ```typescript
-const router = new Entity({
+import { createEntityData } from "@/components/game/domain/entity";
+
+const router = createEntityData({
   id: "router-1",
   type: "router",
   name: "Router A",
@@ -29,15 +31,41 @@ const router = new Entity({
 - `data`: Static entity data
 - `state`: Dynamic runtime state
 
-### Space
+### Space (Discriminated Union Pattern)
 
-A **Space** is a container that organizes entities with positional or structural constraints.
+A **Space** is a discriminated union of plain data types that represent different container layouts.
+
+```typescript
+type SpaceData = GridSpaceData | PoolSpaceData;
+
+interface GridSpaceData {
+  kind: "grid";          // Discriminator
+  id: string;
+  layout: {
+    size: { rows: number; cols: number };
+    cellSize: { width: number; height: number };
+    gap: { x: number; y: number };
+  };
+  maxCapacity?: number;
+  allowMultiplePerCell?: boolean;
+  occupied: Record<string, string[]>; // position -> entity IDs
+}
+
+interface PoolSpaceData {
+  kind: "pool";          // Discriminator
+  id: string;
+  layout: {
+    type: "horizontal-wrap" | "vertical";
+    gap: number;
+  };
+  maxCapacity?: number;
+  entityIds: string[];
+}
+```
 
 **Types of Spaces:**
-- **GridSpace**: 2D grid layout (e.g., network diagrams, circuit boards)
-- **PoolSpace**: Unordered collection (e.g., inventory, toolbox)
-- **QueueSpace**: Sequential ordering (future: packet queues)
-- **PathSpace**: Network/graph structure (future: routing paths)
+- **GridSpaceData**: 2D grid layout (e.g., network diagrams, circuit boards)
+- **PoolSpaceData**: Unordered collection (e.g., inventory, toolbox)
 
 ## Architecture Layers
 
@@ -53,23 +81,23 @@ A **Space** is a container that organizes entities with positional or structural
 ┌──────────────▼──────────────────────────┐
 │   Application Layer                      │
 │   (State Management)                     │
-│   - Space Actions/Reducers               │
-│   - Entity Actions/Reducers              │
+│   - useSpace, useEntity hooks            │
+│   - Redux reducers (Immer)               │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
 │   Domain Layer                           │
-│   (Business Logic)                       │
-│   - Space (abstract)                     │
-│   - GridSpace, PoolSpace                 │
-│   - Entity                               │
+│   (Plain Data + Pure Functions)          │
+│   - SpaceData, EntityData                │
+│   - gridAdd, poolAdd, etc.               │
+│   - Type guards (isGridSpace, etc.)      │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
 │   Infrastructure Layer                   │
 │   (Low-level Primitives)                 │
-│   - SquareGrid, HexGrid                  │
-│   - GridCell, GridCoordinate             │
+│   - Grid position utilities              │
+│   - Coordinate calculations              │
 └─────────────────────────────────────────┘
 ```
 
@@ -79,64 +107,58 @@ The Space/Entity system is organized across the architecture layers:
 
 ```
 src/components/game/
-├── domain/                    # Business Logic Layer
-│   ├── entity/               # Entity models and behaviors
-│   ├── space/                # Space types (GridSpace, PoolSpace, etc.)
+├── domain/                    # Plain Data + Pure Functions
+│   ├── entity/               # Entity types and functions
+│   │   ├── entity-data.ts    # Entity types (EntityData, ItemData)
+│   │   └── entity-fns.ts     # Entity functions (create, update, clone)
+│   ├── space/                # Space types and functions
+│   │   ├── space-data.ts     # Space types (GridSpaceData, PoolSpaceData)
+│   │   └── space-fns.ts      # Space functions (gridAdd, poolAdd, etc.)
 │   ├── behavior/             # Entity behavior systems
 │   ├── question/             # Question specifications (AST, evaluation)
 │   └── validation/           # Business rules (sanitization, normalization)
 │
 ├── infrastructure/            # Low-Level Primitives
-│   └── grid/                 # Grid mathematics (SquareGrid, HexGrid)
+│   └── grid/                 # Grid mathematics
 │
 ├── application/               # State Management
 │   ├── state/                # Redux actions and reducers
 │   ├── hooks/                # React hooks (useSpace, useEntity)
-│   └── actions/              # Action dispatchers (arrows, etc.)
+│   └── actions/              # Action dispatchers
 │
 ├── presentation/              # UI Components
-│   ├── space/                # Space view components (GridSpaceView, PoolSpaceView)
-│   ├── entity/               # Entity view components (EntityCard)
-│   ├── terminal/             # Terminal UI (input, layout, view)
-│   ├── hint/                 # Hint system UI (contextual hints)
-│   └── modal/                # Modal dialogs (forms, validation)
+│   ├── space/                # Space view components
+│   ├── entity/               # Entity view components
+│   ├── terminal/             # Terminal UI
+│   ├── hint/                 # Hint system UI
+│   └── modal/                # Modal dialogs
 │
 ├── ui/                        # Shared UI Widgets
-│   └── help/                 # Help components (HelpLink, InfoTooltip)
-│
-├── core/                      # Foundation
-│   └── types/                # Type definitions
-│
+├── core/                      # Foundation & Types
 └── engines/                   # Specialized Mechanics
     ├── terminal/             # Terminal command processing
     └── drag/                 # Drag-and-drop engine
 ```
 
 **Key Points:**
-- **Domain layer** contains all business logic, including question specs and validation rules
-- **Presentation layer** contains all UI components, including terminal, hints, and modals
-- **Application layer** connects UI to domain through state management
-- Each layer has a clear responsibility and follows unidirectional dependencies
-
-For a complete guide on where to place new code, see [Architecture Quick Reference](../ARCHITECTURE.md).
+- **Domain layer** contains plain data types and pure functions
+- **Presentation layer** contains React components
+- **Application layer** connects UI to domain through hooks and reducers
+- Each layer has clear unidirectional dependencies
 
 ## GridSpace Example
 
-### Creating a GridSpace
+### Creating GridSpaceData
 
 ```typescript
-import { GridSpace } from "@/components/game/domain/space";
-import { Entity } from "@/components/game/domain/entity";
+import { createGridSpaceData } from "@/components/game/domain/space";
 
-const networkSpace = new GridSpace({
+const networkSpace = createGridSpaceData({
   id: "network-diagram",
-  rows: 4,
-  cols: 6,
-  metrics: {
-    cellWidth: 64,
-    cellHeight: 64,
-    gapX: 4,
-    gapY: 4,
+  layout: {
+    size: { rows: 4, cols: 6 },
+    cellSize: { width: 64, height: 64 },
+    gap: { x: 4, y: 4 },
   },
   maxCapacity: 20,
   allowMultiplePerCell: false,
@@ -145,37 +167,39 @@ const networkSpace = new GridSpace({
 
 ### Adding Entities
 
-```typescript
-const router = new Entity({
-  id: "router-1",
-  type: "router",
-});
+Inside Immer reducer or mutator:
 
-networkSpace.add(router, { row: 0, col: 0 });
+```typescript
+import { gridAdd } from "@/components/game/domain/space";
+
+// in reducer (Immer draft)
+gridAdd(draft.spaces["network-diagram"], "router-1", { row: 0, col: 0 });
 ```
 
 ### Querying Entities
 
 ```typescript
+import { gridContains, gridGetPosition, gridGetEntitiesAt } from "@/components/game/domain/space";
+
 // Check if entity exists
-if (networkSpace.contains("router-1")) {
+if (gridContains(networkSpace, "router-1")) {
   // Get entity position
-  const pos = networkSpace.getPosition("router-1");
+  const pos = gridGetPosition(networkSpace, "router-1");
   // { row: 0, col: 0 }
 
   // Get entities at a position
-  const entities = networkSpace.getEntitiesAt({ row: 0, col: 0 });
+  const entities = gridGetEntitiesAt(networkSpace, { row: 0, col: 0 });
 }
 ```
 
 ## PoolSpace Example
 
-### Creating a PoolSpace
+### Creating PoolSpaceData
 
 ```typescript
-import { PoolSpace } from "@/components/game/domain/space";
+import { createPoolSpaceData } from "@/components/game/domain/space";
 
-const inventory = new PoolSpace({
+const inventory = createPoolSpaceData({
   id: "inventory",
   layout: { type: "horizontal-wrap", gap: 8 },
   maxCapacity: 50,
@@ -185,95 +209,176 @@ const inventory = new PoolSpace({
 ### Operations
 
 ```typescript
-// Add without position
-inventory.add(cable);
+import { poolAdd, poolRemove, spaceGetEntityCount } from "@/components/game/domain/space";
+
+// Add without position (pool has no positions)
+poolAdd(inventory, "cable-id");
 
 // Remove
-inventory.remove(cable.id);
+poolRemove(inventory, "cable-id");
 
-// Get all entities
-const items = inventory.getAllEntities();
+// Get all entity IDs
+const entityIds = inventory.entityIds;
+
+// Get count
+const count = spaceGetEntityCount(inventory);
+```
+
+## Type Guards and Polymorphism
+
+The FP model uses type guards for discriminated union handling:
+
+```typescript
+import { isGridSpace, isPoolSpace } from "@/components/game/domain/space";
+
+function printSpaceInfo(space: SpaceData) {
+  if (isGridSpace(space)) {
+    console.log(`Grid: ${space.layout.size.rows}x${space.layout.size.cols}`);
+  } else if (isPoolSpace(space)) {
+    console.log(`Pool: ${space.entityIds.length} items`);
+  }
+}
+
+// Polymorphic functions work on any space
+import { spaceContains, spaceIsFull } from "@/components/game/domain/space";
+
+spaceContains(anySpace, "entity-id");  // Works for both grid and pool
 ```
 
 ## State Management Integration
 
-### Redux Actions
-
-```typescript
-import { spaceAddEntity } from "@/components/game/application/state/actions";
-
-dispatch(spaceAddEntity({
-  spaceId: "network-diagram",
-  entity: router,
-  position: { row: 1, col: 2 },
-}));
-```
-
 ### Using in Components
 
 ```typescript
-import { useSpace } from "@/components/game/hooks";
+import { useSpace, useGameDispatch } from "@/components/game/game-provider";
+import { gridAdd } from "@/components/game/domain/space";
 
 function NetworkQuestion() {
   const space = useSpace("network-diagram");
+  const dispatch = useGameDispatch();
+
+  const handleDrop = (entityId: string, position: { row: number; col: number }) => {
+    dispatch({
+      type: "ADD_ENTITY_TO_SPACE",
+      payload: { spaceId: space.id, entityId, position },
+    });
+  };
 
   return (
     <GridSpaceView
       space={space}
-      onEntityDrop={(entity, position) => {
-        dispatch(spaceAddEntity({ spaceId: space.id, entity, position }));
-      }}
+      onEntityDrop={handleDrop}
     />
   );
 }
 ```
 
-## Design Principles
-
-### 1. Composition Over Inheritance
-
-GridSpace *has-a* SquareGrid, not *is-a* SquareGrid. This allows flexible grid implementations.
-
-### 2. Immutability
-
-All Space and Entity operations return new instances. State changes are explicit.
+### Reducer with Immer
 
 ```typescript
-const updated = space.add(entity, position); // New instance
-// Original space unchanged
+import { produce } from "immer";
+import { gridAdd } from "@/components/game/domain/space";
+
+const applicationReducer = produce((draft: GameState, action: Action) => {
+  switch (action.type) {
+    case "ADD_ENTITY_TO_SPACE": {
+      const { spaceId, entityId, position } = action.payload;
+      const space = draft.spaces[spaceId];
+
+      if (space && isGridSpace(space)) {
+        // gridAdd mutates the draft in-place
+        gridAdd(space, entityId, position);
+      }
+      break;
+    }
+  }
+});
 ```
 
-### 3. Type Safety
+## Design Principles
 
-Strong TypeScript types prevent invalid operations:
+### 1. Data-First, Functions-Second
+
+All state is plain data. Functions operate on data:
 
 ```typescript
-type GridPosition = { row: number; col: number };
-type PoolPosition = undefined; // No position in pool
+// ✅ FP approach - data + function
+const space = createGridSpaceData({ /* ... */ });
+const updatedSpace = gridAdd(space, "entity-1", position);
+```
 
-space.add(entity, position); // Type-checked per space type
+### 2. Pure Functions in Domain Layer
+
+Domain functions are pure (no side effects). Mutation only happens in Immer reducers:
+
+```typescript
+// ✅ Pure - returns new object
+const newData = updateEntityState(entity, "active", true);
+
+// Mutates in-place (inside Immer draft)
+updateEntityState(draft.entities[id], "active", true);
+```
+
+### 3. Discriminated Union Type Safety
+
+Type guards ensure compile-time type safety:
+
+```typescript
+function handleSpace(space: SpaceData) {
+  if (isGridSpace(space)) {
+    // TypeScript knows this is GridSpaceData
+    gridAdd(space, entityId, position);  // ✅ Type safe
+  }
+}
 ```
 
 ### 4. Separation of Concerns
 
-- **Domain**: Business rules (capacity limits, placement rules)
+- **Domain**: Plain data + pure functions (business rules, type guards)
 - **Infrastructure**: Grid math, coordinates, pixel calculations
 - **Presentation**: Rendering, interactions, drag-and-drop
-- **Application**: State management, persistence
+- **Application**: State management (Immer reducers), hooks
 
 ## Benefits Over Legacy System
 
-| Legacy (Puzzle/Board) | New (Space/Entity) |
-|-----------------------|---------------------|
-| Hardcoded for grids | Flexible space types |
+| Legacy (OOP Classes) | New (FP Data + Functions) |
+|----------------------|---------------------------|
+| Classes with methods | Plain data + pure functions |
+| `new GridSpace()` mutation | `createGridSpaceData()` factory |
+| `space.add()` method | `gridAdd(space, ...)` function |
+| Complex inheritance | Discriminated unions |
+| Hard to test | Pure functions easy to test |
+| Map-based state | Record-based state (better serialization) |
+
+## Benefits Over Legacy System
+
+| Legacy (Puzzle/Board) | New (Space/Entity FP) |
+|-----------------------|-----------------------|
+| Hardcoded for grids | Flexible data types |
 | Tightly coupled UI | Clear layer separation |
 | Difficult to test | Pure functions, easy to test |
 | Limited to one puzzle | Multiple spaces per question |
 | Complex state management | Simple, composable state |
 
-## Migration Path
+## Migration from OOP
 
-For migrating existing questions, see [Adding New Spaces](./10-adding-new-spaces.md).
+The old OOP class-based architecture has been completely migrated to FP:
+
+**Old (OOP):**
+```typescript
+const space = new GridSpace({ id: "...", rows: 4, cols: 6 });
+space.add(entity, position);
+const pos = space.getPosition(entityId);
+```
+
+**New (FP):**
+```typescript
+const space = createGridSpaceData({ id: "...", layout: { size: { rows: 4, cols: 6 }, ... } });
+gridAdd(space, entityId, position);
+const pos = gridGetPosition(space, entityId);
+```
+
+For adding new space types, see [Adding New Spaces](./10-adding-new-spaces.md).
 
 ## See Also
 
