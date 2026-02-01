@@ -3,7 +3,14 @@
  * Provides access to a space by ID from the game state.
  */
 
-import type { Space } from "../../domain/space";
+import type { GridPosition, SpaceData } from "../../domain/space/space-data";
+import { isGridSpace, isPoolSpace } from "../../domain/space/space-data";
+import {
+	gridGetPosition,
+	spaceGetEntityCount,
+	spaceIsEmpty,
+	spaceIsFull,
+} from "../../domain/space/space-fns";
 import { useGameState } from "../../game-provider";
 
 /**
@@ -16,29 +23,29 @@ import { useGameState } from "../../game-provider";
  * ```tsx
  * const space = useSpace("puzzle-1");
  * if (space) {
- *   console.log("Space has", space.getCount(), "entities");
+ *   console.log("Space has", spaceGetEntityCount(space), "entities");
  * }
  * ```
  */
-export const useSpace = (spaceId: string): Space | undefined => {
+export const useSpace = (spaceId: string): SpaceData | undefined => {
 	const state = useGameState();
-	return state.spaces.get(spaceId);
+	return state.spaces[spaceId];
 };
 
 /**
  * Hook to get all spaces in the game.
  *
- * @returns Map of all spaces keyed by their IDs
+ * @returns Record of all spaces keyed by their IDs
  *
  * @example
  * ```tsx
  * const spaces = useSpaces();
- * for (const [id, space] of spaces) {
- *   console.log(`Space ${id} has ${space.getCount()} entities`);
+ * for (const [id, space] of Object.entries(spaces)) {
+ *   console.log(`Space ${id} has ${spaceGetEntityCount(space)} entities`);
  * }
  * ```
  */
-export const useSpaces = (): Map<string, Space> => {
+export const useSpaces = (): Record<string, SpaceData> => {
 	const state = useGameState();
 	return state.spaces;
 };
@@ -47,17 +54,29 @@ export const useSpaces = (): Map<string, Space> => {
  * Hook to get entities in a specific space.
  *
  * @param spaceId The ID of the space
- * @returns Array of entities in the space, or empty array if space not found
+ * @returns Array of entity IDs in the space, or empty array if space not found
  *
  * @example
  * ```tsx
- * const entities = useSpaceEntities("inventory");
- * console.log("Inventory has", entities.length, "items");
+ * const entityIds = useSpaceEntities("inventory");
+ * console.log("Inventory has", entityIds.length, "items");
  * ```
  */
-export const useSpaceEntities = (spaceId: string) => {
+export const useSpaceEntities = (spaceId: string): string[] => {
 	const space = useSpace(spaceId);
-	return space?.getEntities() ?? [];
+	if (!space) {
+		return [];
+	}
+
+	if (isGridSpace(space)) {
+		// Grid space: return all entity IDs from entityPositions
+		return Object.keys(space.entityPositions);
+	} else if (isPoolSpace(space)) {
+		// Pool space: return entityIds array
+		return space.entityIds;
+	}
+
+	return [];
 };
 
 /**
@@ -76,7 +95,7 @@ export const useSpaceEntities = (spaceId: string) => {
  */
 export const useSpaceIsFull = (spaceId: string): boolean => {
 	const space = useSpace(spaceId);
-	return space?.isFull() ?? false;
+	return space ? spaceIsFull(space) : false;
 };
 
 /**
@@ -95,7 +114,7 @@ export const useSpaceIsFull = (spaceId: string): boolean => {
  */
 export const useSpaceIsEmpty = (spaceId: string): boolean => {
 	const space = useSpace(spaceId);
-	return space?.isEmpty() ?? true;
+	return space ? spaceIsEmpty(space) : true;
 };
 
 /**
@@ -116,5 +135,42 @@ export const useSpaceCapacity = (
 	spaceId: string,
 ): { current: number; max: number | undefined } | null => {
 	const space = useSpace(spaceId);
-	return space?.capacity() ?? null;
+	if (!space) {
+		return null;
+	}
+	return {
+		current: spaceGetEntityCount(space),
+		max: space.maxCapacity,
+	};
+};
+
+/**
+ * Hook to get an entity's position in a grid space.
+ *
+ * @param entityId The ID of the entity
+ * @returns The entity's grid position, or undefined if entity not found or not in a grid space
+ *
+ * @example
+ * ```tsx
+ * const position = useEntityGridPosition("router-1");
+ * if (position) {
+ *   console.log(`Router at (${position.row}, ${position.col})`);
+ * }
+ * ```
+ */
+export const useEntityGridPosition = (
+	entityId: string,
+): GridPosition | undefined => {
+	const spaces = useSpaces();
+
+	for (const space of Object.values(spaces)) {
+		if (isGridSpace(space)) {
+			const pos = gridGetPosition(space, entityId);
+			if (pos) {
+				return pos;
+			}
+		}
+	}
+
+	return undefined;
 };

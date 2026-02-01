@@ -42,8 +42,16 @@ export type {
 	TerminalEntryType,
 	TerminalState,
 } from "./core/types";
+// Legacy domain types (deprecated, kept for compat)
 export type { Entity } from "./domain/entity";
+// New domain data types
+export type { EntityData, ItemData } from "./domain/entity/entity-data";
 export type { Space } from "./domain/space";
+export type {
+	GridSpaceData,
+	PoolSpaceData,
+	SpaceData,
+} from "./domain/space/space-data";
 
 // ============================================================================
 // Imports
@@ -64,14 +72,18 @@ export {
 	useEntities,
 	useEntitiesByType,
 	useEntity,
+	useEntityAllowedPlaces,
 	useEntityExists,
+	useEntityIsDraggable,
 	useEntityPosition,
 	useEntitySpace,
 	useEntityState,
 	useEntityStateValue,
+	useItem,
 } from "./application/hooks/useEntity";
 
 export {
+	useEntityGridPosition,
 	useSpace,
 	useSpaceCapacity,
 	useSpaceEntities,
