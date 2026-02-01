@@ -516,6 +516,24 @@ const InternetGame = ({
 						title={config.name ?? key}
 						onEntityClick={handleEntityClick}
 						isEntityClickable={isEntityClickable}
+						getEntityLabel={(entity) => getInternetItemLabel(entity.type)}
+						getEntityStatus={(entity) => {
+							const statusMessage = getInternetStatusMessage({
+								id: entity.id,
+								itemId: entity.id,
+								type: entity.type,
+								blockX: parseInt((entity.data.x ?? "0") as string, 10),
+								blockY: parseInt((entity.data.y ?? "0") as string, 10),
+								status:
+									(entity.state.status as
+										| "normal"
+										| "warning"
+										| "success"
+										| "error") ?? "normal",
+								data: entity.data,
+							});
+							return { message: statusMessage };
+						}}
 					/>
 				</Box>
 			);
@@ -615,7 +633,7 @@ const InternetGame = ({
 
 					<ContextualHint />
 
-					<DragOverlay getEntityLabel={(type) => type} />
+					<DragOverlay getEntityLabel={getInternetItemLabel} />
 				</GameBoard>
 
 				<TerminalLayout

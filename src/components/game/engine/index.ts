@@ -5,7 +5,7 @@
 
 export type { GameBoardProps } from "./GameBoard";
 export { GameBoard } from "./GameBoard";
-export type { GridSpaceProps } from "./GridSpace";
+export type { GridSpaceProps, ResponsiveSize } from "./GridSpace";
 export { GridSpace } from "./GridSpace";
 export type { PoolSpaceProps } from "./PoolSpace";
 export { PoolSpace } from "./PoolSpace";

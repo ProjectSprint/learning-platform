@@ -1,8 +1,8 @@
 /**
  * GameBoard component - Top-level wrapper for game spaces.
  *
- * Provides BoardRegistryProvider and BoardArrowSurface context for
- * arrow visualization between spaces.
+ * Provides BoardRegistryProvider (for arrow registration), DragProvider,
+ * and BoardArrowSurface context for arrow visualization between spaces.
  *
  * @example
  * ```tsx
@@ -16,7 +16,10 @@
 
 import type { ReactNode } from "react";
 import { DragProvider } from "../presentation/interaction/drag/DragContext";
-import { BoardArrowSurface } from "../presentation/space/arrow";
+import {
+	BoardArrowSurface,
+	BoardRegistryProvider,
+} from "../presentation/space/arrow";
 
 export type GameBoardProps = {
 	children: ReactNode;
@@ -33,8 +36,10 @@ export type GameBoardProps = {
  */
 export const GameBoard = ({ children }: GameBoardProps) => {
 	return (
-		<DragProvider>
-			<BoardArrowSurface>{children}</BoardArrowSurface>
-		</DragProvider>
+		<BoardRegistryProvider>
+			<DragProvider>
+				<BoardArrowSurface>{children}</BoardArrowSurface>
+			</DragProvider>
+		</BoardRegistryProvider>
 	);
 };

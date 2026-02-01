@@ -1,9 +1,14 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+	clearBoardArrows,
+	setBoardArrows,
+} from "@/components/game/application/actions";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine } from "@/components/game/engines";
 import {
+	type Arrow,
 	GameProvider,
 	useGameDispatch,
 	useGameState,
@@ -26,6 +31,10 @@ import {
 	QUESTION_TITLE,
 } from "./-utils/constants";
 import { initializeTcpQuestion } from "./-utils/init-spaces";
+import {
+	getTcpItemLabel,
+	getTcpStatusMessage,
+} from "./-utils/item-notification";
 import { useTcpState } from "./-utils/use-tcp-state";
 
 export const TcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
@@ -70,6 +79,45 @@ const TcpGame = ({
 			dispatch({ type: "CLOSE_TERMINAL" });
 		}
 	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
+
+	// Arrows between internet and server
+	const boardArrows = useMemo<Arrow[]>(() => {
+		if (isCompleted) {
+			return [];
+		}
+
+		const baseStyle = {
+			stroke: "rgba(56, 189, 248, 0.85)",
+			strokeWidth: 2,
+			headSize: 12,
+		};
+
+		return [
+			{
+				id: "internet-server",
+				from: {
+					puzzleId: "internet",
+					anchor: { base: "br", md: "br" },
+				},
+				to: {
+					puzzleId: "server",
+					anchor: { base: "tl", md: "bl" },
+				},
+				style: baseStyle,
+			},
+		];
+	}, [isCompleted]);
+
+	useEffect(() => {
+		if (isCompleted) {
+			clearBoardArrows(dispatch);
+			return;
+		}
+		setBoardArrows(dispatch, boardArrows);
+		return () => {
+			clearBoardArrows(dispatch);
+		};
+	}, [boardArrows, dispatch, isCompleted]);
 
 	const canvasAreas = useMemo(
 		() => ({
@@ -135,8 +183,33 @@ const TcpGame = ({
 									<GridSpace
 										spaceId={canvasId}
 										title={config.name ?? canvasId}
+										responsiveSize={
+											canvasId === "server"
+												? { base: [2, 6], xl: [3, 4] }
+												: undefined
+										}
 										onEntityClick={handleEntityClick}
 										isEntityClickable={isEntityClickable}
+										getEntityLabel={(entity) => getTcpItemLabel(entity.type)}
+										getEntityStatus={(entity) => {
+											const statusMessage = getTcpStatusMessage({
+												id: entity.id,
+												itemId: entity.id,
+												type: entity.type,
+												blockX: parseInt((entity.data.x ?? "0") as string, 10),
+												blockY: parseInt((entity.data.y ?? "0") as string, 10),
+												status:
+													(entity.state.status as
+														| "normal"
+														| "warning"
+														| "success"
+														| "error") ?? "normal",
+												data: entity.data,
+											});
+											return {
+												message: statusMessage,
+											};
+										}}
 									/>
 								</GridItem>
 							);
@@ -149,7 +222,7 @@ const TcpGame = ({
 
 					<ContextualHint />
 
-					<DragOverlay getEntityLabel={(type) => type} />
+					<DragOverlay getEntityLabel={getTcpItemLabel} />
 				</GameBoard>
 
 				<TerminalLayout

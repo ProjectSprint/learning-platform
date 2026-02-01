@@ -37,10 +37,13 @@ export const getInternetStatusMessage = (
 				return "no ip";
 			}
 			if (status === "warning" && ip) {
-				return ip;
+				return ip; // "192.168.1.100" (private IP without internet)
 			}
 			if (status === "success" && ip) {
-				return `I have access to internet!`;
+				return `${ip} → internet`; // "192.168.1.100 → internet"
+			}
+			if (status === "success") {
+				return "→ internet"; // Fallback if IP missing
 			}
 			return null;
 		}
@@ -75,7 +78,7 @@ export const getInternetStatusMessage = (
 				return "not configured";
 			}
 			if (status === "warning") {
-				return "no connection";
+				return "no credentials";
 			}
 			if (status === "success") {
 				return publicIp ? `connected ${publicIp}` : "connected";
@@ -89,6 +92,16 @@ export const getInternetStatusMessage = (
 			}
 			if (status === "success") {
 				return "connected";
+			}
+			return null;
+		}
+
+		case "internet": {
+			if (status === "warning") {
+				return "no route";
+			}
+			if (status === "success") {
+				return "online";
 			}
 			return null;
 		}

@@ -45,6 +45,10 @@ export type GridSpaceViewProps = {
 	title?: string;
 	/** Grid orientation */
 	orientation?: "horizontal" | "vertical";
+	/** Override the number of columns to render (view-layer only) */
+	viewCols?: number;
+	/** Override the number of rows to render (view-layer only) */
+	viewRows?: number;
 	/** Function to get display label for an entity */
 	getEntityLabel?: (entity: EntityData) => string;
 	/** Function to get status for a placed entity */
@@ -96,6 +100,8 @@ export const GridSpaceView = ({
 	entities,
 	title,
 	orientation = "horizontal",
+	viewCols,
+	viewRows,
 	getEntityLabel: _getEntityLabel = defaultGetEntityLabel,
 	getEntityStatus = defaultGetEntityStatus,
 	onEntityClick: _onEntityClick,
@@ -119,8 +125,8 @@ export const GridSpaceView = ({
 		gapY: 0,
 	});
 
-	const rows = space.rows;
-	const cols = space.cols;
+	const rows = viewRows ?? space.rows;
+	const cols = viewCols ?? space.cols;
 
 	// Create map of entities by position
 	const entitiesByPosition = useMemo(() => {

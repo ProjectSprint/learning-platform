@@ -401,6 +401,26 @@ const NetworkingGame = ({
 										title={config.name ?? canvasId}
 										onEntityClick={handleEntityClick}
 										isEntityClickable={isEntityClickable}
+										getEntityLabel={(entity) =>
+											getNetworkingItemLabel(entity.type)
+										}
+										getEntityStatus={(entity) => {
+											const statusMessage = getNetworkingStatusMessage({
+												id: entity.id,
+												itemId: entity.id,
+												type: entity.type,
+												blockX: parseInt((entity.data.x ?? "0") as string, 10),
+												blockY: parseInt((entity.data.y ?? "0") as string, 10),
+												status:
+													(entity.state.status as
+														| "normal"
+														| "warning"
+														| "success"
+														| "error") ?? "normal",
+												data: entity.data,
+											});
+											return { message: statusMessage };
+										}}
 									/>
 								</GridItem>
 							);
@@ -413,7 +433,7 @@ const NetworkingGame = ({
 
 					<ContextualHint />
 
-					<DragOverlay getEntityLabel={(type) => type} />
+					<DragOverlay getEntityLabel={getNetworkingItemLabel} />
 				</GameBoard>
 
 				<TerminalLayout

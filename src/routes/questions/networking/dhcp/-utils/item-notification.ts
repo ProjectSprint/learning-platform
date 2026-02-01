@@ -26,7 +26,7 @@ export const getNetworkingStatusMessage = (
 	placedItem: BoardItemLocation,
 ): string | null => {
 	if (placedItem.type === "router") {
-		if (placedItem.status === "error") {
+		if (placedItem.status === "warning") {
 			return "needs configuration";
 		}
 		if (placedItem.status === "success") {
@@ -44,6 +44,11 @@ export const getNetworkingStatusMessage = (
 		if (placedItem.status === "warning") {
 			return "no ip";
 		}
+		return null;
+	}
+
+	// Cable items have no status messages (per blueprint)
+	if (placedItem.type === "cable") {
 		return null;
 	}
 
