@@ -64,7 +64,10 @@
       "Bash(pnpm test --run)",
       "Bash(pnpm run check:tsc)",
       "Bash(pnpm run check:biome --fix)",
-      "Bash(pnpm run check:biome)"
+      "Bash(pnpm run check:biome)",
+      "Bash(pnpm test validation.test.ts)",
+      "Bash(pnpm test validation.test.ts --run)",
+      "Bash(pnpm exec vitest run src/components/game/domain/space/__tests__/validation.test.ts)"
     ]
   }
 }

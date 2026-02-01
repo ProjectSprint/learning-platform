@@ -46,3 +46,6 @@ export {
 	spaceIsFull,
 	spaceRemove,
 } from "./space-fns";
+
+// Validation functions
+export { canEntityBePlaced, findEntitySpace } from "./validation";
