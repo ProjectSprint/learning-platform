@@ -214,7 +214,7 @@ const GridSpaceAdapter = ({
 
 	const space = state.spaces.get(spaceId) as GridSpace | undefined;
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: space object ref never changes due to mutation pattern, state.entities tracks changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: space object ref never changes due to mutation pattern, state.sequence tracks changes
 	const entities = useMemo(() => {
 		if (!space) return [];
 
@@ -235,7 +235,7 @@ const GridSpaceAdapter = ({
 		}
 
 		return result;
-	}, [state.entities]);
+	}, [state.sequence]);
 
 	const canPlaceAt = useCallback(
 		(entityId: string, position: GridPosition, targetSpaceId: string) => {
@@ -370,7 +370,7 @@ const InventoryAdapter = () => {
 	const inventorySpace = state.spaces.get("inventory");
 
 	// Get all entities in inventory
-	// biome-ignore lint/correctness/useExhaustiveDependencies: inventorySpace object ref never changes due to mutation pattern, state.entities tracks changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: inventorySpace object ref never changes due to mutation pattern, state.sequence tracks changes
 	const entities = useMemo(() => {
 		if (!inventorySpace) return [];
 
@@ -382,10 +382,10 @@ const InventoryAdapter = () => {
 		}
 
 		return result;
-	}, [state.entities]);
+	}, [state.sequence]);
 
 	// Get IDs of entities placed in grid spaces
-	// biome-ignore lint/correctness/useExhaustiveDependencies: state.spaces contains non-draftable Space instances, state.entities tracks changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: state.spaces contains non-draftable Space instances
 	const placedEntityIds = useMemo(() => {
 		const ids = new Set<string>();
 		for (const [spaceId, space] of state.spaces) {
@@ -398,7 +398,7 @@ const InventoryAdapter = () => {
 			}
 		}
 		return ids;
-	}, [state.entities]);
+	}, [state.sequence]);
 
 	const handleEntityDragStart = useCallback(
 		(entity: Entity, event: React.PointerEvent) => {
