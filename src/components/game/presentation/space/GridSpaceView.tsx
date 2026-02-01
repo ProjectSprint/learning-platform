@@ -9,7 +9,7 @@
 
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EntityData } from "../../domain/entity/entity-data";
+import { type EntityData, isItemData } from "../../domain/entity/entity-data";
 import type {
 	GridPosition,
 	GridSpaceData,
@@ -219,13 +219,16 @@ export const GridSpaceView = ({
 
 	// Handle pointer down on grid entity: stores pending interaction.
 	// The drag is NOT started here — it's deferred until movement exceeds threshold.
+	// Allows interaction if entity is draggable OR clickable.
 	const handleEntityPointerDown = useCallback(
 		(
 			entity: EntityData,
 			position: GridPosition,
 			event: React.PointerEvent<HTMLDivElement>,
 		) => {
-			if (!isEntityClickable(entity)) {
+			const isDraggable = isItemData(entity) && entity.draggable;
+			const isClickable = isEntityClickable(entity);
+			if (!isDraggable && !isClickable) {
 				return;
 			}
 
@@ -255,6 +258,14 @@ export const GridSpaceView = ({
 				Math.abs(dx) > CLICK_THRESHOLD_PX ||
 				Math.abs(dy) > CLICK_THRESHOLD_PX
 			) {
+				const isDraggable =
+					isItemData(pending.entity) && pending.entity.draggable;
+				if (!isDraggable) {
+					// Entity is clickable but not draggable — cancel interaction
+					pendingInteractionRef.current = null;
+					return;
+				}
+
 				// Movement exceeded threshold — start the drag now
 				pendingInteractionRef.current = null;
 
@@ -283,7 +294,7 @@ export const GridSpaceView = ({
 			if (!pending) return;
 
 			// Pointer released without significant movement — treat as click
-			if (onEntityClick) {
+			if (onEntityClick && isEntityClickable(pending.entity)) {
 				onEntityClick(pending.entity, pending.position);
 			}
 		};
@@ -295,7 +306,13 @@ export const GridSpaceView = ({
 			window.removeEventListener("pointermove", handlePointerMove);
 			window.removeEventListener("pointerup", handlePointerUp);
 		};
-	}, [onEntityClick, setActiveDrag, setLastDropResult, space.id]);
+	}, [
+		onEntityClick,
+		isEntityClickable,
+		setActiveDrag,
+		setLastDropResult,
+		space.id,
+	]);
 
 	// Handle drag over the board
 	useEffect(() => {
