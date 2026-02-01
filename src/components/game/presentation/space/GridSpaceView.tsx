@@ -115,11 +115,13 @@ export const GridSpaceView = ({
 
 	const boardRef = useRef<HTMLDivElement | null>(null);
 	const entityRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-	const pendingClickRef = useRef<{
+	const pendingInteractionRef = useRef<{
 		entity: EntityData;
 		position: GridPosition;
 		startX: number;
 		startY: number;
+		element: HTMLElement;
+		rect: DOMRect;
 	} | null>(null);
 	const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
 	const [hoveredCell, setHoveredCell] = useState<GridPosition | null>(null);
@@ -215,7 +217,8 @@ export const GridSpaceView = ({
 		return cells;
 	}, [rows, cols, orientation]);
 
-	// Handle drag from grid (also tracks pending click)
+	// Handle pointer down on grid entity: stores pending interaction.
+	// The drag is NOT started here — it's deferred until movement exceeds threshold.
 	const handleEntityPointerDown = useCallback(
 		(
 			entity: EntityData,
@@ -227,41 +230,23 @@ export const GridSpaceView = ({
 			}
 
 			event.preventDefault();
-			const target = event.currentTarget;
-			const rect = target.getBoundingClientRect();
-
-			// Track this as a potential click
-			pendingClickRef.current = {
+			pendingInteractionRef.current = {
 				entity,
 				position,
 				startX: event.clientX,
 				startY: event.clientY,
+				element: event.currentTarget,
+				rect: event.currentTarget.getBoundingClientRect(),
 			};
-
-			setLastDropResult(null);
-			setDraggingEntityId(entity.id);
-
-			setActiveDrag({
-				source: "grid",
-				sourceSpaceId: space.id,
-				data: {
-					entityId: entity.id,
-					entityType: entity.type,
-					entityName: entity.name,
-					isReposition: true,
-					fromPosition: position,
-				},
-				element: target,
-				initialRect: rect,
-			});
 		},
-		[isEntityClickable, setActiveDrag, setLastDropResult, space.id],
+		[isEntityClickable],
 	);
 
-	// Click detection: distinguish click from drag
+	// Click vs drag detection: starts drag only after movement exceeds threshold.
+	// If pointerup fires before threshold, treats it as a click.
 	useEffect(() => {
 		const handlePointerMove = (event: PointerEvent) => {
-			const pending = pendingClickRef.current;
+			const pending = pendingInteractionRef.current;
 			if (!pending) return;
 
 			const dx = event.clientX - pending.startX;
@@ -270,14 +255,30 @@ export const GridSpaceView = ({
 				Math.abs(dx) > CLICK_THRESHOLD_PX ||
 				Math.abs(dy) > CLICK_THRESHOLD_PX
 			) {
-				// Movement exceeded threshold — this is a drag, not a click
-				pendingClickRef.current = null;
+				// Movement exceeded threshold — start the drag now
+				pendingInteractionRef.current = null;
+
+				setLastDropResult(null);
+				setDraggingEntityId(pending.entity.id);
+				setActiveDrag({
+					source: "grid",
+					sourceSpaceId: space.id,
+					data: {
+						entityId: pending.entity.id,
+						entityType: pending.entity.type,
+						entityName: pending.entity.name,
+						isReposition: true,
+						fromPosition: pending.position,
+					},
+					element: pending.element,
+					initialRect: pending.rect,
+				});
 			}
 		};
 
 		const handlePointerUp = () => {
-			const pending = pendingClickRef.current;
-			pendingClickRef.current = null;
+			const pending = pendingInteractionRef.current;
+			pendingInteractionRef.current = null;
 
 			if (!pending) return;
 
@@ -285,11 +286,6 @@ export const GridSpaceView = ({
 			if (onEntityClick) {
 				onEntityClick(pending.entity, pending.position);
 			}
-
-			// Cancel the drag since this was a click
-			setActiveDrag(null);
-			setDraggingEntityId(null);
-			setDragPreview(null);
 		};
 
 		window.addEventListener("pointermove", handlePointerMove);
@@ -299,7 +295,7 @@ export const GridSpaceView = ({
 			window.removeEventListener("pointermove", handlePointerMove);
 			window.removeEventListener("pointerup", handlePointerUp);
 		};
-	}, [onEntityClick, setActiveDrag]);
+	}, [onEntityClick, setActiveDrag, setLastDropResult, space.id]);
 
 	// Handle drag over the board
 	useEffect(() => {

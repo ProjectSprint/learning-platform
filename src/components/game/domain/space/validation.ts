@@ -40,11 +40,7 @@ export function canEntityBePlaced(
 	if (!isItemData(entity)) {
 		return false;
 	}
-	const allowedPlaces = entity.allowedPlaces;
-	if (
-		!allowedPlaces.includes(toSpaceId) &&
-		!allowedPlaces.includes("inventory")
-	) {
+	if (!entity.allowedPlaces.includes(toSpaceId)) {
 		return false;
 	}
 

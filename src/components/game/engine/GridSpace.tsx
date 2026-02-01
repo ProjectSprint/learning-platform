@@ -169,23 +169,23 @@ export const GridSpace = memo(
 		// When remapping, convert view positions → data positions before dispatching
 		const onPlaceEntity = (
 			entityId: string,
-			fromPosition: GridPosition | null,
+			_fromPosition: GridPosition | null,
 			toPosition: GridPosition,
 		): boolean => {
 			const dataToPosition =
 				isRemapping && viewCols !== undefined
 					? viewToData(toPosition, dataCols, viewCols)
 					: toPosition;
-			const dataFromPosition =
-				fromPosition && isRemapping && viewCols !== undefined
-					? viewToData(fromPosition, dataCols, viewCols)
-					: fromPosition;
 
-			// Find source space
-			const fromSpaceId = dataFromPosition
-				? spaceId
-				: findEntitySpace(state, entityId);
 			const toSpaceId = spaceId;
+
+			// Validate placement before dispatching
+			if (!canEntityBePlaced(state, entityId, toSpaceId, dataToPosition)) {
+				return false;
+			}
+
+			// Find where the entity currently lives
+			const fromSpaceId = findEntitySpace(state, entityId);
 
 			// If moving within same space
 			if (fromSpaceId && fromSpaceId === toSpaceId) {
@@ -208,17 +208,13 @@ export const GridSpace = memo(
 						entityId,
 						fromSpaceId,
 						toSpaceId,
-						fromPosition: dataFromPosition as unknown as Record<
-							string,
-							unknown
-						>,
 						toPosition: dataToPosition as unknown as Record<string, unknown>,
 					},
 				});
 				return true;
 			}
 
-			// Adding from inventory (no fromPosition)
+			// Adding from nowhere (entity not in any space)
 			if (!fromSpaceId) {
 				dispatch({
 					type: "ADD_ENTITY_TO_SPACE",
