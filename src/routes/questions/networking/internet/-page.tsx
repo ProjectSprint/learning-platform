@@ -11,21 +11,12 @@ import {
 	setBoardArrows,
 } from "@/components/game/application/actions";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import { isItemData } from "@/components/game/domain/entity/entity-data";
 import {
 	type ConditionContext,
 	type QuestionSpec,
 	resolvePhase,
 } from "@/components/game/domain/question";
-import type {
-	GridPosition,
-	GridSpaceData,
-} from "@/components/game/domain/space/space-data";
-import {
-	gridCanAccept,
-	gridGetPosition,
-	spaceContains,
-} from "@/components/game/domain/space/space-fns";
+import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
@@ -37,18 +28,8 @@ import {
 	ContextualHint,
 	useContextualHint,
 } from "@/components/game/presentation/hint";
-import {
-	DragProvider,
-	useDragContext,
-} from "@/components/game/presentation/interaction/drag/DragContext";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
-import {
-	BoardArrowSurface,
-	BoardRegistryProvider,
-} from "@/components/game/presentation/space/arrow";
-import { GridSpaceView } from "@/components/game/presentation/space/GridSpaceView";
-import { PoolSpaceView } from "@/components/game/presentation/space/PoolSpaceView";
 import {
 	TerminalInput,
 	TerminalLayout,
@@ -530,7 +511,7 @@ const InternetGame = ({
 
 			return (
 				<Box key={key} flexGrow={1} flexBasis={0} minW={minW}>
-					<GridSpaceAdapter
+					<GridSpace
 						spaceId={key}
 						title={config.name ?? key}
 						onEntityClick={handleEntityClick}
@@ -543,355 +524,123 @@ const InternetGame = ({
 	);
 
 	return (
-		<DragProvider>
-			<Box
-				as="main"
-				role="main"
-				display="flex"
-				flexDirection="column"
-				bg="gray.950"
-				color="gray.100"
-				position="relative"
+		<Box
+			as="main"
+			role="main"
+			display="flex"
+			flexDirection="column"
+			bg="gray.950"
+			color="gray.100"
+			position="relative"
+		>
+			<Flex
+				direction="column"
+				px={{ base: 2, md: 12, lg: 24 }}
+				py={{ base: 2, md: 6 }}
 			>
-				<Flex
-					direction="column"
-					px={{ base: 2, md: 12, lg: 24 }}
-					py={{ base: 2, md: 6 }}
-				>
-					<Box textAlign="left" mb={{ base: 2, md: 4 }} pb={{ base: 1, md: 0 }}>
-						<Text
-							fontSize={{ base: "2xl", md: "4xl" }}
-							fontWeight="bold"
-							color="gray.50"
+				<Box textAlign="left" mb={{ base: 2, md: 4 }} pb={{ base: 1, md: 0 }}>
+					<Text
+						fontSize={{ base: "2xl", md: "4xl" }}
+						fontWeight="bold"
+						color="gray.50"
+					>
+						{QUESTION_TITLE}
+					</Text>
+					<Text fontSize={{ base: "sm", md: "md" }} color="gray.400">
+						{QUESTION_DESCRIPTION}
+					</Text>
+				</Box>
+
+				<GameBoard>
+					{layoutMode === "row" ? (
+						<Flex
+							direction="row"
+							gap={{ base: 2, md: 4 }}
+							align="flex-start"
+							wrap="wrap"
 						>
-							{QUESTION_TITLE}
-						</Text>
-						<Text fontSize={{ base: "sm", md: "md" }} color="gray.400">
-							{QUESTION_DESCRIPTION}
-						</Text>
-					</Box>
-
-					<BoardRegistryProvider>
-						<BoardArrowSurface>
-							{layoutMode === "row" ? (
-								<Flex
-									direction="row"
-									gap={{ base: 2, md: 4 }}
-									align="flex-start"
-									wrap="wrap"
-								>
-									{CANVAS_ORDER.map((key) =>
-										renderBoard(key, { base: "100%", xl: "0" }),
-									)}
-								</Flex>
-							) : layoutMode === "columns" ? (
-								<Flex
-									direction={{ base: "column", md: "row" }}
-									gap={{ base: 2, md: 4 }}
-								>
-									<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
-										{COLUMN_ONE.map((key) => renderBoard(key, "100%"))}
-									</Flex>
-									<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
-										{COLUMN_TWO.map((key) => renderBoard(key, "100%"))}
-									</Flex>
-								</Flex>
-							) : layoutMode === "structured-lg" ? (
-								<Flex direction="column" gap={{ base: 2, md: 4 }}>
-									<Flex direction="row" gap={{ base: 2, md: 4 }}>
-										{renderBoard("local", "0")}
-										{renderBoard("conn-1", "0")}
-										{renderBoard("router", "0")}
-									</Flex>
-									<Flex direction="row" gap={{ base: 2, md: 4 }}>
-										{renderBoard("conn-2", "0")}
-										{renderBoard("igw", "0")}
-										{renderBoard("dns", "0")}
-										{renderBoard("google", "0")}
-									</Flex>
-								</Flex>
-							) : layoutMode === "structured" ? (
-								<Flex direction="column" gap={{ base: 2, md: 4 }}>
-									<Flex direction="row" gap={{ base: 2, md: 4 }}>
-										{renderBoard("local", "0")}
-										{renderBoard("conn-1", "0")}
-									</Flex>
-									{renderBoard("router", "100%")}
-									<Flex direction="row" gap={{ base: 2, md: 4 }}>
-										{renderBoard("conn-2", "0")}
-										{renderBoard("igw", "0")}
-										{renderBoard("dns", "0")}
-									</Flex>
-									{renderBoard("google", "100%")}
-								</Flex>
-							) : (
-								<Flex direction="column" gap={{ base: 2, md: 4 }}>
-									{CANVAS_ORDER.map((key) => renderBoard(key, "100%"))}
-								</Flex>
+							{CANVAS_ORDER.map((key) =>
+								renderBoard(key, { base: "100%", xl: "0" }),
 							)}
-						</BoardArrowSurface>
-					</BoardRegistryProvider>
+						</Flex>
+					) : layoutMode === "columns" ? (
+						<Flex
+							direction={{ base: "column", md: "row" }}
+							gap={{ base: 2, md: 4 }}
+						>
+							<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
+								{COLUMN_ONE.map((key) => renderBoard(key, "100%"))}
+							</Flex>
+							<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
+								{COLUMN_TWO.map((key) => renderBoard(key, "100%"))}
+							</Flex>
+						</Flex>
+					) : layoutMode === "structured-lg" ? (
+						<Flex direction="column" gap={{ base: 2, md: 4 }}>
+							<Flex direction="row" gap={{ base: 2, md: 4 }}>
+								{renderBoard("local", "0")}
+								{renderBoard("conn-1", "0")}
+								{renderBoard("router", "0")}
+							</Flex>
+							<Flex direction="row" gap={{ base: 2, md: 4 }}>
+								{renderBoard("conn-2", "0")}
+								{renderBoard("igw", "0")}
+								{renderBoard("dns", "0")}
+								{renderBoard("google", "0")}
+							</Flex>
+						</Flex>
+					) : layoutMode === "structured" ? (
+						<Flex direction="column" gap={{ base: 2, md: 4 }}>
+							<Flex direction="row" gap={{ base: 2, md: 4 }}>
+								{renderBoard("local", "0")}
+								{renderBoard("conn-1", "0")}
+							</Flex>
+							{renderBoard("router", "100%")}
+							<Flex direction="row" gap={{ base: 2, md: 4 }}>
+								{renderBoard("conn-2", "0")}
+								{renderBoard("igw", "0")}
+								{renderBoard("dns", "0")}
+							</Flex>
+							{renderBoard("google", "100%")}
+						</Flex>
+					) : (
+						<Flex direction="column" gap={{ base: 2, md: 4 }}>
+							{CANVAS_ORDER.map((key) => renderBoard(key, "100%"))}
+						</Flex>
+					)}
 
-					<InventoryAdapter />
+					<Box mt={4}>
+						<PoolSpace title="Inventory" />
+					</Box>
 
 					<ContextualHint />
 
-					<TerminalLayout
-						visible={state.terminal.visible}
-						focusRef={terminalInput.inputRef}
-						view={
-							<TerminalView
-								history={state.terminal.history}
-								prompt={state.terminal.prompt}
-								isCompleted={isCompleted}
-							/>
-						}
-						input={
-							<TerminalInput
-								value={terminalInput.value}
-								onChange={terminalInput.onChange}
-								onKeyDown={terminalInput.onKeyDown}
-								inputRef={terminalInput.inputRef}
-								placeholder={
-									isCompleted ? "Terminal disabled" : "Type a command"
-								}
-								disabled={isCompleted}
-							/>
-						}
-					/>
-				</Flex>
-				<Modal />
-				<DragOverlay getEntityLabel={(type) => type} />
-			</Box>
-		</DragProvider>
-	);
-};
+					<DragOverlay getEntityLabel={(type) => type} />
+				</GameBoard>
 
-/**
- * Adapter component that bridges GridSpaceView with the game state
- */
-const GridSpaceAdapter = ({
-	spaceId,
-	title,
-	onEntityClick,
-	isEntityClickable,
-}: {
-	spaceId: string;
-	title: string;
-	onEntityClick: (entity: EntityData) => void;
-	isEntityClickable: (entity: EntityData) => boolean;
-}) => {
-	const state = useGameState();
-	const dispatch = useGameDispatch();
-
-	const space = state.spaces[spaceId] as GridSpaceData | undefined;
-
-	const entities = useMemo(() => {
-		if (!space) return [];
-
-		const result: Array<{ entity: EntityData; position: GridPosition }> = [];
-
-		for (const entity of Object.values(state.entities)) {
-			if (spaceContains(space, entity.id)) {
-				const position = gridGetPosition(space, entity.id);
-				if (position && "row" in position && "col" in position) {
-					result.push({ entity, position });
-				}
-			}
-		}
-
-		return result;
-	}, [space, state.entities]);
-
-	const canPlaceAt = useCallback(
-		(entityId: string, position: GridPosition, targetSpaceId: string) => {
-			const entity = state.entities[entityId];
-			if (!entity) return false;
-
-			const targetSpace = state.spaces[targetSpaceId] as
-				| GridSpaceData
-				| undefined;
-			if (!targetSpace) return false;
-
-			// Check allowed places
-			if (isItemData(entity)) {
-				const allowedPlaces = entity.allowedPlaces;
-				if (
-					!allowedPlaces.includes(targetSpaceId) &&
-					!allowedPlaces.includes("inventory")
-				) {
-					return false;
-				}
-			}
-
-			return gridCanAccept(targetSpace, entityId, position);
-		},
-		[state.entities, state.spaces],
-	);
-
-	const onPlaceEntity = useCallback(
-		(
-			entityId: string,
-			_fromPosition: GridPosition | null,
-			toPosition: GridPosition,
-		) => {
-			const entity = state.entities[entityId];
-			if (!entity) return false;
-
-			// Find source space
-			let sourceSpaceId: string | null = null;
-			for (const [sid, s] of Object.entries(state.spaces)) {
-				if (spaceContains(s, entity.id)) {
-					sourceSpaceId = sid;
-					break;
-				}
-			}
-
-			if (sourceSpaceId === spaceId) {
-				// Moving within same space
-				dispatch({
-					type: "UPDATE_ENTITY_POSITION",
-					payload: {
-						entityId,
-						spaceId,
-						position: toPosition,
-					},
-				});
-				return true;
-			}
-
-			// Moving from another space
-			if (sourceSpaceId) {
-				dispatch({
-					type: "MOVE_ENTITY_BETWEEN_SPACES",
-					payload: {
-						entityId,
-						fromSpaceId: sourceSpaceId,
-						toSpaceId: spaceId,
-						toPosition: toPosition,
-					},
-				});
-				return true;
-			}
-
-			return false;
-		},
-		[dispatch, spaceId, state.entities, state.spaces],
-	);
-
-	const getEntityLabel = useCallback((entity: EntityData) => {
-		return entity.name ?? entity.type;
-	}, []);
-
-	const getEntityStatus = useCallback((entity: EntityData) => {
-		const status = entity.state.status as
-			| "success"
-			| "warning"
-			| "error"
-			| undefined;
-		return {
-			status,
-			message: null,
-		};
-	}, []);
-
-	if (!space) {
-		return null;
-	}
-
-	return (
-		<GridSpaceView
-			space={space}
-			entities={entities}
-			title={title}
-			getEntityLabel={getEntityLabel}
-			getEntityStatus={getEntityStatus}
-			onEntityClick={onEntityClick}
-			isEntityClickable={isEntityClickable}
-			canPlaceAt={canPlaceAt}
-			onPlaceEntity={onPlaceEntity}
-		/>
-	);
-};
-
-/**
- * Adapter component for the inventory pool space
- */
-const InventoryAdapter = () => {
-	const state = useGameState();
-	const { setActiveDrag, setLastDropResult } = useDragContext();
-
-	const inventorySpace =
-		state.spaces.inventory?.kind === "pool"
-			? state.spaces.inventory
-			: undefined;
-
-	// Get all entities in inventory
-	const entities = useMemo(() => {
-		if (!inventorySpace) return [];
-
-		const result: EntityData[] = [];
-		for (const entity of Object.values(state.entities)) {
-			if (spaceContains(inventorySpace, entity.id)) {
-				result.push(entity);
-			}
-		}
-
-		return result;
-	}, [inventorySpace, state.entities]);
-
-	// Get IDs of entities placed in grid spaces
-	const placedEntityIds = useMemo(() => {
-		const ids = new Set<string>();
-		for (const [spaceId, space] of Object.entries(state.spaces)) {
-			if (spaceId === "inventory") continue;
-
-			for (const entity of Object.values(state.entities)) {
-				if (spaceContains(space, entity.id)) {
-					ids.add(entity.id);
-				}
-			}
-		}
-		return ids;
-	}, [state.spaces, state.entities]);
-
-	const handleEntityDragStart = useCallback(
-		(entity: EntityData, event: React.PointerEvent) => {
-			event.preventDefault();
-			const target = event.currentTarget;
-			const rect = target.getBoundingClientRect();
-
-			setLastDropResult(null);
-
-			setActiveDrag({
-				source: "pool",
-				sourceSpaceId: "inventory",
-				data: {
-					entityId: entity.id,
-					entityType: entity.type,
-					entityName: entity.name,
-					isReposition: false,
-				},
-				element: target as HTMLElement,
-				initialRect: rect,
-			});
-		},
-		[setActiveDrag, setLastDropResult],
-	);
-
-	if (!inventorySpace) {
-		return null;
-	}
-
-	return (
-		<Box mt={4}>
-			<PoolSpaceView
-				space={inventorySpace}
-				entities={entities}
-				placedEntityIds={placedEntityIds}
-				title="Inventory"
-				onEntityDragStart={handleEntityDragStart}
-			/>
+				<TerminalLayout
+					visible={state.terminal.visible}
+					focusRef={terminalInput.inputRef}
+					view={
+						<TerminalView
+							history={state.terminal.history}
+							prompt={state.terminal.prompt}
+							isCompleted={isCompleted}
+						/>
+					}
+					input={
+						<TerminalInput
+							value={terminalInput.value}
+							onChange={terminalInput.onChange}
+							onKeyDown={terminalInput.onKeyDown}
+							inputRef={terminalInput.inputRef}
+							placeholder={isCompleted ? "Terminal disabled" : "Type a command"}
+							disabled={isCompleted}
+						/>
+					}
+				/>
+			</Flex>
+			<Modal />
 		</Box>
 	);
 };
