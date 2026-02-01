@@ -4,9 +4,11 @@
  */
 
 // Enable Immer MapSet plugin for Map and Set support in drafts
-import { enableMapSet } from "immer";
+// Also disable auto-freeze since Space/Entity objects are mutated in-place via method calls
+import { enableMapSet, setAutoFreeze } from "immer";
 
 enableMapSet();
+setAutoFreeze(false);
 
 import type { Action } from "../actions";
 import type { GameState } from "../types";
