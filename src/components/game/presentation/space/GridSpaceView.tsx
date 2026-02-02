@@ -122,6 +122,12 @@ export const GridSpaceView = ({
 
 	const boardRef = useRef<HTMLDivElement | null>(null);
 	const entityRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+	const lastDropTargetRef = useRef<{
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	} | null>(null);
 	const pendingInteractionRef = useRef<{
 		entity: EntityData;
 		position: GridPosition;
@@ -498,25 +504,51 @@ export const GridSpaceView = ({
 		[],
 	);
 
+	// Store dropAnimationTarget for positioning
+	useEffect(() => {
+		if (dropAnimationTarget) {
+			lastDropTargetRef.current = {
+				x: dropAnimationTarget.x,
+				y: dropAnimationTarget.y,
+				width: dropAnimationTarget.width,
+				height: dropAnimationTarget.height,
+			};
+		}
+	}, [dropAnimationTarget]);
+
 	// Handle animation completion - fade in placed entity
 	useEffect(() => {
-		if (!dropAnimationTarget && draggingEntityId) {
-			// Animation just completed - fade in the placed entity
+		if (!dropAnimationTarget && draggingEntityId && lastDropTargetRef.current) {
+			// Animation just completed - fade in the placed entity at exact drop position
 			const entityEl = entityRefs.current.get(draggingEntityId);
-			if (entityEl) {
-				gsap.fromTo(
-					entityEl,
-					{ autoAlpha: 0 },
-					{
-						autoAlpha: 1,
-						duration: 0.2,
-						onComplete: () => {
-							setDraggingEntityId(null);
-						},
+			if (entityEl && boardRef.current) {
+				const boardRect = boardRef.current.getBoundingClientRect();
+				const targetX = lastDropTargetRef.current.x - boardRect.left;
+				const targetY = lastDropTargetRef.current.y - boardRect.top;
+
+				// Set initial position to exact drop target
+				gsap.set(entityEl, {
+					x: targetX,
+					y: targetY,
+					width: lastDropTargetRef.current.width,
+					height: lastDropTargetRef.current.height,
+					autoAlpha: 0,
+				});
+
+				// Fade in
+				gsap.to(entityEl, {
+					autoAlpha: 1,
+					duration: 0.2,
+					onComplete: () => {
+						// Clear the transform, let CSS positioning take over
+						gsap.set(entityEl, { clearProps: "x,y,width,height" });
+						setDraggingEntityId(null);
+						lastDropTargetRef.current = null;
 					},
-				);
+				});
 			} else {
 				setDraggingEntityId(null);
+				lastDropTargetRef.current = null;
 			}
 		}
 	}, [dropAnimationTarget, draggingEntityId]);
