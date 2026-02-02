@@ -71,7 +71,8 @@ const SslGame = ({
 	const initializedRef = useRef(false);
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
-	const shouldShowTerminal = state.phase === "terminal";
+	const shouldShowTerminal =
+		state.phase === "terminal" || state.phase === "completed" || isCompleted;
 	const {
 		browserItems,
 		browserStatus,
