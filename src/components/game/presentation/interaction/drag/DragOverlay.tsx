@@ -185,7 +185,7 @@ export const DragOverlay = ({
 			duration: 0.8,
 			ease: "expo.out",
 			onComplete: () => {
-				// Animation complete - clear everything immediately
+				// Animation complete - clear overlay and fade in placed entity
 				setIsVisible(false);
 				setActiveDrag(null);
 				setDropAnimationTarget(null);

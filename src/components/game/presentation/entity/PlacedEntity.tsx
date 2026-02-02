@@ -126,8 +126,10 @@ export const PlacedEntity = memo(
 				px={3}
 				cursor="grab"
 				zIndex={isDragging ? 9999 : 1}
-				visibility={isDragging ? "hidden" : "visible"}
-				style={{ touchAction: "none" }}
+				style={{
+					touchAction: "none",
+					visibility: isDragging ? "hidden" : undefined,
+				}}
 				onPointerDown={onPointerDown}
 				aria-label={`${displayName}${statusMessage ? `: ${statusMessage}` : ""}`}
 				data-entity-id={entity.id}
