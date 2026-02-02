@@ -121,8 +121,10 @@ export const getCertificateDomain = (
 	canvas: PuzzleState | undefined,
 ): string | undefined => {
 	if (!canvas) return undefined;
-	// The certificate domain is stored on the domain item in the letsencrypt canvas
-	const domainItem = canvas.placedItems.find((item) => item.type === "domain");
+	// The certificate domain is stored on the domain-ssl item in the letsencrypt canvas
+	const domainItem = canvas.placedItems.find(
+		(item) => item.type === "domain-ssl",
+	);
 	if (domainItem && typeof domainItem.data?.certificateDomain === "string") {
 		return domainItem.data.certificateDomain;
 	}

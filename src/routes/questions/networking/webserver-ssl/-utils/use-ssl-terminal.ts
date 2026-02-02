@@ -1,22 +1,15 @@
 // Terminal command handler for the webserver-ssl question
 // Supports curl and openssl commands for testing HTTP and HTTPS
 
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines/terminal/use-terminal-engine";
-import type { PuzzleState } from "@/components/game/game-provider";
-import {
-	useAllPuzzles,
-	useGameDispatch,
-} from "@/components/game/game-provider";
+import { useGameDispatch } from "@/components/game/game-provider";
 import { INDEX_HTML_CONTENT } from "./constants";
 import { buildSuccessModal } from "./modal-builders";
-import {
-	isPort80Complete,
-	isPort80RedirectConfigured,
-	isPort443Complete,
-} from "./ssl-utils";
 
 interface UseSslTerminalArgs {
+	httpReady: boolean;
+	httpsReady: boolean;
 	hasRedirect: boolean;
 	port80Domain: string | undefined;
 	certificateDomain: string | undefined;
@@ -24,21 +17,14 @@ interface UseSslTerminalArgs {
 }
 
 export const useSslTerminal = ({
+	httpReady,
+	httpsReady,
 	hasRedirect,
 	port80Domain,
 	certificateDomain,
 	onQuestionComplete,
 }: UseSslTerminalArgs) => {
 	const dispatch = useGameDispatch();
-	const canvases = useAllPuzzles();
-	const port80Canvas = useMemo(
-		() => canvases["port-80"] as PuzzleState | undefined,
-		[canvases],
-	);
-	const port443Canvas = useMemo(
-		() => canvases["port-443"] as PuzzleState | undefined,
-		[canvases],
-	);
 
 	return useCallback(
 		(input: string, helpers: TerminalCommandHelpers) => {
@@ -51,9 +37,9 @@ export const useSslTerminal = ({
 			const getDomain = () =>
 				port80Domain || certificateDomain || "example.com";
 
-			const isHttpReady = isPort80Complete(port80Canvas);
-			const isHttpsReadyNow = isPort443Complete(port443Canvas);
-			const hasRedirectNow = isPort80RedirectConfigured(port80Canvas);
+			const isHttpReady = httpReady;
+			const isHttpsReadyNow = httpsReady;
+			const hasRedirectNow = hasRedirect;
 
 			// Handle curl command
 			if (command === "curl") {
@@ -299,12 +285,12 @@ export const useSslTerminal = ({
 		},
 		[
 			hasRedirect,
+			httpReady,
+			httpsReady,
 			port80Domain,
 			certificateDomain,
 			dispatch,
 			onQuestionComplete,
-			port80Canvas,
-			port443Canvas,
 		],
 	);
 };

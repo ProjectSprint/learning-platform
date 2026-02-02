@@ -15,6 +15,8 @@ export const getSslItemLabel = (itemType: string): string => {
 			return "Webserver (HTTPS)";
 		case "domain":
 			return "Domain";
+		case "domain-ssl":
+			return "Domain (SSL)";
 		case "index-html":
 			return "index.html";
 		case "private-key":
@@ -77,6 +79,14 @@ export const getSslStatusMessage = (
 			return "not configured";
 		}
 		if (status === "warning") {
+			const sslMissing =
+				typeof data?.sslMissing === "string" ? data.sslMissing : null;
+			if (sslMissing === "private-key") {
+				return "missing private key";
+			}
+			if (sslMissing === "certificate") {
+				return "missing certificate";
+			}
 			return "missing SSL";
 		}
 		if (status === "success") {
@@ -87,23 +97,22 @@ export const getSslStatusMessage = (
 
 	// Domain status
 	if (type === "domain") {
-		if (status === "success") {
-			return "Configured";
-		}
-		if (status === "error" || status === "warning") {
-			return "Need Issuing";
-		}
 		const domain =
 			typeof data?.domain === "string" ? data.domain : "example.com";
 		return domain;
 	}
 
-	// index.html status
-	if (type === "index-html") {
-		if (canvasId === "port-80" && status === "warning") {
-			return "I shouldn't be here!";
+	// Domain (SSL) status
+	if (type === "domain-ssl") {
+		if (status === "warning") {
+			return "Needs Issuing";
 		}
-		return null;
+		if (status === "success") {
+			return "Configured";
+		}
+		const domain =
+			typeof data?.domain === "string" ? data.domain : "example.com";
+		return domain;
 	}
 
 	return null;
@@ -144,11 +153,29 @@ export const getFullStatusDescription = (
 		case "webserver-443":
 			if (status === "error")
 				return "Not configured - Add components for HTTPS";
-			if (status === "warning")
+			if (status === "warning") {
+				const sslMissing =
+					typeof data?.sslMissing === "string" ? data.sslMissing : null;
+				if (sslMissing === "private-key") {
+					return "Missing Private Key - Install private key for HTTPS";
+				}
+				if (sslMissing === "certificate") {
+					return "Missing Certificate - Install domain certificate for HTTPS";
+				}
 				return "Missing SSL - Install private key and certificate";
+			}
 			if (status === "success")
 				return "🔒 Serving HTTPS - Secure connection established";
 			return "Not configured";
+
+		case "domain-ssl":
+			if (status === "warning") {
+				return "Needs Issuing - Request a certificate from Let's Encrypt";
+			}
+			if (status === "success") {
+				return "Configured - Certificate issued and ready for HTTPS";
+			}
+			return "Domain (SSL)";
 
 		case "private-key":
 			return "🔑 Private Key - Secret key for decrypting HTTPS traffic. Keep this safe!";

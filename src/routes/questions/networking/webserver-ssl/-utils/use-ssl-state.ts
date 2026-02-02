@@ -8,6 +8,7 @@ import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { spaceContains } from "@/components/game/domain/space/space-fns";
 import { useGameState } from "@/components/game/game-provider";
+import { DEFAULT_DOMAIN } from "./constants";
 
 export const useSslState = () => {
 	const state = useGameState();
@@ -43,7 +44,10 @@ export const useSslState = () => {
 		[state.entities],
 	);
 
-	getEntitiesInSpace(browserCanvas);
+	const browserEntities = useMemo(
+		() => getEntitiesInSpace(browserCanvas),
+		[browserCanvas, getEntitiesInSpace],
+	);
 	const port80Entities = useMemo(
 		() => getEntitiesInSpace(port80Canvas),
 		[port80Canvas, getEntitiesInSpace],
@@ -60,10 +64,10 @@ export const useSslState = () => {
 	// Derive state from entities
 	const httpReady = useMemo(() => {
 		const types = port80Entities.map((e) => e.type);
+		const hasContent =
+			types.includes("index-html") || types.includes("redirect-to-https");
 		return (
-			types.includes("webserver-80") &&
-			types.includes("domain") &&
-			types.includes("index-html")
+			types.includes("webserver-80") && types.includes("domain") && hasContent
 		);
 	}, [port80Entities]);
 
@@ -80,30 +84,54 @@ export const useSslState = () => {
 
 	const hasRedirect = useMemo(() => {
 		const types = port80Entities.map((e) => e.type);
-		return types.includes("redirect-to-https");
+		return (
+			types.includes("webserver-80") &&
+			types.includes("domain") &&
+			types.includes("redirect-to-https")
+		);
 	}, [port80Entities]);
 
 	const certificateIssued = useMemo(() => {
-		const domainEntity = letsencryptEntities.find((e) => e.type === "domain");
+		const domainEntity = letsencryptEntities.find(
+			(e) => e.type === "domain-ssl",
+		);
 		return (
-			(domainEntity?.state.certificateIssued as boolean | undefined) === true
+			(domainEntity?.data.certificateIssued as boolean | undefined) === true
 		);
 	}, [letsencryptEntities]);
 
 	const browserStatus: "error" | "warning" | "success" = useMemo(() => {
-		if (httpsReady) return "success";
+		const browserPlaced = browserEntities.some((e) => e.type === "browser");
+		if (!browserPlaced) return "error";
+		if (httpsReady && hasRedirect) return "success";
 		if (httpReady) return "warning";
 		return "error";
-	}, [httpReady, httpsReady]);
+	}, [browserEntities, hasRedirect, httpReady, httpsReady]);
 
 	const port80Domain = useMemo(() => {
 		const domainEntity = port80Entities.find((e) => e.type === "domain");
-		return domainEntity?.name ?? "example.com";
+		if (typeof domainEntity?.data.domain === "string") {
+			return domainEntity.data.domain;
+		}
+		return DEFAULT_DOMAIN;
 	}, [port80Entities]);
 
+	const port443Domain = useMemo(() => {
+		const domainEntity = port443Entities.find((e) => e.type === "domain");
+		if (typeof domainEntity?.data.domain === "string") {
+			return domainEntity.data.domain;
+		}
+		return DEFAULT_DOMAIN;
+	}, [port443Entities]);
+
 	const certificateDomain = useMemo(() => {
-		const domainEntity = letsencryptEntities.find((e) => e.type === "domain");
-		return domainEntity?.name ?? "example.com";
+		const domainEntity = letsencryptEntities.find(
+			(e) => e.type === "domain-ssl",
+		);
+		if (typeof domainEntity?.data.certificateDomain === "string") {
+			return domainEntity.data.certificateDomain;
+		}
+		return DEFAULT_DOMAIN;
 	}, [letsencryptEntities]);
 
 	const port80Config = useMemo(() => {
@@ -112,6 +140,7 @@ export const useSslState = () => {
 			hasWebserver: types.includes("webserver-80"),
 			hasDomain: types.includes("domain"),
 			hasIndexHtml: types.includes("index-html"),
+			hasRedirect: types.includes("redirect-to-https"),
 			isComplete: httpReady,
 		};
 	}, [port80Entities, httpReady]);
@@ -150,6 +179,7 @@ export const useSslState = () => {
 		certificateIssued,
 		browserStatus,
 		port80Domain,
+		port443Domain,
 		certificateDomain,
 		port80Config,
 		port443SslStatus,

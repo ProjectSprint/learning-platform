@@ -66,7 +66,7 @@ export const getContextualHint = (state: SslGameState): string => {
 	// Browser shows not secure - show new canvases
 	if (browserStatus === "warning" && !certificateIssued) {
 		// Domain already in letsencrypt, prompt issuing
-		if (letsencryptItems.includes("domain")) {
+		if (letsencryptItems.includes("domain-ssl")) {
 			if (!letsencryptModalOpen) {
 				return "Issue the certificate by clicking the Domain in the Let's Encrypt canvas";
 			}
@@ -84,7 +84,7 @@ export const getContextualHint = (state: SslGameState): string => {
 	}
 
 	// Domain in letsencrypt but certificate not issued
-	if (letsencryptItems.includes("domain") && !certificateIssued) {
+	if (letsencryptItems.includes("domain-ssl") && !certificateIssued) {
 		if (!letsencryptModalOpen) {
 			return "Click the Domain in the Let's Encrypt canvas to request a certificate";
 		}

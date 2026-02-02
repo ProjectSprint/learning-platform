@@ -3,12 +3,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { findEntitySpace } from "@/components/game/domain/space/validation";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
-import { useDragEngine } from "@/components/game/engines";
+import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
+	type BoardItemStatus,
 	GameProvider,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import type { EntityStatus } from "@/components/game/presentation/entity/PlacedEntity";
 import { ContextualHint } from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
@@ -23,13 +25,29 @@ import type { QuestionProps } from "@/components/module";
 import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
+	DEFAULT_DOMAIN,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
 	SSL_ITEMS_INVENTORY,
 	SSL_SETUP_INVENTORY_ITEMS,
 } from "./-utils/constants";
 import { initializeSslQuestion } from "./-utils/init-spaces";
+import {
+	getSslItemLabel,
+	getSslStatusMessage,
+} from "./-utils/item-notification";
+import {
+	buildBrowserStatusModal,
+	buildCertificateInfoModal,
+	buildCertificateRequestModal,
+	buildIndexHtmlViewModal,
+	buildPrivateKeyInfoModal,
+	buildRedirectInfoModal,
+	buildWebserver80StatusModal,
+	buildWebserver443StatusModal,
+} from "./-utils/modal-builders";
 import { useSslState } from "./-utils/use-ssl-state";
+import { useSslTerminal } from "./-utils/use-ssl-terminal";
 
 export const WebServerSslQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -50,10 +68,34 @@ const SslGame = ({
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal = state.phase === "terminal";
-	const { certificateIssued, httpReady } = useSslState();
+	const {
+		browserStatus,
+		certificateDomain,
+		certificateIssued,
+		hasRedirect,
+		httpReady,
+		httpsReady,
+		port80Config,
+		port80Domain,
+		port443Domain,
+		port443SslStatus,
+	} = useSslState();
 	const [showSslCanvases, setShowSslCanvases] = useState(false);
 	const [showSslItems, setShowSslItems] = useState(false);
 	useDragEngine();
+
+	const handleSslCommand = useSslTerminal({
+		httpReady,
+		httpsReady,
+		hasRedirect,
+		port80Domain,
+		certificateDomain,
+		onQuestionComplete: _onQuestionComplete,
+	});
+
+	useTerminalEngine({
+		onCommand: handleSslCommand,
+	});
 
 	useEffect(() => {
 		if (httpReady) {
@@ -159,11 +201,321 @@ const SslGame = ({
 		}
 	}, [dispatch, showSslItems, state]);
 
-	const handleEntityClick = useCallback((_entity: EntityData) => {
-		// SSL might have clickable entities in the future (e.g., certificate modal)
-	}, []);
+	const port80Status = useMemo<BoardItemStatus>(() => {
+		if (
+			!port80Config.hasWebserver ||
+			!port80Config.hasDomain ||
+			(!port80Config.hasIndexHtml && !port80Config.hasRedirect)
+		) {
+			return "error";
+		}
+		if (port80Config.hasRedirect) {
+			return "success";
+		}
+		return "warning";
+	}, [port80Config]);
 
-	const isEntityClickable = useCallback((_entity: EntityData) => false, []);
+	const port443Status = useMemo<BoardItemStatus>(() => {
+		if (
+			!port443SslStatus.hasWebserver ||
+			!port443SslStatus.hasDomain ||
+			!port443SslStatus.hasIndexHtml
+		) {
+			return "error";
+		}
+		if (port443SslStatus.hasPrivateKey && port443SslStatus.hasCertificate) {
+			return "success";
+		}
+		return "warning";
+	}, [port443SslStatus]);
+
+	const port443Missing = useMemo(() => {
+		if (port443Status !== "warning") {
+			return null;
+		}
+		if (!port443SslStatus.hasPrivateKey && !port443SslStatus.hasCertificate) {
+			return "ssl";
+		}
+		if (!port443SslStatus.hasPrivateKey) {
+			return "private-key";
+		}
+		if (!port443SslStatus.hasCertificate) {
+			return "certificate";
+		}
+		return null;
+	}, [port443Status, port443SslStatus]);
+
+	const browserModalStatus = useMemo(() => {
+		if (browserStatus === "success") {
+			return {
+				url: `https://${port80Domain || DEFAULT_DOMAIN}`,
+				connection: "Secure",
+				port: "443",
+			};
+		}
+		if (browserStatus === "warning") {
+			return {
+				url: `http://${port80Domain || DEFAULT_DOMAIN}`,
+				connection: "Not Secure",
+				port: "80",
+			};
+		}
+		return {
+			url: "Not connected",
+			connection: "Can't connect",
+			port: "—",
+		};
+	}, [browserStatus, port80Domain]);
+
+	const entityClickHandlers = useMemo(
+		() => ({
+			browser: (entity: EntityData) => {
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildBrowserStatusModal(
+						entity.id,
+						browserModalStatus,
+						browserStatus === "success",
+					),
+				});
+			},
+			"webserver-80": (entity: EntityData) => {
+				const servingFile = port80Config.hasRedirect
+					? "Redirect to HTTPS"
+					: port80Config.hasIndexHtml
+						? "index.html"
+						: undefined;
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildWebserver80StatusModal(entity.id, {
+						status:
+							port80Status === "error"
+								? "Not configured"
+								: port80Status === "warning"
+									? "Serving HTTP"
+									: "Redirecting to HTTPS",
+						domain: port80Domain,
+						servingFile,
+					}),
+				});
+			},
+			"webserver-443": (entity: EntityData) => {
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildWebserver443StatusModal(entity.id, {
+						status:
+							port443Status === "error"
+								? "Not configured"
+								: port443Status === "warning"
+									? "Missing SSL"
+									: "🔒 Serving HTTPS",
+						domain: port443Domain,
+						privateKey: port443SslStatus.hasPrivateKey
+							? "✓ Installed"
+							: "Not installed",
+						certificate: port443SslStatus.hasCertificate
+							? "✓ Installed"
+							: "Not installed",
+						servingFile: port443SslStatus.hasIndexHtml
+							? "index.html"
+							: undefined,
+					}),
+				});
+			},
+			"domain-ssl": (entity: EntityData) => {
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildCertificateRequestModal(
+						entity.id,
+						certificateDomain || port80Domain || DEFAULT_DOMAIN,
+						certificateIssued,
+						{ domain: port80Domain || DEFAULT_DOMAIN },
+					),
+				});
+			},
+			"index-html": (entity: EntityData) => {
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildIndexHtmlViewModal(entity.id),
+				});
+			},
+			"private-key": (entity: EntityData) => {
+				const installed = findEntitySpace(state, entity.id) === "port-443";
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildPrivateKeyInfoModal(entity.id, installed),
+				});
+			},
+			certificate: (entity: EntityData) => {
+				const installed = findEntitySpace(state, entity.id) === "port-443";
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildCertificateInfoModal(entity.id, installed),
+				});
+			},
+			"redirect-to-https": (entity: EntityData) => {
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildRedirectInfoModal(entity.id),
+				});
+			},
+		}),
+		[
+			browserModalStatus,
+			browserStatus,
+			certificateDomain,
+			certificateIssued,
+			dispatch,
+			port80Config,
+			port80Domain,
+			port80Status,
+			port443Domain,
+			port443SslStatus,
+			port443Status,
+			state,
+		],
+	);
+
+	const handleEntityClick = useCallback(
+		(entity: EntityData) => {
+			const handler =
+				entityClickHandlers[entity.type as keyof typeof entityClickHandlers];
+			if (handler) {
+				handler(entity);
+			}
+		},
+		[entityClickHandlers],
+	);
+
+	const isEntityClickable = useCallback(
+		(entity: EntityData) =>
+			[
+				"browser",
+				"webserver-80",
+				"webserver-443",
+				"domain-ssl",
+				"index-html",
+				"private-key",
+				"certificate",
+				"redirect-to-https",
+			].includes(entity.type),
+		[],
+	);
+
+	const getEntityStatus = useCallback(
+		(entity: EntityData) => {
+			const spaceId = findEntitySpace(state, entity.id);
+			if (!spaceId) {
+				return {};
+			}
+
+			if (entity.type === "browser" && spaceId === "browser") {
+				const statusMessage = getSslStatusMessage({
+					id: entity.id,
+					itemId: entity.id,
+					type: entity.type,
+					blockX: 0,
+					blockY: 0,
+					status: browserStatus,
+					data: { domain: port80Domain || DEFAULT_DOMAIN },
+				});
+				return {
+					status: browserStatus as EntityStatus,
+					message: statusMessage,
+				};
+			}
+
+			if (entity.type === "webserver-80" && spaceId === "port-80") {
+				const statusMessage = getSslStatusMessage(
+					{
+						id: entity.id,
+						itemId: entity.id,
+						type: entity.type,
+						blockX: 0,
+						blockY: 0,
+						status: port80Status,
+						data: {},
+					},
+					spaceId,
+				);
+				return {
+					status: port80Status as EntityStatus,
+					message: statusMessage,
+				};
+			}
+
+			if (entity.type === "webserver-443" && spaceId === "port-443") {
+				const statusMessage = getSslStatusMessage(
+					{
+						id: entity.id,
+						itemId: entity.id,
+						type: entity.type,
+						blockX: 0,
+						blockY: 0,
+						status: port443Status,
+						data: { sslMissing: port443Missing ?? undefined },
+					},
+					spaceId,
+				);
+				return {
+					status: port443Status as EntityStatus,
+					message: statusMessage,
+				};
+			}
+
+			if (
+				entity.type === "domain" &&
+				["port-80", "port-443"].includes(spaceId)
+			) {
+				const domain =
+					spaceId === "port-443"
+						? port443Domain || DEFAULT_DOMAIN
+						: port80Domain || DEFAULT_DOMAIN;
+				const statusMessage = getSslStatusMessage({
+					id: entity.id,
+					itemId: entity.id,
+					type: entity.type,
+					blockX: 0,
+					blockY: 0,
+					status: "normal",
+					data: { domain },
+				});
+				return {
+					message: statusMessage,
+				};
+			}
+
+			if (entity.type === "domain-ssl" && spaceId === "letsencrypt") {
+				const status: EntityStatus = certificateIssued ? "success" : "warning";
+				const statusMessage = getSslStatusMessage({
+					id: entity.id,
+					itemId: entity.id,
+					type: entity.type,
+					blockX: 0,
+					blockY: 0,
+					status,
+					data: { domain: certificateDomain || DEFAULT_DOMAIN },
+				});
+				return {
+					status,
+					message: statusMessage,
+				};
+			}
+
+			return {};
+		},
+		[
+			browserStatus,
+			certificateDomain,
+			certificateIssued,
+			port80Domain,
+			port80Status,
+			port443Domain,
+			port443Missing,
+			port443Status,
+			state,
+		],
+	);
 
 	return (
 		<Box
@@ -210,6 +562,8 @@ const SslGame = ({
 										title={config.name ?? canvasId}
 										onEntityClick={handleEntityClick}
 										isEntityClickable={isEntityClickable}
+										getEntityLabel={(entity) => getSslItemLabel(entity.type)}
+										getEntityStatus={getEntityStatus}
 									/>
 								</GridItem>
 							);
@@ -228,7 +582,7 @@ const SslGame = ({
 
 					<ContextualHint />
 
-					<DragOverlay getEntityLabel={(type) => type} />
+					<DragOverlay getEntityLabel={getSslItemLabel} />
 				</GameBoard>
 
 				<TerminalLayout
