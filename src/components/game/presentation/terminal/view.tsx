@@ -24,21 +24,23 @@ const TerminalEntryRow = memo(
 				? `> ${entry.content}`
 				: entry.content;
 
-		// Replace leading spaces with non-breaking spaces to preserve indentation
-		content = content.replace(/^( +)/, (match) =>
-			"\u00A0".repeat(match.length),
-		);
+		// Escape HTML and replace spaces with &nbsp; to preserve formatting
+		const escapedContent = content
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/^( +)/, (match) => "&nbsp;".repeat(match.length));
 
 		return (
 			<Text
+				as="span"
 				fontSize="sm"
 				color={styles.color}
 				fontStyle={styles.fontStyle}
 				fontWeight={styles.fontWeight}
 				whiteSpace="pre-wrap"
-			>
-				{content}
-			</Text>
+				dangerouslySetInnerHTML={{ __html: escapedContent }}
+			/>
 		);
 	},
 );
