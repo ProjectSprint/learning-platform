@@ -26,7 +26,12 @@ export type HintAction =
 // Modal actions
 export type ModalAction =
 	| { type: "OPEN_MODAL"; payload: ModalInstance }
-	| { type: "CLOSE_MODAL" };
+	| { type: "CLOSE_MODAL" }
+	| {
+			type: "SAVE_MODAL_DRAFT";
+			payload: { modalId: string; values: Record<string, unknown> };
+	  }
+	| { type: "CLEAR_MODAL_DRAFT"; payload: { modalId: string } };
 
 // Terminal actions
 export type TerminalAction =

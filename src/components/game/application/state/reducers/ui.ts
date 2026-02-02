@@ -132,6 +132,28 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 					activeModal: null,
 				},
 			};
+		case "SAVE_MODAL_DRAFT":
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					modalDrafts: {
+						...state.overlay.modalDrafts,
+						[action.payload.modalId]: action.payload.values,
+					},
+				},
+			};
+		case "CLEAR_MODAL_DRAFT": {
+			const { [action.payload.modalId]: _, ...remainingDrafts } =
+				state.overlay.modalDrafts;
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					modalDrafts: remainingDrafts,
+				},
+			};
+		}
 
 		// Terminal actions
 		case "OPEN_TERMINAL":

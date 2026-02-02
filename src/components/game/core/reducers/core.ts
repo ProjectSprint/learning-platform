@@ -46,6 +46,7 @@ export const createDefaultState = (): GameState => ({
 	},
 	overlay: {
 		activeModal: null,
+		modalDrafts: {},
 	},
 	question: {
 		id: "",
