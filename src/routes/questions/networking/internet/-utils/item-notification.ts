@@ -16,6 +16,8 @@ export const getInternetItemLabel = (itemType: string): string => {
 			return "Fiber Cable";
 		case "igw":
 			return "Internet Gateway";
+		case "internet":
+			return "Internet";
 		case "dns":
 			return "DNS Server";
 		case "google":

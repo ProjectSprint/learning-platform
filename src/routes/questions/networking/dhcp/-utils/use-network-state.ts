@@ -169,7 +169,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 
 		// Update router status
 		if (network.router) {
-			const desiredRouterStatus = routerConfigured ? "success" : "error";
+			const desiredRouterStatus = routerConfigured ? "success" : "warning";
 			const entity = state.entities[network.router.id];
 			if (entity && entity.state.status !== desiredRouterStatus) {
 				dispatch({

@@ -70,7 +70,7 @@ type InternetConditionKey =
 	| "allDevicesPlaced";
 
 const COLUMN_ONE: InternetCanvasKey[] = ["local", "conn-1", "router"];
-const COLUMN_TWO: InternetCanvasKey[] = ["conn-2", "igw", "dns", "google"];
+const COLUMN_TWO: InternetCanvasKey[] = ["conn-2", "internet"];
 
 const INTERNET_SPEC_BASE: Omit<
 	QuestionSpec<InternetConditionKey>,
@@ -604,9 +604,7 @@ const InternetGame = ({
 							</Flex>
 							<Flex direction="row" gap={{ base: 2, md: 4 }}>
 								{renderBoard("conn-2", "0")}
-								{renderBoard("igw", "0")}
-								{renderBoard("dns", "0")}
-								{renderBoard("google", "0")}
+								{renderBoard("internet", "0")}
 							</Flex>
 						</Flex>
 					) : layoutMode === "structured" ? (
@@ -618,10 +616,8 @@ const InternetGame = ({
 							{renderBoard("router", "100%")}
 							<Flex direction="row" gap={{ base: 2, md: 4 }}>
 								{renderBoard("conn-2", "0")}
-								{renderBoard("igw", "0")}
-								{renderBoard("dns", "0")}
+								{renderBoard("internet", "100%")}
 							</Flex>
-							{renderBoard("google", "100%")}
 						</Flex>
 					) : (
 						<Flex direction="column" gap={{ base: 2, md: 4 }}>

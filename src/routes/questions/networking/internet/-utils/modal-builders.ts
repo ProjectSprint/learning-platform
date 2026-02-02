@@ -314,7 +314,7 @@ export const buildRouterWanConfigModal = (
 				id: "password",
 				kind: "text",
 				label: "PPPoE Password",
-				placeholder: "telkom123",
+				placeholder: "indihome123",
 				defaultValue:
 					typeof currentConfig.password === "string"
 						? currentConfig.password

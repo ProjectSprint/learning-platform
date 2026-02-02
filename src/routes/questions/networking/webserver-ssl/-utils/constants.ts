@@ -36,7 +36,7 @@ export const CANVAS_CONFIGS: Record<WebSslCanvasKey, GridSpaceData> = {
 	}),
 	"port-80": createGridSpaceData({
 		id: "port-80",
-		name: "HTTP Webserver",
+		name: "Port 80 (HTTP)",
 		rows: 1,
 		cols: 3,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
@@ -52,7 +52,7 @@ export const CANVAS_CONFIGS: Record<WebSslCanvasKey, GridSpaceData> = {
 	}),
 	"port-443": createGridSpaceData({
 		id: "port-443",
-		name: "HTTPS Webserver",
+		name: "Port 443 (HTTPS)",
 		rows: 1,
 		cols: 5,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },

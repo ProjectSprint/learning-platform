@@ -99,9 +99,7 @@ export type InternetCanvasKey =
 	| "conn-1"
 	| "router"
 	| "conn-2"
-	| "igw"
-	| "dns"
-	| "google";
+	| "internet";
 
 // Initial inventory items available for the internet gateway question
 export const INVENTORY_ITEMS: Item[] = [
@@ -156,16 +154,23 @@ export const INVENTORY_ITEMS: Item[] = [
 		id: "igw-1",
 		type: "igw",
 		name: "Internet Gateway",
-		allowedPlaces: ["inventory", "igw"],
+		allowedPlaces: ["inventory", "internet"],
 		icon: { icon: "mdi:server-network" },
 		category: "bridge",
 		tooltip: TOOLTIP_IGW,
 	},
 	{
+		id: "internet-1",
+		type: "internet",
+		name: "Internet",
+		allowedPlaces: ["inventory", "internet"],
+		icon: { icon: "mdi:cloud" },
+	},
+	{
 		id: "dns-1",
 		type: "dns",
 		name: "DNS Server",
-		allowedPlaces: ["inventory", "dns"],
+		allowedPlaces: ["inventory", "internet"],
 		icon: { icon: "mdi:dns" },
 		category: "address",
 		tooltip: TOOLTIP_DNS,
@@ -174,7 +179,7 @@ export const INVENTORY_ITEMS: Item[] = [
 		id: "google-1",
 		type: "google",
 		name: "Google",
-		allowedPlaces: ["inventory", "google"],
+		allowedPlaces: ["inventory", "internet"],
 		icon: { icon: "mdi:google" },
 		category: "server",
 		tooltip: TOOLTIP_GOOGLE,
@@ -195,9 +200,7 @@ export const CANVAS_ORDER: InternetCanvasKey[] = [
 	"conn-1",
 	"router",
 	"conn-2",
-	"igw",
-	"dns",
-	"google",
+	"internet",
 ];
 
 export const CANVAS_CONFIGS: Record<InternetCanvasKey, GridSpaceData> = {
@@ -233,29 +236,13 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	igw: createGridSpaceData({
-		id: "igw",
-		name: "Internet Gateway",
+	internet: createGridSpaceData({
+		id: "internet",
+		name: "Internet",
 		rows: 1,
-		cols: 1,
+		cols: 4,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 1,
-	}),
-	dns: createGridSpaceData({
-		id: "dns",
-		name: "DNS Server",
-		rows: 1,
-		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 1,
-	}),
-	google: createGridSpaceData({
-		id: "google",
-		name: "Google Server",
-		rows: 1,
-		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 1,
+		maxCapacity: 4,
 	}),
 };
 
@@ -272,7 +259,7 @@ export const PUBLIC_DNS_SERVERS = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"];
 // Valid PPPoE credentials for ISP authentication
 export const VALID_PPPOE_CREDENTIALS = {
 	username: "user@telkom.net",
-	password: "telkom123",
+	password: "indihome123",
 } as const;
 
 // Google's IP address for curl verification
