@@ -80,10 +80,8 @@ export const Modal = () => {
 		return null;
 	}
 
-	if (!hasVisibleModal) {
-		return null;
-	}
-
+	// Always render portal (even with no visible modals) to preserve component state
+	// Hidden modals use display:none, so they stay mounted
 	return createPortal(
 		<Box position="fixed" inset="0" zIndex={10000} pointerEvents="none">
 			{Object.entries(overlay.modals).map(([modalId, entry]) => {
