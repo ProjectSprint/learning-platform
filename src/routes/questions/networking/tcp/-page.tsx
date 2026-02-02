@@ -6,7 +6,7 @@ import {
 } from "@/components/game/application/actions";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
-import { useDragEngine } from "@/components/game/engines";
+import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
 	GameProvider,
@@ -36,6 +36,7 @@ import {
 	getTcpStatusMessage,
 } from "./-utils/item-notification";
 import { useTcpState } from "./-utils/use-tcp-state";
+import { useTcpTerminal } from "./-utils/use-tcp-terminal";
 
 export const TcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -46,7 +47,7 @@ export const TcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 };
 
 const TcpGame = ({
-	onQuestionComplete: _onQuestionComplete,
+	onQuestionComplete,
 }: {
 	onQuestionComplete: () => void;
 }) => {
@@ -56,7 +57,9 @@ const TcpGame = ({
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal = state.phase === "terminal";
+	const handleTcpCommand = useTcpTerminal({ onQuestionComplete });
 	useDragEngine();
+	useTerminalEngine({ onCommand: handleTcpCommand });
 	useTcpState();
 
 	// Initialize question
