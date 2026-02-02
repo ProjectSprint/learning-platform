@@ -439,19 +439,36 @@ export const GridSpaceView = ({
 
 			// Play scale animation on successful placement
 			if (placed) {
-				const entityEl = entityRefs.current.get(activeDrag.data.entityId);
-				if (entityEl) {
-					gsap.fromTo(
-						entityEl,
-						{ scale: 0, opacity: 0 },
-						{
-							scale: 1,
-							opacity: 1,
-							duration: 0.3,
-							ease: "back.out(1.7)",
-						},
+				console.log(
+					"[GridSpaceView] Attempting animation for:",
+					activeDrag.data.entityId,
+				);
+				// Use requestAnimationFrame to ensure DOM is updated
+				requestAnimationFrame(() => {
+					const entityEl = entityRefs.current.get(activeDrag.data.entityId);
+					console.log(
+						"[GridSpaceView] Entity element found:",
+						!!entityEl,
+						"for:",
+						activeDrag.data.entityId,
 					);
-				}
+					if (entityEl) {
+						console.log("[GridSpaceView] Starting scale animation");
+						gsap.fromTo(
+							entityEl,
+							{ scale: 0, opacity: 0 },
+							{
+								scale: 1,
+								opacity: 1,
+								duration: 0.3,
+								ease: "back.out(1.7)",
+								onComplete: () => {
+									console.log("[GridSpaceView] Animation complete");
+								},
+							},
+						);
+					}
+				});
 			}
 		};
 
