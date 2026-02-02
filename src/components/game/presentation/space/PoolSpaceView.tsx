@@ -57,12 +57,8 @@ export const PoolSpaceView = ({
 	onEntityDragStart,
 	onEntityReturn,
 }: PoolSpaceViewProps) => {
-	const {
-		activeDrag,
-		setActiveDrag,
-		targetSpaceIdRef,
-		setLastDropResult,
-	} = useDragContext();
+	const { activeDrag, setActiveDrag, targetSpaceIdRef, setLastDropResult } =
+		useDragContext();
 	const entityRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const cardSize = useEntityCardSize();
 	const poolRef = useRef<HTMLDivElement | null>(null);

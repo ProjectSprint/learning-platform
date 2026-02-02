@@ -69,7 +69,9 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			"conn-1": undefined,
 			router: undefined,
 			"conn-2": undefined,
-			internet: undefined,
+			igw: undefined,
+			dns: undefined,
+			google: undefined,
 		};
 		for (const canvasId of CANVAS_ORDER) {
 			const space = state.spaces[canvasId];

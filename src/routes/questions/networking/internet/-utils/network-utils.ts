@@ -106,11 +106,6 @@ export interface InternetNetworkSnapshot {
 export const buildInternetNetworkSnapshot = (
 	placedItems: BoardItemLocation[],
 ): InternetNetworkSnapshot => {
-	const byCoord = new Map<string, BoardItemLocation>();
-	placedItems.forEach((item) => {
-		byCoord.set(`${item.blockX}-${item.blockY}`, item);
-	});
-
 	const pc = placedItems.find((item) => item.type === "pc");
 	const cable = placedItems.find((item) => item.type === "cable");
 	const routerLan = placedItems.find((item) => item.type === "router-lan");
@@ -142,27 +137,18 @@ export const buildInternetNetworkSnapshot = (
 		isFullyConnected = false;
 	}
 
-	// Check if PC is connected to Router LAN via cable (adjacent: PC → Cable → Router LAN)
+	// Check if PC is connected to Router LAN via cable
+	// With separate spaces, we just check that all required items are placed
 	let pcConnectedToRouterLan = false;
 	if (pc && cable && routerLan) {
-		// Check adjacency: PC next to Cable, Cable next to Router LAN, all on same row
-		const pcNextToCable =
-			cable.blockX === pc.blockX + 1 && cable.blockY === pc.blockY;
-		const cableNextToRouterLan =
-			routerLan.blockX === cable.blockX + 1 &&
-			routerLan.blockY === cable.blockY;
-		pcConnectedToRouterLan = pcNextToCable && cableNextToRouterLan;
+		pcConnectedToRouterLan = true;
 	}
 
-	// Check if Router WAN is connected to IGW via fiber (adjacent: Router WAN → Fiber → IGW)
+	// Check if Router WAN is connected to IGW via fiber
+	// With separate spaces, we just check that all required items are placed
 	let routerWanConnectedToIgw = false;
 	if (routerWan && fiber && igw) {
-		const routerWanNextToFiber =
-			fiber.blockX === routerWan.blockX + 1 &&
-			fiber.blockY === routerWan.blockY;
-		const fiberNextToIgw =
-			igw.blockX === fiber.blockX + 1 && igw.blockY === fiber.blockY;
-		routerWanConnectedToIgw = routerWanNextToFiber && fiberNextToIgw;
+		routerWanConnectedToIgw = true;
 	}
 
 	return {

@@ -128,7 +128,7 @@ export const PlacedEntity = memo(
 				zIndex={isDragging ? 9999 : 1}
 				opacity={isDragging ? 0 : 1}
 				visibility={isDragging ? "hidden" : "visible"}
-						style={{
+				style={{
 					touchAction: "none",
 				}}
 				onPointerDown={onPointerDown}

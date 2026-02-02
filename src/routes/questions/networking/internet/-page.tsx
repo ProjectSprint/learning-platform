@@ -1,10 +1,4 @@
-import {
-	Box,
-	type BoxProps,
-	Flex,
-	Text,
-	useBreakpointValue,
-} from "@chakra-ui/react";
+import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
 	clearBoardArrows,
@@ -41,6 +35,7 @@ import type { QuestionProps } from "@/components/module";
 import {
 	CANVAS_CONFIGS,
 	CANVAS_ORDER,
+	GOOGLE_IP,
 	type InternetCanvasKey,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
@@ -70,7 +65,7 @@ type InternetConditionKey =
 	| "allDevicesPlaced";
 
 const COLUMN_ONE: InternetCanvasKey[] = ["local", "conn-1", "router"];
-const COLUMN_TWO: InternetCanvasKey[] = ["conn-2", "internet"];
+const COLUMN_TWO: InternetCanvasKey[] = ["conn-2", "igw", "dns", "google"];
 
 const INTERNET_SPEC_BASE: Omit<
 	QuestionSpec<InternetConditionKey>,
@@ -301,10 +296,61 @@ const InternetGame = ({
 		state.question.status,
 	]);
 
-	// Terminal visibility
+	// Terminal visibility and initial help message
+	const terminalOpenedRef = useRef(false);
 	useEffect(() => {
 		if (shouldShowTerminal && !state.terminal.visible) {
 			dispatch({ type: "OPEN_TERMINAL" });
+
+			// Show full help message on first terminal open
+			if (!terminalOpenedRef.current) {
+				terminalOpenedRef.current = true;
+				// Add help message after terminal opens
+				setTimeout(() => {
+					const helpLines = [
+						"Terminal - Network diagnostic and testing utility",
+						"",
+						"----",
+						"",
+						"SYNOPSIS",
+						"ifconfig",
+						"nslookup [domain]",
+						"curl [destination]",
+						"help",
+						"",
+						"----",
+						"",
+						"DESCRIPTION",
+						"This terminal provides network diagnostic tools to test your",
+						"internet connection configuration. Use these commands to verify",
+						"IP assignment, DNS resolution, and internet connectivity.",
+						"",
+						"----",
+						"",
+						"COMMANDS",
+						"ifconfig                    Display network interface configuration",
+						"nslookup [domain]           Query DNS to resolve domain names",
+						"curl [hostname or IP]       Make HTTP request to test connectivity",
+						"help                        Display this help message",
+						"",
+						"----",
+						"",
+						"EXAMPLES",
+						"ifconfig",
+						"nslookup google.com",
+						"curl google.com",
+						`curl ${GOOGLE_IP}`,
+						"",
+					];
+
+					for (const line of helpLines) {
+						dispatch({
+							type: "ADD_TERMINAL_OUTPUT",
+							payload: { content: line, type: "output" },
+						});
+					}
+				}, 100);
+			}
 			return;
 		}
 		if (!shouldShowTerminal && state.terminal.visible) {
@@ -505,15 +551,19 @@ const InternetGame = ({
 		}) ?? "row";
 
 	const renderBoard = useCallback(
-		(key: InternetCanvasKey, minW: BoxProps["minW"]) => {
+		(key: InternetCanvasKey) => {
 			const config = CANVAS_CONFIGS[key];
 			if (!config) return null;
 
+			// Enforce minimum cell width per grid column
+			const minCellWidth = config.metrics.cellWidth ?? 64;
+
 			return (
-				<Box key={key} flexGrow={1} flexBasis={0} minW={minW}>
+				<Box flexGrow={1} flexBasis={0} key={key}>
 					<GridSpace
 						spaceId={key}
 						title={config.name ?? key}
+						minCellWidth={minCellWidth}
 						onEntityClick={handleEntityClick}
 						isEntityClickable={isEntityClickable}
 						getEntityLabel={(entity) => getInternetItemLabel(entity.type)}
@@ -579,9 +629,7 @@ const InternetGame = ({
 							align="flex-start"
 							wrap="wrap"
 						>
-							{CANVAS_ORDER.map((key) =>
-								renderBoard(key, { base: "100%", xl: "0" }),
-							)}
+							{CANVAS_ORDER.map((key) => renderBoard(key))}
 						</Flex>
 					) : layoutMode === "columns" ? (
 						<Flex
@@ -589,39 +637,43 @@ const InternetGame = ({
 							gap={{ base: 2, md: 4 }}
 						>
 							<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
-								{COLUMN_ONE.map((key) => renderBoard(key, "100%"))}
+								{COLUMN_ONE.map((key) => renderBoard(key))}
 							</Flex>
 							<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
-								{COLUMN_TWO.map((key) => renderBoard(key, "100%"))}
+								{COLUMN_TWO.map((key) => renderBoard(key))}
 							</Flex>
 						</Flex>
 					) : layoutMode === "structured-lg" ? (
 						<Flex direction="column" gap={{ base: 2, md: 4 }}>
 							<Flex direction="row" gap={{ base: 2, md: 4 }}>
-								{renderBoard("local", "0")}
-								{renderBoard("conn-1", "0")}
-								{renderBoard("router", "0")}
+								{renderBoard("local")}
+								{renderBoard("conn-1")}
+								{renderBoard("router")}
 							</Flex>
 							<Flex direction="row" gap={{ base: 2, md: 4 }}>
-								{renderBoard("conn-2", "0")}
-								{renderBoard("internet", "0")}
+								{renderBoard("conn-2")}
+								{renderBoard("igw")}
+								{renderBoard("dns")}
+								{renderBoard("google")}
 							</Flex>
 						</Flex>
 					) : layoutMode === "structured" ? (
 						<Flex direction="column" gap={{ base: 2, md: 4 }}>
 							<Flex direction="row" gap={{ base: 2, md: 4 }}>
-								{renderBoard("local", "0")}
-								{renderBoard("conn-1", "0")}
+								{renderBoard("local")}
+								{renderBoard("conn-1")}
 							</Flex>
-							{renderBoard("router", "100%")}
+							{renderBoard("router")}
 							<Flex direction="row" gap={{ base: 2, md: 4 }}>
-								{renderBoard("conn-2", "0")}
-								{renderBoard("internet", "100%")}
+								{renderBoard("conn-2")}
+								{renderBoard("igw")}
+								{renderBoard("dns")}
+								{renderBoard("google")}
 							</Flex>
 						</Flex>
 					) : (
 						<Flex direction="column" gap={{ base: 2, md: 4 }}>
-							{CANVAS_ORDER.map((key) => renderBoard(key, "100%"))}
+							{CANVAS_ORDER.map((key) => renderBoard(key))}
 						</Flex>
 					)}
 

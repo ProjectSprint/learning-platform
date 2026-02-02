@@ -99,7 +99,9 @@ export type InternetCanvasKey =
 	| "conn-1"
 	| "router"
 	| "conn-2"
-	| "internet";
+	| "igw"
+	| "dns"
+	| "google";
 
 // Initial inventory items available for the internet gateway question
 export const INVENTORY_ITEMS: Item[] = [
@@ -154,23 +156,16 @@ export const INVENTORY_ITEMS: Item[] = [
 		id: "igw-1",
 		type: "igw",
 		name: "Internet Gateway",
-		allowedPlaces: ["inventory", "internet"],
+		allowedPlaces: ["inventory", "igw"],
 		icon: { icon: "mdi:server-network" },
 		category: "bridge",
 		tooltip: TOOLTIP_IGW,
 	},
 	{
-		id: "internet-1",
-		type: "internet",
-		name: "Internet",
-		allowedPlaces: ["inventory", "internet"],
-		icon: { icon: "mdi:cloud" },
-	},
-	{
 		id: "dns-1",
 		type: "dns",
 		name: "DNS Server",
-		allowedPlaces: ["inventory", "internet"],
+		allowedPlaces: ["inventory", "dns"],
 		icon: { icon: "mdi:dns" },
 		category: "address",
 		tooltip: TOOLTIP_DNS,
@@ -179,7 +174,7 @@ export const INVENTORY_ITEMS: Item[] = [
 		id: "google-1",
 		type: "google",
 		name: "Google",
-		allowedPlaces: ["inventory", "internet"],
+		allowedPlaces: ["inventory", "google"],
 		icon: { icon: "mdi:google" },
 		category: "server",
 		tooltip: TOOLTIP_GOOGLE,
@@ -200,7 +195,9 @@ export const CANVAS_ORDER: InternetCanvasKey[] = [
 	"conn-1",
 	"router",
 	"conn-2",
-	"internet",
+	"igw",
+	"dns",
+	"google",
 ];
 
 export const CANVAS_CONFIGS: Record<InternetCanvasKey, GridSpaceData> = {
@@ -236,13 +233,29 @@ export const CANVAS_CONFIGS: Record<InternetCanvasKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	internet: createGridSpaceData({
-		id: "internet",
-		name: "Internet",
+	igw: createGridSpaceData({
+		id: "igw",
+		name: "Gateway",
 		rows: 1,
-		cols: 4,
+		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 4,
+		maxCapacity: 1,
+	}),
+	dns: createGridSpaceData({
+		id: "dns",
+		name: "DNS Server",
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+		maxCapacity: 1,
+	}),
+	google: createGridSpaceData({
+		id: "google",
+		name: "Google",
+		rows: 1,
+		cols: 1,
+		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+		maxCapacity: 1,
 	}),
 };
 

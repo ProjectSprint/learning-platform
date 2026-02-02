@@ -3,7 +3,8 @@ export type TerminalEntryType =
 	| "input"
 	| "output"
 	| "error"
-	| "hint";
+	| "hint"
+	| "info";
 
 export type TerminalEntry = {
 	id: string;

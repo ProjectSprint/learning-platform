@@ -226,7 +226,9 @@ const NetworkingGame = ({
 						"----",
 						"",
 						"EXAMPLES",
-						networkState.pc2Ip ? `ping ${networkState.pc2Ip}` : "ping 192.168.1.10",
+						networkState.pc2Ip
+							? `ping ${networkState.pc2Ip}`
+							: "ping 192.168.1.10",
 						"",
 					];
 
@@ -243,7 +245,12 @@ const NetworkingGame = ({
 		if (!shouldShowTerminal && state.terminal.visible) {
 			dispatch({ type: "CLOSE_TERMINAL" });
 		}
-	}, [dispatch, shouldShowTerminal, state.terminal.visible, networkState.pc2Ip]);
+	}, [
+		dispatch,
+		shouldShowTerminal,
+		state.terminal.visible,
+		networkState.pc2Ip,
+	]);
 
 	// Arrows
 	const arrows = useMemo<Arrow[]>(

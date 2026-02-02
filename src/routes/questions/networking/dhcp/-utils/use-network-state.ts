@@ -141,7 +141,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		network.pc2 && state.entities[network.pc2.id]?.state.ip,
 	);
 	const pc2Ip = network.pc2
-		? (state.entities[network.pc2.id]?.state.ip as string | null) ?? null
+		? ((state.entities[network.pc2.id]?.state.ip as string | null) ?? null)
 		: null;
 
 	const routerSettingsOpen = Object.values(state.overlay.modals).some(
