@@ -8,6 +8,7 @@
  */
 
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
+import { gsap } from "gsap";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type EntityData, isItemData } from "../../domain/entity/entity-data";
 import type {
@@ -435,6 +436,23 @@ export const GridSpaceView = ({
 			setDragPreview(null);
 			setHoveredCell(null);
 			hoveredCellRef.current = null;
+
+			// Play scale animation on successful placement
+			if (placed) {
+				const entityEl = entityRefs.current.get(activeDrag.data.entityId);
+				if (entityEl) {
+					gsap.fromTo(
+						entityEl,
+						{ scale: 0, opacity: 0 },
+						{
+							scale: 1,
+							opacity: 1,
+							duration: 0.3,
+							ease: "back.out(1.7)",
+						},
+					);
+				}
+			}
 		};
 
 		window.addEventListener("pointermove", handlePointerMove);
