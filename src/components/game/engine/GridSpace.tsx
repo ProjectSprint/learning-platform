@@ -60,8 +60,6 @@ export type GridSpaceProps = {
 	title?: string;
 	/** Responsive grid dimensions: breakpoint → [cols, rows]. Remaps entity positions at view layer. */
 	responsiveSize?: ResponsiveSize;
-	/** Minimum width for each grid cell in pixels */
-	minCellWidth?: number;
 	/** Callback when an entity is clicked */
 	onEntityClick?: (entity: EntityData) => void;
 	/** Check if an entity can be clicked */
@@ -98,7 +96,6 @@ export const GridSpace = memo(
 		spaceId,
 		title,
 		responsiveSize,
-		minCellWidth,
 		onEntityClick,
 		isEntityClickable,
 		getEntityLabel,
@@ -247,7 +244,6 @@ export const GridSpace = memo(
 				title={title}
 				viewCols={viewCols}
 				viewRows={viewRows}
-				minCellWidth={minCellWidth}
 				getEntityLabel={getEntityLabel}
 				getEntityStatus={getEntityStatus}
 				canPlaceAt={canPlaceAt}
