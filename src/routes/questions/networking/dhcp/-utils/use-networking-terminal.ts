@@ -30,7 +30,15 @@ export const useNetworkingTerminal = ({
 			// Handle help command
 			if (parts[0] === "help") {
 				helpers.writeOutput("Available commands:", "output");
-				helpers.writeOutput(`- ping ${pc2Ip || "<ip>"}`, "output");
+				helpers.writeOutput("", "output");
+				helpers.writeOutput("  ping <ip>     Test connectivity to an IP address", "output");
+				helpers.writeOutput("", "output");
+				helpers.writeOutput("Examples:", "output");
+				if (pc2Ip) {
+					helpers.writeOutput(`  ping ${pc2Ip}`, "output");
+				} else {
+					helpers.writeOutput("  ping 192.168.1.10", "output");
+				}
 				return;
 			}
 

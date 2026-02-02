@@ -191,10 +191,26 @@ const NetworkingGame = ({
 		state.question.status,
 	]);
 
-	// Terminal visibility
+	// Terminal visibility and initial help message
+	const terminalOpenedRef = useRef(false);
 	useEffect(() => {
 		if (shouldShowTerminal && !state.terminal.visible) {
 			dispatch({ type: "OPEN_TERMINAL" });
+
+			// Show help message on first terminal open
+			if (!terminalOpenedRef.current) {
+				terminalOpenedRef.current = true;
+				// Add help message after terminal opens
+				setTimeout(() => {
+					dispatch({
+						type: "ADD_TERMINAL_OUTPUT",
+						payload: {
+							content: "Terminal ready. Type 'help' to see available commands.",
+							type: "info",
+						},
+					});
+				}, 100);
+			}
 			return;
 		}
 		if (!shouldShowTerminal && state.terminal.visible) {
