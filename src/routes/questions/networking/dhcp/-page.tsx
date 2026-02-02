@@ -407,6 +407,11 @@ const NetworkingGame = ({
 										getEntityStatus={(entity) => {
 											const rawStatus =
 												(entity.state.status as string) ?? "normal";
+											// Merge entity.data with entity.state.ip for status message
+											const dataWithIp = {
+												...entity.data,
+												ip: entity.state.ip ?? entity.data.ip,
+											};
 											const statusMessage = getNetworkingStatusMessage({
 												id: entity.id,
 												itemId: entity.id,
@@ -418,7 +423,7 @@ const NetworkingGame = ({
 													| "warning"
 													| "success"
 													| "error",
-												data: entity.data,
+												data: dataWithIp,
 											});
 											return {
 												status:

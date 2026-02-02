@@ -133,10 +133,16 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	const pc2Connected = Boolean(
 		network.pc2 && network.connectedPcIds.has("pc-2"),
 	);
-	const pc1HasIp = typeof network.pc1?.data?.ip === "string";
-	const pc2HasIp = typeof network.pc2?.data?.ip === "string";
-	const pc2Ip =
-		typeof network.pc2?.data?.ip === "string" ? network.pc2.data.ip : null;
+	// Check state.ip since IPs are stored in entity.state.ip, not entity.data.ip
+	const pc1HasIp = Boolean(
+		network.pc1 && state.entities[network.pc1.id]?.state.ip,
+	);
+	const pc2HasIp = Boolean(
+		network.pc2 && state.entities[network.pc2.id]?.state.ip,
+	);
+	const pc2Ip = network.pc2
+		? (state.entities[network.pc2.id]?.state.ip as string | null) ?? null
+		: null;
 
 	const routerSettingsOpen = Object.values(state.overlay.modals).some(
 		(entry) => entry.visible && entry.instance.id?.startsWith("router-config"),
@@ -170,7 +176,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 
 		// Update router status
 		if (network.router) {
-			const desiredRouterStatus = routerConfigured ? "success" : "error";
+			const desiredRouterStatus = routerConfigured ? "success" : "warning";
 			const entity = state.entities[network.router.id];
 			if (entity && entity.state.status !== desiredRouterStatus) {
 				dispatch({
