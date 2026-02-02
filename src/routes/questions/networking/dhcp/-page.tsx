@@ -202,44 +202,33 @@ const NetworkingGame = ({
 				terminalOpenedRef.current = true;
 				// Add help message after terminal opens
 				setTimeout(() => {
-					dispatch({
-						type: "ADD_TERMINAL_OUTPUT",
-						payload: { content: "Available commands:", type: "output" },
-					});
-					dispatch({
-						type: "ADD_TERMINAL_OUTPUT",
-						payload: { content: "", type: "output" },
-					});
-					dispatch({
-						type: "ADD_TERMINAL_OUTPUT",
-						payload: {
-							content: "  ping <ip>     Test connectivity to an IP address",
-							type: "output",
-						},
-					});
-					dispatch({
-						type: "ADD_TERMINAL_OUTPUT",
-						payload: { content: "", type: "output" },
-					});
-					dispatch({
-						type: "ADD_TERMINAL_OUTPUT",
-						payload: { content: "Examples:", type: "output" },
-					});
-					if (networkState.pc2Ip) {
+					const helpLines = [
+						"NAME",
+						"    Terminal - Network diagnostic utility",
+						"",
+						"SYNOPSIS",
+						"    ping <destination>",
+						"    help",
+						"",
+						"DESCRIPTION",
+						"    The ping utility sends ICMP ECHO_REQUEST packets to network hosts",
+						"    to test connectivity and measure round-trip time.",
+						"",
+						"COMMANDS",
+						"    ping <ip>       Send ICMP echo request to specified IP address",
+						"    help            Display this help message",
+						"",
+						"EXAMPLES",
+						networkState.pc2Ip
+							? `    ping ${networkState.pc2Ip}`
+							: "    ping 192.168.1.10",
+						"",
+					];
+
+					for (const line of helpLines) {
 						dispatch({
 							type: "ADD_TERMINAL_OUTPUT",
-							payload: {
-								content: `  ping ${networkState.pc2Ip}`,
-								type: "output",
-							},
-						});
-					} else {
-						dispatch({
-							type: "ADD_TERMINAL_OUTPUT",
-							payload: {
-								content: "  ping 192.168.1.10",
-								type: "output",
-							},
+							payload: { content: line, type: "output" },
 						});
 					}
 				}, 100);

@@ -29,15 +29,29 @@ export const useNetworkingTerminal = ({
 
 			// Handle help command
 			if (parts[0] === "help") {
-				helpers.writeOutput("Available commands:", "output");
-				helpers.writeOutput("", "output");
-				helpers.writeOutput("  ping <ip>     Test connectivity to an IP address", "output");
-				helpers.writeOutput("", "output");
-				helpers.writeOutput("Examples:", "output");
-				if (pc2Ip) {
-					helpers.writeOutput(`  ping ${pc2Ip}`, "output");
-				} else {
-					helpers.writeOutput("  ping 192.168.1.10", "output");
+				const helpLines = [
+					"NAME",
+					"    Terminal - Network diagnostic utility",
+					"",
+					"SYNOPSIS",
+					"    ping <destination>",
+					"    help",
+					"",
+					"DESCRIPTION",
+					"    The ping utility sends ICMP ECHO_REQUEST packets to network hosts",
+					"    to test connectivity and measure round-trip time.",
+					"",
+					"COMMANDS",
+					"    ping <ip>       Send ICMP echo request to specified IP address",
+					"    help            Display this help message",
+					"",
+					"EXAMPLES",
+					pc2Ip ? `    ping ${pc2Ip}` : "    ping 192.168.1.10",
+					"",
+				];
+
+				for (const line of helpLines) {
+					helpers.writeOutput(line, "output");
 				}
 				return;
 			}
