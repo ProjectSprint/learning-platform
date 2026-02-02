@@ -33,7 +33,7 @@ export const CANVAS_CONFIGS: Record<TcpCanvasKey, GridSpaceData> = {
 	server: createGridSpaceData({
 		id: "server",
 		name: "Server",
-		rows: 6,
+		rows: 4,
 		cols: 3,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 12,
@@ -53,20 +53,19 @@ export const NOTES_FILE_ITEM_ID = "notes-file-1";
 const TOOLTIP_MESSAGE_FILE = {
 	content:
 		"A large file that must be split into smaller packets before it can travel across the network.",
-	seeMoreHref: "https://en.wikipedia.org/wiki/Packet_(information_technology)",
+	seeMoreHref: "https://en.wikipedia.org/wiki/File_size",
 };
 
 const TOOLTIP_NOTES_FILE = {
 	content:
 		"Another file that needs to be split into packets before it can traverse the network.",
-	seeMoreHref: "https://en.wikipedia.org/wiki/Packet_(information_technology)",
+	seeMoreHref: "https://en.wikipedia.org/wiki/File_size",
 };
 
 const TOOLTIP_SPLIT_PACKET = {
 	content:
 		"A fragment of the original file. It must be delivered in order to reassemble the message.",
-	seeMoreHref:
-		"https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Reliable_delivery",
+	seeMoreHref: "https://en.wikipedia.org/wiki/IP_fragmentation",
 };
 
 const TOOLTIP_SYN = {
@@ -147,12 +146,12 @@ export const NOTES_PACKET_ITEMS: Item[] = NOTES_PACKET_IDS.map(
 	(packetId, index) => ({
 		id: packetId,
 		type: "split-packet",
-		name: `Packet #${index + 1}`,
+		name: "Fragment",
 		allowedPlaces: ["inventory", "internet", "server"],
-		icon: { icon: "mdi:package-variant", color: "#38BDF8" },
+		icon: { icon: "mdi:package-variant", color: "#A3A3A3" },
 		data: {
 			seq: index + 1,
-			seqEnabled: true,
+			seqEnabled: false,
 			tcpState: "idle",
 			fileKey: "notes",
 		},
