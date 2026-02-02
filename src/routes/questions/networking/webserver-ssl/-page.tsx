@@ -69,6 +69,7 @@ const SslGame = ({
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const initializedRef = useRef(false);
+	const terminalOpenedRef = useRef(false);
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
@@ -135,16 +136,58 @@ const SslGame = ({
 		initializeSslQuestion(dispatch);
 	}, [dispatch]);
 
-	// Terminal visibility
+	// Terminal visibility and initial help message
 	useEffect(() => {
 		if (shouldShowTerminal && !state.terminal.visible) {
 			dispatch({ type: "OPEN_TERMINAL" });
+
+			if (!terminalOpenedRef.current) {
+				terminalOpenedRef.current = true;
+				const domain = port80Domain || certificateDomain || DEFAULT_DOMAIN;
+				setTimeout(() => {
+					const helpLines = [
+						"Terminal - SSL diagnostic utility",
+						"",
+						"----",
+						"",
+						"SYNOPSIS",
+						"curl [url]",
+						"openssl s_client [url]",
+						"help",
+						"",
+						"----",
+						"",
+						"COMMANDS",
+						`curl http://${domain}`,
+						`curl https://${domain}`,
+						`curl -v https://${domain}`,
+						`curl -I https://${domain}`,
+						`openssl s_client https://${domain}`,
+						"help",
+						"clear",
+						"",
+					];
+
+					for (const line of helpLines) {
+						dispatch({
+							type: "ADD_TERMINAL_OUTPUT",
+							payload: { content: line, type: "output" },
+						});
+					}
+				}, 100);
+			}
 			return;
 		}
 		if (!shouldShowTerminal && state.terminal.visible) {
 			dispatch({ type: "CLOSE_TERMINAL" });
 		}
-	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
+	}, [
+		dispatch,
+		shouldShowTerminal,
+		state.terminal.visible,
+		port80Domain,
+		certificateDomain,
+	]);
 
 	const canvasAreas = useMemo(
 		() => ({
