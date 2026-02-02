@@ -18,29 +18,21 @@ const entryStyles: Record<
 const TerminalEntryRow = memo(
 	({ entry, entryPrefix }: { entry: TerminalEntry; entryPrefix?: string }) => {
 		const styles = entryStyles[entry.type];
-		let content = entryPrefix
+		const content = entryPrefix
 			? `${entryPrefix}${entry.content}`
 			: entry.type === "input"
 				? `> ${entry.content}`
 				: entry.content;
 
-		// Escape HTML and replace spaces with &nbsp; to preserve formatting
-		const escapedContent = content
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/^( +)/, (match) => "&nbsp;".repeat(match.length));
-
 		return (
 			<Text
-				as="span"
 				fontSize="sm"
 				color={styles.color}
 				fontStyle={styles.fontStyle}
 				fontWeight={styles.fontWeight}
-				whiteSpace="pre-wrap"
-				dangerouslySetInnerHTML={{ __html: escapedContent }}
-			/>
+			>
+				{content}
+			</Text>
 		);
 	},
 );
