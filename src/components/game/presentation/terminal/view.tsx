@@ -12,6 +12,7 @@ const entryStyles: Record<
 	output: { color: "gray.200" },
 	error: { color: "red.300" },
 	hint: { color: "gray.400", fontStyle: "italic" },
+	info: { color: "cyan.300" },
 };
 
 const TerminalEntryRow = memo(
