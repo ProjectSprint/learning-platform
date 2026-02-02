@@ -197,18 +197,51 @@ const NetworkingGame = ({
 		if (shouldShowTerminal && !state.terminal.visible) {
 			dispatch({ type: "OPEN_TERMINAL" });
 
-			// Show help message on first terminal open
+			// Show full help message on first terminal open
 			if (!terminalOpenedRef.current) {
 				terminalOpenedRef.current = true;
 				// Add help message after terminal opens
 				setTimeout(() => {
 					dispatch({
 						type: "ADD_TERMINAL_OUTPUT",
+						payload: { content: "Available commands:", type: "output" },
+					});
+					dispatch({
+						type: "ADD_TERMINAL_OUTPUT",
+						payload: { content: "", type: "output" },
+					});
+					dispatch({
+						type: "ADD_TERMINAL_OUTPUT",
 						payload: {
-							content: "Terminal ready. Type 'help' to see available commands.",
-							type: "info",
+							content: "  ping <ip>     Test connectivity to an IP address",
+							type: "output",
 						},
 					});
+					dispatch({
+						type: "ADD_TERMINAL_OUTPUT",
+						payload: { content: "", type: "output" },
+					});
+					dispatch({
+						type: "ADD_TERMINAL_OUTPUT",
+						payload: { content: "Examples:", type: "output" },
+					});
+					if (networkState.pc2Ip) {
+						dispatch({
+							type: "ADD_TERMINAL_OUTPUT",
+							payload: {
+								content: `  ping ${networkState.pc2Ip}`,
+								type: "output",
+							},
+						});
+					} else {
+						dispatch({
+							type: "ADD_TERMINAL_OUTPUT",
+							payload: {
+								content: "  ping 192.168.1.10",
+								type: "output",
+							},
+						});
+					}
 				}, 100);
 			}
 			return;
@@ -216,7 +249,7 @@ const NetworkingGame = ({
 		if (!shouldShowTerminal && state.terminal.visible) {
 			dispatch({ type: "CLOSE_TERMINAL" });
 		}
-	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
+	}, [dispatch, shouldShowTerminal, state.terminal.visible, networkState.pc2Ip]);
 
 	// Arrows
 	const arrows = useMemo<Arrow[]>(
