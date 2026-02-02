@@ -60,6 +60,13 @@ export const useSslState = () => {
 		() => getEntitiesInSpace(port443Canvas),
 		[port443Canvas, getEntitiesInSpace],
 	);
+	const domainEntities = useMemo(
+		() =>
+			Object.values(state.entities).filter(
+				(entity) => entity.type === "domain",
+			),
+		[state.entities],
+	);
 	const browserItems = useMemo(
 		() => browserEntities.map((entity) => entity.type),
 		[browserEntities],
@@ -107,14 +114,16 @@ export const useSslState = () => {
 		);
 	}, [port80Entities]);
 
-	const certificateIssued = useMemo(() => {
-		const domainEntity = letsencryptEntities.find(
-			(e) => e.type === "domain-ssl",
-		);
-		return (
-			(domainEntity?.data.certificateIssued as boolean | undefined) === true
-		);
-	}, [letsencryptEntities]);
+	const issuedDomainEntity = useMemo(
+		() =>
+			domainEntities.find(
+				(entity) =>
+					(entity.data?.certificateIssued as boolean | undefined) === true,
+			),
+		[domainEntities],
+	);
+
+	const certificateIssued = Boolean(issuedDomainEntity);
 
 	const browserStatus: "error" | "warning" | "success" = useMemo(() => {
 		const browserPlaced = browserEntities.some((e) => e.type === "browser");
@@ -141,14 +150,22 @@ export const useSslState = () => {
 	}, [port443Entities]);
 
 	const certificateDomain = useMemo(() => {
-		const domainEntity = letsencryptEntities.find(
-			(e) => e.type === "domain-ssl",
+		if (issuedDomainEntity) {
+			if (typeof issuedDomainEntity.data?.certificateDomain === "string") {
+				return issuedDomainEntity.data.certificateDomain;
+			}
+			if (typeof issuedDomainEntity.data?.domain === "string") {
+				return issuedDomainEntity.data.domain;
+			}
+		}
+		const letsencryptDomain = letsencryptEntities.find(
+			(entity) => entity.type === "domain",
 		);
-		if (typeof domainEntity?.data.certificateDomain === "string") {
-			return domainEntity.data.certificateDomain;
+		if (typeof letsencryptDomain?.data.domain === "string") {
+			return letsencryptDomain.data.domain;
 		}
 		return DEFAULT_DOMAIN;
-	}, [letsencryptEntities]);
+	}, [issuedDomainEntity, letsencryptEntities]);
 
 	const port80Config = useMemo(() => {
 		const types = port80Entities.map((e) => e.type);

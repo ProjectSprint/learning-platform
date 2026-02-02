@@ -57,27 +57,27 @@ export const getContextualHint = (state: SslGameState): string => {
 	// Browser shows not secure - show new canvases
 	if (browserStatus === "warning" && !certificateIssued) {
 		// Domain already in letsencrypt, prompt issuing
-		if (letsencryptItems.includes("domain-ssl")) {
+		if (letsencryptItems.includes("domain")) {
 			if (!letsencryptModalOpen) {
-				return "Issue the certificate by clicking the Domain (SSL) in the Let's Encrypt canvas";
+				return "Issue the certificate by clicking the Domain in the Let's Encrypt canvas";
 			}
 			return "Enter your domain name (e.g., example.com)";
 		}
 		// HTTPS webserver placed but no certificate yet
 		if (port443Items.includes("webserver-443") && !certificateIssued) {
-			return "Drag the Domain (SSL) to the Let's Encrypt canvas to get a certificate";
+			return "Drag the Domain to the Let's Encrypt canvas to get a certificate";
 		}
 		// Let's Encrypt canvas is visible but empty
 		if (letsencryptItems.length === 0) {
 			return "⚠️ Your site works but it's not secure! New canvases have appeared...";
 		}
-		return "Drag the Domain (SSL) to the Let's Encrypt canvas to get a certificate";
+		return "Drag the Domain to the Let's Encrypt canvas to get a certificate";
 	}
 
 	// Domain in letsencrypt but certificate not issued
-	if (letsencryptItems.includes("domain-ssl") && !certificateIssued) {
+	if (letsencryptItems.includes("domain") && !certificateIssued) {
 		if (!letsencryptModalOpen) {
-			return "Click the Domain (SSL) in the Let's Encrypt canvas to request a certificate";
+			return "Click the Domain in the Let's Encrypt canvas to request a certificate";
 		}
 		return "Enter your domain name (e.g., example.com)";
 	}

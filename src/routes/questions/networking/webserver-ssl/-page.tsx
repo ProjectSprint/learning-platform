@@ -331,15 +331,24 @@ const SslGame = ({
 					}),
 				});
 			},
-			"domain-ssl": (entity: EntityData) => {
+			domain: (entity: EntityData) => {
+				const spaceId = findEntitySpace(state, entity.id);
+				if (spaceId !== "letsencrypt") {
+					return;
+				}
+				const issued =
+					(entity.data?.certificateIssued as boolean | undefined) === true;
+				const domainName =
+					typeof entity.data?.certificateDomain === "string"
+						? entity.data.certificateDomain
+						: typeof entity.data?.domain === "string"
+							? entity.data.domain
+							: port80Domain || DEFAULT_DOMAIN;
 				dispatch({
 					type: "OPEN_MODAL",
-					payload: buildCertificateRequestModal(
-						entity.id,
-						certificateDomain || port80Domain || DEFAULT_DOMAIN,
-						certificateIssued,
-						{ domain: port80Domain || DEFAULT_DOMAIN },
-					),
+					payload: buildCertificateRequestModal(entity.id, domainName, issued, {
+						domain: port80Domain || DEFAULT_DOMAIN,
+					}),
 				});
 			},
 			"index-html": (entity: EntityData) => {
@@ -372,8 +381,6 @@ const SslGame = ({
 		[
 			browserModalStatus,
 			browserStatus,
-			certificateDomain,
-			certificateIssued,
 			dispatch,
 			port80Config,
 			port80Domain,
@@ -397,18 +404,21 @@ const SslGame = ({
 	);
 
 	const isEntityClickable = useCallback(
-		(entity: EntityData) =>
-			[
+		(entity: EntityData) => {
+			if (entity.type === "domain") {
+				return findEntitySpace(state, entity.id) === "letsencrypt";
+			}
+			return [
 				"browser",
 				"webserver-80",
 				"webserver-443",
-				"domain-ssl",
 				"index-html",
 				"private-key",
 				"certificate",
 				"redirect-to-https",
-			].includes(entity.type),
-		[],
+			].includes(entity.type);
+		},
+		[state],
 	);
 
 	const getEntityStatus = useCallback(
@@ -494,17 +504,26 @@ const SslGame = ({
 				};
 			}
 
-			if (entity.type === "domain-ssl" && spaceId === "letsencrypt") {
-				const status: EntityStatus = certificateIssued ? "success" : "warning";
-				const statusMessage = getSslStatusMessage({
-					id: entity.id,
-					itemId: entity.id,
-					type: entity.type,
-					blockX: 0,
-					blockY: 0,
-					status,
-					data: { domain: certificateDomain || DEFAULT_DOMAIN },
-				});
+			if (entity.type === "domain" && spaceId === "letsencrypt") {
+				const issued =
+					(entity.data?.certificateIssued as boolean | undefined) === true;
+				const status: EntityStatus = issued ? "success" : "error";
+				const domainName =
+					typeof entity.data?.domain === "string"
+						? entity.data.domain
+						: port80Domain || DEFAULT_DOMAIN;
+				const statusMessage = getSslStatusMessage(
+					{
+						id: entity.id,
+						itemId: entity.id,
+						type: entity.type,
+						blockX: 0,
+						blockY: 0,
+						status,
+						data: { domain: domainName },
+					},
+					spaceId,
+				);
 				return {
 					status,
 					message: statusMessage,
@@ -515,8 +534,6 @@ const SslGame = ({
 		},
 		[
 			browserStatus,
-			certificateDomain,
-			certificateIssued,
 			port80Domain,
 			port80Status,
 			port443Domain,

@@ -16,7 +16,7 @@ export const getSslItemLabel = (itemType: string): string => {
 		case "domain":
 			return "Domain";
 		case "domain-ssl":
-			return "Domain (SSL)";
+			return "Domain";
 		case "index-html":
 			return "index.html";
 		case "private-key":
@@ -99,19 +99,14 @@ export const getSslStatusMessage = (
 	if (type === "domain") {
 		const domain =
 			typeof data?.domain === "string" ? data.domain : "example.com";
-		return domain;
-	}
-
-	// Domain (SSL) status
-	if (type === "domain-ssl") {
-		if (status === "warning") {
-			return "Needs Issuing";
+		if (canvasId === "letsencrypt") {
+			if (status === "error") {
+				return "Needs Issuing";
+			}
+			if (status === "success") {
+				return "Configured";
+			}
 		}
-		if (status === "success") {
-			return "Configured";
-		}
-		const domain =
-			typeof data?.domain === "string" ? data.domain : "example.com";
 		return domain;
 	}
 
@@ -168,14 +163,14 @@ export const getFullStatusDescription = (
 				return "🔒 Serving HTTPS - Secure connection established";
 			return "Not configured";
 
-		case "domain-ssl":
-			if (status === "warning") {
+		case "domain":
+			if (status === "error") {
 				return "Needs Issuing - Request a certificate from Let's Encrypt";
 			}
 			if (status === "success") {
 				return "Configured - Certificate issued and ready for HTTPS";
 			}
-			return "Domain (SSL)";
+			return "Domain";
 
 		case "private-key":
 			return "🔑 Private Key - Secret key for decrypting HTTPS traffic. Keep this safe!";
