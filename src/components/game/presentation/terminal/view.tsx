@@ -18,11 +18,16 @@ const entryStyles: Record<
 const TerminalEntryRow = memo(
 	({ entry, entryPrefix }: { entry: TerminalEntry; entryPrefix?: string }) => {
 		const styles = entryStyles[entry.type];
-		const content = entryPrefix
+		let content = entryPrefix
 			? `${entryPrefix}${entry.content}`
 			: entry.type === "input"
 				? `> ${entry.content}`
 				: entry.content;
+
+		// Replace leading spaces with non-breaking spaces to preserve indentation
+		content = content.replace(/^( +)/, (match) =>
+			"\u00A0".repeat(match.length),
+		);
 
 		return (
 			<Text
@@ -30,7 +35,7 @@ const TerminalEntryRow = memo(
 				color={styles.color}
 				fontStyle={styles.fontStyle}
 				fontWeight={styles.fontWeight}
-				whiteSpace="pre"
+				whiteSpace="pre-wrap"
 			>
 				{content}
 			</Text>
