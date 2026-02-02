@@ -122,12 +122,6 @@ export const GridSpaceView = ({
 
 	const boardRef = useRef<HTMLDivElement | null>(null);
 	const entityRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-	const lastDropTargetRef = useRef<{
-		x: number;
-		y: number;
-		width: number;
-		height: number;
-	} | null>(null);
 	const pendingInteractionRef = useRef<{
 		entity: EntityData;
 		position: GridPosition;
@@ -504,51 +498,26 @@ export const GridSpaceView = ({
 		[],
 	);
 
-	// Store dropAnimationTarget for positioning
-	useEffect(() => {
-		if (dropAnimationTarget) {
-			lastDropTargetRef.current = {
-				x: dropAnimationTarget.x,
-				y: dropAnimationTarget.y,
-				width: dropAnimationTarget.width,
-				height: dropAnimationTarget.height,
-			};
-		}
-	}, [dropAnimationTarget]);
-
 	// Handle animation completion - fade in placed entity
 	useEffect(() => {
-		if (!dropAnimationTarget && draggingEntityId && lastDropTargetRef.current) {
-			// Animation just completed - fade in the placed entity at exact drop position
+		if (!dropAnimationTarget && draggingEntityId) {
+			// Animation just completed - fade in the placed entity
 			const entityEl = entityRefs.current.get(draggingEntityId);
-			if (entityEl && boardRef.current) {
-				const boardRect = boardRef.current.getBoundingClientRect();
-				const targetX = lastDropTargetRef.current.x - boardRect.left;
-				const targetY = lastDropTargetRef.current.y - boardRect.top;
-
-				// Set initial position to exact drop target
-				gsap.set(entityEl, {
-					x: targetX,
-					y: targetY,
-					width: lastDropTargetRef.current.width,
-					height: lastDropTargetRef.current.height,
-					autoAlpha: 0,
-				});
-
-				// Fade in
-				gsap.to(entityEl, {
-					autoAlpha: 1,
-					duration: 0.2,
-					onComplete: () => {
-						// Clear the transform, let CSS positioning take over
-						gsap.set(entityEl, { clearProps: "x,y,width,height" });
-						setDraggingEntityId(null);
-						lastDropTargetRef.current = null;
+			if (entityEl) {
+				// Fade in with CSS handling the position
+				gsap.fromTo(
+					entityEl,
+					{ autoAlpha: 0 },
+					{
+						autoAlpha: 1,
+						duration: 0.2,
+						onComplete: () => {
+							setDraggingEntityId(null);
+						},
 					},
-				});
+				);
 			} else {
 				setDraggingEntityId(null);
-				lastDropTargetRef.current = null;
 			}
 		}
 	}, [dropAnimationTarget, draggingEntityId]);
@@ -616,14 +585,28 @@ export const GridSpaceView = ({
 					const isDragging = draggingEntityId === entity.id || isBeingAnimated;
 					const statusInfo = getEntityStatus(entity);
 
+					// Use drop target position if entity is being animated, otherwise use grid position
+					let renderX = position.col * stepX;
+					let renderY = position.row * stepY;
+					let renderWidth = cellWidth;
+					let renderHeight = cellHeight;
+
+					if (isBeingAnimated && dropAnimationTarget && boardRef.current) {
+						const boardRect = boardRef.current.getBoundingClientRect();
+						renderX = dropAnimationTarget.x - boardRect.left;
+						renderY = dropAnimationTarget.y - boardRect.top;
+						renderWidth = dropAnimationTarget.width;
+						renderHeight = dropAnimationTarget.height;
+					}
+
 					return (
 						<PlacedEntity
 							key={entity.id}
 							entity={entity}
-							x={position.col * stepX}
-							y={position.row * stepY}
-							width={cellWidth}
-							height={cellHeight}
+							x={renderX}
+							y={renderY}
+							width={renderWidth}
+							height={renderHeight}
 							isDragging={isDragging}
 							status={statusInfo.status}
 							statusMessage={statusInfo.message}
