@@ -178,8 +178,8 @@ export const DragOverlay = ({
 
 		// Animate overlay to target position and size
 		gsap.to(element, {
-			x: dropAnimationTarget.x,
-			y: dropAnimationTarget.y,
+			x: dropAnimationTarget.viewportX,
+			y: dropAnimationTarget.viewportY,
 			width: dropAnimationTarget.width,
 			height: dropAnimationTarget.height,
 			duration: 0.8,

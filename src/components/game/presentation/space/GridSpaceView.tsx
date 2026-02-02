@@ -450,8 +450,10 @@ export const GridSpaceView = ({
 
 				setDropAnimationTarget({
 					entityId: activeDrag.data.entityId,
-					x: targetX,
-					y: targetY,
+					row: currentHoveredCell.row,
+					col: currentHoveredCell.col,
+					viewportX: targetX,
+					viewportY: targetY,
 					width: cellWidth,
 					height: cellHeight,
 				});
@@ -585,19 +587,21 @@ export const GridSpaceView = ({
 					const isDragging = draggingEntityId === entity.id || isBeingAnimated;
 					const statusInfo = getEntityStatus(entity);
 
-					// Use drop target position if entity is being animated, otherwise use grid position
-					let renderX = position.col * stepX;
-					let renderY = position.row * stepY;
-					let renderWidth = cellWidth;
-					let renderHeight = cellHeight;
+					// Use drop target grid position if entity is being animated
+					const gridRow =
+						isBeingAnimated && dropAnimationTarget
+							? dropAnimationTarget.row
+							: position.row;
+					const gridCol =
+						isBeingAnimated && dropAnimationTarget
+							? dropAnimationTarget.col
+							: position.col;
 
-					if (isBeingAnimated && dropAnimationTarget && boardRef.current) {
-						const boardRect = boardRef.current.getBoundingClientRect();
-						renderX = dropAnimationTarget.x - boardRect.left;
-						renderY = dropAnimationTarget.y - boardRect.top;
-						renderWidth = dropAnimationTarget.width;
-						renderHeight = dropAnimationTarget.height;
-					}
+					// Calculate position from grid coordinates (same calculation always)
+					const renderX = gridCol * stepX;
+					const renderY = gridRow * stepY;
+					const renderWidth = cellWidth;
+					const renderHeight = cellHeight;
 
 					return (
 						<PlacedEntity

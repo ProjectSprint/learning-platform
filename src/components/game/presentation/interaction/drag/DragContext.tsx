@@ -66,10 +66,14 @@ export type DragDropResult = {
 export type DropAnimationTarget = {
 	/** Entity ID being animated */
 	entityId: string;
-	/** Target x position in pixels */
-	x: number;
-	/** Target y position in pixels */
-	y: number;
+	/** Grid row position */
+	row: number;
+	/** Grid col position */
+	col: number;
+	/** Target x position in viewport pixels (for overlay animation) */
+	viewportX: number;
+	/** Target y position in viewport pixels (for overlay animation) */
+	viewportY: number;
 	/** Target width in pixels */
 	width: number;
 	/** Target height in pixels */
