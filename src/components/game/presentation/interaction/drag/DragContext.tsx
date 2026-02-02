@@ -61,6 +61,22 @@ export type DragDropResult = {
 };
 
 /**
+ * Animation target for drop animation.
+ */
+export type DropAnimationTarget = {
+	/** Entity ID being animated */
+	entityId: string;
+	/** Target x position in pixels */
+	x: number;
+	/** Target y position in pixels */
+	y: number;
+	/** Target width in pixels */
+	width: number;
+	/** Target height in pixels */
+	height: number;
+};
+
+/**
  * Drag context value.
  */
 type DragContextValue = {
@@ -77,6 +93,12 @@ type DragContextValue = {
 	/** Set the last drop result */
 	setLastDropResult: React.Dispatch<
 		React.SetStateAction<DragDropResult | null>
+	>;
+	/** Target rect for drop animation */
+	dropAnimationTarget: DropAnimationTarget | null;
+	/** Set the drop animation target */
+	setDropAnimationTarget: React.Dispatch<
+		React.SetStateAction<DropAnimationTarget | null>
 	>;
 };
 
@@ -99,6 +121,8 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
 	const [lastDropResult, setLastDropResult] = useState<DragDropResult | null>(
 		null,
 	);
+	const [dropAnimationTarget, setDropAnimationTarget] =
+		useState<DropAnimationTarget | null>(null);
 	const proxyRef = useRef<HTMLDivElement | null>(null);
 	const targetSpaceIdRef = useRef<string | undefined>(undefined);
 
@@ -111,6 +135,8 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
 				targetSpaceIdRef,
 				lastDropResult,
 				setLastDropResult,
+				dropAnimationTarget,
+				setDropAnimationTarget,
 			}}
 		>
 			{children}

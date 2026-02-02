@@ -49,8 +49,14 @@ export const useEntityCardSize = () => {
 export const DragOverlay = ({
 	getEntityLabel = defaultGetEntityLabel,
 }: DragOverlayProps) => {
-	const { activeDrag, proxyRef, setActiveDrag, setLastDropResult } =
-		useDragContext();
+	const {
+		activeDrag,
+		proxyRef,
+		setActiveDrag,
+		setLastDropResult,
+		dropAnimationTarget,
+		setDropAnimationTarget,
+	} = useDragContext();
 	const cardSize = useEntityCardSize();
 	const cardSizeRef = useRef({
 		width: cardSize.width,
@@ -146,6 +152,32 @@ export const DragOverlay = ({
 			window.removeEventListener("pointerup", handlePointerUp);
 		};
 	}, [activeDrag, proxyRef, setActiveDrag, setLastDropResult]);
+
+	// Animate overlay to drop target on successful placement
+	useEffect(() => {
+		if (!dropAnimationTarget || !proxyRef.current) {
+			return;
+		}
+
+		const element = proxyRef.current;
+
+		// Animate overlay to target position and size
+		gsap.to(element, {
+			x: dropAnimationTarget.x,
+			y: dropAnimationTarget.y,
+			width: dropAnimationTarget.width,
+			height: dropAnimationTarget.height,
+			duration: 0.5,
+			ease: "power3.out",
+			onComplete: () => {
+				// Animation complete - clear everything
+				setIsVisible(false);
+				setActiveDrag(null);
+				setDropAnimationTarget(null);
+				gsap.set(element, { clearProps: "all" });
+			},
+		});
+	}, [dropAnimationTarget, proxyRef, setActiveDrag, setDropAnimationTarget]);
 
 	if (!isVisible || !activeDrag) {
 		return null;

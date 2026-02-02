@@ -8,7 +8,6 @@
  */
 
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
-import { gsap } from "gsap";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type EntityData, isItemData } from "../../domain/entity/entity-data";
 import type {
@@ -111,8 +110,14 @@ export const GridSpaceView = ({
 	canPlaceAt,
 	onPlaceEntity,
 }: GridSpaceViewProps) => {
-	const { activeDrag, setActiveDrag, targetSpaceIdRef, setLastDropResult } =
-		useDragContext();
+	const {
+		activeDrag,
+		setActiveDrag,
+		targetSpaceIdRef,
+		setLastDropResult,
+		dropAnimationTarget,
+		setDropAnimationTarget,
+	} = useDragContext();
 
 	const boardRef = useRef<HTMLDivElement | null>(null);
 	const entityRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -431,41 +436,29 @@ export const GridSpaceView = ({
 				placed,
 			});
 
-			setActiveDrag(null);
+			// Clear local drag preview state
 			setDraggingEntityId(null);
 			setDragPreview(null);
 			setHoveredCell(null);
 			hoveredCellRef.current = null;
 
-			// Play scale animation on successful placement
-			if (placed) {
-				// Use requestAnimationFrame to ensure DOM is updated
-				requestAnimationFrame(() => {
-					const entityEl = entityRefs.current.get(activeDrag.data.entityId);
-					if (entityEl) {
-						// Get initial size from drag overlay or inventory
-						const initialRect = activeDrag.initialRect;
-						const fromWidth = initialRect?.width ?? cellWidth * 0.7;
-						const fromHeight = initialRect?.height ?? cellHeight * 0.7;
+			// Set drop animation target for successful placements
+			if (placed && boardRef.current) {
+				const boardRect = boardRef.current.getBoundingClientRect();
+				const targetX = boardRect.left + currentHoveredCell.col * stepX;
+				const targetY = boardRect.top + currentHoveredCell.row * stepY;
 
-						// Animate width/height to grid cell size
-						gsap.fromTo(
-							entityEl,
-							{
-								width: fromWidth,
-								height: fromHeight,
-								opacity: 0.5,
-							},
-							{
-								width: cellWidth,
-								height: cellHeight,
-								opacity: 1,
-								duration: 0.3,
-								ease: "back.out(1.7)",
-							},
-						);
-					}
+				setDropAnimationTarget({
+					entityId: activeDrag.data.entityId,
+					x: targetX,
+					y: targetY,
+					width: cellWidth,
+					height: cellHeight,
 				});
+				// Note: activeDrag will be cleared by DragOverlay after animation
+			} else {
+				// Failed drop - clear immediately
+				setActiveDrag(null);
 			}
 		};
 
@@ -488,6 +481,7 @@ export const GridSpaceView = ({
 		onPlaceEntity,
 		setActiveDrag,
 		setLastDropResult,
+		setDropAnimationTarget,
 		targetSpaceIdRef,
 		space.id,
 	]);
@@ -562,7 +556,8 @@ export const GridSpaceView = ({
 
 				{/* Render placed entities */}
 				{entities.map(({ entity, position }) => {
-					const isDragging = draggingEntityId === entity.id;
+					const isBeingAnimated = dropAnimationTarget?.entityId === entity.id;
+					const isDragging = draggingEntityId === entity.id || isBeingAnimated;
 					const statusInfo = getEntityStatus(entity);
 
 					return (
