@@ -141,7 +141,7 @@ export const PlacedEntity = memo(
 						icon={iconInfo.icon}
 						width={20}
 						height={20}
-						color={iconInfo.color}
+						color={iconInfo.color ?? "gray.100"}
 					/>
 				)}
 				<Text fontSize="xs" fontWeight="bold" color="gray.100">
