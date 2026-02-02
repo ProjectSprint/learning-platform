@@ -76,9 +76,7 @@ export const DragOverlay = ({
 		if (!activeDrag) {
 			setIsVisible(false);
 			initializedRef.current = false;
-			if (proxyRef.current) {
-				gsap.set(proxyRef.current, { clearProps: "all" });
-			}
+			// Note: No clearProps needed - component will unmount
 			return;
 		}
 
@@ -189,7 +187,7 @@ export const DragOverlay = ({
 				setIsVisible(false);
 				setActiveDrag(null);
 				setDropAnimationTarget(null);
-				gsap.set(element, { clearProps: "all" });
+				// Note: No clearProps needed - component will unmount
 			},
 		});
 	}, [dropAnimationTarget, proxyRef, setActiveDrag, setDropAnimationTarget]);
