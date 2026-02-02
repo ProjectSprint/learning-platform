@@ -191,7 +191,7 @@ export const initializeTcpQuestion = (dispatch: GameDispatch) => {
 	// Set initial phase
 	dispatch({
 		type: "SET_PHASE",
-		payload: { phase: "setup" },
+		payload: { phase: "mtu" },
 	});
 
 	// Initialize spaces
