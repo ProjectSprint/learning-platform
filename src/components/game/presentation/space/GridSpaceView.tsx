@@ -8,7 +8,6 @@
  */
 
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
-import { gsap } from "gsap";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type EntityData, isItemData } from "../../domain/entity/entity-data";
 import type {
@@ -500,27 +499,11 @@ export const GridSpaceView = ({
 		[],
 	);
 
-	// Handle animation completion - fade in placed entity
+	// Clear draggingEntityId when animation completes (reactive)
 	useEffect(() => {
 		if (!dropAnimationTarget && draggingEntityId) {
-			// Animation just completed - fade in the placed entity
-			const entityEl = entityRefs.current.get(draggingEntityId);
-			if (entityEl) {
-				// Fade in with CSS handling the position
-				gsap.fromTo(
-					entityEl,
-					{ autoAlpha: 0 },
-					{
-						autoAlpha: 1,
-						duration: 0.2,
-						onComplete: () => {
-							setDraggingEntityId(null);
-						},
-					},
-				);
-			} else {
-				setDraggingEntityId(null);
-			}
+			// Animation completed - entity can be revealed
+			setDraggingEntityId(null);
 		}
 	}, [dropAnimationTarget, draggingEntityId]);
 
