@@ -436,8 +436,7 @@ export const GridSpaceView = ({
 				placed,
 			});
 
-			// Clear local drag preview state
-			setDraggingEntityId(null);
+			// Clear drag preview
 			setDragPreview(null);
 			setHoveredCell(null);
 			hoveredCellRef.current = null;
@@ -455,10 +454,11 @@ export const GridSpaceView = ({
 					width: cellWidth,
 					height: cellHeight,
 				});
-				// Note: activeDrag will be cleared by DragOverlay after animation
+				// Note: draggingEntityId will be cleared by DragOverlay after animation
 			} else {
 				// Failed drop - clear immediately
 				setActiveDrag(null);
+				setDraggingEntityId(null);
 			}
 		};
 
@@ -496,6 +496,13 @@ export const GridSpaceView = ({
 		},
 		[],
 	);
+
+	// Clear draggingEntityId when drop animation completes
+	useEffect(() => {
+		if (!dropAnimationTarget && draggingEntityId) {
+			setDraggingEntityId(null);
+		}
+	}, [dropAnimationTarget, draggingEntityId]);
 
 	return (
 		<Box

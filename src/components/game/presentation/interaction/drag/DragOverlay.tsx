@@ -167,9 +167,10 @@ export const DragOverlay = ({
 			y: dropAnimationTarget.y,
 			width: dropAnimationTarget.width,
 			height: dropAnimationTarget.height,
-			duration: 0.8,
+			duration: 5,
 			ease: "expo.out",
 			onComplete: () => {
+				console.log("animtation complete!");
 				// Animation complete - clear everything
 				setIsVisible(false);
 				setActiveDrag(null);
