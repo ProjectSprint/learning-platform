@@ -185,11 +185,19 @@ export const DragOverlay = ({
 			duration: 0.8,
 			ease: "expo.out",
 			onComplete: () => {
-				// Animation complete - clear overlay and fade in placed entity
-				setIsVisible(false);
-				setActiveDrag(null);
-				setDropAnimationTarget(null);
-				gsap.set(element, { clearProps: "all" });
+				// Fade out before removing
+				gsap.to(element, {
+					opacity: 0,
+					duration: 0.2,
+					ease: "power2.in",
+					onComplete: () => {
+						// Animation complete - clear overlay and reveal placed entity
+						setIsVisible(false);
+						setActiveDrag(null);
+						setDropAnimationTarget(null);
+						gsap.set(element, { clearProps: "all" });
+					},
+				});
 			},
 		});
 	}, [dropAnimationTarget, proxyRef, setActiveDrag, setDropAnimationTarget]);
