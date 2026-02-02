@@ -327,12 +327,6 @@ export const GridSpaceView = ({
 			setHoveredCell(null);
 			return;
 		}
-		console.log(
-			"[GridSpaceView] drag effect active for space:",
-			space.id,
-			"entity:",
-			activeDrag.data.entityId,
-		);
 
 		const element = boardRef.current;
 
@@ -389,21 +383,7 @@ export const GridSpaceView = ({
 
 		const handlePointerUp = () => {
 			const currentHoveredCell = hoveredCellRef.current;
-			console.log(
-				"[GridSpaceView] handlePointerUp",
-				"space:",
-				space.id,
-				"hoveredCell:",
-				currentHoveredCell,
-				"activeDrag:",
-				activeDrag?.data?.entityId,
-			);
 			if (!currentHoveredCell) {
-				console.log(
-					"[GridSpaceView] no hoveredCell for space:",
-					space.id,
-					"- skipping (not target)",
-				);
 				// Don't cancel drag here - another GridSpaceView may be the target
 				return;
 			}
@@ -411,17 +391,6 @@ export const GridSpaceView = ({
 			const fromPosition = activeDrag.data.fromPosition ?? null;
 
 			// Attempt to place the entity
-			console.log(
-				"[GridSpaceView] calling onPlaceEntity",
-				"entityId:",
-				activeDrag.data.entityId,
-				"from:",
-				fromPosition,
-				"to:",
-				currentHoveredCell,
-				"hasCallback:",
-				!!onPlaceEntity,
-			);
 			const placed = onPlaceEntity
 				? onPlaceEntity(
 						activeDrag.data.entityId,
@@ -429,7 +398,6 @@ export const GridSpaceView = ({
 						currentHoveredCell,
 					)
 				: false;
-			console.log("[GridSpaceView] onPlaceEntity result:", placed);
 
 			setLastDropResult({
 				source: activeDrag.source,
