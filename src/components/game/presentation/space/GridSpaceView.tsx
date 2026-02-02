@@ -145,6 +145,7 @@ export const GridSpaceView = ({
 
 	const rows = viewRows ?? space.rows;
 	const cols = viewCols ?? space.cols;
+	const resolvedMinCellWidth = minCellWidth ?? space.metrics.cellWidth;
 
 	// Create map of entities by position
 	const entitiesByPosition = useMemo(() => {
@@ -508,8 +509,8 @@ export const GridSpaceView = ({
 				display="grid"
 				data-space-id={space.id}
 				gridTemplateColumns={
-					minCellWidth && minCellWidth > 0
-						? `repeat(${cols}, minmax(${minCellWidth}px, 1fr))`
+					resolvedMinCellWidth && resolvedMinCellWidth > 0
+						? `repeat(${cols}, minmax(${resolvedMinCellWidth}px, 1fr))`
 						: `repeat(${cols}, minmax(0, 1fr))`
 				}
 				gridTemplateRows={`repeat(${rows}, ${cellHeight}px)`}

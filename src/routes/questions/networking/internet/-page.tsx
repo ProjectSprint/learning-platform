@@ -555,15 +555,11 @@ const InternetGame = ({
 			const config = CANVAS_CONFIGS[key];
 			if (!config) return null;
 
-			// Enforce minimum cell width per grid column
-			const minCellWidth = config.metrics.cellWidth ?? 64;
-
 			return (
 				<Box flexGrow={1} flexBasis={0} key={key}>
 					<GridSpace
 						spaceId={key}
 						title={config.name ?? key}
-						minCellWidth={minCellWidth}
 						onEntityClick={handleEntityClick}
 						isEntityClickable={isEntityClickable}
 						getEntityLabel={(entity) => getInternetItemLabel(entity.type)}
