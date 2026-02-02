@@ -98,6 +98,9 @@ export const PlacedEntity = memo(
 		onPointerDown,
 		entityRef,
 	}: PlacedEntityProps) => {
+		// TESTING: Block rendering to test for blink
+		return null;
+
 		// Get display properties
 		const displayName = entity.name ?? entity.type;
 
