@@ -73,13 +73,12 @@ export const PoolSpace = memo(
 			return placed;
 		}, [state.entities, state.spaces, pool?.entityIds, spaceId]);
 
-		// Handle null/undefined pool
-		if (!pool) {
-			return null;
-		}
-
 		// Handle drag start from pool
 		const handleDragStart = (entity: EntityData, event: React.PointerEvent) => {
+			if (!pool) {
+				return;
+			}
+
 			// Check if entity is draggable
 			if (!isItemData(entity) || !entity.draggable) {
 				return;
@@ -140,6 +139,11 @@ export const PoolSpace = memo(
 			},
 			[dispatch, spaceId, state.spaces],
 		);
+
+		// Handle null/undefined pool
+		if (!pool) {
+			return null;
+		}
 
 		return (
 			<PoolSpaceView
