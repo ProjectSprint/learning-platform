@@ -180,7 +180,9 @@ export const GridSpaceView = ({
 			const styles = window.getComputedStyle(element);
 			const gapX = Number.parseFloat(styles.columnGap || styles.gap || "0");
 			const gapY = Number.parseFloat(styles.rowGap || styles.gap || "0");
-			setBoardSize({ width: rect.width, height: rect.height, gapX, gapY });
+			const width = Math.max(rect.width, element.scrollWidth);
+			const height = Math.max(rect.height, element.scrollHeight);
+			setBoardSize({ width, height, gapX, gapY });
 		};
 
 		updateSize();
@@ -197,7 +199,12 @@ export const GridSpaceView = ({
 
 	const cellHeight =
 		useBreakpointValue({ base: 48, sm: 54, md: 60 }) ?? DEFAULT_CELL_HEIGHT;
-	const cellWidth = (boardSize.width - boardSize.gapX * (cols - 1)) / cols || 0;
+	const availableWidth = boardSize.width - boardSize.gapX * (cols - 1);
+	const baseCellWidth = availableWidth / cols || 0;
+	const cellWidth =
+		resolvedMinCellWidth && resolvedMinCellWidth > 0
+			? Math.max(resolvedMinCellWidth, baseCellWidth)
+			: baseCellWidth;
 	const stepX = cellWidth + boardSize.gapX;
 	const stepY = cellHeight + boardSize.gapY;
 
@@ -333,11 +340,15 @@ export const GridSpaceView = ({
 
 		const handlePointerMove = (event: PointerEvent) => {
 			const rect = element.getBoundingClientRect();
+			const contentWidth = Math.max(rect.width, element.scrollWidth);
+			const contentHeight = Math.max(rect.height, element.scrollHeight);
+			const contentRight = rect.left + contentWidth;
+			const contentBottom = rect.top + contentHeight;
 			const isInside =
 				event.clientX >= rect.left &&
-				event.clientX <= rect.right &&
+				event.clientX <= contentRight &&
 				event.clientY >= rect.top &&
-				event.clientY <= rect.bottom;
+				event.clientY <= contentBottom;
 
 			if (!isInside) {
 				setDragPreview(null);

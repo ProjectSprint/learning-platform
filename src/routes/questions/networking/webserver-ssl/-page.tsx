@@ -165,13 +165,13 @@ const SslGame = ({
 	const gridTemplateColumns = showSslCanvases
 		? {
 				base: "1fr",
-				md: "repeat(2, minmax(0, 1fr))",
-				lg: "repeat(4, minmax(0, 1fr))",
+				md: "repeat(2, minmax(min-content, 1fr))",
+				lg: "repeat(4, minmax(min-content, 1fr))",
 			}
 		: {
 				base: "1fr",
-				md: "repeat(2, minmax(0, 1fr))",
-				lg: "repeat(2, minmax(0, 1fr))",
+				md: "repeat(2, minmax(min-content, 1fr))",
+				lg: "repeat(2, minmax(min-content, 1fr))",
 			};
 
 	useEffect(() => {
@@ -593,7 +593,7 @@ const SslGame = ({
 							const config = CANVAS_CONFIGS[canvasId];
 							if (!config) return null;
 							return (
-								<GridItem key={canvasId} area={canvasAreas[canvasId]} minW={0}>
+								<GridItem key={canvasId} area={canvasAreas[canvasId]}>
 									<GridSpace
 										spaceId={canvasId}
 										title={config.name ?? canvasId}
