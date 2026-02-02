@@ -35,17 +35,29 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 		});
 	}
 
-	// Create pool space for inventory
+	// Create pool spaces for inventory groups
 	const inventorySpace = createPoolSpaceData({
 		id: "inventory",
 		name: "Inventory",
 		metadata: { visible: true },
 	});
-
-	dispatch({
-		type: "CREATE_SPACE",
-		payload: { space: inventorySpace },
+	const sslSetupSpace = createPoolSpaceData({
+		id: "ssl-setup",
+		name: "SSL Setup",
+		metadata: { visible: false },
 	});
+	const sslItemsSpace = createPoolSpaceData({
+		id: "ssl-items",
+		name: "SSL Certificates",
+		metadata: { visible: false },
+	});
+
+	for (const space of [inventorySpace, sslSetupSpace, sslItemsSpace]) {
+		dispatch({
+			type: "CREATE_SPACE",
+			payload: { space },
+		});
+	}
 };
 
 /**
