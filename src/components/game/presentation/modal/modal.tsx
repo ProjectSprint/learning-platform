@@ -87,10 +87,6 @@ export const Modal = () => {
 	return createPortal(
 		<Box position="fixed" inset="0" zIndex={10000} pointerEvents="none">
 			{Object.entries(overlay.modals).map(([modalId, entry]) => {
-				if (!entry.visible) {
-					return null;
-				}
-
 				const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
 					if (event.target !== event.currentTarget) {
 						return;
@@ -110,7 +106,7 @@ export const Modal = () => {
 						position="absolute"
 						inset="0"
 						bg="rgba(0, 0, 0, 0.6)"
-						display="flex"
+						display={entry.visible ? "flex" : "none"}
 						alignItems="center"
 						justifyContent="center"
 						pointerEvents="auto"
