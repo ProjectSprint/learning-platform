@@ -204,24 +204,22 @@ const NetworkingGame = ({
 				setTimeout(() => {
 					const helpLines = [
 						"NAME",
-						"    Terminal - Network diagnostic utility",
+						"Terminal - Network diagnostic utility",
 						"",
 						"SYNOPSIS",
-						"    ping <destination>",
-						"    help",
+						"ping <destination>",
+						"help",
 						"",
 						"DESCRIPTION",
-						"    The ping utility sends ICMP ECHO_REQUEST packets to network hosts",
-						"    to test connectivity and measure round-trip time.",
+						"The ping utility sends ICMP ECHO_REQUEST packets to network hosts",
+						"to test connectivity and measure round-trip time.",
 						"",
 						"COMMANDS",
-						"    ping <ip>       Send ICMP echo request to specified IP address",
-						"    help            Display this help message",
+						"ping <ip>       Send ICMP echo request to specified IP address",
+						"help            Display this help message",
 						"",
 						"EXAMPLES",
-						networkState.pc2Ip
-							? `    ping ${networkState.pc2Ip}`
-							: "    ping 192.168.1.10",
+						networkState.pc2Ip ? `ping ${networkState.pc2Ip}` : "ping 192.168.1.10",
 						"",
 					];
 
