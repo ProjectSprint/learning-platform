@@ -96,7 +96,7 @@ export const createDefaultState = (): GameState => {
 		arrows: [],
 		terminal: {
 			visible: false,
-			prompt: "$",
+			prompt: "",
 			history: [],
 		},
 		hint: {
