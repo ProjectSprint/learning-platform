@@ -19,7 +19,30 @@ export type TcpPhase =
 	| "closing"
 	| "terminal";
 
-export const useTcpState = () => {
+export type TcpState = {
+	phase: TcpPhase;
+	splitterVisible: boolean;
+	serverStatus: string;
+	connectionActive: boolean;
+	connectionClosed: boolean;
+	sequenceEnabled: boolean;
+	lossScenarioActive: boolean;
+	hasStarted: boolean;
+	serverLog: Array<{
+		id: string;
+		type: "output";
+		content: string;
+		timestamp: number;
+	}>;
+	bufferSlots: Array<{
+		seq: number;
+		status: "empty" | "received" | "waiting";
+	}>;
+	receivedCount: number;
+	waitingCount: number;
+};
+
+export const useTcpState = (): TcpState => {
 	useGameState();
 
 	// For now, just provide minimal state

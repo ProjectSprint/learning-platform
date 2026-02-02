@@ -57,10 +57,18 @@ const TcpGame = ({
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal = state.phase === "terminal";
+	const {
+		bufferSlots,
+		connectionActive,
+		receivedCount,
+		serverLog,
+		serverStatus,
+		waitingCount,
+		phase: tcpPhase,
+	} = useTcpState();
 	const handleTcpCommand = useTcpTerminal({ onQuestionComplete });
 	useDragEngine();
 	useTerminalEngine({ onCommand: handleTcpCommand });
-	useTcpState();
 
 	// Initialize question
 	useEffect(() => {
@@ -136,6 +144,61 @@ const TcpGame = ({
 	}, []);
 
 	const isEntityClickable = useCallback((_entity: EntityData) => false, []);
+	const showTunnel = connectionActive;
+	const showBuffer = connectionActive || receivedCount > 0 || waitingCount > 0;
+	const serverLogEntries = useMemo(() => {
+		if (serverLog.length > 0) {
+			return serverLog;
+		}
+
+		return [
+			{
+				id: "server-status",
+				type: "output" as const,
+				content: serverStatus,
+				timestamp: 0,
+			},
+		];
+	}, [serverLog, serverStatus]);
+	const bufferSlotCount = useMemo(() => {
+		if (bufferSlots.length > 0) {
+			return bufferSlots.length;
+		}
+
+		if (
+			tcpPhase === "notes" ||
+			tcpPhase === "loss" ||
+			tcpPhase === "resend" ||
+			tcpPhase === "closing" ||
+			tcpPhase === "terminal"
+		) {
+			return 6;
+		}
+
+		return 3;
+	}, [bufferSlots.length, tcpPhase]);
+	const displayBufferSlots = useMemo(() => {
+		if (bufferSlots.length > 0) {
+			return bufferSlots;
+		}
+
+		return Array.from({ length: bufferSlotCount }, (_, index) => ({
+			seq: index + 1,
+			status: "empty" as const,
+		}));
+	}, [bufferSlotCount, bufferSlots]);
+	const getBufferStatusIcon = useCallback(
+		(status: "empty" | "received" | "waiting") => {
+			if (status === "received") {
+				return "✅";
+			}
+			if (status === "waiting") {
+				return "⏳";
+			}
+			return "___";
+		},
+		[],
+	);
 
 	return (
 		<Box
@@ -228,9 +291,98 @@ const TcpGame = ({
 						})}
 					</Grid>
 
+					<Box
+						mt={4}
+						opacity={showTunnel ? 1 : 0}
+						height={showTunnel ? "auto" : 0}
+						overflow="hidden"
+						transition="opacity 0.6s ease, height 0.6s ease"
+						pointerEvents={showTunnel ? "auto" : "none"}
+					>
+						<Text fontSize="sm" color="gray.400" mb={2}>
+							Connection tunnel
+						</Text>
+						<Box
+							bg="gray.800"
+							borderRadius="full"
+							height="8px"
+							overflow="hidden"
+						>
+							<Box
+								height="100%"
+								bgGradient="linear(to-r, cyan.400, teal.300)"
+								width={showTunnel ? "100%" : "0%"}
+								opacity={showTunnel ? 1 : 0}
+								transition="width 0.6s ease, opacity 0.6s ease"
+							/>
+						</Box>
+					</Box>
+
 					<Box mt={4}>
 						<PoolSpace title="Inventory" />
 					</Box>
+
+					<Flex mt={4} gap={4} direction={{ base: "column", lg: "row" }}>
+						<Box
+							flex="1"
+							bg="gray.900"
+							borderRadius="md"
+							border="1px solid"
+							borderColor="gray.800"
+							p={4}
+						>
+							<Text fontSize="sm" color="gray.400" mb={2}>
+								Server log
+							</Text>
+							<Box
+								as="div"
+								fontFamily="mono"
+								fontSize="sm"
+								color="gray.100"
+								maxH="220px"
+								overflowY="auto"
+								pr={2}
+							>
+								{serverLogEntries.map((entry) => (
+									<Text key={entry.id} mb={1}>
+										{`> ${entry.content}`}
+									</Text>
+								))}
+							</Box>
+						</Box>
+
+						{showBuffer ? (
+							<Box
+								flex="1"
+								bg="gray.900"
+								borderRadius="md"
+								border="1px solid"
+								borderColor="gray.800"
+								p={4}
+							>
+								<Text fontSize="sm" color="gray.400" mb={2}>
+									Receiving buffer
+								</Text>
+								<Flex wrap="wrap" gap={2}>
+									{displayBufferSlots.map((slot) => (
+										<Box
+											key={slot.seq}
+											border="1px solid"
+											borderColor="gray.700"
+											borderRadius="md"
+											px={3}
+											py={2}
+											fontFamily="mono"
+											fontSize="sm"
+											color="gray.200"
+										>
+											{`#${slot.seq} ${getBufferStatusIcon(slot.status)}`}
+										</Box>
+									))}
+								</Flex>
+							</Box>
+						) : null}
+					</Flex>
 
 					<ContextualHint />
 
