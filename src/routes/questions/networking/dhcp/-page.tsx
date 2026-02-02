@@ -462,13 +462,18 @@ const NetworkingGame = ({
 												...entity.data,
 												ip: entity.state.ip ?? entity.data.ip,
 											};
+											const hasIp =
+												typeof dataWithIp.ip === "string" &&
+												dataWithIp.ip.length > 0;
+											const effectiveStatus =
+												entity.type === "pc" && !hasIp ? "warning" : rawStatus;
 											const statusMessage = getNetworkingStatusMessage({
 												id: entity.id,
 												itemId: entity.id,
 												type: entity.type,
 												blockX: parseInt((entity.data.x ?? "0") as string, 10),
 												blockY: parseInt((entity.data.y ?? "0") as string, 10),
-												status: rawStatus as
+												status: effectiveStatus as
 													| "normal"
 													| "warning"
 													| "success"
@@ -477,8 +482,8 @@ const NetworkingGame = ({
 											});
 											return {
 												status:
-													rawStatus !== "normal"
-														? (rawStatus as
+													effectiveStatus !== "normal"
+														? (effectiveStatus as
 																| "success"
 																| "warning"
 																| "error"
