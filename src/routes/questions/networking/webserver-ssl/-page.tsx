@@ -119,6 +119,12 @@ const SslGame = ({
 		}
 	}, [certificateIssued]);
 
+	useEffect(() => {
+		if (httpsReady && hasRedirect && state.phase !== "terminal") {
+			dispatch({ type: "SET_PHASE", payload: { phase: "terminal" } });
+		}
+	}, [dispatch, hasRedirect, httpsReady, state.phase]);
+
 	// Initialize question
 	useEffect(() => {
 		if (initializedRef.current) {
