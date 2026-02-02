@@ -60,6 +60,22 @@ export const useSslState = () => {
 		() => getEntitiesInSpace(port443Canvas),
 		[port443Canvas, getEntitiesInSpace],
 	);
+	const browserItems = useMemo(
+		() => browserEntities.map((entity) => entity.type),
+		[browserEntities],
+	);
+	const port80Items = useMemo(
+		() => port80Entities.map((entity) => entity.type),
+		[port80Entities],
+	);
+	const letsencryptItems = useMemo(
+		() => letsencryptEntities.map((entity) => entity.type),
+		[letsencryptEntities],
+	);
+	const port443Items = useMemo(
+		() => port443Entities.map((entity) => entity.type),
+		[port443Entities],
+	);
 
 	// Derive state from entities
 	const httpReady = useMemo(() => {
@@ -173,6 +189,10 @@ export const useSslState = () => {
 		port80Canvas,
 		letsencryptCanvas,
 		port443Canvas,
+		browserItems,
+		port80Items,
+		letsencryptItems,
+		port443Items,
 		httpReady,
 		httpsReady,
 		hasRedirect,

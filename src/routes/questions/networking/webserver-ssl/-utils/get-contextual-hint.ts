@@ -1,15 +1,11 @@
 // Contextual hints for the webserver-ssl question
 // Hints change based on game progress to guide the user
 
-import type { PuzzleState } from "@/components/game/game-provider";
-import { isPort80RedirectConfigured, isPort443Complete } from "./ssl-utils";
-
 interface SslGameState {
-	browserCanvas: PuzzleState | undefined;
-	port80Canvas: PuzzleState | undefined;
-	letsencryptCanvas: PuzzleState | undefined;
-	port443Canvas: PuzzleState | undefined;
-	allPlacedItems: Array<{ type: string; id: string }>;
+	browserItems: string[];
+	port80Items: string[];
+	letsencryptItems: string[];
+	port443Items: string[];
 	httpReady: boolean;
 	httpsReady: boolean;
 	certificateIssued: boolean;
@@ -22,29 +18,24 @@ interface SslGameState {
  */
 export const getContextualHint = (state: SslGameState): string => {
 	const {
-		browserCanvas,
-		port80Canvas,
-		letsencryptCanvas,
-		port443Canvas,
+		browserItems,
+		port80Items,
+		letsencryptItems,
+		port443Items,
 		certificateIssued,
 		browserStatus,
 		letsencryptModalOpen,
 	} = state;
 
-	// Get item counts for each canvas
-	const browserItems = browserCanvas?.placedItems.length ?? 0;
-	const port80Items = port80Canvas?.placedItems.map((i) => i.type) ?? [];
-	const letsencryptItems =
-		letsencryptCanvas?.placedItems.map((i) => i.type) ?? [];
-	const port443Items = port443Canvas?.placedItems.map((i) => i.type) ?? [];
+	const browserCount = browserItems.length;
 
 	// Early game - drag browser
-	if (browserItems === 0) {
+	if (browserCount === 0) {
 		return "Drag the Browser to the first canvas";
 	}
 
 	// After browser is placed
-	if (browserItems > 0 && port80Items.length === 0) {
+	if (browserCount > 0 && port80Items.length === 0) {
 		return "Now set up your webserver! Drag Webserver (HTTP) to the Port 80 canvas";
 	}
 
@@ -68,25 +59,25 @@ export const getContextualHint = (state: SslGameState): string => {
 		// Domain already in letsencrypt, prompt issuing
 		if (letsencryptItems.includes("domain-ssl")) {
 			if (!letsencryptModalOpen) {
-				return "Issue the certificate by clicking the Domain in the Let's Encrypt canvas";
+				return "Issue the certificate by clicking the Domain (SSL) in the Let's Encrypt canvas";
 			}
 			return "Enter your domain name (e.g., example.com)";
 		}
 		// HTTPS webserver placed but no certificate yet
 		if (port443Items.includes("webserver-443") && !certificateIssued) {
-			return "Drag the Domain to the Let's Encrypt canvas to get a certificate";
+			return "Drag the Domain (SSL) to the Let's Encrypt canvas to get a certificate";
 		}
 		// Let's Encrypt canvas is visible but empty
 		if (letsencryptItems.length === 0) {
 			return "⚠️ Your site works but it's not secure! New canvases have appeared...";
 		}
-		return "Drag the Domain to the Let's Encrypt canvas to get a certificate";
+		return "Drag the Domain (SSL) to the Let's Encrypt canvas to get a certificate";
 	}
 
 	// Domain in letsencrypt but certificate not issued
 	if (letsencryptItems.includes("domain-ssl") && !certificateIssued) {
 		if (!letsencryptModalOpen) {
-			return "Click the Domain in the Let's Encrypt canvas to request a certificate";
+			return "Click the Domain (SSL) in the Let's Encrypt canvas to request a certificate";
 		}
 		return "Enter your domain name (e.g., example.com)";
 	}
@@ -128,15 +119,25 @@ export const getContextualHint = (state: SslGameState): string => {
 
 	// Port 443 complete - HTTPS is ready
 	if (
-		isPort443Complete(port443Canvas) &&
-		!isPort80RedirectConfigured(port80Canvas)
+		port443Items.length > 0 &&
+		port443Items.includes("webserver-443") &&
+		port443Items.includes("domain") &&
+		port443Items.includes("index-html") &&
+		port443Items.includes("private-key") &&
+		port443Items.includes("certificate") &&
+		!port80Items.includes("redirect-to-https")
 	) {
 		return "🔒 HTTPS is ready! Add the redirect on Port 80 so visitors land on HTTPS.";
 	}
 
 	// Redirect available in inventory
 	if (
-		isPort443Complete(port443Canvas) &&
+		port443Items.length > 0 &&
+		port443Items.includes("webserver-443") &&
+		port443Items.includes("domain") &&
+		port443Items.includes("index-html") &&
+		port443Items.includes("private-key") &&
+		port443Items.includes("certificate") &&
 		!port80Items.includes("redirect-to-https")
 	) {
 		return "Drag the redirect to Port 80 to automatically send visitors to HTTPS";
@@ -144,8 +145,12 @@ export const getContextualHint = (state: SslGameState): string => {
 
 	// Redirect placed on port 80
 	if (
-		isPort80RedirectConfigured(port80Canvas) &&
-		isPort443Complete(port443Canvas)
+		port80Items.includes("redirect-to-https") &&
+		port443Items.includes("webserver-443") &&
+		port443Items.includes("domain") &&
+		port443Items.includes("index-html") &&
+		port443Items.includes("private-key") &&
+		port443Items.includes("certificate")
 	) {
 		return "🎉 HTTPS is fully configured! Use the terminal to verify with curl/openssl.";
 	}

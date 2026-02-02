@@ -11,7 +11,10 @@ import {
 	useGameState,
 } from "@/components/game/game-provider";
 import type { EntityStatus } from "@/components/game/presentation/entity/PlacedEntity";
-import { ContextualHint } from "@/components/game/presentation/hint";
+import {
+	ContextualHint,
+	useContextualHint,
+} from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
 import {
@@ -31,6 +34,7 @@ import {
 	SSL_ITEMS_INVENTORY,
 	SSL_SETUP_INVENTORY_ITEMS,
 } from "./-utils/constants";
+import { getContextualHint } from "./-utils/get-contextual-hint";
 import { initializeSslQuestion } from "./-utils/init-spaces";
 import {
 	getSslItemLabel,
@@ -69,14 +73,19 @@ const SslGame = ({
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal = state.phase === "terminal";
 	const {
+		browserItems,
 		browserStatus,
 		certificateDomain,
 		certificateIssued,
 		hasRedirect,
 		httpReady,
 		httpsReady,
+		letsencryptItems,
+		letsencryptModalOpen,
 		port80Config,
+		port80Items,
 		port80Domain,
+		port443Items,
 		port443Domain,
 		port443SslStatus,
 	} = useSslState();
@@ -516,6 +525,34 @@ const SslGame = ({
 			state,
 		],
 	);
+
+	const contextualHint = useMemo(
+		() =>
+			getContextualHint({
+				browserItems,
+				port80Items,
+				letsencryptItems,
+				port443Items,
+				httpReady,
+				httpsReady,
+				certificateIssued,
+				browserStatus,
+				letsencryptModalOpen,
+			}),
+		[
+			browserItems,
+			port80Items,
+			letsencryptItems,
+			port443Items,
+			httpReady,
+			httpsReady,
+			certificateIssued,
+			browserStatus,
+			letsencryptModalOpen,
+		],
+	);
+
+	useContextualHint(contextualHint);
 
 	return (
 		<Box
