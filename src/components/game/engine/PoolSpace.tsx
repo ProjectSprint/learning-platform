@@ -5,12 +5,12 @@
  * from the inventory pool.
  */
 
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import type { EntityData } from "../domain/entity/entity-data";
 import { isItemData } from "../domain/entity/entity-data";
 import type { PoolSpaceData } from "../domain/space/space-data";
 import { spaceContains } from "../domain/space/space-fns";
-import { useGameState } from "../game-provider";
+import { useGameDispatch, useGameState } from "../game-provider";
 import { useDragContext } from "../presentation/interaction/drag/DragContext";
 import { PoolSpaceView } from "../presentation/space/PoolSpaceView";
 
@@ -41,6 +41,7 @@ export type PoolSpaceProps = {
 export const PoolSpace = memo(
 	({ spaceId = "inventory", title }: PoolSpaceProps) => {
 		const state = useGameState();
+		const dispatch = useGameDispatch();
 		const { setActiveDrag, setLastDropResult } = useDragContext();
 
 		// Get pool space data
@@ -108,6 +109,38 @@ export const PoolSpace = memo(
 			});
 		};
 
+		// Handle entity return to pool
+		const handleEntityReturn = useCallback(
+			(entityId: string): boolean => {
+				// Find which space the entity is currently in
+				let currentSpaceId: string | null = null;
+				for (const [spaceKey, space] of Object.entries(state.spaces)) {
+					if (spaceKey === spaceId) continue; // Skip the pool itself
+					if (spaceContains(space, entityId)) {
+						currentSpaceId = spaceKey;
+						break;
+					}
+				}
+
+				if (!currentSpaceId) {
+					// Entity not found in any space
+					return false;
+				}
+
+				// Dispatch action to move entity back to pool
+				dispatch({
+					type: "MOVE_ENTITY_BETWEEN_SPACES",
+					payload: {
+						entityId,
+						fromSpaceId: currentSpaceId,
+						toSpaceId: spaceId,
+					},
+				});
+				return true;
+			},
+			[dispatch, spaceId, state.spaces],
+		);
+
 		return (
 			<PoolSpaceView
 				space={pool}
@@ -115,6 +148,7 @@ export const PoolSpace = memo(
 				placedEntityIds={placedEntityIds}
 				title={title}
 				onEntityDragStart={handleDragStart}
+				onEntityReturn={handleEntityReturn}
 			/>
 		);
 	},

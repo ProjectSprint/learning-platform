@@ -8,7 +8,7 @@
  */
 
 import { Box, Flex, Text } from "@chakra-ui/react";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "../../domain/entity/entity-data";
 import type { PoolSpaceData } from "../../domain/space/space-data";
 import { EntityCard } from "../entity/EntityCard";
@@ -29,6 +29,8 @@ export type PoolSpaceViewProps = {
 	title?: string;
 	/** Callback when an entity is clicked for dragging */
 	onEntityDragStart?: (entity: EntityData, event: React.PointerEvent) => void;
+	/** Callback when an entity is returned to the pool */
+	onEntityReturn?: (entityId: string) => boolean;
 };
 
 /**
@@ -53,10 +55,19 @@ export const PoolSpaceView = ({
 	placedEntityIds = new Set(),
 	title,
 	onEntityDragStart,
+	onEntityReturn,
 }: PoolSpaceViewProps) => {
-	const { activeDrag } = useDragContext();
+	const {
+		activeDrag,
+		setActiveDrag,
+		targetSpaceIdRef,
+		setLastDropResult,
+	} = useDragContext();
 	const entityRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const cardSize = useEntityCardSize();
+	const poolRef = useRef<HTMLDivElement | null>(null);
+	const [isHovered, setIsHovered] = useState(false);
+	const isHoveredRef = useRef(false);
 
 	// Check if an entity is currently placed elsewhere
 	const isEntityPlaced = useCallback(
@@ -98,18 +109,93 @@ export const PoolSpaceView = ({
 		return entities.find((entity) => isEntityPlaced(entity.id))?.id ?? null;
 	}, [entities, isEntityPlaced]);
 
+	// Handle drag over the pool for returning entities
+	useEffect(() => {
+		if (!activeDrag || !poolRef.current || !onEntityReturn) {
+			setIsHovered(false);
+			return;
+		}
+
+		// Only handle drags from grid (not from pool itself)
+		if (activeDrag.source === "pool") {
+			setIsHovered(false);
+			return;
+		}
+
+		const element = poolRef.current;
+
+		const handlePointerMove = (event: PointerEvent) => {
+			const rect = element.getBoundingClientRect();
+			const isInside =
+				event.clientX >= rect.left &&
+				event.clientX <= rect.right &&
+				event.clientY >= rect.top &&
+				event.clientY <= rect.bottom;
+
+			if (isInside) {
+				setIsHovered(true);
+				isHoveredRef.current = true;
+				targetSpaceIdRef.current = space.id;
+			} else {
+				setIsHovered(false);
+				isHoveredRef.current = false;
+				if (targetSpaceIdRef.current === space.id) {
+					targetSpaceIdRef.current = undefined;
+				}
+			}
+		};
+
+		const handlePointerUp = () => {
+			if (!isHoveredRef.current) {
+				return;
+			}
+
+			// Attempt to return entity to pool
+			const returned = onEntityReturn(activeDrag.data.entityId);
+
+			setLastDropResult({
+				source: activeDrag.source,
+				placed: returned,
+			});
+
+			setIsHovered(false);
+			isHoveredRef.current = false;
+
+			if (returned) {
+				// Successful return - clear drag (no animation for pool)
+				setActiveDrag(null);
+			}
+		};
+
+		window.addEventListener("pointermove", handlePointerMove);
+		window.addEventListener("pointerup", handlePointerUp);
+
+		return () => {
+			window.removeEventListener("pointermove", handlePointerMove);
+			window.removeEventListener("pointerup", handlePointerUp);
+		};
+	}, [
+		activeDrag,
+		onEntityReturn,
+		setActiveDrag,
+		setLastDropResult,
+		targetSpaceIdRef,
+		space.id,
+	]);
+
 	if (entities.length === 0) {
 		return null;
 	}
 
 	return (
 		<Box
+			ref={poolRef}
 			className="pool-space-view"
 			data-space-id={space.id}
 			data-first-empty-slot={firstEmptySlot}
 			bg="gray.900"
 			borderTop="1px solid"
-			borderColor="gray.800"
+			borderColor={isHovered ? "cyan.500" : "gray.800"}
 			p={{ base: 2, md: 3 }}
 			overflow="visible"
 		>
