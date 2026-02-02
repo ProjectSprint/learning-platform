@@ -180,9 +180,7 @@ export const GridSpaceView = ({
 			const styles = window.getComputedStyle(element);
 			const gapX = Number.parseFloat(styles.columnGap || styles.gap || "0");
 			const gapY = Number.parseFloat(styles.rowGap || styles.gap || "0");
-			const width = Math.max(rect.width, element.scrollWidth);
-			const height = Math.max(rect.height, element.scrollHeight);
-			setBoardSize({ width, height, gapX, gapY });
+			setBoardSize({ width: rect.width, height: rect.height, gapX, gapY });
 		};
 
 		updateSize();
