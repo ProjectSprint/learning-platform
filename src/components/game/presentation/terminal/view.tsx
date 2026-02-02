@@ -30,6 +30,7 @@ const TerminalEntryRow = memo(
 				color={styles.color}
 				fontStyle={styles.fontStyle}
 				fontWeight={styles.fontWeight}
+				whiteSpace="pre"
 			>
 				{content}
 			</Text>
