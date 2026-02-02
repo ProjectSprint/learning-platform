@@ -491,6 +491,8 @@ export const GridSpaceView = ({
 		<Box
 			className="grid-space-view"
 			data-space-id={space.id}
+			width="100%"
+			minWidth="0"
 			bg="gray.950"
 			p={{ base: 2, md: 4 }}
 			overflow="visible"
