@@ -227,13 +227,15 @@ export const entityReducer = (
 		}
 
 		case "CONFIGURE_DEVICE": {
-			// Map to UPDATE_ENTITY_STATE
+			// Map to UPDATE_ENTITY - update entity.data instead of entity.state
 			const { deviceId, config } = action.payload;
 			return entityReducer(state, {
-				type: "UPDATE_ENTITY_STATE",
+				type: "UPDATE_ENTITY",
 				payload: {
 					entityId: deviceId,
-					state: config,
+					updates: {
+						data: config,
+					},
 				},
 			});
 		}
