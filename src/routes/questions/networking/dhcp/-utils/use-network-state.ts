@@ -138,8 +138,9 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	const pc2Ip =
 		typeof network.pc2?.data?.ip === "string" ? network.pc2.data.ip : null;
 
-	const routerSettingsOpen =
-		state.overlay.activeModal?.id?.startsWith("router-config") ?? false;
+	const routerSettingsOpen = Object.values(state.overlay.modals).some(
+		(entry) => entry.visible && entry.instance.id?.startsWith("router-config"),
+	);
 
 	// Update device statuses based on network state
 	useEffect(() => {

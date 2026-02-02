@@ -4,24 +4,16 @@ import { createPortal } from "react-dom";
 import { useGameDispatch, useGameState } from "../../game-provider";
 import { ModalInstanceView } from "./modal-instance";
 
-const getFocusableElements = (container: HTMLElement) =>
-	Array.from(
-		container.querySelectorAll<HTMLElement>(
-			'a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])',
-		),
-	).filter(
-		(element) =>
-			!element.hasAttribute("disabled") && !element.getAttribute("aria-hidden"),
-	);
-
 export const Modal = () => {
 	const { overlay } = useGameState();
 	const dispatch = useGameDispatch();
 	const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-	const modalRef = useRef<HTMLDivElement | null>(null);
 	const lastActiveRef = useRef<HTMLElement | null>(null);
 
-	const activeModal = overlay.activeModal;
+	const visibleModals = Object.entries(overlay.modals).filter(
+		([_, entry]) => entry.visible,
+	);
+	const hasVisibleModal = visibleModals.length > 0;
 
 	useEffect(() => {
 		if (typeof document === "undefined") {
@@ -42,7 +34,7 @@ export const Modal = () => {
 	}, []);
 
 	useEffect(() => {
-		if (!activeModal) {
+		if (!hasVisibleModal) {
 			if (lastActiveRef.current) {
 				lastActiveRef.current.focus();
 			}
@@ -55,49 +47,10 @@ export const Modal = () => {
 				lastActiveRef.current = activeElement;
 			}
 		}
-
-		modalRef.current?.focus();
-	}, [activeModal]);
+	}, [hasVisibleModal]);
 
 	useEffect(() => {
-		if (!activeModal || !modalRef.current) {
-			return;
-		}
-
-		const container = modalRef.current;
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key !== "Tab") {
-				return;
-			}
-
-			const focusable = getFocusableElements(container);
-			if (focusable.length === 0) {
-				return;
-			}
-
-			const first = focusable[0];
-			const last = focusable[focusable.length - 1];
-
-			if (event.shiftKey && document.activeElement === first) {
-				event.preventDefault();
-				last.focus();
-				return;
-			}
-
-			if (!event.shiftKey && document.activeElement === last) {
-				event.preventDefault();
-				first.focus();
-			}
-		};
-
-		container.addEventListener("keydown", handleKeyDown);
-		return () => {
-			container.removeEventListener("keydown", handleKeyDown);
-		};
-	}, [activeModal]);
-
-	useEffect(() => {
-		if (!activeModal) {
+		if (!hasVisibleModal) {
 			return;
 		}
 
@@ -106,7 +59,11 @@ export const Modal = () => {
 				return;
 			}
 
-			if (activeModal.blocking) {
+			// Check if any visible modal is blocking
+			const blockingModal = visibleModals.find(
+				([_, entry]) => entry.instance.blocking,
+			);
+			if (blockingModal) {
 				return;
 			}
 
@@ -117,69 +74,79 @@ export const Modal = () => {
 		return () => {
 			window.removeEventListener("keydown", handleKeyDown);
 		};
-	}, [activeModal, dispatch]);
-
-	const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
-		if (event.target !== event.currentTarget) {
-			return;
-		}
-		if (activeModal?.blocking) {
-			return;
-		}
-		dispatch({ type: "CLOSE_MODAL" });
-	};
+	}, [hasVisibleModal, visibleModals, dispatch]);
 
 	if (!portalTarget) {
 		return null;
 	}
 
-	if (!activeModal) {
+	if (!hasVisibleModal) {
 		return null;
 	}
 
-	const handleClose = () => dispatch({ type: "CLOSE_MODAL" });
-
 	return createPortal(
 		<Box position="fixed" inset="0" zIndex={10000} pointerEvents="none">
-			{activeModal && (
-				<Box
-					position="absolute"
-					inset="0"
-					bg="rgba(0, 0, 0, 0.6)"
-					display="flex"
-					alignItems="center"
-					justifyContent="center"
-					pointerEvents="auto"
-					onClick={handleBackdropClick}
-				>
+			{Object.entries(overlay.modals).map(([modalId, entry]) => {
+				if (!entry.visible) {
+					return null;
+				}
+
+				const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
+					if (event.target !== event.currentTarget) {
+						return;
+					}
+					if (entry.instance.blocking) {
+						return;
+					}
+					dispatch({ type: "CLOSE_MODAL", payload: { modalId } });
+				};
+
+				const handleClose = () =>
+					dispatch({ type: "CLOSE_MODAL", payload: { modalId } });
+
+				return (
 					<Box
-						ref={modalRef}
-						tabIndex={-1}
-						role="dialog"
-						aria-modal="true"
-						bg="gray.900"
-						color="gray.100"
-						border="1px solid"
-						borderColor="gray.700"
-						borderRadius="lg"
-						p={6}
-						width="min(460px, 92vw)"
-						boxShadow="xl"
+						key={modalId}
+						position="absolute"
+						inset="0"
+						bg="rgba(0, 0, 0, 0.6)"
+						display="flex"
+						alignItems="center"
+						justifyContent="center"
+						pointerEvents="auto"
+						onClick={handleBackdropClick}
 					>
-						<Suspense
-							fallback={
-								<Flex align="center" justify="center" minHeight="120px">
-									<Text fontSize="sm" color="gray.300">
-										Loading...
-									</Text>
-								</Flex>
-							}
+						<Box
+							tabIndex={-1}
+							role="dialog"
+							aria-modal="true"
+							bg="gray.900"
+							color="gray.100"
+							border="1px solid"
+							borderColor="gray.700"
+							borderRadius="lg"
+							p={6}
+							width="min(460px, 92vw)"
+							boxShadow="xl"
 						>
-							<ModalInstanceView instance={activeModal} onClose={handleClose} />
-						</Suspense>
+							<Suspense
+								fallback={
+									<Flex align="center" justify="center" minHeight="120px">
+										<Text fontSize="sm" color="gray.300">
+											Loading...
+										</Text>
+									</Flex>
+								}
+							>
+								<ModalInstanceView
+									instance={entry.instance}
+									onClose={handleClose}
+								/>
+							</Suspense>
+						</Box>
 					</Box>
-				</Box>
-			)}
+				);
+			})}
 		</Box>,
 		portalTarget,
 	);

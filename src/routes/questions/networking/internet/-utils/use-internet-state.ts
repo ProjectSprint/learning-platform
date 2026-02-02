@@ -198,12 +198,18 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		network.google !== undefined;
 
 	// Modal states
-	const routerLanSettingsOpen =
-		state.overlay.activeModal?.id?.startsWith("router-lan-config") ?? false;
-	const routerNatSettingsOpen =
-		state.overlay.activeModal?.id?.startsWith("router-nat-config") ?? false;
-	const routerWanSettingsOpen =
-		state.overlay.activeModal?.id?.startsWith("router-wan-config") ?? false;
+	const routerLanSettingsOpen = Object.values(state.overlay.modals).some(
+		(entry) =>
+			entry.visible && entry.instance.id?.startsWith("router-lan-config"),
+	);
+	const routerNatSettingsOpen = Object.values(state.overlay.modals).some(
+		(entry) =>
+			entry.visible && entry.instance.id?.startsWith("router-nat-config"),
+	);
+	const routerWanSettingsOpen = Object.values(state.overlay.modals).some(
+		(entry) =>
+			entry.visible && entry.instance.id?.startsWith("router-wan-config"),
+	);
 
 	// Auto-assign IP to PC when routerLan is configured and PC is connected via cable
 	useEffect(() => {

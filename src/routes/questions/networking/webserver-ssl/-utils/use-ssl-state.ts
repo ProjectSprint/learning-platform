@@ -130,9 +130,12 @@ export const useSslState = () => {
 
 	const letsencryptModalOpen = useMemo(
 		() =>
-			(state.overlay?.activeModal?.id?.includes("letsencrypt") ||
-				state.overlay?.activeModal?.id?.includes("certificate")) ??
-			false,
+			Object.values(state.overlay.modals).some(
+				(entry) =>
+					entry.visible &&
+					(entry.instance.id?.includes("letsencrypt") ||
+						entry.instance.id?.includes("certificate")),
+			),
 		[state.overlay],
 	);
 

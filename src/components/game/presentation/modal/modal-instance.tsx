@@ -7,9 +7,9 @@ import {
 	Text,
 	Textarea,
 } from "@chakra-ui/react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { useGameDispatch, useGameState } from "../../game-provider";
+import { useGameDispatch } from "../../game-provider";
 import { HelpLink } from "../../ui/help";
 import type {
 	ModalAction,
@@ -28,10 +28,6 @@ export const ModalInstanceView = ({
 	onClose,
 }: ModalInstanceViewProps) => {
 	const dispatch = useGameDispatch();
-	const state = useGameState();
-
-	// Use instance.id or fallback to a default (should always have id in practice)
-	const modalId = instance.id ?? "modal-default";
 
 	const initialValues = useMemo(() => {
 		const values: Record<string, unknown> = {
@@ -55,33 +51,11 @@ export const ModalInstanceView = ({
 			}
 		}
 
-		// Merge with draft values if they exist
-		const draft = state.overlay.modalDrafts[modalId];
-		if (draft) {
-			Object.assign(values, draft);
-		}
-
 		return values;
-	}, [
-		instance.content,
-		instance.initialValues,
-		modalId,
-		state.overlay.modalDrafts,
-	]);
+	}, [instance.content, instance.initialValues]);
 
 	const [values, setValues] = useState<Record<string, unknown>>(initialValues);
 	const [errors, setErrors] = useState<Record<string, string | null>>({});
-
-	// Save draft values whenever they change
-	useEffect(() => {
-		dispatch({
-			type: "SAVE_MODAL_DRAFT",
-			payload: {
-				modalId,
-				values,
-			},
-		});
-	}, [values, modalId, dispatch]);
 
 	const setFieldValue = (fieldId: string, value: unknown) => {
 		setValues((prev) => ({ ...prev, [fieldId]: value }));
@@ -141,14 +115,6 @@ export const ModalInstanceView = ({
 		}
 
 		if (action.closesModal ?? true) {
-			// Clear draft when modal closes successfully (e.g., after save)
-			// Only clear if validation passed (which means we got this far)
-			if (!shouldValidate || !runValidation()) {
-				dispatch({
-					type: "CLEAR_MODAL_DRAFT",
-					payload: { modalId },
-				});
-			}
 			onClose();
 		}
 	};

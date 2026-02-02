@@ -116,41 +116,72 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 			};
 
 		// Modal actions
-		case "OPEN_MODAL":
+		case "OPEN_MODAL": {
+			const modalId = action.payload.id ?? "modal-default";
+			const existingModal = state.overlay.modals[modalId];
+
+			if (existingModal) {
+				// Modal exists, just show it
+				return {
+					...state,
+					overlay: {
+						...state.overlay,
+						modals: {
+							...state.overlay.modals,
+							[modalId]: { ...existingModal, visible: true },
+						},
+					},
+				};
+			}
+
+			// New modal, add to map
 			return {
 				...state,
 				overlay: {
 					...state.overlay,
-					activeModal: action.payload,
-				},
-			};
-		case "CLOSE_MODAL":
-			return {
-				...state,
-				overlay: {
-					...state.overlay,
-					activeModal: null,
-				},
-			};
-		case "SAVE_MODAL_DRAFT":
-			return {
-				...state,
-				overlay: {
-					...state.overlay,
-					modalDrafts: {
-						...state.overlay.modalDrafts,
-						[action.payload.modalId]: action.payload.values,
+					modals: {
+						...state.overlay.modals,
+						[modalId]: {
+							instance: action.payload,
+							visible: true,
+						},
 					},
 				},
 			};
-		case "CLEAR_MODAL_DRAFT": {
-			const { [action.payload.modalId]: _, ...remainingDrafts } =
-				state.overlay.modalDrafts;
+		}
+		case "CLOSE_MODAL": {
+			const modalIdToClose = action.payload?.modalId;
+
+			if (modalIdToClose) {
+				// Close specific modal
+				const modal = state.overlay.modals[modalIdToClose];
+				if (!modal) return state;
+
+				return {
+					...state,
+					overlay: {
+						...state.overlay,
+						modals: {
+							...state.overlay.modals,
+							[modalIdToClose]: { ...modal, visible: false },
+						},
+					},
+				};
+			}
+
+			// Close all visible modals
+			const updatedModals = Object.fromEntries(
+				Object.entries(state.overlay.modals).map(([id, entry]) => [
+					id,
+					{ ...entry, visible: false },
+				]),
+			);
+
 			return {
 				...state,
 				overlay: {
 					...state.overlay,
-					modalDrafts: remainingDrafts,
+					modals: updatedModals,
 				},
 			};
 		}

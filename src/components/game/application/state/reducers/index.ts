@@ -66,8 +66,6 @@ export const applicationReducer = (
 		case "REPLACE_HINT":
 		case "OPEN_MODAL":
 		case "CLOSE_MODAL":
-		case "SAVE_MODAL_DRAFT":
-		case "CLEAR_MODAL_DRAFT":
 		case "OPEN_TERMINAL":
 		case "CLOSE_TERMINAL":
 		case "SUBMIT_COMMAND":
@@ -106,8 +104,7 @@ export const createDefaultState = (): GameState => {
 			content: "",
 		},
 		overlay: {
-			activeModal: null,
-			modalDrafts: {},
+			modals: {},
 		},
 		question: {
 			id: "",
