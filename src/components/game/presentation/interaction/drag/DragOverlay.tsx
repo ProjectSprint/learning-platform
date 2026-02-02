@@ -182,15 +182,24 @@ export const DragOverlay = ({
 			y: dropAnimationTarget.y,
 			width: dropAnimationTarget.width,
 			height: dropAnimationTarget.height,
-			duration: 5,
+			duration: 0.5,
 			ease: "expo.out",
 			onComplete: () => {
-				console.log("animtation complete!");
-				// Animation complete - clear everything
-				setIsVisible(false);
-				setActiveDrag(null);
-				setDropAnimationTarget(null);
-				gsap.set(element, { clearProps: "all" });
+				// Fade out overlay before clearing
+				gsap.to(element, {
+					opacity: 0,
+					duration: 0.1,
+					onComplete: () => {
+						// Small delay to ensure clean handoff
+						setTimeout(() => {
+							// Animation complete - clear everything
+							setIsVisible(false);
+							setActiveDrag(null);
+							setDropAnimationTarget(null);
+							gsap.set(element, { clearProps: "all" });
+						}, 50);
+					},
+				});
 			},
 		});
 	}, [dropAnimationTarget, proxyRef, setActiveDrag, setDropAnimationTarget]);
