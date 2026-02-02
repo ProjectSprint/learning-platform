@@ -16,24 +16,24 @@ import { useDragContext } from "./DragContext";
  * Props for the DragOverlay component.
  */
 export type DragOverlayProps = {
-	/** Function to get display label for an entity type */
-	getEntityLabel?: (entityType: string) => string;
+   /** Function to get display label for an entity type */
+   getEntityLabel?: (entityType: string) => string;
 };
 
 /**
  * Default label formatter.
  */
 const defaultGetEntityLabel = (entityType: string) =>
-	entityType.charAt(0).toUpperCase() + entityType.slice(1);
+   entityType.charAt(0).toUpperCase() + entityType.slice(1);
 
 /**
  * Hook to get the size of entity cards.
  * Uses responsive breakpoints for consistent sizing.
  */
 export const useEntityCardSize = () => {
-	const width = useBreakpointValue({ base: 120, sm: 132, md: 150 }) ?? 150;
-	const height = useBreakpointValue({ base: 52, sm: 58, md: 64 }) ?? 64;
-	return { width, height };
+   const width = useBreakpointValue({ base: 120, sm: 132, md: 150 }) ?? 150;
+   const height = useBreakpointValue({ base: 52, sm: 58, md: 64 }) ?? 64;
+   return { width, height };
 };
 
 /**
@@ -47,192 +47,192 @@ export const useEntityCardSize = () => {
  * ```
  */
 export const DragOverlay = ({
-	getEntityLabel = defaultGetEntityLabel,
+   getEntityLabel = defaultGetEntityLabel,
 }: DragOverlayProps) => {
-	const {
-		activeDrag,
-		proxyRef,
-		setActiveDrag,
-		setLastDropResult,
-		dropAnimationTarget,
-		setDropAnimationTarget,
-	} = useDragContext();
-	const cardSize = useEntityCardSize();
-	const cardSizeRef = useRef({
-		width: cardSize.width,
-		height: cardSize.height,
-	});
-	const [isVisible, setIsVisible] = useState(false);
-	const [size, setSize] = useState({ width: 0, height: 0 });
-	const initializedRef = useRef(false);
-	const pointerOffsetRef = useRef({ x: 0, y: 0 });
+   const {
+      activeDrag,
+      proxyRef,
+      setActiveDrag,
+      setLastDropResult,
+      dropAnimationTarget,
+      setDropAnimationTarget,
+   } = useDragContext();
+   const cardSize = useEntityCardSize();
+   const cardSizeRef = useRef({
+      width: cardSize.width,
+      height: cardSize.height,
+   });
+   const [isVisible, setIsVisible] = useState(false);
+   const [size, setSize] = useState({ width: 0, height: 0 });
+   const initializedRef = useRef(false);
+   const pointerOffsetRef = useRef({ x: 0, y: 0 });
 
-	// Initialize card size ref once on mount
-	useEffect(() => {
-		cardSizeRef.current = { width: cardSize.width, height: cardSize.height };
-	}, [cardSize.height, cardSize.width]);
+   // Initialize card size ref once on mount
+   useEffect(() => {
+      cardSizeRef.current = { width: cardSize.width, height: cardSize.height };
+   }, [cardSize.height, cardSize.width]);
 
-	useEffect(() => {
-		if (!activeDrag) {
-			setIsVisible(false);
-			initializedRef.current = false;
-			// Note: No clearProps needed - component will unmount
-			return;
-		}
+   useEffect(() => {
+      if (!activeDrag) {
+         setIsVisible(false);
+         initializedRef.current = false;
+         // Note: No clearProps needed - component will unmount
+         return;
+      }
 
-		const initialRect = activeDrag.initialRect;
-		if (!initialRect) {
-			setIsVisible(false);
-			return;
-		}
+      const initialRect = activeDrag.initialRect;
+      if (!initialRect) {
+         setIsVisible(false);
+         return;
+      }
 
-		const targetWidth = cardSizeRef.current.width;
-		const targetHeight = cardSizeRef.current.height;
+      const targetWidth = cardSizeRef.current.width;
+      const targetHeight = cardSizeRef.current.height;
 
-		pointerOffsetRef.current = {
-			x: targetWidth / 2,
-			y: targetHeight / 2,
-		};
+      pointerOffsetRef.current = {
+         x: targetWidth / 2,
+         y: targetHeight / 2,
+      };
 
-		setSize({ width: targetWidth, height: targetHeight });
-		setIsVisible(true);
+      setSize({ width: targetWidth, height: targetHeight });
+      setIsVisible(true);
 
-		const initializePosition = () => {
-			if (!proxyRef.current || initializedRef.current) {
-				return;
-			}
+      const initializePosition = () => {
+         if (!proxyRef.current || initializedRef.current) {
+            return;
+         }
 
-			const pointerX = activeDrag.pointerOffset?.x ?? initialRect.width / 2;
-			const pointerY = activeDrag.pointerOffset?.y ?? initialRect.height / 2;
+         const pointerX = activeDrag.pointerOffset?.x ?? initialRect.width / 2;
+         const pointerY = activeDrag.pointerOffset?.y ?? initialRect.height / 2;
 
-			gsap.set(proxyRef.current, {
-				x: initialRect.left + pointerX - pointerOffsetRef.current.x,
-				y: initialRect.top + pointerY - pointerOffsetRef.current.y,
-				width: targetWidth,
-				height: targetHeight,
-			});
-			initializedRef.current = true;
-		};
+         gsap.set(proxyRef.current, {
+            x: initialRect.left + pointerX - pointerOffsetRef.current.x,
+            y: initialRect.top + pointerY - pointerOffsetRef.current.y,
+            width: targetWidth,
+            height: targetHeight,
+         });
+         initializedRef.current = true;
+      };
 
-		if (proxyRef.current) {
-			initializePosition();
-		} else {
-			requestAnimationFrame(initializePosition);
-		}
+      if (proxyRef.current) {
+         initializePosition();
+      } else {
+         requestAnimationFrame(initializePosition);
+      }
 
-		const handlePointerMove = (event: PointerEvent) => {
-			if (proxyRef.current) {
-				gsap.set(proxyRef.current, {
-					x: event.clientX - pointerOffsetRef.current.x,
-					y: event.clientY - pointerOffsetRef.current.y,
-				});
-			}
-		};
+      const handlePointerMove = (event: PointerEvent) => {
+         if (proxyRef.current) {
+            gsap.set(proxyRef.current, {
+               x: event.clientX - pointerOffsetRef.current.x,
+               y: event.clientY - pointerOffsetRef.current.y,
+            });
+         }
+      };
 
-		const handlePointerUp = () => {
-			// Global fallback: cancel drag if no GridSpaceView handled the drop.
-			// Use setTimeout(0) so this runs after all synchronous GridSpaceView handlers.
-			setTimeout(() => {
-				setDropAnimationTarget((animTarget) => {
-					if (animTarget) {
-						// Animation in progress - don't interfere
-						return animTarget;
-					}
+      const handlePointerUp = () => {
+         // Global fallback: cancel drag if no GridSpaceView handled the drop.
+         // Use setTimeout(0) so this runs after all synchronous GridSpaceView handlers.
+         setTimeout(() => {
+            setDropAnimationTarget((animTarget) => {
+               if (animTarget) {
+                  // Animation in progress - don't interfere
+                  return animTarget;
+               }
 
-					// No animation - this is a failed drop, clear activeDrag
-					setActiveDrag((current) => {
-						if (current) {
-							setLastDropResult({ source: current.source, placed: false });
-							return null;
-						}
-						return current;
-					});
-					return null;
-				});
-			}, 0);
-		};
+               // No animation - this is a failed drop, clear activeDrag
+               setActiveDrag((current) => {
+                  if (current) {
+                     setLastDropResult({ source: current.source, placed: false });
+                     return null;
+                  }
+                  return current;
+               });
+               return null;
+            });
+         }, 0);
+      };
 
-		window.addEventListener("pointermove", handlePointerMove);
-		window.addEventListener("pointerup", handlePointerUp);
-		return () => {
-			window.removeEventListener("pointermove", handlePointerMove);
-			window.removeEventListener("pointerup", handlePointerUp);
-		};
-	}, [
-		activeDrag,
-		proxyRef,
-		setActiveDrag,
-		setLastDropResult,
-		setDropAnimationTarget,
-	]);
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      return () => {
+         window.removeEventListener("pointermove", handlePointerMove);
+         window.removeEventListener("pointerup", handlePointerUp);
+      };
+   }, [
+      activeDrag,
+      proxyRef,
+      setActiveDrag,
+      setLastDropResult,
+      setDropAnimationTarget,
+   ]);
 
-	// Animate overlay to drop target on successful placement
-	useEffect(() => {
-		if (!dropAnimationTarget || !proxyRef.current) {
-			return;
-		}
+   // Animate overlay to drop target on successful placement
+   useEffect(() => {
+      if (!dropAnimationTarget || !proxyRef.current) {
+         return;
+      }
 
-		const element = proxyRef.current;
+      const element = proxyRef.current;
 
-		// Animate overlay to target position and size
-		gsap.to(element, {
-			x: dropAnimationTarget.viewportX,
-			y: dropAnimationTarget.viewportY,
-			width: dropAnimationTarget.width,
-			height: dropAnimationTarget.height,
-			duration: 0.8,
-			ease: "expo.out",
-			onComplete: () => {
-				// Animation complete - clear overlay and fade in placed entity
-				setIsVisible(false);
-				setActiveDrag(null);
-				setDropAnimationTarget(null);
-				// Note: No clearProps needed - component will unmount
-			},
-		});
-	}, [dropAnimationTarget, proxyRef, setActiveDrag, setDropAnimationTarget]);
+      // Animate overlay to target position and size
+      gsap.to(element, {
+         x: dropAnimationTarget.viewportX,
+         y: dropAnimationTarget.viewportY,
+         width: dropAnimationTarget.width,
+         height: dropAnimationTarget.height,
+         duration: 0.2,
+         ease: "expo.out",
+         onComplete: () => {
+            // Animation complete - clear overlay and fade in placed entity
+            setIsVisible(false);
+            setActiveDrag(null);
+            setDropAnimationTarget(null);
+            // Note: No clearProps needed - component will unmount
+         },
+      });
+   }, [dropAnimationTarget, proxyRef, setActiveDrag, setDropAnimationTarget]);
 
-	if (!isVisible || !activeDrag) {
-		return null;
-	}
+   if (!isVisible || !activeDrag) {
+      return null;
+   }
 
-	const label =
-		activeDrag.data.entityName ?? getEntityLabel(activeDrag.data.entityType);
-	const initialRect = activeDrag.initialRect;
-	const pointerX =
-		activeDrag.pointerOffset?.x ?? (initialRect ? initialRect.width / 2 : 0);
-	const pointerY =
-		activeDrag.pointerOffset?.y ?? (initialRect ? initialRect.height / 2 : 0);
-	const initialX = initialRect
-		? initialRect.left + pointerX - pointerOffsetRef.current.x
-		: 0;
-	const initialY = initialRect
-		? initialRect.top + pointerY - pointerOffsetRef.current.y
-		: 0;
+   const label =
+      activeDrag.data.entityName ?? getEntityLabel(activeDrag.data.entityType);
+   const initialRect = activeDrag.initialRect;
+   const pointerX =
+      activeDrag.pointerOffset?.x ?? (initialRect ? initialRect.width / 2 : 0);
+   const pointerY =
+      activeDrag.pointerOffset?.y ?? (initialRect ? initialRect.height / 2 : 0);
+   const initialX = initialRect
+      ? initialRect.left + pointerX - pointerOffsetRef.current.x
+      : 0;
+   const initialY = initialRect
+      ? initialRect.top + pointerY - pointerOffsetRef.current.y
+      : 0;
 
-	return (
-		<Box
-			ref={proxyRef}
-			position="fixed"
-			top={0}
-			left={0}
-			width={`${size.width}px`}
-			height={`${size.height}px`}
-			bg="gray.800"
-			border="1px solid"
-			borderColor="cyan.500"
-			borderRadius="md"
-			display="flex"
-			alignItems="center"
-			justifyContent="center"
-			pointerEvents="none"
-			zIndex={9999}
-			boxShadow="0 4px 20px rgba(0, 0, 0, 0.3)"
-			style={{ transform: `translate3d(${initialX}px, ${initialY}px, 0)` }}
-		>
-			<Text fontSize="sm" fontWeight="bold" color="gray.100">
-				{label}
-			</Text>
-		</Box>
-	);
+   return (
+      <Box
+         ref={proxyRef}
+         position="fixed"
+         top={0}
+         left={0}
+         width={`${size.width}px`}
+         height={`${size.height}px`}
+         bg="gray.800"
+         border="1px solid"
+         borderColor="cyan.500"
+         borderRadius="md"
+         display="flex"
+         alignItems="center"
+         justifyContent="center"
+         pointerEvents="none"
+         zIndex={9999}
+         boxShadow="0 4px 20px rgba(0, 0, 0, 0.3)"
+         style={{ transform: `translate3d(${initialX}px, ${initialY}px, 0)` }}
+      >
+         <Text fontSize="sm" fontWeight="bold" color="gray.100">
+            {label}
+         </Text>
+      </Box>
+   );
 };
