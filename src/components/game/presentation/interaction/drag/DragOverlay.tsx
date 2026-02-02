@@ -135,12 +135,21 @@ export const DragOverlay = ({
 			// Global fallback: cancel drag if no GridSpaceView handled the drop.
 			// Use setTimeout(0) so this runs after all synchronous GridSpaceView handlers.
 			setTimeout(() => {
-				setActiveDrag((current) => {
-					if (current) {
-						setLastDropResult({ source: current.source, placed: false });
-						return null;
+				setDropAnimationTarget((animTarget) => {
+					if (animTarget) {
+						// Animation in progress - don't interfere
+						return animTarget;
 					}
-					return current;
+
+					// No animation - this is a failed drop, clear activeDrag
+					setActiveDrag((current) => {
+						if (current) {
+							setLastDropResult({ source: current.source, placed: false });
+							return null;
+						}
+						return current;
+					});
+					return null;
 				});
 			}, 0);
 		};
@@ -151,7 +160,13 @@ export const DragOverlay = ({
 			window.removeEventListener("pointermove", handlePointerMove);
 			window.removeEventListener("pointerup", handlePointerUp);
 		};
-	}, [activeDrag, proxyRef, setActiveDrag, setLastDropResult]);
+	}, [
+		activeDrag,
+		proxyRef,
+		setActiveDrag,
+		setLastDropResult,
+		setDropAnimationTarget,
+	]);
 
 	// Animate overlay to drop target on successful placement
 	useEffect(() => {
