@@ -6,7 +6,7 @@ import {
 } from "@/components/game/application/actions";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
-import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
+import { useDragEngine } from "@/components/game/engines";
 import {
 	type Arrow,
 	GameProvider,
@@ -19,12 +19,6 @@ import {
 } from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
-import {
-	TerminalInput,
-	TerminalLayout,
-	TerminalView,
-	useTerminalInput,
-} from "@/components/game/presentation/terminal";
 import type { QuestionProps } from "@/components/module";
 
 import {
@@ -40,8 +34,8 @@ import {
 	getTcpItemLabel,
 	getTcpStatusMessage,
 } from "./-utils/item-notification";
+import { buildSuccessModal } from "./-utils/modal-builders";
 import { useTcpState } from "./-utils/use-tcp-state";
-import { useTcpTerminal } from "./-utils/use-tcp-terminal";
 
 export const TcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -59,15 +53,15 @@ const TcpGame = ({
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const initializedRef = useRef(false);
-	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
-	const shouldShowTerminal = state.phase === "terminal";
+	const successShownRef = useRef(false);
 	const {
 		bufferSlots,
 		connectionClosed,
 		connectionActive,
 		lossScenarioActive,
 		receivedCount,
+		receivedPoolVisible,
 		serverLog,
 		serverStatus,
 		sequenceEnabled,
@@ -75,9 +69,7 @@ const TcpGame = ({
 		waitingCount,
 		phase: tcpPhase,
 	} = useTcpState();
-	const handleTcpCommand = useTcpTerminal({ onQuestionComplete });
 	useDragEngine();
-	useTerminalEngine({ onCommand: handleTcpCommand });
 
 	const contextualHint = useMemo(
 		() =>
@@ -114,16 +106,17 @@ const TcpGame = ({
 		initializeTcpQuestion(dispatch);
 	}, [dispatch]);
 
-	// Terminal visibility
 	useEffect(() => {
-		if (shouldShowTerminal && !state.terminal.visible) {
-			dispatch({ type: "OPEN_TERMINAL" });
+		if (state.phase !== "terminal" || isCompleted || successShownRef.current) {
 			return;
 		}
-		if (!shouldShowTerminal && state.terminal.visible) {
-			dispatch({ type: "CLOSE_TERMINAL" });
-		}
-	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
+		successShownRef.current = true;
+		dispatch({
+			type: "OPEN_MODAL",
+			payload: buildSuccessModal(onQuestionComplete),
+		});
+		dispatch({ type: "COMPLETE_QUESTION" });
+	}, [dispatch, isCompleted, onQuestionComplete, state.phase]);
 
 	// Arrows between internet and server
 	const boardArrows = useMemo<Arrow[]>(() => {
@@ -374,6 +367,11 @@ const TcpGame = ({
 					<Box mt={4}>
 						<PoolSpace title="Inventory" />
 					</Box>
+					{receivedPoolVisible ? (
+						<Box mt={4}>
+							<PoolSpace spaceId="received" title="Received" />
+						</Box>
+					) : null}
 
 					<Flex mt={4} gap={4} direction={{ base: "column", lg: "row" }}>
 						<Box
@@ -442,27 +440,7 @@ const TcpGame = ({
 					<DragOverlay getEntityLabel={getTcpItemLabel} />
 				</GameBoard>
 
-				<TerminalLayout
-					visible={state.terminal.visible}
-					focusRef={terminalInput.inputRef}
-					view={
-						<TerminalView
-							history={state.terminal.history}
-							prompt={state.terminal.prompt}
-							isCompleted={isCompleted}
-						/>
-					}
-					input={
-						<TerminalInput
-							value={terminalInput.value}
-							onChange={terminalInput.onChange}
-							onKeyDown={terminalInput.onKeyDown}
-							inputRef={terminalInput.inputRef}
-							placeholder={isCompleted ? "Terminal disabled" : "Type a command"}
-							disabled={isCompleted}
-						/>
-					}
-				/>
+				{null}
 			</Flex>
 			<Modal />
 		</Box>

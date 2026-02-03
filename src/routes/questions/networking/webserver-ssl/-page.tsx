@@ -8,6 +8,7 @@ import {
 	type BoardItemStatus,
 	GameProvider,
 	useGameDispatch,
+	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 import type { EntityStatus } from "@/components/game/presentation/entity/PlacedEntity";
@@ -68,6 +69,7 @@ const SslGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
+	const { events, ack } = useGameEvents();
 	const initializedRef = useRef(false);
 	const terminalOpenedRef = useRef(false);
 	const terminalInput = useTerminalInput();
@@ -93,7 +95,28 @@ const SslGame = ({
 	} = useSslState();
 	const [showSslCanvases, setShowSslCanvases] = useState(false);
 	const [showSslItems, setShowSslItems] = useState(false);
+	const [eventTick, setEventTick] = useState(0);
 	useDragEngine();
+
+	useEffect(() => {
+		if (events.length === 0) {
+			return;
+		}
+
+		const shouldSync = events.some(
+			(event) =>
+				event.type === "ENTITY_ENTERED_SPACE" ||
+				event.type === "ENTITY_LEFT_SPACE" ||
+				event.type === "ENTITY_MOVED" ||
+				event.type === "ENTITY_UPDATED" ||
+				event.type === "PHASE_CHANGED",
+		);
+
+		if (shouldSync) {
+			setEventTick((prev) => prev + 1);
+		}
+		ack();
+	}, [ack, events]);
 
 	const handleSslCommand = useSslTerminal({
 		httpReady,
@@ -109,22 +132,25 @@ const SslGame = ({
 	});
 
 	useEffect(() => {
+		void eventTick;
 		if (httpReady) {
 			setShowSslCanvases(true);
 		}
-	}, [httpReady]);
+	}, [eventTick, httpReady]);
 
 	useEffect(() => {
+		void eventTick;
 		if (certificateIssued) {
 			setShowSslItems(true);
 		}
-	}, [certificateIssued]);
+	}, [certificateIssued, eventTick]);
 
 	useEffect(() => {
+		void eventTick;
 		if (httpsReady && hasRedirect && state.phase !== "terminal") {
 			dispatch({ type: "SET_PHASE", payload: { phase: "terminal" } });
 		}
-	}, [dispatch, hasRedirect, httpsReady, state.phase]);
+	}, [dispatch, eventTick, hasRedirect, httpsReady, state.phase]);
 
 	// Initialize question
 	useEffect(() => {

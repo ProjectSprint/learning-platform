@@ -179,10 +179,6 @@ export const PoolSpaceView = ({
 		space.id,
 	]);
 
-	if (entities.length === 0) {
-		return null;
-	}
-
 	return (
 		<Box
 			ref={poolRef}

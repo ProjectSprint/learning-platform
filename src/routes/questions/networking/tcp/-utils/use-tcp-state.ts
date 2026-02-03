@@ -7,7 +7,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isGridSpace } from "@/components/game/domain/space";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { findEntitySpace } from "@/components/game/domain/space/validation";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import {
+	useGameDispatch,
+	useGameEvents,
+	useGameState,
+} from "@/components/game/game-provider";
 import {
 	MESSAGE_PACKET_IDS,
 	MESSAGE_PACKET_ITEMS,
@@ -51,6 +55,7 @@ export type TcpState = {
 	connectionClosed: boolean;
 	sequenceEnabled: boolean;
 	lossScenarioActive: boolean;
+	receivedPoolVisible: boolean;
 	hasStarted: boolean;
 	serverLog: Array<{
 		id: string;
@@ -69,6 +74,7 @@ export type TcpState = {
 const INTERNET_TRAVEL_MS = 2000;
 const SERVER_PROCESS_MS = 3000;
 const SERVER_REJECT_DELAY_MS = 2000;
+const PACKET_REJECT_RETURN_MS = 1500;
 const FILE_PROCESS_DELAY_MS = 1500;
 const FILE_REJECT_DELAY_MS = 1500;
 const ASSEMBLE_DELAY_MS = 2000;
@@ -121,12 +127,18 @@ export const useTcpState = (): TcpState => {
 		[state.phase],
 	);
 	const [splitterVisible, setSplitterVisible] = useState(false);
+	const [pendingSplitterReveal, setPendingSplitterReveal] = useState(false);
+	const [pendingFileReturn, setPendingFileReturn] = useState<{
+		entityId: string;
+		spaceId: string;
+	} | null>(null);
 	const [serverStatus, setServerStatus] = useState(INITIAL_SERVER_STATUS);
 	const [serverLog, setServerLog] = useState<TcpState["serverLog"]>([]);
 	const [connectionActive, setConnectionActive] = useState(false);
 	const [connectionClosed, setConnectionClosed] = useState(false);
 	const [sequenceEnabled, setSequenceEnabled] = useState(false);
 	const [lossScenarioActive, setLossScenarioActive] = useState(false);
+	const [receivedPoolVisible, setReceivedPoolVisible] = useState(false);
 	const [bufferSlots, setBufferSlots] = useState<TcpState["bufferSlots"]>([]);
 	const [receivedCount, setReceivedCount] = useState(0);
 	const [waitingCount, setWaitingCount] = useState(0);
@@ -142,6 +154,7 @@ export const useTcpState = (): TcpState => {
 	const expectedTotalRef = useRef(MESSAGE_PACKET_IDS.length);
 	const allowPacket2Ref = useRef(true);
 	const resendTargetSeqRef = useRef<number | null>(null);
+	const rejectedPacketsRef = useRef<Set<string>>(new Set());
 	const bufferReleaseInProgressRef = useRef(false);
 	const ackTrackingRef = useRef({
 		lastAck: null as number | null,
@@ -151,6 +164,7 @@ export const useTcpState = (): TcpState => {
 		mtu: false,
 		synIntro: false,
 		synAck: false,
+		ackIntro: false,
 		handshake: false,
 		hol: false,
 		loss: false,
@@ -180,8 +194,8 @@ export const useTcpState = (): TcpState => {
 	}, [splitterVisible]);
 
 	useEffect(() => {
-		if (phase !== "mtu" && !splitterVisibleRef.current) {
-			setSplitterVisible(true);
+		if (phase === "mtu" && splitterVisibleRef.current) {
+			setSplitterVisible(false);
 		}
 	}, [phase]);
 
@@ -240,6 +254,16 @@ export const useTcpState = (): TcpState => {
 					payload: { entityId, state: { status } },
 				});
 			}
+		},
+		[dispatch],
+	);
+
+	const setEntityDraggable = useCallback(
+		(entityId: string, draggable: boolean) => {
+			dispatch({
+				type: "UPDATE_ENTITY",
+				payload: { entityId, updates: { draggable } },
+			});
 		},
 		[dispatch],
 	);
@@ -453,19 +477,6 @@ export const useTcpState = (): TcpState => {
 		[updateEntityState, updatePacketDisplayName],
 	);
 
-	const removePacketsFromServer = useCallback(
-		(fileKey: "message" | "notes") => {
-			const packetIds = PACKET_IDS_BY_FILE[fileKey];
-			for (const packetId of packetIds) {
-				const currentSpace = findEntitySpace(stateRef.current, packetId);
-				if (currentSpace === "server") {
-					removeEntityFromSpace(packetId, "server");
-				}
-			}
-		},
-		[removeEntityFromSpace],
-	);
-
 	const addPacketsToInventory = useCallback(
 		(fileKey: "message" | "notes") => {
 			const packetIds = PACKET_IDS_BY_FILE[fileKey];
@@ -487,13 +498,11 @@ export const useTcpState = (): TcpState => {
 				if (fileKey === "message") {
 					appendServerLog("📄 message.txt received successfully!");
 					appendServerLog("Waiting for notes.txt packets...");
-					removePacketsFromServer("message");
 					ensureInInventory(NOTES_FILE_ITEM_ID);
 					resetBufferState(NOTES_PACKET_IDS.length);
 					setPhase("notes");
 				} else {
 					appendServerLog("📄 notes.txt received successfully!");
-					removePacketsFromServer("notes");
 					ensureInInventory(TCP_TOOL_ITEMS.fin.id);
 					setLossScenarioActive(false);
 					setPhase("closing");
@@ -513,8 +522,8 @@ export const useTcpState = (): TcpState => {
 			dispatch,
 			ensureInInventory,
 			registerTimer,
-			removePacketsFromServer,
 			resetBufferState,
+			setLossScenarioActive,
 			setPhase,
 		],
 	);
@@ -608,6 +617,14 @@ export const useTcpState = (): TcpState => {
 					});
 				}
 				logAckMessage();
+				if (
+					phaseRef.current === "loss" &&
+					resendTargetSeqRef.current === null &&
+					expected === LOSS_PACKET_SEQ &&
+					waiting.size >= 3
+				) {
+					triggerResend(expected);
+				}
 				return;
 			}
 
@@ -620,6 +637,7 @@ export const useTcpState = (): TcpState => {
 				});
 				if (resendTargetSeqRef.current === seq) {
 					resendTargetSeqRef.current = null;
+					bufferReleaseInProgressRef.current = false;
 				}
 				updateBufferDisplay();
 				logAckMessage();
@@ -665,6 +683,7 @@ export const useTcpState = (): TcpState => {
 					resetDisplayName: true,
 				});
 				addPacketsToInventory("message");
+				rejectedPacketsRef.current = new Set();
 				setPhase("split-send");
 				resetBufferState(MESSAGE_PACKET_IDS.length);
 				return;
@@ -690,8 +709,8 @@ export const useTcpState = (): TcpState => {
 	const handleFileMtuReject = useCallback(
 		(entityId: string, spaceId: string) => {
 			updateEntityState(entityId, {
-				tcpState: "processing",
-				status: "normal",
+				tcpState: "in-transit",
+				status: "warning",
 			});
 			const rejectTimer = setTimeout(() => {
 				updateEntityState(entityId, { tcpState: "rejected", status: "error" });
@@ -701,30 +720,24 @@ export const useTcpState = (): TcpState => {
 						dispatch({ type: "OPEN_MODAL", payload: buildMtuModal() });
 					}
 					setPhase("splitter");
-					setSplitterVisible(true);
-					const currentSpace = findEntitySpace(stateRef.current, entityId);
-					if (currentSpace === spaceId) {
-						removeEntityFromSpace(entityId, spaceId);
-					}
-					updateEntityState(entityId, { tcpState: "ready", status: "normal" });
-					ensureInInventory(entityId);
+					setPendingSplitterReveal(true);
+					setPendingFileReturn({ entityId, spaceId });
 				}, FILE_REJECT_DELAY_MS);
 				registerTimer(resolveTimer);
 			}, FILE_PROCESS_DELAY_MS);
 			registerTimer(rejectTimer);
 		},
-		[
-			dispatch,
-			ensureInInventory,
-			registerTimer,
-			removeEntityFromSpace,
-			setPhase,
-			updateEntityState,
-		],
+		[dispatch, registerTimer, setPhase, updateEntityState],
 	);
 
 	const handlePacketRejected = useCallback(
 		(packetId: string) => {
+			const entity = stateRef.current.entities[packetId];
+			const fileKey = entity?.data?.fileKey === "notes" ? "notes" : "message";
+			updateEntityState(packetId, {
+				tcpState: "processing",
+				status: "normal",
+			});
 			appendServerLog("Processing...");
 			const timer = setTimeout(() => {
 				appendServerLog("I don't understand this package!");
@@ -732,28 +745,33 @@ export const useTcpState = (): TcpState => {
 					tcpState: "rejected",
 					status: "error",
 				});
-				const currentSpace = findEntitySpace(stateRef.current, packetId);
-				if (currentSpace === "server") {
-					removeEntityFromSpace(packetId, "server");
-				}
-				updateEntityState(packetId, {
-					tcpState: "idle",
-					status: "normal",
-				});
-				ensureInInventory(packetId);
-				if (!modalShownRef.current.synIntro) {
-					modalShownRef.current.synIntro = true;
-					dispatch({
-						type: "OPEN_MODAL",
-						payload: buildSynIntroModal(),
+				const returnTimer = setTimeout(() => {
+					updateEntityState(packetId, {
+						tcpState: "idle",
+						status: "normal",
 					});
-				}
-				setPhase("syn");
-				updateEntityState(TCP_TOOL_ITEMS.syn.id, {
-					tcpState: "idle",
-					status: "normal",
-				});
-				ensureInInventory(TCP_TOOL_ITEMS.syn.id);
+					ensureInInventory(packetId);
+					if (fileKey === "message") {
+						rejectedPacketsRef.current.add(packetId);
+						if (
+							rejectedPacketsRef.current.size === MESSAGE_PACKET_IDS.length &&
+							!modalShownRef.current.synIntro
+						) {
+							modalShownRef.current.synIntro = true;
+							dispatch({
+								type: "OPEN_MODAL",
+								payload: buildSynIntroModal(),
+							});
+							setPhase("syn");
+							updateEntityState(TCP_TOOL_ITEMS.syn.id, {
+								tcpState: "idle",
+								status: "normal",
+							});
+							ensureInInventory(TCP_TOOL_ITEMS.syn.id);
+						}
+					}
+				}, PACKET_REJECT_RETURN_MS);
+				registerTimer(returnTimer);
 			}, SERVER_REJECT_DELAY_MS);
 			registerTimer(timer);
 		},
@@ -762,40 +780,82 @@ export const useTcpState = (): TcpState => {
 			dispatch,
 			ensureInInventory,
 			registerTimer,
-			removeEntityFromSpace,
 			setPhase,
 			updateEntityState,
 		],
 	);
 
-	const handleSynArrival = useCallback(
-		(synId: string) => {
-			appendServerLog("Processing...");
+	const handleFileUnknownReturn = useCallback(
+		(entityId: string) => {
+			updateEntityState(entityId, {
+				tcpState: "unknown",
+				status: "error",
+			});
 			const timer = setTimeout(() => {
-				appendServerLog("🟡 SYN received - sending SYN-ACK...");
-				appendServerLog("🟡 SYN-ACK sent - waiting for ACK...");
-				updateEntityState(synId, {
-					tcpState: "received",
-					status: "success",
-				});
-				removeEntityFromSpace(synId, "server");
-				const synAckId = SYSTEM_PACKET_ITEMS.synAck.id;
-				updateEntityState(synAckId, {
-					tcpState: "in-transit",
-					status: "warning",
-					direction: "server-to-client",
-				});
-				moveEntityToGrid(synAckId, "internet");
-			}, SERVER_PROCESS_MS);
+				updateEntityState(entityId, { tcpState: "ready", status: "normal" });
+				ensureInInventory(entityId);
+			}, FILE_PROCESS_DELAY_MS);
 			registerTimer(timer);
 		},
-		[
-			appendServerLog,
-			moveEntityToGrid,
-			registerTimer,
-			removeEntityFromSpace,
-			updateEntityState,
-		],
+		[ensureInInventory, registerTimer, updateEntityState],
+	);
+
+	const handleFileTooLargeRepeat = useCallback(
+		(entityId: string) => {
+			updateEntityState(entityId, {
+				tcpState: "in-transit",
+				status: "warning",
+			});
+			const rejectTimer = setTimeout(() => {
+				updateEntityState(entityId, { tcpState: "rejected", status: "error" });
+				const returnTimer = setTimeout(() => {
+					updateEntityState(entityId, { tcpState: "ready", status: "normal" });
+					ensureInInventory(entityId);
+				}, FILE_REJECT_DELAY_MS);
+				registerTimer(returnTimer);
+			}, FILE_PROCESS_DELAY_MS);
+			registerTimer(rejectTimer);
+		},
+		[ensureInInventory, registerTimer, updateEntityState],
+	);
+
+	const handlePacketLossReturn = useCallback(
+		(entityId: string) => {
+			updateEntityState(entityId, { tcpState: "lost", status: "error" });
+			const timer = setTimeout(() => {
+				ensureInInventory(entityId);
+				if (!modalShownRef.current.loss) {
+					modalShownRef.current.loss = true;
+					dispatch({
+						type: "OPEN_MODAL",
+						payload: buildPacketLossModal(),
+					});
+				}
+			}, LOSS_FADE_MS);
+			registerTimer(timer);
+		},
+		[dispatch, ensureInInventory, registerTimer, updateEntityState],
+	);
+
+	const handleSynArrival = useCallback(
+		(synId: string) => {
+			updateEntityState(synId, {
+				tcpState: "received",
+				status: "success",
+			});
+			setEntityDraggable(synId, false);
+			setReceivedPoolVisible(true);
+			appendServerLog("🟡 SYN received - sending SYN-ACK...");
+			appendServerLog("🟡 SYN-ACK sent - waiting for ACK...");
+			const synAckId = SYSTEM_PACKET_ITEMS.synAck.id;
+			updateEntityState(synAckId, {
+				tcpState: "in-transit",
+				status: "warning",
+				direction: "server-to-client",
+			});
+			moveEntityToGrid(synAckId, "internet");
+		},
+		[appendServerLog, moveEntityToGrid, setEntityDraggable, updateEntityState],
 	);
 
 	const handleSynAckArrival = useCallback(() => {
@@ -803,17 +863,14 @@ export const useTcpState = (): TcpState => {
 			tcpState: "received",
 			status: "success",
 		});
-		ensureInInventory(SYSTEM_PACKET_ITEMS.synAck.id);
+		setEntityDraggable(SYSTEM_PACKET_ITEMS.synAck.id, false);
+		moveEntityToSpace(SYSTEM_PACKET_ITEMS.synAck.id, "received");
+		setReceivedPoolVisible(true);
 		if (!modalShownRef.current.synAck) {
 			modalShownRef.current.synAck = true;
 			dispatch({
 				type: "OPEN_MODAL",
-				payload: buildSynAckModal(() => {
-					dispatch({
-						type: "OPEN_MODAL",
-						payload: buildAckIntroModal(),
-					});
-				}),
+				payload: buildSynAckModal(),
 			});
 		}
 		setPhase("ack");
@@ -822,40 +879,41 @@ export const useTcpState = (): TcpState => {
 			status: "normal",
 		});
 		ensureInInventory(TCP_TOOL_ITEMS.ack.id);
-	}, [dispatch, ensureInInventory, setPhase, updateEntityState]);
+	}, [
+		dispatch,
+		ensureInInventory,
+		moveEntityToSpace,
+		setEntityDraggable,
+		setPhase,
+		updateEntityState,
+	]);
 
 	const handleAckArrival = useCallback(
 		(ackId: string) => {
-			const timer = setTimeout(() => {
-				updateEntityState(ackId, {
-					tcpState: "received",
-					status: "success",
+			updateEntityState(ackId, {
+				tcpState: "received",
+				status: "success",
+			});
+			setConnectionActive(true);
+			setConnectionClosed(false);
+			setSequenceEnabled(true);
+			configurePackets("message", { seqEnabled: true });
+			configurePackets("notes", { seqEnabled: true });
+			resetBufferState(MESSAGE_PACKET_IDS.length);
+			appendServerLog("🟢 Connected - Waiting for data...");
+			if (!modalShownRef.current.handshake) {
+				modalShownRef.current.handshake = true;
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildHandshakeCompleteModal(),
 				});
-				removeEntityFromSpace(ackId, "server");
-				setConnectionActive(true);
-				setConnectionClosed(false);
-				setSequenceEnabled(true);
-				configurePackets("message", { seqEnabled: true });
-				configurePackets("notes", { seqEnabled: true });
-				resetBufferState(MESSAGE_PACKET_IDS.length);
-				appendServerLog("🟢 Connected - Waiting for data...");
-				if (!modalShownRef.current.handshake) {
-					modalShownRef.current.handshake = true;
-					dispatch({
-						type: "OPEN_MODAL",
-						payload: buildHandshakeCompleteModal(),
-					});
-				}
-				setPhase("connected");
-			}, SERVER_PROCESS_MS);
-			registerTimer(timer);
+			}
+			setPhase("connected");
 		},
 		[
 			appendServerLog,
 			configurePackets,
 			dispatch,
-			registerTimer,
-			removeEntityFromSpace,
 			resetBufferState,
 			setPhase,
 			updateEntityState,
@@ -864,28 +922,22 @@ export const useTcpState = (): TcpState => {
 
 	const handleFinArrival = useCallback(
 		(finId: string) => {
-			appendServerLog("Processing...");
-			const timer = setTimeout(() => {
-				updateEntityState(finId, {
-					tcpState: "received",
-					status: "success",
-				});
-				removeEntityFromSpace(finId, "server");
-				const finAckId = SYSTEM_PACKET_ITEMS.finAck.id;
-				updateEntityState(finAckId, {
-					tcpState: "in-transit",
-					status: "warning",
-					direction: "server-to-client",
-				});
-				moveEntityToGrid(finAckId, "internet");
-			}, SERVER_PROCESS_MS);
-			registerTimer(timer);
+			updateEntityState(finId, {
+				tcpState: "received",
+				status: "success",
+			});
+			ensureInInventory(SYSTEM_PACKET_ITEMS.finAck.id);
+			setConnectionActive(false);
+			setConnectionClosed(true);
+			appendServerLog("🔴 Disconnected");
+			setPhase("terminal");
 		},
 		[
 			appendServerLog,
-			moveEntityToGrid,
-			registerTimer,
-			removeEntityFromSpace,
+			ensureInInventory,
+			setConnectionActive,
+			setConnectionClosed,
+			setPhase,
 			updateEntityState,
 		],
 	);
@@ -912,23 +964,21 @@ export const useTcpState = (): TcpState => {
 				if (phaseRef.current === "mtu") {
 					handleFileMtuReject(entityId, "internet");
 				} else {
-					removeEntityFromSpace(entityId, "internet");
-					updateEntityState(entityId, { tcpState: "ready", status: "normal" });
-					ensureInInventory(entityId);
+					handleFileTooLargeRepeat(entityId);
 				}
 				return;
 			}
 
 			if (
 				(entityType === "syn-ack-flag" || entityType === "fin-ack-flag") &&
-				entity.state.direction === "server-to-client"
+				(entity.data.direction === "server-to-client" ||
+					entity.state.direction === "server-to-client")
 			) {
 				updateEntityState(entityId, {
 					tcpState: "in-transit",
 					status: "warning",
 				});
 				const timer = setTimeout(() => {
-					removeEntityFromSpace(entityId, "internet");
 					if (entityType === "syn-ack-flag") {
 						handleSynAckArrival();
 					} else {
@@ -991,19 +1041,7 @@ export const useTcpState = (): TcpState => {
 					seq === LOSS_PACKET_SEQ &&
 					!allowPacket2Ref.current
 				) {
-					updateEntityState(entityId, { tcpState: "lost", status: "error" });
-					if (!modalShownRef.current.loss) {
-						modalShownRef.current.loss = true;
-						dispatch({
-							type: "OPEN_MODAL",
-							payload: buildPacketLossModal(),
-						});
-					}
-					const timer = setTimeout(() => {
-						removeEntityFromSpace(entityId, "internet");
-						ensureInInventory(entityId);
-					}, LOSS_FADE_MS);
-					registerTimer(timer);
+					handlePacketLossReturn(entityId);
 					return;
 				}
 
@@ -1025,11 +1063,12 @@ export const useTcpState = (): TcpState => {
 		[
 			dispatch,
 			handleFileMtuReject,
+			handleFileTooLargeRepeat,
 			handleFinAckArrival,
+			handlePacketLossReturn,
 			handleSynAckArrival,
 			moveEntityToGrid,
 			registerTimer,
-			removeEntityFromSpace,
 			setPhase,
 			updateEntityState,
 			updatePacketDisplayName,
@@ -1041,6 +1080,14 @@ export const useTcpState = (): TcpState => {
 		(entityId: string) => {
 			const entity = stateRef.current.entities[entityId];
 			if (!entity) return;
+
+			if (
+				entity.type === "message-file" ||
+				entity.type === "notes-file"
+			) {
+				handleFileUnknownReturn(entityId);
+				return;
+			}
 
 			if (entity.type === "syn-flag") {
 				handleSynArrival(entityId);
@@ -1064,65 +1111,131 @@ export const useTcpState = (): TcpState => {
 				}
 				const fileKey = entity.data.fileKey === "notes" ? "notes" : "message";
 				const seq = typeof entity.data.seq === "number" ? entity.data.seq : 0;
+
+				if (
+					lossScenarioRef.current &&
+					fileKey === "notes" &&
+					seq === LOSS_PACKET_SEQ &&
+					!allowPacket2Ref.current
+				) {
+					handlePacketLossReturn(entityId);
+					return;
+				}
+
+				if (
+					phaseRef.current === "resend" &&
+					resendTargetSeqRef.current === seq
+				) {
+					allowPacket2Ref.current = true;
+					updatePacketDisplayName(entityId, `Packet #${seq}`);
+					setPhase("loss");
+				}
+
 				handlePacketArrival(entityId, fileKey, seq);
 			}
 		},
 		[
 			handleAckArrival,
 			handleFinArrival,
+			handleFileUnknownReturn,
+			handlePacketLossReturn,
 			handlePacketArrival,
 			handlePacketRejected,
 			handleSynArrival,
 		],
 	);
 
-	const prevSplitterIdsRef = useRef<Set<string>>(new Set());
+	const handleSpaceEntry = useCallback(
+		(entityId: string, spaceId: string) => {
+			if (spaceId === "splitter") {
+				const entity = stateRef.current.entities[entityId];
+				if (entity) {
+					handleSplitterDrop(entityId, entity.type);
+				}
+				return;
+			}
+
+			if (spaceId === "internet") {
+				handleInternetItem(entityId);
+				return;
+			}
+
+			if (spaceId === "server") {
+				handleServerItem(entityId);
+			}
+		},
+		[handleInternetItem, handleServerItem, handleSplitterDrop],
+	);
+
+	const handleModalClosed = useCallback(
+		(modalId?: string) => {
+			if (!modalId) return;
+
+			if (modalId === "mtu-limit") {
+				if (pendingSplitterReveal) {
+					setSplitterVisible(true);
+					setPendingSplitterReveal(false);
+				}
+				if (pendingFileReturn) {
+					ensureInInventory(pendingFileReturn.entityId);
+					updateEntityState(pendingFileReturn.entityId, {
+						tcpState: "ready",
+						status: "normal",
+					});
+					setPendingFileReturn(null);
+				}
+				return;
+			}
+
+			if (
+				modalId === "syn-ack-received" &&
+				modalShownRef.current.synAck &&
+				!modalShownRef.current.ackIntro
+			) {
+				modalShownRef.current.ackIntro = true;
+				dispatch({
+					type: "OPEN_MODAL",
+					payload: buildAckIntroModal(),
+				});
+				return;
+			}
+
+			if (modalId === "duplicate-acks") {
+				allowPacket2Ref.current = true;
+			}
+		},
+		[
+			dispatch,
+			ensureInInventory,
+			pendingFileReturn,
+			pendingSplitterReveal,
+			updateEntityState,
+		],
+	);
+
+	const { events, ack } = useGameEvents();
 	useEffect(() => {
-		const splitter = state.spaces.splitter;
-		if (!splitter || !isGridSpace(splitter)) {
+		if (events.length === 0) {
 			return;
 		}
-		const currentIds = new Set(Object.keys(splitter.entityPositions));
-		const prevIds = prevSplitterIdsRef.current;
-		const newItems = [...currentIds].filter((id) => !prevIds.has(id));
-		for (const id of newItems) {
-			const entity = state.entities[id];
-			if (entity) {
-				handleSplitterDrop(id, entity.type);
+
+		for (const event of events) {
+			switch (event.type) {
+				case "ENTITY_ENTERED_SPACE":
+					handleSpaceEntry(event.entityId, event.spaceId);
+					break;
+				case "ENTITY_MOVED":
+					handleSpaceEntry(event.entityId, event.toSpaceId);
+					break;
+				case "MODAL_CLOSED":
+					handleModalClosed(event.modalId);
+					break;
+				default:
+					break;
 			}
 		}
-		prevSplitterIdsRef.current = currentIds;
-	}, [handleSplitterDrop, state.entities, state.spaces.splitter]);
-
-	const prevInternetIdsRef = useRef<Set<string>>(new Set());
-	useEffect(() => {
-		const internet = state.spaces.internet;
-		if (!internet || !isGridSpace(internet)) {
-			return;
-		}
-		const currentIds = new Set(Object.keys(internet.entityPositions));
-		const prevIds = prevInternetIdsRef.current;
-		const newItems = [...currentIds].filter((id) => !prevIds.has(id));
-		for (const id of newItems) {
-			handleInternetItem(id);
-		}
-		prevInternetIdsRef.current = currentIds;
-	}, [handleInternetItem, state.spaces.internet]);
-
-	const prevServerIdsRef = useRef<Set<string>>(new Set());
-	useEffect(() => {
-		const server = state.spaces.server;
-		if (!server || !isGridSpace(server)) {
-			return;
-		}
-		const currentIds = new Set(Object.keys(server.entityPositions));
-		const prevIds = prevServerIdsRef.current;
-		const newItems = [...currentIds].filter((id) => !prevIds.has(id));
-		for (const id of newItems) {
-			handleServerItem(id);
-		}
-		prevServerIdsRef.current = currentIds;
-	}, [handleServerItem, state.spaces.server]);
+		ack();
+	}, [ack, events, handleModalClosed, handleSpaceEntry]);
 
 	useEffect(() => {
 		if (!connectionActive) {
@@ -1145,6 +1258,7 @@ export const useTcpState = (): TcpState => {
 		connectionClosed,
 		sequenceEnabled,
 		lossScenarioActive,
+		receivedPoolVisible,
 		hasStarted,
 		serverLog,
 		bufferSlots,

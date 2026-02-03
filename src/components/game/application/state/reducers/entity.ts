@@ -5,6 +5,7 @@
  */
 
 import { produce } from "immer";
+import { isItemData } from "../../../domain/entity/entity-data";
 import { createItemData } from "../../../domain/entity/entity-fns";
 import type { SpaceData } from "../../../domain/space/space-data";
 import {
@@ -14,7 +15,10 @@ import {
 	poolRemove,
 } from "../../../domain/space/space-fns";
 import type { EntityAction, LegacyEntityAction } from "../actions/entity";
+import type { GameEventInput } from "../events";
+import { appendEvents, getNextActionId } from "../events";
 import type { GameState } from "../types";
+import type { EntityUpdatePayload } from "../types/events";
 
 /**
  * Reduces entity-related actions to update the game state.
@@ -51,23 +55,74 @@ export const entityReducer = (
 					return;
 				}
 
+				const events: GameEventInput[] = [];
+				const actionId = getNextActionId(draft.eventQueue);
+				let hasChanges = false;
+				const eventUpdates: EntityUpdatePayload = {};
+
 				if ("name" in updates) {
-					entity.name = updates.name;
+					if (updates.name !== entity.name) {
+						entity.name = updates.name;
+						eventUpdates.name = updates.name;
+						hasChanges = true;
+					}
+				}
+
+				if ("draggable" in updates && isItemData(entity)) {
+					const nextDraggable = updates.draggable ?? entity.draggable;
+					if (nextDraggable !== entity.draggable) {
+						entity.draggable = nextDraggable;
+						eventUpdates.draggable = nextDraggable;
+						hasChanges = true;
+					}
 				}
 
 				// Update visual properties
 				if (updates.visual) {
-					Object.assign(entity.visual, updates.visual);
+					const visualChanged = Object.entries(updates.visual).some(
+						([key, value]) =>
+							entity.visual[key as keyof typeof entity.visual] !== value,
+					);
+					if (visualChanged) {
+						Object.assign(entity.visual, updates.visual);
+						eventUpdates.visual = updates.visual;
+						hasChanges = true;
+					}
 				}
 
 				// Update data properties
 				if (updates.data) {
-					Object.assign(entity.data, updates.data);
+					const dataChanged = Object.entries(updates.data).some(
+						([key, value]) =>
+							entity.data[key as keyof typeof entity.data] !== value,
+					);
+					if (dataChanged) {
+						Object.assign(entity.data, updates.data);
+						eventUpdates.data = updates.data;
+						hasChanges = true;
+					}
 				}
 
 				// Update state properties
 				if (updates.state) {
-					Object.assign(entity.state, updates.state);
+					const stateChanged = Object.entries(updates.state).some(
+						([key, value]) =>
+							entity.state[key as keyof typeof entity.state] !== value,
+					);
+					if (stateChanged) {
+						Object.assign(entity.state, updates.state);
+						eventUpdates.state = updates.state;
+						hasChanges = true;
+					}
+				}
+
+				if (hasChanges) {
+					events.push({
+						type: "ENTITY_UPDATED",
+						entityId,
+						updates: eventUpdates,
+					});
+					draft.eventQueue = appendEvents(draft.eventQueue, actionId, events);
 				}
 			});
 		}
@@ -81,7 +136,29 @@ export const entityReducer = (
 					return;
 				}
 
+				const stateChanged = Object.entries(stateUpdates).some(
+					([key, value]) =>
+						entity.state[key as keyof typeof entity.state] !== value,
+				);
+				if (!stateChanged) {
+					return;
+				}
+
 				Object.assign(entity.state, stateUpdates);
+
+				draft.eventQueue = appendEvents(
+					draft.eventQueue,
+					getNextActionId(draft.eventQueue),
+					[
+						{
+							type: "ENTITY_UPDATED",
+							entityId,
+							updates: {
+								state: stateUpdates,
+							},
+						},
+					],
+				);
 			});
 		}
 

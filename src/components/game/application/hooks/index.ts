@@ -13,6 +13,7 @@ export {
 	useEntityState,
 	useEntityStateValue,
 } from "./useEntity";
+export { useGameEvents } from "./useEvents";
 export {
 	useSpace,
 	useSpaceCapacity,

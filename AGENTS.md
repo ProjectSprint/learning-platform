@@ -91,7 +91,7 @@ For more details, see README.md and docs/QUICKSTART.md.
 
 ## Task Creation
 When creating a task, each task should:
-- Assumed that the one that will work on it, ISN'T YOU, but someone else, so be holistic about the context
+- Assumed that the one that will work on it, ISN'T YOU, but someone else, so be VERY CLEAR about the context
 - Fulfill the principles
     - Maintainability
     - Usability

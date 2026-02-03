@@ -11,12 +11,14 @@ const packetStateMessages: Record<string, TcpStateLabel> = {
 	buffered: { label: "Buffered for ordering" },
 	lost: { label: "Lost!" },
 	processing: { label: "Processing..." },
-	rejected: { label: "Rejected" },
+	rejected: { label: "Can't be processed" },
 };
 
 const fileStateMessages: Record<string, TcpStateLabel> = {
 	ready: { label: "Ready" },
+	"in-transit": { label: "Sending..." },
 	processing: { label: "Processing..." },
+	unknown: { label: "Unknown" },
 	rejected: { label: "Too large!" },
 };
 

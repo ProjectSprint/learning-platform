@@ -17,6 +17,8 @@ import {
 	poolRemove,
 } from "../../../domain/space/space-fns";
 import type { LegacySpaceAction, SpaceAction } from "../actions/space";
+import type { GameEventInput } from "../events";
+import { appendEvents, getNextActionId } from "../events";
 import type { GameState } from "../types";
 
 /**
@@ -63,19 +65,42 @@ export const spaceReducer = (
 					return;
 				}
 
+				const events: GameEventInput[] = [];
+				const actionId = getNextActionId(draft.eventQueue);
+
 				// Use FP functions based on space type
 				if (isGridSpace(space) && position) {
 					const gridPos = position as GridPosition;
 					if (!gridCanAccept(space, entityId, gridPos)) {
 						return;
 					}
-					gridAdd(space, entityId, gridPos);
+					const added = gridAdd(space, entityId, gridPos);
+					if (added) {
+						events.push({
+							type: "ENTITY_ENTERED_SPACE",
+							entityId,
+							spaceId,
+							position: gridPos,
+						});
+					}
 				} else if (isPoolSpace(space)) {
 					const index =
 						typeof position === "object" && "index" in position
 							? (position as { index: number }).index
 							: undefined;
-					poolAdd(space, entityId, index);
+					const added = poolAdd(space, entityId, index);
+					if (added) {
+						events.push({
+							type: "ENTITY_ENTERED_SPACE",
+							entityId,
+							spaceId,
+							position: index !== undefined ? { index } : undefined,
+						});
+					}
+				}
+
+				if (events.length > 0) {
+					draft.eventQueue = appendEvents(draft.eventQueue, actionId, events);
 				}
 			});
 		}
@@ -91,10 +116,35 @@ export const spaceReducer = (
 					return;
 				}
 
+				const events: GameEventInput[] = [];
+				const actionId = getNextActionId(draft.eventQueue);
+
 				if (isGridSpace(space)) {
-					gridRemove(space, entityId);
+					const position = gridGetPosition(space, entityId);
+					const removed = gridRemove(space, entityId);
+					if (removed) {
+						events.push({
+							type: "ENTITY_LEFT_SPACE",
+							entityId,
+							spaceId,
+							position,
+						});
+					}
 				} else if (isPoolSpace(space)) {
-					poolRemove(space, entityId);
+					const index = space.entityIds.indexOf(entityId);
+					const removed = poolRemove(space, entityId);
+					if (removed) {
+						events.push({
+							type: "ENTITY_LEFT_SPACE",
+							entityId,
+							spaceId,
+							position: index >= 0 ? { index } : undefined,
+						});
+					}
+				}
+
+				if (events.length > 0) {
+					draft.eventQueue = appendEvents(draft.eventQueue, actionId, events);
 				}
 			});
 		}
@@ -110,6 +160,15 @@ export const spaceReducer = (
 				if (!fromSpace || !toSpace || !entity) {
 					return;
 				}
+
+				const actionId = getNextActionId(draft.eventQueue);
+				const fromPosition = isGridSpace(fromSpace)
+					? gridGetPosition(fromSpace, entityId)
+					: isPoolSpace(fromSpace)
+						? {
+								index: fromSpace.entityIds.indexOf(entityId),
+							}
+						: undefined;
 
 				// Check if entity is in source space
 				if (!spaceContains(fromSpace, entityId)) {
@@ -152,7 +211,27 @@ export const spaceReducer = (
 					} else if (isPoolSpace(fromSpace)) {
 						poolAdd(fromSpace, entityId, 0); // Add at beginning
 					}
+					return;
 				}
+
+				const toPositionValue = isGridSpace(toSpace)
+					? gridGetPosition(toSpace, entityId)
+					: isPoolSpace(toSpace)
+						? {
+								index: toSpace.entityIds.indexOf(entityId),
+							}
+						: undefined;
+
+				draft.eventQueue = appendEvents(draft.eventQueue, actionId, [
+					{
+						type: "ENTITY_MOVED",
+						entityId,
+						fromSpaceId,
+						toSpaceId,
+						fromPosition,
+						toPosition: toPositionValue,
+					},
+				]);
 			});
 		}
 
@@ -209,6 +288,10 @@ export const spaceReducer = (
 				const pos1 = gridGetPosition(space1, entity1Id);
 				const pos2 = gridGetPosition(space2, entity2Id);
 
+				const actionId = getNextActionId(draft.eventQueue);
+				const from1 = gridGetPosition(space1, entity1Id);
+				const from2 = gridGetPosition(space2, entity2Id);
+
 				if (space1Id === space2Id) {
 					// Same grid space: remove both and add at swapped positions
 					gridRemove(space1, entity1Id);
@@ -229,6 +312,30 @@ export const spaceReducer = (
 					if (pos1) {
 						gridAdd(space1, entity2Id, pos1);
 					}
+				}
+
+				const to1 = gridGetPosition(space2, entity1Id);
+				const to2 = gridGetPosition(space1, entity2Id);
+
+				if (from1 && to1 && from2 && to2) {
+					draft.eventQueue = appendEvents(draft.eventQueue, actionId, [
+						{
+							type: "ENTITY_MOVED",
+							entityId: entity1Id,
+							fromSpaceId: space1Id,
+							toSpaceId: space2Id,
+							fromPosition: from1,
+							toPosition: to1,
+						},
+						{
+							type: "ENTITY_MOVED",
+							entityId: entity2Id,
+							fromSpaceId: space2Id,
+							toSpaceId: space1Id,
+							fromPosition: from2,
+							toPosition: to2,
+						},
+					]);
 				}
 			});
 		}
@@ -260,12 +367,27 @@ export const spaceReducer = (
 					return;
 				}
 
+				const events: GameEventInput[] = [];
+				const actionId = getNextActionId(draft.eventQueue);
+
 				// Find entity at this position in grid space
 				for (const [entityId, pos] of Object.entries(space.entityPositions)) {
 					if (pos.row === blockY && pos.col === blockX) {
-						gridRemove(space, entityId);
+						const removed = gridRemove(space, entityId);
+						if (removed) {
+							events.push({
+								type: "ENTITY_LEFT_SPACE",
+								entityId,
+								spaceId,
+								position: pos,
+							});
+						}
 						break;
 					}
+				}
+
+				if (events.length > 0) {
+					draft.eventQueue = appendEvents(draft.eventQueue, actionId, events);
 				}
 			});
 		}
@@ -305,50 +427,47 @@ export const spaceReducer = (
 			const fromSpaceId = from.puzzleId ?? "puzzle";
 			const toSpaceId = to.puzzleId ?? "puzzle";
 
-			return produce(state, (draft) => {
-				const fromSpace = draft.spaces[fromSpaceId];
-				const toSpace = draft.spaces[toSpaceId];
+			const fromSpace = state.spaces[fromSpaceId];
+			const toSpace = state.spaces[toSpaceId];
 
-				if (!fromSpace || !toSpace) {
-					return;
-				}
+			if (!fromSpace || !toSpace) {
+				return state;
+			}
 
-				// Find entities at positions
-				let entity1Id: string | undefined;
-				let entity2Id: string | undefined;
+			// Find entities at positions
+			let entity1Id: string | undefined;
+			let entity2Id: string | undefined;
 
-				if (isGridSpace(fromSpace)) {
-					for (const [eid, pos] of Object.entries(fromSpace.entityPositions)) {
-						if (pos.row === from.blockY && pos.col === from.blockX) {
-							entity1Id = eid;
-							break;
-						}
+			if (isGridSpace(fromSpace)) {
+				for (const [eid, pos] of Object.entries(fromSpace.entityPositions)) {
+					if (pos.row === from.blockY && pos.col === from.blockX) {
+						entity1Id = eid;
+						break;
 					}
 				}
+			}
 
-				if (isGridSpace(toSpace)) {
-					for (const [eid, pos] of Object.entries(toSpace.entityPositions)) {
-						if (pos.row === to.blockY && pos.col === to.blockX) {
-							entity2Id = eid;
-							break;
-						}
+			if (isGridSpace(toSpace)) {
+				for (const [eid, pos] of Object.entries(toSpace.entityPositions)) {
+					if (pos.row === to.blockY && pos.col === to.blockX) {
+						entity2Id = eid;
+						break;
 					}
 				}
+			}
 
-				if (!entity1Id || !entity2Id) {
-					return;
-				}
+			if (!entity1Id || !entity2Id) {
+				return state;
+			}
 
-				// Perform the swap using SWAP_ENTITIES logic
-				draft.spaces = spaceReducer(state, {
-					type: "SWAP_ENTITIES",
-					payload: {
-						entity1Id,
-						space1Id: fromSpaceId,
-						entity2Id,
-						space2Id: toSpaceId,
-					},
-				}).spaces;
+			return spaceReducer(state, {
+				type: "SWAP_ENTITIES",
+				payload: {
+					entity1Id,
+					space1Id: fromSpaceId,
+					entity2Id,
+					space2Id: toSpaceId,
+				},
 			});
 		}
 

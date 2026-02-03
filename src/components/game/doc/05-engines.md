@@ -4,6 +4,31 @@
 
 Engines add reactive, automated behavior to the game. They listen to state changes and execute logic based on events, with built-in lifecycle management.
 
+## Game Events
+
+Engines can subscribe to ordered reducer events with `useGameEvents`. Events are append-only and must be acknowledged to advance the cursor.
+
+```tsx
+import { useEffect } from "react";
+import { useGameEvents } from "@/components/game/game-provider";
+
+function ExampleEngine() {
+  const { events, ack } = useGameEvents();
+
+  useEffect(() => {
+    if (events.length === 0) return;
+    events.forEach((event) => {
+      // react to event.type
+    });
+    ack();
+  }, [events, ack]);
+
+  return null;
+}
+```
+
+Common event types: `ENTITY_ENTERED_SPACE`, `ENTITY_LEFT_SPACE`, `ENTITY_MOVED`, `ENTITY_UPDATED`, `MODAL_OPENED`, `MODAL_CLOSED`, `PHASE_CHANGED`.
+
 ## Engine Lifecycle
 
 All engines follow a three-phase lifecycle:

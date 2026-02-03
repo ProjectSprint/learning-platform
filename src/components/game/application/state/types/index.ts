@@ -13,6 +13,7 @@ import type {
 } from "../../../core/types";
 import type { EntityData } from "../../../domain/entity/entity-data";
 import type { SpaceData } from "../../../domain/space/space-data";
+import type { GameEventQueue } from "./events";
 
 /**
  * New GameState type using plain domain data.
@@ -42,6 +43,9 @@ export type GameState = {
 
 	/** Current question information */
 	question: { id: string; status: QuestionStatus };
+
+	/** Ordered engine events for deterministic transitions */
+	eventQueue: GameEventQueue;
 };
 
 /**
@@ -71,3 +75,9 @@ export type EntityTransfer = {
 	/** Position in destination space */
 	toPosition?: Record<string, unknown>;
 };
+
+export type {
+	GameEvent,
+	GameEventQueue,
+	ModalCloseReason,
+} from "./events";

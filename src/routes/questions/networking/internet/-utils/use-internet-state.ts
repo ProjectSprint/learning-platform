@@ -3,7 +3,7 @@
  * Provides the same interface as the original useInternetState but works with the new state format.
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { gridGetPosition } from "@/components/game/domain/space/space-fns";
@@ -12,7 +12,11 @@ import type {
 	BoardItemLocation,
 	BoardItemStatus,
 } from "@/components/game/game-provider";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import {
+	useGameDispatch,
+	useGameEvents,
+	useGameState,
+} from "@/components/game/game-provider";
 import {
 	CANVAS_ORDER,
 	GOOGLE_IP,
@@ -61,6 +65,10 @@ const entityToBoardItem = (
 export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
+	const { events, ack } = useGameEvents();
+	const [eventTick, setEventTick] = useState(0);
+	const stateRef = useRef(state);
+	stateRef.current = state;
 
 	// Get all grid spaces
 	const spaces = useMemo(() => {
@@ -213,72 +221,132 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			entry.visible && entry.instance.id?.startsWith("router-wan-config"),
 	);
 
-	// Auto-assign IP to PC when routerLan is configured and PC is connected via cable
+	const derivedRef = useRef({
+		network,
+		routerLanConfigured,
+		startIp,
+		dhcpEnabled,
+		hasValidIpRange,
+		hasValidDnsServer,
+		natEnabled,
+		hasValidPppoeCredentials,
+		routerNatConfigured,
+		googleReachable,
+		allDevicesPlaced,
+		allRoutersConfigured,
+		questionStatus: state.question.status,
+	});
+	derivedRef.current = {
+		network,
+		routerLanConfigured,
+		startIp,
+		dhcpEnabled,
+		hasValidIpRange,
+		hasValidDnsServer,
+		natEnabled,
+		hasValidPppoeCredentials,
+		routerNatConfigured,
+		googleReachable,
+		allDevicesPlaced,
+		allRoutersConfigured,
+		questionStatus: state.question.status,
+	};
+
 	useEffect(() => {
-		if (state.question.status === "completed") {
+		if (events.length === 0) {
 			return;
 		}
 
+		const shouldSync = events.some(
+			(event) =>
+				event.type === "ENTITY_ENTERED_SPACE" ||
+				event.type === "ENTITY_LEFT_SPACE" ||
+				event.type === "ENTITY_MOVED" ||
+				event.type === "ENTITY_UPDATED" ||
+				event.type === "PHASE_CHANGED",
+		);
+
+		if (shouldSync) {
+			setEventTick((prev) => prev + 1);
+		}
+		ack();
+	}, [ack, events]);
+
+	// Auto-assign IP to PC when routerLan is configured and PC is connected via cable
+	useEffect(() => {
+		const snapshot = derivedRef.current;
+		void eventTick;
+		if (snapshot.questionStatus === "completed") {
+			return;
+		}
+
+		const { network: networkSnapshot, routerLanConfigured, startIp } = snapshot;
+
 		// Auto-assign IP to PC when router LAN is configured and PC is connected to it
 		if (
-			network.pc &&
+			networkSnapshot.pc &&
 			routerLanConfigured &&
 			startIp &&
-			network.pcConnectedToRouterLan
+			networkSnapshot.pcConnectedToRouterLan
 		) {
 			const startOctets = startIp.split(".").map((s) => Number.parseInt(s, 10));
 			const baseOctets = startOctets.slice(0, 3);
 			const startLastOctet = startOctets[3];
 			const desiredIp = `${baseOctets.join(".")}.${startLastOctet}`;
 
-			const entity = state.entities[network.pc.id];
+			const entity = stateRef.current.entities[networkSnapshot.pc.id];
 			const currentIp = entity?.state.ip ?? null;
 
 			if (currentIp !== desiredIp) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.pc.id,
+						entityId: networkSnapshot.pc.id,
 						state: { ip: desiredIp },
 					},
 				});
 			}
 		} else if (
-			network.pc &&
-			(!routerLanConfigured || !network.pcConnectedToRouterLan)
+			networkSnapshot.pc &&
+			(!routerLanConfigured || !networkSnapshot.pcConnectedToRouterLan)
 		) {
 			// Remove IP if router LAN not configured or PC not connected
-			const entity = state.entities[network.pc.id];
+			const entity = stateRef.current.entities[networkSnapshot.pc.id];
 			const currentIp = entity?.state.ip ?? null;
 			if (currentIp !== null) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.pc.id,
+						entityId: networkSnapshot.pc.id,
 						state: { ip: null },
 					},
 				});
 			}
 		}
-	}, [
-		dispatch,
-		network.pc,
-		network.pcConnectedToRouterLan,
-		routerLanConfigured,
-		startIp,
-		state.question.status,
-		state.entities,
-	]);
+	}, [dispatch, eventTick]);
 
 	// Update device statuses based on network state
 	useEffect(() => {
-		if (state.question.status === "completed") {
+		const snapshot = derivedRef.current;
+		void eventTick;
+		if (snapshot.questionStatus === "completed") {
 			return;
 		}
 
+		const {
+			network: networkSnapshot,
+			dhcpEnabled,
+			hasValidIpRange,
+			hasValidDnsServer,
+			natEnabled,
+			hasValidPppoeCredentials,
+			routerNatConfigured,
+			googleReachable,
+		} = snapshot;
+
 		// PC status: error → warning → success based on IP and internet access
-		if (network.pc) {
-			const entity = state.entities[network.pc.id];
+		if (networkSnapshot.pc) {
+			const entity = stateRef.current.entities[networkSnapshot.pc.id];
 			const hasPcIp = entity?.state.ip !== undefined;
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasPcIp) {
@@ -292,7 +360,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.pc.id,
+						entityId: networkSnapshot.pc.id,
 						state: { status: desiredStatus },
 					},
 				});
@@ -300,8 +368,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		}
 
 		// Router LAN status: error → warning → success based on config
-		if (network.routerLan) {
-			const entity = state.entities[network.routerLan.id];
+		if (networkSnapshot.routerLan) {
+			const entity = stateRef.current.entities[networkSnapshot.routerLan.id];
 			let desiredStatus: "error" | "warning" | "success";
 			if (!dhcpEnabled || !hasValidIpRange) {
 				desiredStatus = "error";
@@ -314,7 +382,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.routerLan.id,
+						entityId: networkSnapshot.routerLan.id,
 						state: { status: desiredStatus },
 					},
 				});
@@ -322,14 +390,14 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		}
 
 		// Router NAT status: error → success based on natEnabled
-		if (network.routerNat) {
-			const entity = state.entities[network.routerNat.id];
+		if (networkSnapshot.routerNat) {
+			const entity = stateRef.current.entities[networkSnapshot.routerNat.id];
 			const desiredStatus = natEnabled ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.routerNat.id,
+						entityId: networkSnapshot.routerNat.id,
 						state: { status: desiredStatus },
 					},
 				});
@@ -337,15 +405,15 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		}
 
 		// Router WAN status: error → warning → success based on PPPoE config AND connection to fiber/IGW/internet
-		if (network.routerWan) {
-			const entity = state.entities[network.routerWan.id];
+		if (networkSnapshot.routerWan) {
+			const entity = stateRef.current.entities[networkSnapshot.routerWan.id];
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasValidPppoeCredentials) {
 				desiredStatus = "error";
-			} else if (!network.routerWanConnectedToIgw) {
+			} else if (!networkSnapshot.routerWanConnectedToIgw) {
 				// Has credentials but not connected to fiber → IGW
 				desiredStatus = "warning";
-			} else if (!network.igw) {
+			} else if (!networkSnapshot.igw) {
 				// Connected to fiber but IGW not placed
 				desiredStatus = "warning";
 			} else {
@@ -356,7 +424,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.routerWan.id,
+						entityId: networkSnapshot.routerWan.id,
 						state: { status: desiredStatus },
 					},
 				});
@@ -364,14 +432,14 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		}
 
 		// IGW status: warning → success based on WAN connection
-		if (network.igw) {
-			const entity = state.entities[network.igw.id];
+		if (networkSnapshot.igw) {
+			const entity = stateRef.current.entities[networkSnapshot.igw.id];
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.igw.id,
+						entityId: networkSnapshot.igw.id,
 						state: { status: desiredStatus },
 					},
 				});
@@ -379,14 +447,14 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		}
 
 		// DNS status: error → success based on router LAN DNS config
-		if (network.dns) {
-			const entity = state.entities[network.dns.id];
+		if (networkSnapshot.dns) {
+			const entity = stateRef.current.entities[networkSnapshot.dns.id];
 			const desiredStatus = hasValidDnsServer ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.dns.id,
+						entityId: networkSnapshot.dns.id,
 						state: { status: desiredStatus },
 					},
 				});
@@ -394,8 +462,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		}
 
 		// Google status: error → warning → success based on full connectivity
-		if (network.google) {
-			const entity = state.entities[network.google.id];
+		if (networkSnapshot.google) {
+			const entity = stateRef.current.entities[networkSnapshot.google.id];
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasValidDnsServer) {
 				desiredStatus = "error";
@@ -408,7 +476,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.google.id,
+						entityId: networkSnapshot.google.id,
 						state: { status: desiredStatus },
 					},
 				});
@@ -416,16 +484,16 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		}
 
 		// Cable status - success when connecting PC to Router LAN
-		if (network.cable) {
-			const entity = state.entities[network.cable.id];
-			const desiredStatus = network.pcConnectedToRouterLan
+		if (networkSnapshot.cable) {
+			const entity = stateRef.current.entities[networkSnapshot.cable.id];
+			const desiredStatus = networkSnapshot.pcConnectedToRouterLan
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.cable.id,
+						entityId: networkSnapshot.cable.id,
 						state: { status: desiredStatus },
 					},
 				});
@@ -433,70 +501,44 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		}
 
 		// Fiber status - success when connecting Router WAN to IGW
-		if (network.fiber) {
-			const entity = state.entities[network.fiber.id];
-			const desiredStatus = network.routerWanConnectedToIgw
+		if (networkSnapshot.fiber) {
+			const entity = stateRef.current.entities[networkSnapshot.fiber.id];
+			const desiredStatus = networkSnapshot.routerWanConnectedToIgw
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.fiber.id,
+						entityId: networkSnapshot.fiber.id,
 						state: { status: desiredStatus },
 					},
 				});
 			}
 		}
-	}, [
-		dispatch,
-		network.pc,
-		network.cable,
-		network.routerLan,
-		network.routerNat,
-		network.routerWan,
-		network.fiber,
-		network.igw,
-		network.dns,
-		network.google,
-		network.pcConnectedToRouterLan,
-		network.routerWanConnectedToIgw,
-		dhcpEnabled,
-		hasValidIpRange,
-		hasValidDnsServer,
-		natEnabled,
-		hasValidPppoeCredentials,
-		routerNatConfigured,
-		state.question.status,
-		googleReachable,
-		state.entities,
-	]);
+	}, [dispatch, eventTick]);
 
 	// Phase transitions
 	useEffect(() => {
 		if (!dragEngine) return;
-		if (state.question.status === "completed") return;
+		void eventTick;
+		const snapshot = derivedRef.current;
+		if (snapshot.questionStatus === "completed") return;
 
 		// pending → start when all devices placed
-		if (dragEngine.progress.status === "pending" && allDevicesPlaced) {
+		if (dragEngine.progress.status === "pending" && snapshot.allDevicesPlaced) {
 			dragEngine.start();
 		}
 
 		// playing → finish when all configured and googleReachable
 		if (
 			dragEngine.progress.status !== "finished" &&
-			allRoutersConfigured &&
-			googleReachable
+			snapshot.allRoutersConfigured &&
+			snapshot.googleReachable
 		) {
 			dragEngine.finish();
 		}
-	}, [
-		dragEngine,
-		allDevicesPlaced,
-		allRoutersConfigured,
-		googleReachable,
-		state.question.status,
-	]);
+	}, [dragEngine, eventTick]);
 
 	return {
 		network,

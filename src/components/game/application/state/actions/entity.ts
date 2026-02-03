@@ -29,6 +29,7 @@ export type UpdateEntityAction = {
 		entityId: string;
 		updates: {
 			name?: EntityData["name"];
+			draggable?: boolean;
 			visual?: EntityData["visual"];
 			data?: EntityData["data"];
 			state?: EntityData["state"];

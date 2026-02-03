@@ -110,6 +110,11 @@ export const createDefaultState = (): GameState => {
 			id: "",
 			status: "in_progress",
 		},
+		eventQueue: {
+			events: [],
+			lastEventId: 0,
+			lastActionId: 0,
+		},
 	};
 };
 

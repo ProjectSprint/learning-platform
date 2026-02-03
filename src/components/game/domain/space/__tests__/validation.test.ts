@@ -31,6 +31,7 @@ function createTestGameState(
 		hint: { visible: false, content: null },
 		overlay: { modals: {} },
 		question: { id: "test", status: "in_progress" },
+		eventQueue: { events: [], lastEventId: 0, lastActionId: 0 },
 	};
 }
 

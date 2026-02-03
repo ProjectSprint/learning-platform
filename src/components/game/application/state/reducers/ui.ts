@@ -14,6 +14,8 @@ import {
 	sanitizeTerminalOutput,
 } from "../../../domain/validation/sanitize";
 import type { UIAction } from "../actions/ui";
+import type { GameEventInput } from "../events";
+import { appendEvents, getNextActionId } from "../events";
 import type { GameState } from "../types";
 
 // Helper functions for arrows
@@ -31,7 +33,18 @@ const mergeArrow = (arrow: Arrow, updates: Partial<Arrow>): Arrow => {
 
 // Helper functions for terminal
 const addHistoryEntry = (history: TerminalEntry[], entry: TerminalEntry) => {
-	const nextHistory = [...history, entry];
+	const existingIds = new Set(history.map((item) => item.id));
+	let nextEntry = entry;
+	if (existingIds.has(entry.id)) {
+		let counter = 1;
+		let nextId = `${entry.id}-${counter}`;
+		while (existingIds.has(nextId)) {
+			counter += 1;
+			nextId = `${entry.id}-${counter}`;
+		}
+		nextEntry = { ...entry, id: nextId };
+	}
+	const nextHistory = [...history, nextEntry];
 	if (nextHistory.length > MAX_HISTORY_ENTRIES) {
 		return nextHistory.slice(-MAX_HISTORY_ENTRIES);
 	}
@@ -121,6 +134,23 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 			const existingModal = state.overlay.modals[modalId];
 
 			if (existingModal) {
+				if (existingModal.visible) {
+					return state;
+				}
+
+				const events: GameEventInput[] = [
+					{
+						type: "MODAL_OPENED",
+						modalId,
+						modal: existingModal.instance,
+					},
+				];
+				const nextQueue = appendEvents(
+					state.eventQueue,
+					getNextActionId(state.eventQueue),
+					events,
+				);
+
 				// Modal exists, just show it
 				return {
 					...state,
@@ -131,8 +161,22 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 							[modalId]: { ...existingModal, visible: true },
 						},
 					},
+					eventQueue: nextQueue,
 				};
 			}
+
+			const events: GameEventInput[] = [
+				{
+					type: "MODAL_OPENED",
+					modalId,
+					modal: action.payload,
+				},
+			];
+			const nextQueue = appendEvents(
+				state.eventQueue,
+				getNextActionId(state.eventQueue),
+				events,
+			);
 
 			// New modal, add to map
 			return {
@@ -147,6 +191,7 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 						},
 					},
 				},
+				eventQueue: nextQueue,
 			};
 		}
 		case "CLOSE_MODAL": {
@@ -155,7 +200,21 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 			if (modalIdToClose) {
 				// Close specific modal
 				const modal = state.overlay.modals[modalIdToClose];
-				if (!modal) return state;
+				if (!modal || !modal.visible) return state;
+
+				const events: GameEventInput[] = [
+					{
+						type: "MODAL_CLOSED",
+						modalId: modalIdToClose,
+						modal: modal.instance,
+						reason: "programmatic",
+					},
+				];
+				const nextQueue = appendEvents(
+					state.eventQueue,
+					getNextActionId(state.eventQueue),
+					events,
+				);
 
 				return {
 					...state,
@@ -166,15 +225,34 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 							[modalIdToClose]: { ...modal, visible: false },
 						},
 					},
+					eventQueue: nextQueue,
 				};
 			}
 
 			// Close all visible modals
+			const events: GameEventInput[] = [];
 			const updatedModals = Object.fromEntries(
-				Object.entries(state.overlay.modals).map(([id, entry]) => [
-					id,
-					{ ...entry, visible: false },
-				]),
+				Object.entries(state.overlay.modals).map(([id, entry]) => {
+					if (entry.visible) {
+						events.push({
+							type: "MODAL_CLOSED",
+							modalId: id,
+							modal: entry.instance,
+							reason: "programmatic",
+						});
+					}
+					return [id, { ...entry, visible: false }];
+				}),
+			);
+
+			if (events.length === 0) {
+				return state;
+			}
+
+			const nextQueue = appendEvents(
+				state.eventQueue,
+				getNextActionId(state.eventQueue),
+				events,
 			);
 
 			return {
@@ -183,6 +261,7 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 					...state.overlay,
 					modals: updatedModals,
 				},
+				eventQueue: nextQueue,
 			};
 		}
 

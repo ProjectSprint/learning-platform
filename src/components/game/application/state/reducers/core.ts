@@ -3,6 +3,7 @@
  */
 
 import type { CoreAction } from "../actions/core";
+import { appendEvents, getNextActionId } from "../events";
 import type { GameState } from "../types";
 
 export const coreReducer = (
@@ -11,9 +12,23 @@ export const coreReducer = (
 ): GameState => {
 	switch (action.type) {
 		case "SET_PHASE":
+			if (state.phase === action.payload.phase) {
+				return state;
+			}
 			return {
 				...state,
 				phase: action.payload.phase,
+				eventQueue: appendEvents(
+					state.eventQueue,
+					getNextActionId(state.eventQueue),
+					[
+						{
+							type: "PHASE_CHANGED",
+							from: state.phase,
+							to: action.payload.phase,
+						},
+					],
+				),
 			};
 		case "COMPLETE_QUESTION":
 			return {

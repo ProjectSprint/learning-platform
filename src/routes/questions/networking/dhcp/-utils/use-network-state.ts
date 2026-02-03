@@ -3,7 +3,7 @@
  * Provides the same interface as the original useNetworkState but works with the new state format.
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { gridGetPosition } from "@/components/game/domain/space/space-fns";
@@ -12,7 +12,11 @@ import type {
 	BoardItemLocation,
 	BoardItemStatus,
 } from "@/components/game/game-provider";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import {
+	useGameDispatch,
+	useGameEvents,
+	useGameState,
+} from "@/components/game/game-provider";
 import { DHCP_CANVAS_IDS } from "./constants";
 import {
 	type BoardPlacements,
@@ -57,6 +61,10 @@ const entityToBoardItem = (
 export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
+	const { events, ack } = useGameEvents();
+	const [eventTick, setEventTick] = useState(0);
+	const stateRef = useRef(state);
+	stateRef.current = state;
 
 	// Get all grid spaces
 	const spaces = useMemo(() => {
@@ -148,15 +156,57 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		(entry) => entry.visible && entry.instance.id?.startsWith("router-config"),
 	);
 
-	// Update device statuses based on network state
+	const derivedRef = useRef({
+		network,
+		routerConfigured,
+		startIp,
+		pc1HasIp,
+		pc2HasIp,
+		pc2Ip,
+		questionStatus: state.question.status,
+	});
+	derivedRef.current = {
+		network,
+		routerConfigured,
+		startIp,
+		pc1HasIp,
+		pc2HasIp,
+		pc2Ip,
+		questionStatus: state.question.status,
+	};
+
 	useEffect(() => {
-		if (state.question.status === "completed") {
+		if (events.length === 0) {
 			return;
 		}
 
-		const connectedPcs = [network.pc1, network.pc2].filter(
+		const shouldSync = events.some(
+			(event) =>
+				event.type === "ENTITY_ENTERED_SPACE" ||
+				event.type === "ENTITY_LEFT_SPACE" ||
+				event.type === "ENTITY_MOVED" ||
+				event.type === "ENTITY_UPDATED" ||
+				event.type === "PHASE_CHANGED",
+		);
+
+		if (shouldSync) {
+			setEventTick((prev) => prev + 1);
+		}
+		ack();
+	}, [ack, events]);
+
+	// Update device statuses based on network state
+	useEffect(() => {
+		const snapshot = derivedRef.current;
+		void eventTick;
+		if (snapshot.questionStatus === "completed") {
+			return;
+		}
+
+		const { network: networkSnapshot, routerConfigured, startIp } = snapshot;
+		const connectedPcs = [networkSnapshot.pc1, networkSnapshot.pc2].filter(
 			(pc): pc is BoardItemLocation =>
-				Boolean(pc && network.connectedPcIds.has(pc.id)),
+				Boolean(pc && networkSnapshot.connectedPcIds.has(pc.id)),
 		);
 		const desiredIps = new Map<string, string>();
 
@@ -175,14 +225,14 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		}
 
 		// Update router status
-		if (network.router) {
+		if (networkSnapshot.router) {
 			const desiredRouterStatus = routerConfigured ? "success" : "error";
-			const entity = state.entities[network.router.id];
+			const entity = stateRef.current.entities[networkSnapshot.router.id];
 			if (entity && entity.state.status !== desiredRouterStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
 					payload: {
-						entityId: network.router.id,
+						entityId: networkSnapshot.router.id,
 						state: { status: desiredRouterStatus },
 					},
 				});
@@ -190,10 +240,10 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		}
 
 		// Update cable statuses
-		network.cables.forEach((cable) => {
-			const isConnected = network.connectedCableIds.has(cable.id);
+		networkSnapshot.cables.forEach((cable) => {
+			const isConnected = networkSnapshot.connectedCableIds.has(cable.id);
 			const desiredStatus = isConnected ? "success" : "warning";
-			const entity = state.entities[cable.id];
+			const entity = stateRef.current.entities[cable.id];
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
 					type: "UPDATE_ENTITY_STATE",
@@ -206,16 +256,16 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		});
 
 		// Update PC statuses and IPs
-		[network.pc1, network.pc2].forEach((pc) => {
+		[networkSnapshot.pc1, networkSnapshot.pc2].forEach((pc) => {
 			if (!pc) {
 				return;
 			}
 
-			const entity = state.entities[pc.id];
+			const entity = stateRef.current.entities[pc.id];
 			if (!entity) return;
 
 			const shouldHaveIp =
-				routerConfigured && network.connectedPcIds.has(pc.id);
+				routerConfigured && networkSnapshot.connectedPcIds.has(pc.id);
 			const desiredIp = shouldHaveIp ? (desiredIps.get(pc.id) ?? null) : null;
 			const currentIp = entity.state.ip ?? null;
 			const desiredStatus = desiredIp ? "success" : "warning";
@@ -234,49 +284,33 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 				});
 			}
 		});
-	}, [
-		dispatch,
-		startIp,
-		network.cables,
-		network.connectedCableIds,
-		network.connectedPcIds,
-		network.pc1,
-		network.pc2,
-		network.router,
-		routerConfigured,
-		state.question.status,
-		state.entities,
-	]);
+	}, [dispatch, eventTick]);
 
 	// Manage drag engine progress
 	useEffect(() => {
 		if (!dragEngine) return;
-		if (state.question.status === "completed") return;
+		void eventTick;
+		const snapshot = derivedRef.current;
+		if (snapshot.questionStatus === "completed") return;
 
+		const { network: networkSnapshot } = snapshot;
 		if (
 			dragEngine.progress.status === "pending" &&
-			network.router &&
-			network.connectedPcIds.size > 0
+			networkSnapshot.router &&
+			networkSnapshot.connectedPcIds.size > 0
 		) {
 			dragEngine.start();
 		}
 
 		if (
 			dragEngine.progress.status !== "finished" &&
-			network.router &&
-			pc1HasIp &&
-			pc2HasIp
+			networkSnapshot.router &&
+			snapshot.pc1HasIp &&
+			snapshot.pc2HasIp
 		) {
 			dragEngine.finish();
 		}
-	}, [
-		dragEngine,
-		network.router,
-		network.connectedPcIds,
-		pc1HasIp,
-		pc2HasIp,
-		state.question.status,
-	]);
+	}, [dragEngine, eventTick]);
 
 	return {
 		network,

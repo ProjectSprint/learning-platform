@@ -12,7 +12,12 @@ import {
 
 export type { Action as GameAction } from "./application/state/actions";
 // Core game state (new architecture)
-export type { GameState } from "./application/state/types";
+export type {
+	GameEvent,
+	GameEventQueue,
+	GameState,
+	ModalCloseReason,
+} from "./application/state/types";
 // Legacy types still used by UI components
 export type {
 	Arrow,
@@ -78,7 +83,7 @@ export {
 	useEntityStateValue,
 	useItem,
 } from "./application/hooks/useEntity";
-
+export { useGameEvents } from "./application/hooks/useEvents";
 export {
 	useEntityGridPosition,
 	useSpace,

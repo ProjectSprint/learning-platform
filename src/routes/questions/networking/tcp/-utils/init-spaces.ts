@@ -44,6 +44,17 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 		type: "CREATE_SPACE",
 		payload: { space: inventorySpace },
 	});
+
+	const receivedSpace = createPoolSpaceData({
+		id: "received",
+		name: "Received",
+		metadata: { visible: false },
+	});
+
+	dispatch({
+		type: "CREATE_SPACE",
+		payload: { space: receivedSpace },
+	});
 };
 
 /**
