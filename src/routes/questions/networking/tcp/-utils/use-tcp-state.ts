@@ -689,7 +689,10 @@ export const useTcpState = (): TcpState => {
 
 	const handleFileMtuReject = useCallback(
 		(entityId: string, spaceId: string) => {
-			updateEntityState(entityId, { tcpState: "processing", status: "info" });
+			updateEntityState(entityId, {
+				tcpState: "processing",
+				status: "normal",
+			});
 			const rejectTimer = setTimeout(() => {
 				updateEntityState(entityId, { tcpState: "rejected", status: "error" });
 				const resolveTimer = setTimeout(() => {

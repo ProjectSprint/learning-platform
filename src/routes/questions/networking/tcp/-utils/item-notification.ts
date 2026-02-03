@@ -65,8 +65,7 @@ export const getTcpStatusMessage = (
 
 	if (type === "message-file" || type === "notes-file") {
 		const stateMessage = fileStateMessages[tcpState]?.label ?? "Ready";
-		const fileLabel = type === "notes-file" ? "notes.txt" : "message.txt";
-		return `${fileLabel} ${stateMessage}`;
+		return stateMessage;
 	}
 
 	if (type === "split-packet") {
