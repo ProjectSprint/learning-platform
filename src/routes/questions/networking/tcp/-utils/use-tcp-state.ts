@@ -72,7 +72,6 @@ export type TcpState = {
 };
 
 const INTERNET_TRAVEL_MS = 2000;
-const SERVER_PROCESS_MS = 3000;
 const SERVER_REJECT_DELAY_MS = 2000;
 const PACKET_REJECT_RETURN_MS = 1500;
 const FILE_PROCESS_DELAY_MS = 1500;
@@ -523,7 +522,6 @@ export const useTcpState = (): TcpState => {
 			ensureInInventory,
 			registerTimer,
 			resetBufferState,
-			setLossScenarioActive,
 			setPhase,
 		],
 	);
@@ -660,6 +658,7 @@ export const useTcpState = (): TcpState => {
 			logAckMessage,
 			resetBufferState,
 			scheduleBufferedRelease,
+			triggerResend,
 			updateBufferDisplay,
 			updateEntityState,
 		],
@@ -932,14 +931,7 @@ export const useTcpState = (): TcpState => {
 			appendServerLog("🔴 Disconnected");
 			setPhase("terminal");
 		},
-		[
-			appendServerLog,
-			ensureInInventory,
-			setConnectionActive,
-			setConnectionClosed,
-			setPhase,
-			updateEntityState,
-		],
+		[appendServerLog, ensureInInventory, setPhase, updateEntityState],
 	);
 
 	const handleFinAckArrival = useCallback(() => {
@@ -1061,7 +1053,6 @@ export const useTcpState = (): TcpState => {
 			}
 		},
 		[
-			dispatch,
 			handleFileMtuReject,
 			handleFileTooLargeRepeat,
 			handleFinAckArrival,
@@ -1072,7 +1063,6 @@ export const useTcpState = (): TcpState => {
 			setPhase,
 			updateEntityState,
 			updatePacketDisplayName,
-			ensureInInventory,
 		],
 	);
 
@@ -1081,10 +1071,7 @@ export const useTcpState = (): TcpState => {
 			const entity = stateRef.current.entities[entityId];
 			if (!entity) return;
 
-			if (
-				entity.type === "message-file" ||
-				entity.type === "notes-file"
-			) {
+			if (entity.type === "message-file" || entity.type === "notes-file") {
 				handleFileUnknownReturn(entityId);
 				return;
 			}
@@ -1142,6 +1129,8 @@ export const useTcpState = (): TcpState => {
 			handlePacketArrival,
 			handlePacketRejected,
 			handleSynArrival,
+			setPhase,
+			updatePacketDisplayName,
 		],
 	);
 
