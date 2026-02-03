@@ -16,7 +16,8 @@ const packetStateMessages: Record<string, TcpStateLabel> = {
 
 const fileStateMessages: Record<string, TcpStateLabel> = {
 	ready: { label: "Ready" },
-	rejected: { label: "Too large" },
+	processing: { label: "Processing..." },
+	rejected: { label: "Too large!" },
 };
 
 const flagStateMessages: Record<string, TcpStateLabel> = {

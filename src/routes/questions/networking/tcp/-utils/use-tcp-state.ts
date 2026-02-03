@@ -69,7 +69,8 @@ export type TcpState = {
 const INTERNET_TRAVEL_MS = 2000;
 const SERVER_PROCESS_MS = 3000;
 const SERVER_REJECT_DELAY_MS = 2000;
-const MESSAGE_REJECT_DELAY_MS = 2000;
+const FILE_PROCESS_DELAY_MS = 1500;
+const FILE_REJECT_DELAY_MS = 1500;
 const ASSEMBLE_DELAY_MS = 2000;
 const BUFFER_RELEASE_DELAY_MS = 1500;
 const BUFFER_STEP_DELAY_MS = 800;
@@ -679,19 +680,26 @@ export const useTcpState = (): TcpState => {
 
 	const handleFileMtuReject = useCallback(
 		(entityId: string, spaceId: string) => {
-			updateEntityState(entityId, { tcpState: "rejected", status: "error" });
-			if (!modalShownRef.current.mtu) {
-				modalShownRef.current.mtu = true;
-				dispatch({ type: "OPEN_MODAL", payload: buildMtuModal() });
-			}
-			setPhase("splitter");
-			setSplitterVisible(true);
-			const timer = setTimeout(() => {
-				removeEntityFromSpace(entityId, spaceId);
-				updateEntityState(entityId, { tcpState: "ready", status: "normal" });
-				ensureInInventory(entityId);
-			}, MESSAGE_REJECT_DELAY_MS);
-			registerTimer(timer);
+			updateEntityState(entityId, { tcpState: "processing", status: "info" });
+			const rejectTimer = setTimeout(() => {
+				updateEntityState(entityId, { tcpState: "rejected", status: "error" });
+				const resolveTimer = setTimeout(() => {
+					if (!modalShownRef.current.mtu) {
+						modalShownRef.current.mtu = true;
+						dispatch({ type: "OPEN_MODAL", payload: buildMtuModal() });
+					}
+					setPhase("splitter");
+					setSplitterVisible(true);
+					const currentSpace = findEntitySpace(stateRef.current, entityId);
+					if (currentSpace === spaceId) {
+						removeEntityFromSpace(entityId, spaceId);
+					}
+					updateEntityState(entityId, { tcpState: "ready", status: "normal" });
+					ensureInInventory(entityId);
+				}, FILE_REJECT_DELAY_MS);
+				registerTimer(resolveTimer);
+			}, FILE_PROCESS_DELAY_MS);
+			registerTimer(rejectTimer);
 		},
 		[
 			dispatch,
