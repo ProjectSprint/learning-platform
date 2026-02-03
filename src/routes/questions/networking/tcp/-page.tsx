@@ -13,7 +13,10 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
-import { ContextualHint } from "@/components/game/presentation/hint";
+import {
+	ContextualHint,
+	useContextualHint,
+} from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
 import {
@@ -29,7 +32,9 @@ import {
 	CANVAS_ORDER,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
+	type TcpCanvasKey,
 } from "./-utils/constants";
+import { getContextualHint } from "./-utils/get-contextual-hint";
 import { initializeTcpQuestion } from "./-utils/init-spaces";
 import {
 	getTcpItemLabel,
@@ -59,16 +64,45 @@ const TcpGame = ({
 	const shouldShowTerminal = state.phase === "terminal";
 	const {
 		bufferSlots,
+		connectionClosed,
 		connectionActive,
+		lossScenarioActive,
 		receivedCount,
 		serverLog,
 		serverStatus,
+		sequenceEnabled,
+		splitterVisible,
 		waitingCount,
 		phase: tcpPhase,
 	} = useTcpState();
 	const handleTcpCommand = useTcpTerminal({ onQuestionComplete });
 	useDragEngine();
 	useTerminalEngine({ onCommand: handleTcpCommand });
+
+	const contextualHint = useMemo(
+		() =>
+			getContextualHint({
+				phase: tcpPhase,
+				splitterVisible,
+				connectionActive,
+				sequenceEnabled,
+				lossScenarioActive,
+				receivedCount,
+				waitingCount,
+				connectionClosed,
+			}),
+		[
+			connectionActive,
+			connectionClosed,
+			lossScenarioActive,
+			receivedCount,
+			sequenceEnabled,
+			splitterVisible,
+			tcpPhase,
+			waitingCount,
+		],
+	);
+	useContextualHint(contextualHint);
 
 	// Initialize question
 	useEffect(() => {
@@ -138,6 +172,31 @@ const TcpGame = ({
 		}),
 		[],
 	);
+	const visibleCanvases = useMemo(
+		() =>
+			splitterVisible
+				? CANVAS_ORDER
+				: (CANVAS_ORDER.filter((id) => id !== "splitter") as TcpCanvasKey[]),
+		[splitterVisible],
+	);
+	const gridTemplateAreas = splitterVisible
+		? {
+				base: `"splitter" "internet" "server"`,
+				md: `"splitter internet server"`,
+			}
+		: {
+				base: `"internet" "server"`,
+				md: `"internet server"`,
+			};
+	const gridTemplateColumns = splitterVisible
+		? {
+				base: "1fr",
+				md: "repeat(3, minmax(0, 1fr))",
+			}
+		: {
+				base: "1fr",
+				md: "repeat(2, minmax(0, 1fr))",
+			};
 
 	const handleEntityClick = useCallback((_entity: EntityData) => {
 		// TCP doesn't have clickable entities for now
@@ -230,18 +289,12 @@ const TcpGame = ({
 
 				<GameBoard>
 					<Grid
-						templateAreas={{
-							base: `"splitter" "internet" "server"`,
-							md: `"splitter internet server"`,
-						}}
-						templateColumns={{
-							base: "1fr",
-							md: "repeat(3, minmax(0, 1fr))",
-						}}
+						templateAreas={gridTemplateAreas}
+						templateColumns={gridTemplateColumns}
 						gap={{ base: 2, md: 4 }}
 						alignItems="stretch"
 					>
-						{CANVAS_ORDER.map((canvasId) => {
+						{visibleCanvases.map((canvasId) => {
 							const config = CANVAS_CONFIGS[canvasId];
 							if (!config) return null;
 							return (
