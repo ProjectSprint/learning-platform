@@ -227,10 +227,19 @@ export const useTcpState = (): TcpState => {
 
 	const updateEntityState = useCallback(
 		(entityId: string, updates: Record<string, unknown>) => {
-			dispatch({
-				type: "UPDATE_ENTITY_STATE",
-				payload: { entityId, state: updates },
-			});
+			const { status, ...dataUpdates } = updates;
+			if (Object.keys(dataUpdates).length > 0) {
+				dispatch({
+					type: "UPDATE_ENTITY",
+					payload: { entityId, updates: { data: dataUpdates } },
+				});
+			}
+			if (status !== undefined) {
+				dispatch({
+					type: "UPDATE_ENTITY_STATE",
+					payload: { entityId, state: { status } },
+				});
+			}
 		},
 		[dispatch],
 	);
