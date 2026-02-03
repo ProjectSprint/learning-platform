@@ -128,19 +128,6 @@ export const buildRouterConfigModal = (
 			id: "save",
 			label: "Save",
 			variant: "primary",
-			async onClick({ values, dispatch }) {
-				const dhcpEnabled = !!values.dhcpEnabled;
-				const startIp = String(values.startIp ?? "");
-				const endIp = String(values.endIp ?? "");
-
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId,
-						config: { dhcpEnabled, startIp, endIp },
-					},
-				});
-			},
 		},
 	],
 });
@@ -182,7 +169,6 @@ export const buildSuccessModal = (
 	title: string,
 	message: string,
 	actionLabel: string,
-	onAction?: () => void,
 ): ModalInstance => ({
 	id: "success",
 	title,
@@ -199,7 +185,6 @@ export const buildSuccessModal = (
 			variant: "primary",
 			validate: false,
 			closesModal: true,
-			onClick: onAction ? () => onAction() : undefined,
 		},
 	],
 });

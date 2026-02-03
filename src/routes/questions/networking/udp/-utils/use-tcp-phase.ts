@@ -4,6 +4,7 @@ import type { BoardItemLocation, Item } from "@/components/game/game-provider";
 import {
 	useAllSpaces,
 	useGameDispatch,
+	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 
@@ -511,9 +512,9 @@ export const useTcpPhase = ({
 		setPhase("chaos-timeout");
 		dispatch({
 			type: "OPEN_MODAL",
-			payload: buildTimeoutModal(startReconnect),
+			payload: buildTimeoutModal(),
 		});
-	}, [dispatch, startReconnect]);
+	}, [dispatch]);
 
 	const transitionToUdp = useCallback(() => {
 		if (udpTransitionRef.current) return;
@@ -534,9 +535,38 @@ export const useTcpPhase = ({
 		setPhase("breaking-point");
 		dispatch({
 			type: "OPEN_MODAL",
-			payload: buildBreakingPointModal(transitionToUdp),
+			payload: buildBreakingPointModal(),
 		});
-	}, [dispatch, transitionToUdp]);
+	}, [dispatch]);
+
+	const { events, ack } = useGameEvents();
+	useEffect(() => {
+		if (events.length === 0) {
+			return;
+		}
+
+		for (const event of events) {
+			if (event.type !== "MODAL_ACTION") {
+				continue;
+			}
+
+			if (
+				event.modalId === "tcp-timeout" &&
+				event.modalActionId === "reconnect"
+			) {
+				startReconnect();
+			}
+
+			if (
+				event.modalId === "tcp-exhaustion" &&
+				event.modalActionId === "continue"
+			) {
+				transitionToUdp();
+			}
+		}
+
+		ack();
+	}, [ack, events, startReconnect, transitionToUdp]);
 
 	const incrementPacketCount = useCallback(() => {
 		packetsSentRef.current += 1;

@@ -257,20 +257,69 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			return;
 		}
 
-		const shouldSync = events.some(
-			(event) =>
+		let shouldSync = false;
+
+		for (const event of events) {
+			if (
 				event.type === "ENTITY_ENTERED_SPACE" ||
 				event.type === "ENTITY_LEFT_SPACE" ||
 				event.type === "ENTITY_MOVED" ||
 				event.type === "ENTITY_UPDATED" ||
-				event.type === "PHASE_CHANGED",
-		);
+				event.type === "PHASE_CHANGED"
+			) {
+				shouldSync = true;
+			}
+
+			if (event.type === "MODAL_ACTION" && event.modalActionId === "save") {
+				if (event.modalId.startsWith("router-lan-config-")) {
+					const deviceId = event.modalId.replace("router-lan-config-", "");
+					const dhcpEnabled = !!event.values.dhcpEnabled;
+					const startIp = String(event.values.startIp ?? "");
+					const endIp = String(event.values.endIp ?? "");
+					const dnsServer = String(event.values.dnsServer ?? "");
+
+					dispatch({
+						type: "CONFIGURE_DEVICE",
+						payload: {
+							deviceId,
+							config: { dhcpEnabled, startIp, endIp, dnsServer },
+						},
+					});
+				}
+
+				if (event.modalId.startsWith("router-nat-config-")) {
+					const deviceId = event.modalId.replace("router-nat-config-", "");
+					const natEnabled = !!event.values.natEnabled;
+					dispatch({
+						type: "CONFIGURE_DEVICE",
+						payload: {
+							deviceId,
+							config: { natEnabled },
+						},
+					});
+				}
+
+				if (event.modalId.startsWith("router-wan-config-")) {
+					const deviceId = event.modalId.replace("router-wan-config-", "");
+					const username = String(event.values.username ?? "");
+					const password = String(event.values.password ?? "");
+
+					dispatch({
+						type: "CONFIGURE_DEVICE",
+						payload: {
+							deviceId,
+							config: { username, password },
+						},
+					});
+				}
+			}
+		}
 
 		if (shouldSync) {
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, events]);
+	}, [ack, dispatch, events]);
 
 	// Auto-assign IP to PC when routerLan is configured and PC is connected via cable
 	useEffect(() => {

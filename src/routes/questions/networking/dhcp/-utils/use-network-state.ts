@@ -180,20 +180,44 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 			return;
 		}
 
-		const shouldSync = events.some(
-			(event) =>
+		let shouldSync = false;
+
+		for (const event of events) {
+			if (
 				event.type === "ENTITY_ENTERED_SPACE" ||
 				event.type === "ENTITY_LEFT_SPACE" ||
 				event.type === "ENTITY_MOVED" ||
 				event.type === "ENTITY_UPDATED" ||
-				event.type === "PHASE_CHANGED",
-		);
+				event.type === "PHASE_CHANGED"
+			) {
+				shouldSync = true;
+			}
+
+			if (
+				event.type === "MODAL_ACTION" &&
+				event.modalId.startsWith("router-config-") &&
+				event.modalActionId === "save"
+			) {
+				const deviceId = event.modalId.replace("router-config-", "");
+				const dhcpEnabled = !!event.values.dhcpEnabled;
+				const startIp = String(event.values.startIp ?? "");
+				const endIp = String(event.values.endIp ?? "");
+
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId,
+						config: { dhcpEnabled, startIp, endIp },
+					},
+				});
+			}
+		}
 
 		if (shouldSync) {
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, events]);
+	}, [ack, dispatch, events]);
 
 	// Update device statuses based on network state
 	useEffect(() => {

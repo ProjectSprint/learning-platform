@@ -103,20 +103,62 @@ const SslGame = ({
 			return;
 		}
 
-		const shouldSync = events.some(
-			(event) =>
+		let shouldSync = false;
+
+		for (const event of events) {
+			if (
 				event.type === "ENTITY_ENTERED_SPACE" ||
 				event.type === "ENTITY_LEFT_SPACE" ||
 				event.type === "ENTITY_MOVED" ||
 				event.type === "ENTITY_UPDATED" ||
-				event.type === "PHASE_CHANGED",
-		);
+				event.type === "PHASE_CHANGED"
+			) {
+				shouldSync = true;
+			}
+
+			if (
+				event.type === "MODAL_ACTION" &&
+				event.modalId.startsWith("certificate-request-") &&
+				event.modalActionId === "issue"
+			) {
+				const deviceId = event.modalId.replace("certificate-request-", "");
+				const domain = String(event.values.domain ?? "").trim();
+
+				if (domain) {
+					dispatch({
+						type: "CONFIGURE_DEVICE",
+						payload: {
+							deviceId,
+							config: {
+								certificateIssued: true,
+								verified: true,
+								certificateDomain: domain,
+							},
+							spaceId: "letsencrypt",
+						},
+					});
+
+					dispatch({
+						type: "UPDATE_INVENTORY_GROUP",
+						payload: { id: "ssl-items", visible: true },
+					});
+				}
+			}
+
+			if (
+				event.type === "MODAL_ACTION" &&
+				event.modalId === "success" &&
+				event.modalActionId === "primary"
+			) {
+				_onQuestionComplete();
+			}
+		}
 
 		if (shouldSync) {
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, events]);
+	}, [ack, dispatch, events, _onQuestionComplete]);
 
 	const handleSslCommand = useSslTerminal({
 		httpReady,
@@ -124,7 +166,6 @@ const SslGame = ({
 		hasRedirect,
 		port80Domain,
 		certificateDomain,
-		onQuestionComplete: _onQuestionComplete,
 	});
 
 	useTerminalEngine({

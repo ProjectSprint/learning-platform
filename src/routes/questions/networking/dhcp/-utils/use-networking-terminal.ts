@@ -1,6 +1,10 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import {
+	useGameDispatch,
+	useGameEvents,
+	useGameState,
+} from "@/components/game/game-provider";
 import { buildSuccessModal } from "./modal-builders";
 
 interface UseNetworkingTerminalArgs {
@@ -14,6 +18,25 @@ export const useNetworkingTerminal = ({
 }: UseNetworkingTerminalArgs) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
+	const { events, ack } = useGameEvents();
+
+	useEffect(() => {
+		if (events.length === 0) {
+			return;
+		}
+
+		for (const event of events) {
+			if (
+				event.type === "MODAL_ACTION" &&
+				event.modalId === "success" &&
+				event.modalActionId === "primary"
+			) {
+				onQuestionComplete();
+			}
+		}
+
+		ack();
+	}, [ack, events, onQuestionComplete]);
 
 	const handleCommand = useCallback(
 		(input: string, helpers: TerminalCommandHelpers) => {
@@ -91,7 +114,6 @@ export const useNetworkingTerminal = ({
 						"Question complete",
 						"You connected two computers and verified their connection using ping.",
 						"Next question",
-						onQuestionComplete,
 					),
 				});
 
@@ -102,7 +124,7 @@ export const useNetworkingTerminal = ({
 
 			helpers.writeOutput(`Error: Unknown target "${target}".`, "error");
 		},
-		[dispatch, onQuestionComplete, pc2Ip, state.phase, state.question.status],
+		[dispatch, pc2Ip, state.phase, state.question.status],
 	);
 
 	return handleCommand;

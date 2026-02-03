@@ -264,6 +264,25 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 				eventQueue: nextQueue,
 			};
 		}
+		case "MODAL_ACTION": {
+			const events: GameEventInput[] = [
+				{
+					type: "MODAL_ACTION",
+					modalId: action.payload.modalId,
+					modalActionId: action.payload.actionId,
+					values: action.payload.values,
+				},
+			];
+			const nextQueue = appendEvents(
+				state.eventQueue,
+				getNextActionId(state.eventQueue),
+				events,
+			);
+			return {
+				...state,
+				eventQueue: nextQueue,
+			};
+		}
 
 		// Terminal actions
 		case "OPEN_TERMINAL":

@@ -13,7 +13,6 @@ interface UseSslTerminalArgs {
 	hasRedirect: boolean;
 	port80Domain: string | undefined;
 	certificateDomain: string | undefined;
-	onQuestionComplete?: VoidFunction;
 }
 
 export const useSslTerminal = ({
@@ -22,7 +21,6 @@ export const useSslTerminal = ({
 	hasRedirect,
 	port80Domain,
 	certificateDomain,
-	onQuestionComplete,
 }: UseSslTerminalArgs) => {
 	const dispatch = useGameDispatch();
 
@@ -181,7 +179,7 @@ export const useSslTerminal = ({
 					if (isHttpsReadyNow && (hasRedirectNow || hasRedirect)) {
 						dispatch({
 							type: "OPEN_MODAL",
-							payload: buildSuccessModal(onQuestionComplete),
+							payload: buildSuccessModal(),
 						});
 						helpers.finishEngine();
 						dispatch({ type: "COMPLETE_QUESTION" });
@@ -290,7 +288,6 @@ export const useSslTerminal = ({
 			port80Domain,
 			certificateDomain,
 			dispatch,
-			onQuestionComplete,
 		],
 	);
 };

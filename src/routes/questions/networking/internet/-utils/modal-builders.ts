@@ -211,20 +211,6 @@ export const buildRouterLanConfigModal = (
 			id: "save",
 			label: "Save",
 			variant: "primary",
-			async onClick({ values, dispatch }) {
-				const dhcpEnabled = !!values.dhcpEnabled;
-				const startIp = String(values.startIp ?? "");
-				const endIp = String(values.endIp ?? "");
-				const dnsServer = String(values.dnsServer ?? "");
-
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId,
-						config: { dhcpEnabled, startIp, endIp, dnsServer },
-					},
-				});
-			},
 		},
 	],
 });
@@ -269,16 +255,6 @@ export const buildRouterNatConfigModal = (
 			id: "save",
 			label: "Save",
 			variant: "primary",
-			async onClick({ values, dispatch }) {
-				const natEnabled = !!values.natEnabled;
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId,
-						config: { natEnabled },
-					},
-				});
-			},
 		},
 	],
 });
@@ -335,18 +311,6 @@ export const buildRouterWanConfigModal = (
 			id: "save",
 			label: "Save",
 			variant: "primary",
-			async onClick({ values, dispatch }) {
-				const username = String(values.username ?? "");
-				const password = String(values.password ?? "");
-
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId,
-						config: { username, password },
-					},
-				});
-			},
 		},
 	],
 });
@@ -532,7 +496,6 @@ export const buildSuccessModal = (
 	title: string,
 	message: string,
 	actionLabel: string,
-	onAction?: () => void,
 ): ModalInstance => ({
 	id: "success",
 	title,
@@ -549,7 +512,6 @@ export const buildSuccessModal = (
 			variant: "primary",
 			validate: false,
 			closesModal: true,
-			onClick: onAction ? () => onAction() : undefined,
 		},
 	],
 });

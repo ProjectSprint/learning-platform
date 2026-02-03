@@ -11,6 +11,7 @@ import {
 	type Arrow,
 	GameProvider,
 	useGameDispatch,
+	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 import {
@@ -52,6 +53,7 @@ const TcpGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
+	const { events, ack } = useGameEvents();
 	const initializedRef = useRef(false);
 	const isCompleted = state.question.status === "completed";
 	const successShownRef = useRef(false);
@@ -113,10 +115,28 @@ const TcpGame = ({
 		successShownRef.current = true;
 		dispatch({
 			type: "OPEN_MODAL",
-			payload: buildSuccessModal(onQuestionComplete),
+			payload: buildSuccessModal(),
 		});
 		dispatch({ type: "COMPLETE_QUESTION" });
-	}, [dispatch, isCompleted, onQuestionComplete, state.phase]);
+	}, [dispatch, isCompleted, state.phase]);
+
+	useEffect(() => {
+		if (events.length === 0) {
+			return;
+		}
+
+		for (const event of events) {
+			if (
+				event.type === "MODAL_ACTION" &&
+				event.modalId === "tcp-success" &&
+				event.modalActionId === "primary"
+			) {
+				onQuestionComplete();
+			}
+		}
+
+		ack();
+	}, [ack, events, onQuestionComplete]);
 
 	// Arrows between internet and server
 	const boardArrows = useMemo<Arrow[]>(() => {

@@ -2,9 +2,6 @@
 // The game engine renders modals based on this schema
 // Questions provide the structure, the engine renders it
 
-import type { Dispatch } from "react";
-import type { GameAction } from "../../game-provider";
-
 // Help link metadata for fields
 export type ModalHelpLink = {
 	label: string;
@@ -97,13 +94,6 @@ export type ModalContentBlock =
 // Button variants
 export type ModalActionVariant = "primary" | "secondary" | "ghost" | "danger";
 
-// Context passed to action callbacks
-export type ModalActionContext = {
-	values: Record<string, unknown>;
-	close: () => void;
-	dispatch: Dispatch<GameAction>;
-};
-
 // Modal action (button)
 export type ModalAction = {
 	id: string;
@@ -111,7 +101,6 @@ export type ModalAction = {
 	variant?: ModalActionVariant;
 	validate?: boolean;
 	closesModal?: boolean;
-	onClick?: (ctx: ModalActionContext) => void | Promise<void>;
 };
 
 // Complete modal instance

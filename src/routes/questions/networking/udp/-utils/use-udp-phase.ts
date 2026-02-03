@@ -4,6 +4,7 @@ import type { BoardItemLocation, Item } from "@/components/game/game-provider";
 import {
 	useAllSpaces,
 	useGameDispatch,
+	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 
@@ -37,6 +38,25 @@ export const useUdpPhase = ({
 		b: Array.from({ length: TOTAL_FRAMES }, () => false),
 		c: Array.from({ length: TOTAL_FRAMES }, () => false),
 	}));
+	const { events, ack } = useGameEvents();
+
+	useEffect(() => {
+		if (events.length === 0) {
+			return;
+		}
+
+		for (const event of events) {
+			if (
+				event.type === "MODAL_ACTION" &&
+				event.modalId === "udp-success" &&
+				event.modalActionId === "complete"
+			) {
+				onQuestionComplete();
+			}
+		}
+
+		ack();
+	}, [ack, events, onQuestionComplete]);
 
 	const spacesRef = useRef(spaces);
 	const activeRef = useRef(active);
@@ -247,10 +267,10 @@ export const useUdpPhase = ({
 		successShownRef.current = true;
 		dispatch({
 			type: "OPEN_MODAL",
-			payload: buildUdpSuccessModal(onQuestionComplete),
+			payload: buildUdpSuccessModal(),
 		});
 		dispatch({ type: "COMPLETE_QUESTION" });
-	}, [active, dispatch, onQuestionComplete, phase, state.question.status]);
+	}, [active, dispatch, phase, state.question.status]);
 
 	const expectedFrame = Math.min(lastSentFrame + 1, TOTAL_FRAMES);
 

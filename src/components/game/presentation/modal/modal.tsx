@@ -133,6 +133,7 @@ export const Modal = () => {
 								}
 							>
 								<ModalInstanceView
+									modalId={modalId}
 									instance={entry.instance}
 									onClose={handleClose}
 								/>

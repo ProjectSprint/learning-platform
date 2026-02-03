@@ -3,10 +3,6 @@ import type { TerminalCommandHelpers } from "@/components/game/engines";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import { buildSuccessModal } from "./modal-builders";
 
-interface UseTcpTerminalArgs {
-	onQuestionComplete?: VoidFunction;
-}
-
 const NETSTAT_OUTPUT = `Active Connections
 
 Proto  Local Address      Foreign Address    State
@@ -65,7 +61,7 @@ const HELP_OUTPUT = `Supported commands:
 - help
 - clear`;
 
-export const useTcpTerminal = ({ onQuestionComplete }: UseTcpTerminalArgs) => {
+export const useTcpTerminal = () => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 
@@ -123,7 +119,7 @@ export const useTcpTerminal = ({ onQuestionComplete }: UseTcpTerminalArgs) => {
 					if (shouldComplete) {
 						dispatch({
 							type: "OPEN_MODAL",
-							payload: buildSuccessModal(onQuestionComplete),
+							payload: buildSuccessModal(),
 						});
 						helpers.finishEngine();
 						dispatch({ type: "COMPLETE_QUESTION" });
@@ -144,6 +140,6 @@ export const useTcpTerminal = ({ onQuestionComplete }: UseTcpTerminalArgs) => {
 					);
 			}
 		},
-		[dispatch, onQuestionComplete, state.phase, state.question.status],
+		[dispatch, state.phase, state.question.status],
 	);
 };

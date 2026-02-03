@@ -3,7 +3,6 @@
 
 import type {
 	ModalAction,
-	ModalActionContext,
 	ModalContentBlock,
 	ModalField,
 	ModalFieldValidator,
@@ -27,6 +26,20 @@ const validateDomain: ModalFieldValidator<string> = (input) => {
 	}
 	return null;
 };
+
+const validateDomainMatch =
+	(expectedDomain: string): ModalFieldValidator<string> =>
+	(input) => {
+		const baseError = validateDomain(input, {});
+		if (baseError) {
+			return baseError;
+		}
+		const domain = input.trim();
+		if (domain !== expectedDomain) {
+			return `Domain must match: ${expectedDomain}`;
+		}
+		return null;
+	};
 
 // Close action helper
 const closeAction = (): ModalAction => ({
@@ -287,7 +300,6 @@ export const buildCertificateRequestModal = (
 	currentDomain: string,
 	certificateIssued: boolean,
 	port80SpaceConfig?: Record<string, unknown>,
-	onCertificateIssued?: (domain: string) => void,
 ): ModalInstance => {
 	// If certificate already issued, show status view
 	if (certificateIssued) {
@@ -327,46 +339,6 @@ export const buildCertificateRequestModal = (
 			variant: "primary",
 			validate: true,
 			closesModal: true,
-			onClick: async ({
-				values,
-				dispatch,
-			}: ModalActionContext): Promise<void> => {
-				const domain = String(values.domain ?? "").trim();
-
-				if (!domain) {
-					throw new Error("Enter your domain name");
-				}
-
-				// Validate against Port 80 domain
-				if (domain !== existingPort80Domain) {
-					throw new Error(`Domain must match: ${existingPort80Domain}`);
-				}
-
-				// Issue certificate on the domain item
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId,
-						config: {
-							certificateIssued: true,
-							verified: true,
-							certificateDomain: domain,
-						},
-						spaceId: "letsencrypt",
-					},
-				});
-
-				// Persist certificate issuance in question-local state
-				if (onCertificateIssued) {
-					onCertificateIssued(domain);
-				}
-
-				// Show SSL items inventory
-				dispatch({
-					type: "UPDATE_INVENTORY_GROUP",
-					payload: { id: "ssl-items", visible: true },
-				});
-			},
 		},
 	];
 
@@ -377,7 +349,7 @@ export const buildCertificateRequestModal = (
 			label: "Domain Name",
 			placeholder: "example.com",
 			defaultValue: currentDomain,
-			validate: validateDomain,
+			validate: validateDomainMatch(existingPort80Domain),
 		}),
 	];
 
@@ -514,9 +486,7 @@ export const buildTlsHandshakeModal = (): ModalInstance => {
 /**
  * Success Modal
  */
-export const buildSuccessModal = (
-	onQuestionComplete?: VoidFunction,
-): ModalInstance => {
+export const buildSuccessModal = (): ModalInstance => {
 	return {
 		id: "success",
 		title: "🔒 Website Secured!",
@@ -557,7 +527,6 @@ export const buildSuccessModal = (
 				variant: "primary",
 				validate: false,
 				closesModal: true,
-				onClick: onQuestionComplete ? () => onQuestionComplete() : undefined,
 			},
 		],
 	};

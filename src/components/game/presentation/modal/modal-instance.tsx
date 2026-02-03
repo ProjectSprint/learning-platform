@@ -19,11 +19,13 @@ import type {
 } from "./types";
 
 type ModalInstanceViewProps = {
+	modalId: string;
 	instance: ModalInstance;
 	onClose: () => void;
 };
 
 export const ModalInstanceView = ({
+	modalId,
 	instance,
 	onClose,
 }: ModalInstanceViewProps) => {
@@ -96,7 +98,7 @@ export const ModalInstanceView = ({
 		return Object.values(nextErrors).some(Boolean);
 	};
 
-	const handleActionClick = async (action: ModalAction) => {
+	const handleActionClick = (action: ModalAction) => {
 		const shouldValidate = action.validate ?? true;
 
 		if (shouldValidate) {
@@ -106,13 +108,14 @@ export const ModalInstanceView = ({
 			}
 		}
 
-		if (action.onClick) {
-			await action.onClick({
+		dispatch({
+			type: "MODAL_ACTION",
+			payload: {
+				modalId,
+				actionId: action.id,
 				values,
-				close: onClose,
-				dispatch,
-			});
-		}
+			},
+		});
 
 		if (action.closesModal ?? true) {
 			onClose();
@@ -311,7 +314,7 @@ export const ModalInstanceView = ({
 						size="sm"
 						variant={getButtonVariant(action.variant)}
 						colorPalette={getButtonColorPalette(action.variant)}
-						onClick={() => void handleActionClick(action)}
+						onClick={() => handleActionClick(action)}
 					>
 						{action.label}
 					</Button>

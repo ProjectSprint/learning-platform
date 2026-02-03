@@ -53,7 +53,7 @@ export const buildSynIntroModal = (): ModalInstance => ({
 	actions: [closeAction()],
 });
 
-export const buildSynAckModal = (onContinue?: VoidFunction): ModalInstance => ({
+export const buildSynAckModal = (): ModalInstance => ({
 	id: "syn-ack-received",
 	title: "✅ SYN-ACK Received",
 	content: [
@@ -66,8 +66,7 @@ export const buildSynAckModal = (onContinue?: VoidFunction): ModalInstance => ({
 			label: "OK",
 			variant: "primary",
 			validate: false,
-			closesModal: !onContinue,
-			onClick: onContinue ? () => onContinue() : undefined,
+			closesModal: true,
 		},
 	],
 });
@@ -153,9 +152,7 @@ export const buildCloseConnectionModal = (): ModalInstance => ({
 	actions: [closeAction()],
 });
 
-export const buildSuccessModal = (
-	onQuestionComplete?: VoidFunction,
-): ModalInstance => ({
+export const buildSuccessModal = (): ModalInstance => ({
 	id: "tcp-success",
 	title: "✅ Delivery Complete",
 	content: [
@@ -169,7 +166,6 @@ export const buildSuccessModal = (
 			variant: "primary",
 			validate: false,
 			closesModal: true,
-			onClick: onQuestionComplete ? () => onQuestionComplete() : undefined,
 		},
 	],
 });

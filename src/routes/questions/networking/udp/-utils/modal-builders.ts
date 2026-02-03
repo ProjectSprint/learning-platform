@@ -38,9 +38,7 @@ export const buildNewClientModal = (): ModalInstance => ({
 	actions: [closeAction("Handle Connection")],
 });
 
-export const buildTimeoutModal = (
-	onReconnect?: VoidFunction,
-): ModalInstance => ({
+export const buildTimeoutModal = (): ModalInstance => ({
 	id: "tcp-timeout",
 	title: "⚠️ Connection Timeout!",
 	content: [
@@ -57,14 +55,11 @@ export const buildTimeoutModal = (
 			variant: "primary",
 			closesModal: true,
 			validate: false,
-			onClick: onReconnect ? () => onReconnect() : undefined,
 		},
 	],
 });
 
-export const buildBreakingPointModal = (
-	onContinue?: VoidFunction,
-): ModalInstance => ({
+export const buildBreakingPointModal = (): ModalInstance => ({
 	id: "tcp-exhaustion",
 	title: "😤 This is exhausting...",
 	blocking: true,
@@ -80,14 +75,11 @@ export const buildBreakingPointModal = (
 			variant: "primary",
 			closesModal: true,
 			validate: false,
-			onClick: onContinue ? () => onContinue() : undefined,
 		},
 	],
 });
 
-export const buildUdpSuccessModal = (
-	onQuestionComplete?: VoidFunction,
-): ModalInstance => ({
+export const buildUdpSuccessModal = (): ModalInstance => ({
 	id: "udp-success",
 	title: "🎉 Stream Delivered!",
 	content: [
@@ -102,7 +94,6 @@ export const buildUdpSuccessModal = (
 			variant: "primary",
 			closesModal: true,
 			validate: false,
-			onClick: onQuestionComplete ? () => onQuestionComplete() : undefined,
 		},
 	],
 });

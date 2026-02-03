@@ -209,7 +209,6 @@ type ModalAction = {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   validate?: boolean;        // Run field validation
   closesModal?: boolean;     // Close modal after action
-  onClick?: (ctx: ModalActionContext) => void | Promise<void>;
 };
 ```
 
