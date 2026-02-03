@@ -51,6 +51,10 @@ export const entityReducer = (
 					return;
 				}
 
+				if ("name" in updates) {
+					entity.name = updates.name;
+				}
+
 				// Update visual properties
 				if (updates.visual) {
 					Object.assign(entity.visual, updates.visual);

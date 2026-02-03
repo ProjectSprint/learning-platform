@@ -99,11 +99,7 @@ export const PlacedEntity = memo(
 		entityRef,
 	}: PlacedEntityProps) => {
 		// Get display properties
-		const displayName =
-			typeof entity.data?.displayName === "string" &&
-			entity.data.displayName.trim().length > 0
-				? entity.data.displayName
-				: (entity.name ?? entity.type);
+		const displayName = entity.name ?? entity.type;
 
 		// Check if this is an Item entity
 		const isItem = "icon" in entity && entity.icon !== undefined;

@@ -67,11 +67,7 @@ export const EntityCard = ({
 	const isNonDraggable = item?.draggable === false;
 
 	// Get display properties
-	const displayName =
-		typeof entity.data?.displayName === "string" &&
-		entity.data.displayName.trim().length > 0
-			? entity.data.displayName
-			: (entity.name ?? entity.type);
+	const displayName = entity.name ?? entity.type;
 	const iconInfo = item?.icon ?? entity.visual.icon;
 	const tooltip = item?.tooltip as ItemTooltip | undefined;
 

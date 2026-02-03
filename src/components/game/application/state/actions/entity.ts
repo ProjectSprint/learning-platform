@@ -28,6 +28,7 @@ export type UpdateEntityAction = {
 	payload: {
 		entityId: string;
 		updates: {
+			name?: EntityData["name"];
 			visual?: EntityData["visual"];
 			data?: EntityData["data"];
 			state?: EntityData["state"];

@@ -234,21 +234,14 @@ export const useTcpState = (): TcpState => {
 		[dispatch],
 	);
 
-	const updateEntityData = useCallback(
-		(entityId: string, updates: Record<string, unknown>) => {
+	const updatePacketDisplayName = useCallback(
+		(entityId: string, displayName: string) => {
 			dispatch({
 				type: "UPDATE_ENTITY",
-				payload: { entityId, updates: { data: updates } },
+				payload: { entityId, updates: { name: displayName } },
 			});
 		},
 		[dispatch],
-	);
-
-	const updatePacketDisplayName = useCallback(
-		(entityId: string, displayName: string | null) => {
-			updateEntityData(entityId, { displayName });
-		},
-		[updateEntityData],
 	);
 
 	const removeEntityFromSpace = useCallback(
@@ -443,7 +436,7 @@ export const useTcpState = (): TcpState => {
 				if (seqEnabled) {
 					updatePacketDisplayName(item.id, `Packet #${index + 1}`);
 				} else if (resetDisplayName) {
-					updatePacketDisplayName(item.id, null);
+					updatePacketDisplayName(item.id, "Fragment");
 				}
 			});
 		},
