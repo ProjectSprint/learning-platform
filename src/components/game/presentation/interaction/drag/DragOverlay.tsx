@@ -3,7 +3,7 @@
  * Provides visual feedback during drag operations.
  * Shows a floating preview of the entity being dragged.
  *
- * Migrated from puzzle/drag/overlay.tsx but works with the Space/Entity model.
+ * Migrated from legacy drag overlay but works with the Space/Entity model.
  * Maintains identical visual design and animation behavior.
  */
 

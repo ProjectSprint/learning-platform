@@ -1,5 +1,4 @@
 export {
-	type CanvasRule,
 	type Condition,
 	type ConditionContext,
 	evaluateCondition,
@@ -14,4 +13,5 @@ export {
 	type QuestionSpec,
 	resolvePhase,
 	resolveVisibility,
+	type SpaceRule,
 } from "./question-ast";

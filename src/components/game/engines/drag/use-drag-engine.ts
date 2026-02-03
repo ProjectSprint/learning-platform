@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { createCompatState } from "@/components/game/application/compat/state-conversion";
 import type {
 	BoardItemLocation,
-	PuzzleState,
+	SpaceState,
 } from "@/components/game/game-provider";
 import { useGameState } from "@/components/game/game-provider";
 import type { EngineLifecycleCallbacks } from "../engine-types";
@@ -12,7 +12,7 @@ import {
 } from "../use-engine-progress";
 
 export interface DragEngineState {
-	puzzle: PuzzleState;
+	space: SpaceState;
 	placedItems: BoardItemLocation[];
 }
 
@@ -39,10 +39,10 @@ export const useDragEngine = <TContext = unknown>(
 
 	const state: DragEngineState = useMemo(
 		() => ({
-			puzzle: compat.puzzle,
-			placedItems: compat.puzzle.placedItems,
+			space: compat.space,
+			placedItems: compat.space.placedItems,
 		}),
-		[compat.puzzle],
+		[compat.space],
 	);
 
 	useEffect(() => {

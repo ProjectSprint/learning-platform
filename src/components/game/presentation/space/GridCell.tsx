@@ -3,8 +3,8 @@
  * Renders a single cell in a grid space.
  * Space-agnostic cell rendering that works with any GridSpace.
  *
- * This is the presentation layer equivalent of puzzle/board/grid-cell.tsx,
- * but decoupled from the puzzle-specific implementation.
+ * This is the presentation layer equivalent of legacy grid cell rendering,
+ * but decoupled from the legacy board implementation.
  */
 
 import { Box } from "@chakra-ui/react";

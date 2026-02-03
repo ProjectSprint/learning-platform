@@ -6,11 +6,11 @@
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
 import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
-	CANVAS_CONFIGS,
-	CANVAS_ORDER,
-	DHCP_CANVAS_IDS,
+	DHCP_SPACE_IDS,
 	INVENTORY_ITEMS,
 	QUESTION_ID,
+	SPACE_CONFIGS,
+	SPACE_ORDER,
 	TERMINAL_INTRO_ENTRIES,
 	TERMINAL_PROMPT,
 } from "./constants";
@@ -21,12 +21,12 @@ import {
 type GameDispatch = (action: any) => void;
 
 /**
- * Initialize all spaces (grid canvases + inventory pool) for the DHCP question.
+ * Initialize all spaces (grid spaces + inventory pool) for the DHCP question.
  */
 export const initializeSpaces = (dispatch: GameDispatch) => {
-	// Create grid spaces for each canvas
-	for (const canvasId of CANVAS_ORDER) {
-		const gridSpace = CANVAS_CONFIGS[canvasId];
+	// Create grid spaces for each space
+	for (const spaceId of SPACE_ORDER) {
+		const gridSpace = SPACE_CONFIGS[spaceId];
 		if (!gridSpace) continue;
 
 		dispatch({
@@ -99,7 +99,7 @@ export const initializeTerminal = (dispatch: GameDispatch) => {
 
 /**
  * Initialize the entire DHCP question state.
- * This replaces the old INIT_MULTI_CANVAS action.
+ * This replaces the legacy INIT_MULTI_CANVAS action.
  */
 export const initializeDhcpQuestion = (dispatch: GameDispatch) => {
 	// Set question metadata
@@ -131,6 +131,6 @@ export const initializeDhcpQuestion = (dispatch: GameDispatch) => {
 };
 
 /**
- * Canvas IDs for easy reference
+ * Space IDs for easy reference
  */
-export { DHCP_CANVAS_IDS, CANVAS_ORDER };
+export { DHCP_SPACE_IDS, SPACE_ORDER };

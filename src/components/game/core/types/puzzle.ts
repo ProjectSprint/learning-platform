@@ -8,20 +8,20 @@ export type BoardItemLocationSeed = {
 	data?: Record<string, unknown>;
 };
 
-export type PuzzleBreakpoint = "base" | "sm" | "md" | "lg" | "xl" | "2xl";
+export type SpaceBreakpoint = "base" | "sm" | "md" | "lg" | "xl" | "2xl";
 
-export type PuzzleSize = [number, number];
+export type SpaceSize = [number, number];
 
-export type PuzzleSizeValue =
-	| PuzzleSize
-	| Partial<Record<PuzzleBreakpoint, PuzzleSize>>;
+export type SpaceSizeValue =
+	| SpaceSize
+	| Partial<Record<SpaceBreakpoint, SpaceSize>>;
 
-export type PuzzleConfig = {
+export type SpaceConfig = {
 	id: string;
 	title?: string;
-	size: PuzzleSizeValue;
+	size: SpaceSizeValue;
 	orientation?: "horizontal" | "vertical";
-	puzzleId?: string;
+	spaceId?: string;
 	maxItems?: number;
 	initialPlacements?: BoardItemLocationSeed[];
 };
@@ -35,8 +35,8 @@ export type Block = {
 	itemId?: string;
 };
 
-export type PuzzleState = {
-	config: PuzzleConfig;
+export type SpaceState = {
+	config: SpaceConfig;
 	blocks: Block[][];
 	placedItems: BoardItemLocation[];
 	selectedBlock: { x: number; y: number } | null;

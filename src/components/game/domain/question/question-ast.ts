@@ -3,8 +3,8 @@ import type {
 	BoardItemLocation,
 	GamePhase,
 	InventoryGroupConfig,
-	PuzzleConfig,
 	QuestionStatus,
+	SpaceConfig,
 	TerminalState,
 } from "@/components/game/game-provider";
 
@@ -13,7 +13,7 @@ export type QuestionSpec<ConditionKey extends string = string> = {
 	init: InitSpec;
 	phaseRules: PhaseRule<ConditionKey>[];
 	inventoryRules?: InventoryRule<ConditionKey>[];
-	canvasRules?: CanvasRule<ConditionKey>[];
+	spaceRules?: SpaceRule<ConditionKey>[];
 	labels: Labels;
 	handlers: Handlers;
 };
@@ -28,7 +28,7 @@ export type InitSpec = { kind: "multi"; payload: MultiInitPayload };
 
 export type MultiInitPayload = {
 	questionId: string;
-	canvases: Record<string, PuzzleConfig>;
+	spaces: Record<string, SpaceConfig>;
 	inventoryGroups?: InventoryGroupConfig[];
 	terminal?: Partial<TerminalState>;
 	phase?: GamePhase;
@@ -43,9 +43,9 @@ export type InventoryRule<ConditionKey extends string = string> =
 	| { kind: "show-group"; when: Condition<ConditionKey>; groupId: string }
 	| { kind: "hide-group"; when: Condition<ConditionKey>; groupId: string };
 
-export type CanvasRule<ConditionKey extends string = string> =
-	| { kind: "show"; when: Condition<ConditionKey>; puzzleId: string }
-	| { kind: "hide"; when: Condition<ConditionKey>; puzzleId: string };
+export type SpaceRule<ConditionKey extends string = string> =
+	| { kind: "show"; when: Condition<ConditionKey>; spaceId: string }
+	| { kind: "hide"; when: Condition<ConditionKey>; spaceId: string };
 
 export type Labels = {
 	getItemLabel: (itemType: string) => string;
@@ -134,7 +134,7 @@ export const resolvePhase = <ConditionKey extends string>(
 };
 
 export const resolveVisibility = <ConditionKey extends string>(
-	rules: Array<InventoryRule<ConditionKey> | CanvasRule<ConditionKey>>,
+	rules: Array<InventoryRule<ConditionKey> | SpaceRule<ConditionKey>>,
 	context: ConditionContext<ConditionKey>,
 	key: string,
 	current: boolean,
@@ -143,7 +143,7 @@ export const resolveVisibility = <ConditionKey extends string>(
 
 	for (const rule of rules) {
 		const matchesKey =
-			"groupId" in rule ? rule.groupId === key : rule.puzzleId === key;
+			"groupId" in rule ? rule.groupId === key : rule.spaceId === key;
 		if (!matchesKey) {
 			continue;
 		}

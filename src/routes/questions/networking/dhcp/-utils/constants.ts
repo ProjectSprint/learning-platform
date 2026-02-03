@@ -1,5 +1,5 @@
 // Configuration constants for the networking question
-// Contains all static configuration like inventory items, canvas setup, and question metadata
+// Contains all static configuration like inventory items, space setup, and question metadata
 
 import type { GridSpaceData } from "@/components/game/domain/space";
 import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
@@ -93,7 +93,7 @@ export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
 	},
 ];
 
-export const DHCP_CANVAS_IDS = {
+export const DHCP_SPACE_IDS = {
 	pc1: "pc-1-board",
 	conn1: "connector-left",
 	router: "router-board",
@@ -101,49 +101,49 @@ export const DHCP_CANVAS_IDS = {
 	pc2: "pc-2-board",
 } as const;
 
-export const CANVAS_ORDER = [
-	DHCP_CANVAS_IDS.pc1,
-	DHCP_CANVAS_IDS.conn1,
-	DHCP_CANVAS_IDS.router,
-	DHCP_CANVAS_IDS.conn2,
-	DHCP_CANVAS_IDS.pc2,
+export const SPACE_ORDER = [
+	DHCP_SPACE_IDS.pc1,
+	DHCP_SPACE_IDS.conn1,
+	DHCP_SPACE_IDS.router,
+	DHCP_SPACE_IDS.conn2,
+	DHCP_SPACE_IDS.pc2,
 ];
 
-export const CANVAS_CONFIGS: Record<string, GridSpaceData> = {
-	[DHCP_CANVAS_IDS.pc1]: createGridSpaceData({
-		id: DHCP_CANVAS_IDS.pc1,
+export const SPACE_CONFIGS: Record<string, GridSpaceData> = {
+	[DHCP_SPACE_IDS.pc1]: createGridSpaceData({
+		id: DHCP_SPACE_IDS.pc1,
 		name: "PC-1",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_CANVAS_IDS.conn1]: createGridSpaceData({
-		id: DHCP_CANVAS_IDS.conn1,
+	[DHCP_SPACE_IDS.conn1]: createGridSpaceData({
+		id: DHCP_SPACE_IDS.conn1,
 		name: "Connector",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_CANVAS_IDS.router]: createGridSpaceData({
-		id: DHCP_CANVAS_IDS.router,
+	[DHCP_SPACE_IDS.router]: createGridSpaceData({
+		id: DHCP_SPACE_IDS.router,
 		name: "Router",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_CANVAS_IDS.conn2]: createGridSpaceData({
-		id: DHCP_CANVAS_IDS.conn2,
+	[DHCP_SPACE_IDS.conn2]: createGridSpaceData({
+		id: DHCP_SPACE_IDS.conn2,
 		name: "Connector",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_CANVAS_IDS.pc2]: createGridSpaceData({
-		id: DHCP_CANVAS_IDS.pc2,
+	[DHCP_SPACE_IDS.pc2]: createGridSpaceData({
+		id: DHCP_SPACE_IDS.pc2,
 		name: "PC-2",
 		rows: 1,
 		cols: 1,

@@ -17,7 +17,7 @@ import {
 	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
-import { DHCP_CANVAS_IDS } from "./constants";
+import { DHCP_SPACE_IDS } from "./constants";
 import {
 	type BoardPlacements,
 	buildNetworkSnapshot,
@@ -69,9 +69,9 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	// Get all grid spaces
 	const spaces = useMemo(() => {
 		const result: Record<string, GridSpaceData | undefined> = {};
-		for (const canvasId of Object.values(DHCP_CANVAS_IDS)) {
-			const space = state.spaces[canvasId];
-			result[canvasId] = space?.kind === "grid" ? space : undefined;
+		for (const spaceId of Object.values(DHCP_SPACE_IDS)) {
+			const space = state.spaces[spaceId];
+			result[spaceId] = space?.kind === "grid" ? space : undefined;
 		}
 		return result;
 	}, [state.spaces]);
@@ -79,14 +79,14 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 	// Convert entities to BoardItemLocation format for compatibility
 	const placements = useMemo<BoardPlacements>(() => {
 		const result: BoardPlacements = {
-			[DHCP_CANVAS_IDS.pc1]: [],
-			[DHCP_CANVAS_IDS.conn1]: [],
-			[DHCP_CANVAS_IDS.router]: [],
-			[DHCP_CANVAS_IDS.conn2]: [],
-			[DHCP_CANVAS_IDS.pc2]: [],
+			[DHCP_SPACE_IDS.pc1]: [],
+			[DHCP_SPACE_IDS.conn1]: [],
+			[DHCP_SPACE_IDS.router]: [],
+			[DHCP_SPACE_IDS.conn2]: [],
+			[DHCP_SPACE_IDS.pc2]: [],
 		};
 
-		for (const [canvasId, space] of Object.entries(spaces)) {
+		for (const [spaceId, space] of Object.entries(spaces)) {
 			if (!space) continue;
 
 			const items: BoardItemLocation[] = [];
@@ -99,7 +99,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 				}
 			}
 
-			result[canvasId] = items;
+			result[spaceId] = items;
 		}
 
 		return result;

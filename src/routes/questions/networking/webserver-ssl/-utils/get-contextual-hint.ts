@@ -54,7 +54,7 @@ export const getContextualHint = (state: SslGameState): string => {
 		return "Add index.html so your webserver has something to serve";
 	}
 
-	// Browser shows not secure - show new canvases
+	// Browser shows not secure - show new spaces
 	if (browserStatus === "warning" && !certificateIssued) {
 		// Domain already in letsencrypt, prompt issuing
 		if (letsencryptItems.includes("domain")) {
@@ -67,7 +67,7 @@ export const getContextualHint = (state: SslGameState): string => {
 		if (port443Items.includes("webserver-443") && !certificateIssued) {
 			return "Drag the Domain to the Let's Encrypt canvas to get a certificate";
 		}
-		// Let's Encrypt canvas is visible but empty
+		// Let's Encrypt space is visible but empty
 		if (letsencryptItems.length === 0) {
 			return "⚠️ Your site works but it's not secure! New canvases have appeared...";
 		}
@@ -163,7 +163,7 @@ export const getContextualHint = (state: SslGameState): string => {
  */
 export const getPlacementErrorHint = (
 	itemType: string,
-	canvasId: string,
+	spaceId: string,
 ): string | null => {
 	const errors: Record<string, string> = {
 		"private-key|port-80":
@@ -175,6 +175,6 @@ export const getPlacementErrorHint = (
 		"webserver-443|port-80": "❌ This webserver is for HTTPS (port 443)",
 	};
 
-	const key = `${itemType}|${canvasId}`;
+	const key = `${itemType}|${spaceId}`;
 	return errors[key] || null;
 };

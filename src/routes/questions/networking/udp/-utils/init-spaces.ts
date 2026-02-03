@@ -7,15 +7,15 @@ import { createItemData } from "@/components/game/domain/entity/entity-fns";
 import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
 	ACK_PACKETS,
-	CANVAS_CONFIGS,
 	DATA_PACKETS,
 	FRAME_ITEMS,
 	QUESTION_ID,
 	RECEIVED_SYN_PACKETS,
+	SPACE_CONFIGS,
 	SYN_ACK_PACKETS,
 	SYN_PACKETS,
-	TCP_CANVAS_ORDER,
-	UDP_CANVAS_ORDER,
+	TCP_SPACE_ORDER,
+	UDP_SPACE_ORDER,
 } from "./constants";
 
 // Use any for dispatch to work around Phase 5 integration issues
@@ -23,21 +23,21 @@ import {
 type GameDispatch = (action: any) => void;
 
 /**
- * Initialize all spaces (grid canvases + inventory pool) for the UDP question.
+ * Initialize all spaces (grid spaces + inventory pool) for the UDP question.
  */
 export const initializeSpaces = (dispatch: GameDispatch) => {
 	// Create grid spaces for TCP phase
-	for (const canvasId of TCP_CANVAS_ORDER) {
-		const gridSpace = CANVAS_CONFIGS[canvasId];
+	for (const spaceId of TCP_SPACE_ORDER) {
+		const gridSpace = SPACE_CONFIGS[spaceId];
 		if (!gridSpace) continue;
 
 		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
 	}
 
 	// Create grid spaces for UDP phase
-	for (const canvasId of UDP_CANVAS_ORDER) {
-		if (TCP_CANVAS_ORDER.includes(canvasId)) continue; // Skip duplicates
-		const gridSpace = CANVAS_CONFIGS[canvasId];
+	for (const spaceId of UDP_SPACE_ORDER) {
+		if (TCP_SPACE_ORDER.includes(spaceId)) continue; // Skip duplicates
+		const gridSpace = SPACE_CONFIGS[spaceId];
 		if (!gridSpace) continue;
 
 		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
@@ -178,7 +178,7 @@ export const initializeTerminal = (dispatch: GameDispatch) => {
 
 /**
  * Initialize the entire UDP question state.
- * This replaces the old INIT_MULTI_CANVAS action.
+ * This replaces the legacy INIT_MULTI_CANVAS action.
  */
 export const initializeUdpQuestion = (dispatch: GameDispatch) => {
 	// Set question metadata

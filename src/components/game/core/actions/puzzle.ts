@@ -1,16 +1,16 @@
-export type PuzzleAction =
+export type SpaceAction =
 	| {
 			type: "PLACE_ITEM";
 			payload: {
 				itemId: string;
 				blockX: number;
 				blockY: number;
-				puzzleId?: string;
+				spaceId?: string;
 			};
 	  }
 	| {
 			type: "REMOVE_ITEM";
-			payload: { blockX: number; blockY: number; puzzleId?: string };
+			payload: { blockX: number; blockY: number; spaceId?: string };
 	  }
 	| {
 			type: "REPOSITION_ITEM";
@@ -20,7 +20,7 @@ export type PuzzleAction =
 				fromBlockY: number;
 				toBlockX: number;
 				toBlockY: number;
-				puzzleId?: string;
+				spaceId?: string;
 			};
 	  }
 	| {
@@ -28,17 +28,17 @@ export type PuzzleAction =
 			payload: {
 				deviceId: string;
 				config: Record<string, unknown>;
-				puzzleId?: string;
+				spaceId?: string;
 			};
 	  }
 	| {
 			type: "TRANSFER_ITEM";
 			payload: {
 				itemId: string;
-				fromPuzzle: string;
+				fromSpace: string;
 				fromBlockX: number;
 				fromBlockY: number;
-				toPuzzle: string;
+				toSpace: string;
 				toBlockX: number;
 				toBlockY: number;
 			};
@@ -46,7 +46,7 @@ export type PuzzleAction =
 	| {
 			type: "SWAP_ITEMS";
 			payload: {
-				from: { puzzleId?: string; blockX: number; blockY: number };
-				to: { puzzleId?: string; blockX: number; blockY: number };
+				from: { spaceId?: string; blockX: number; blockY: number };
+				to: { spaceId?: string; blockX: number; blockY: number };
 			};
 	  };

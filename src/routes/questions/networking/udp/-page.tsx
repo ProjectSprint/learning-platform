@@ -20,10 +20,10 @@ import {
 import type { QuestionProps } from "@/components/module";
 
 import {
-	CANVAS_CONFIGS,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	TCP_CANVAS_ORDER,
+	SPACE_CONFIGS,
+	TCP_SPACE_ORDER,
 } from "./-utils/constants";
 import { initializeUdpQuestion } from "./-utils/init-spaces";
 import { useUdpState } from "./-utils/use-udp-state";
@@ -71,7 +71,7 @@ const UdpGame = ({
 		}
 	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
 
-	const canvasAreas = useMemo(
+	const spaceAreas = useMemo(
 		() =>
 			({
 				"client-a-inbox": "client-a-inbox",
@@ -130,14 +130,14 @@ const UdpGame = ({
 						gap={{ base: 2, md: 4 }}
 						alignItems="stretch"
 					>
-						{TCP_CANVAS_ORDER.map((canvasId) => {
-							const config = CANVAS_CONFIGS[canvasId];
+						{TCP_SPACE_ORDER.map((spaceId) => {
+							const config = SPACE_CONFIGS[spaceId];
 							if (!config) return null;
 							return (
-								<GridItem key={canvasId} area={canvasAreas[canvasId]} minW={0}>
+								<GridItem key={spaceId} area={spaceAreas[spaceId]} minW={0}>
 									<GridSpace
-										spaceId={canvasId}
-										title={config.name ?? canvasId}
+										spaceId={spaceId}
+										title={config.name ?? spaceId}
 										onEntityClick={handleEntityClick}
 										isEntityClickable={isEntityClickable}
 									/>

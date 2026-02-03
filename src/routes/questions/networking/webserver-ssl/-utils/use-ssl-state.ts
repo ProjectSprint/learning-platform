@@ -13,23 +13,23 @@ import { DEFAULT_DOMAIN } from "./constants";
 export const useSslState = () => {
 	const state = useGameState();
 
-	// Get canvas spaces
-	const browserCanvas =
+	// Get space grids
+	const browserSpace =
 		state.spaces.browser?.kind === "grid" ? state.spaces.browser : undefined;
-	const port80Canvas =
+	const port80Space =
 		state.spaces["port-80"]?.kind === "grid"
 			? state.spaces["port-80"]
 			: undefined;
-	const letsencryptCanvas =
+	const letsencryptSpace =
 		state.spaces.letsencrypt?.kind === "grid"
 			? state.spaces.letsencrypt
 			: undefined;
-	const port443Canvas =
+	const port443Space =
 		state.spaces["port-443"]?.kind === "grid"
 			? state.spaces["port-443"]
 			: undefined;
 
-	// Get entities in each canvas
+	// Get entities in each space
 	const getEntitiesInSpace = useCallback(
 		(space: GridSpaceData | undefined) => {
 			if (!space) return [];
@@ -45,20 +45,20 @@ export const useSslState = () => {
 	);
 
 	const browserEntities = useMemo(
-		() => getEntitiesInSpace(browserCanvas),
-		[browserCanvas, getEntitiesInSpace],
+		() => getEntitiesInSpace(browserSpace),
+		[browserSpace, getEntitiesInSpace],
 	);
 	const port80Entities = useMemo(
-		() => getEntitiesInSpace(port80Canvas),
-		[port80Canvas, getEntitiesInSpace],
+		() => getEntitiesInSpace(port80Space),
+		[port80Space, getEntitiesInSpace],
 	);
 	const letsencryptEntities = useMemo(
-		() => getEntitiesInSpace(letsencryptCanvas),
-		[letsencryptCanvas, getEntitiesInSpace],
+		() => getEntitiesInSpace(letsencryptSpace),
+		[letsencryptSpace, getEntitiesInSpace],
 	);
 	const port443Entities = useMemo(
-		() => getEntitiesInSpace(port443Canvas),
-		[port443Canvas, getEntitiesInSpace],
+		() => getEntitiesInSpace(port443Space),
+		[port443Space, getEntitiesInSpace],
 	);
 	const domainEntities = useMemo(
 		() =>
@@ -202,10 +202,10 @@ export const useSslState = () => {
 	);
 
 	return {
-		browserCanvas,
-		port80Canvas,
-		letsencryptCanvas,
-		port443Canvas,
+		browserSpace,
+		port80Space,
+		letsencryptSpace,
+		port443Space,
 		browserItems,
 		port80Items,
 		letsencryptItems,

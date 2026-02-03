@@ -33,12 +33,12 @@ import {
 import type { QuestionProps } from "@/components/module";
 
 import {
-	CANVAS_CONFIGS,
-	CANVAS_ORDER,
-	DHCP_CANVAS_IDS,
+	DHCP_SPACE_IDS,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
+	SPACE_CONFIGS,
+	SPACE_ORDER,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { initializeDhcpQuestion } from "./-utils/init-spaces";
@@ -65,7 +65,7 @@ const DHCP_SPEC_BASE: Omit<QuestionSpec<DhcpConditionKey>, "handlers"> = {
 		kind: "multi" as const,
 		payload: {
 			questionId: QUESTION_ID,
-			canvases: {},
+			spaces: {},
 			inventoryGroups: [],
 		},
 	},
@@ -258,11 +258,11 @@ const NetworkingGame = ({
 			{
 				id: "pc1-connector",
 				from: {
-					puzzleId: DHCP_CANVAS_IDS.pc1,
+					spaceId: DHCP_SPACE_IDS.pc1,
 					anchor: { base: "br", sm: "tr", md: "tr", lg: "tr" },
 				},
 				to: {
-					puzzleId: DHCP_CANVAS_IDS.conn1,
+					spaceId: DHCP_SPACE_IDS.conn1,
 					anchor: { base: "tr", sm: "tl", md: "tl", lg: "tl" },
 				},
 				style: {
@@ -275,11 +275,11 @@ const NetworkingGame = ({
 			{
 				id: "connector-router-left",
 				from: {
-					puzzleId: DHCP_CANVAS_IDS.conn1,
+					spaceId: DHCP_SPACE_IDS.conn1,
 					anchor: { base: "br", lg: "tr" },
 				},
 				to: {
-					puzzleId: DHCP_CANVAS_IDS.router,
+					spaceId: DHCP_SPACE_IDS.router,
 					anchor: { base: "tr", lg: "tl" },
 				},
 				style: {
@@ -292,11 +292,11 @@ const NetworkingGame = ({
 			{
 				id: "pc2-connector",
 				from: {
-					puzzleId: DHCP_CANVAS_IDS.pc2,
+					spaceId: DHCP_SPACE_IDS.pc2,
 					anchor: { base: "tr", sm: "tr", md: "tr", lg: "tl" },
 				},
 				to: {
-					puzzleId: DHCP_CANVAS_IDS.conn2,
+					spaceId: DHCP_SPACE_IDS.conn2,
 					anchor: { base: "br", sm: "tl", md: "tl", lg: "tr" },
 				},
 				style: {
@@ -309,11 +309,11 @@ const NetworkingGame = ({
 			{
 				id: "connector-router-right",
 				from: {
-					puzzleId: DHCP_CANVAS_IDS.conn2,
+					spaceId: DHCP_SPACE_IDS.conn2,
 					anchor: { base: "tr", lg: "tl" },
 				},
 				to: {
-					puzzleId: DHCP_CANVAS_IDS.router,
+					spaceId: DHCP_SPACE_IDS.router,
 					anchor: { base: "br", lg: "tr" },
 				},
 				style: {
@@ -334,13 +334,13 @@ const NetworkingGame = ({
 		};
 	}, [arrows, dispatch]);
 
-	const canvasAreas = useMemo(
+	const spaceAreas = useMemo(
 		() => ({
-			[DHCP_CANVAS_IDS.pc1]: "pc1",
-			[DHCP_CANVAS_IDS.conn1]: "conn1",
-			[DHCP_CANVAS_IDS.router]: "router",
-			[DHCP_CANVAS_IDS.pc2]: "pc2",
-			[DHCP_CANVAS_IDS.conn2]: "conn2",
+			[DHCP_SPACE_IDS.pc1]: "pc1",
+			[DHCP_SPACE_IDS.conn1]: "conn1",
+			[DHCP_SPACE_IDS.router]: "router",
+			[DHCP_SPACE_IDS.pc2]: "pc2",
+			[DHCP_SPACE_IDS.conn2]: "conn2",
 		}),
 		[],
 	);
@@ -441,14 +441,14 @@ const NetworkingGame = ({
 						gap={{ base: 2, md: 4 }}
 						alignItems="stretch"
 					>
-						{CANVAS_ORDER.map((canvasId) => {
-							const config = CANVAS_CONFIGS[canvasId];
+						{SPACE_ORDER.map((spaceId) => {
+							const config = SPACE_CONFIGS[spaceId];
 							if (!config) return null;
 							return (
-								<GridItem key={canvasId} area={canvasAreas[canvasId]} minW={0}>
+								<GridItem key={spaceId} area={spaceAreas[spaceId]} minW={0}>
 									<GridSpace
-										spaceId={canvasId}
-										title={config.name ?? canvasId}
+										spaceId={spaceId}
+										title={config.name ?? spaceId}
 										onEntityClick={handleEntityClick}
 										isEntityClickable={isEntityClickable}
 										getEntityLabel={(entity) =>

@@ -1,4 +1,4 @@
-// Puzzle types
+// Space types
 
 // Arrow types
 export type {
@@ -30,11 +30,11 @@ export type {
 	Block,
 	BlockStatus,
 	BoardItemLocationSeed,
-	PuzzleBreakpoint,
-	PuzzleConfig,
-	PuzzleSize,
-	PuzzleSizeValue,
-	PuzzleState,
+	SpaceBreakpoint,
+	SpaceConfig,
+	SpaceSize,
+	SpaceSizeValue,
+	SpaceState,
 } from "./puzzle";
 
 // Shared zone types

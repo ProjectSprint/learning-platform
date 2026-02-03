@@ -22,11 +22,11 @@ import { Modal } from "@/components/game/presentation/modal";
 import type { QuestionProps } from "@/components/module";
 
 import {
-	CANVAS_CONFIGS,
-	CANVAS_ORDER,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	type TcpCanvasKey,
+	SPACE_CONFIGS,
+	SPACE_ORDER,
+	type TcpSpaceKey,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { initializeTcpQuestion } from "./-utils/init-spaces";
@@ -134,11 +134,11 @@ const TcpGame = ({
 			{
 				id: "internet-server",
 				from: {
-					puzzleId: "internet",
+					spaceId: "internet",
 					anchor: { base: "br", md: "br" },
 				},
 				to: {
-					puzzleId: "server",
+					spaceId: "server",
 					anchor: { base: "tl", md: "bl" },
 				},
 				style: baseStyle,
@@ -157,7 +157,7 @@ const TcpGame = ({
 		};
 	}, [boardArrows, dispatch, isCompleted]);
 
-	const canvasAreas = useMemo(
+	const spaceAreas = useMemo(
 		() => ({
 			splitter: "splitter",
 			internet: "internet",
@@ -165,11 +165,11 @@ const TcpGame = ({
 		}),
 		[],
 	);
-	const visibleCanvases = useMemo(
+	const visibleSpaces = useMemo(
 		() =>
 			splitterVisible
-				? CANVAS_ORDER
-				: (CANVAS_ORDER.filter((id) => id !== "splitter") as TcpCanvasKey[]),
+				? SPACE_ORDER
+				: (SPACE_ORDER.filter((id) => id !== "splitter") as TcpSpaceKey[]),
 		[splitterVisible],
 	);
 	const gridTemplateAreas = splitterVisible
@@ -287,16 +287,16 @@ const TcpGame = ({
 						gap={{ base: 2, md: 4 }}
 						alignItems="stretch"
 					>
-						{visibleCanvases.map((canvasId) => {
-							const config = CANVAS_CONFIGS[canvasId];
+						{visibleSpaces.map((spaceId) => {
+							const config = SPACE_CONFIGS[spaceId];
 							if (!config) return null;
 							return (
-								<GridItem key={canvasId} area={canvasAreas[canvasId]} minW={0}>
+								<GridItem key={spaceId} area={spaceAreas[spaceId]} minW={0}>
 									<GridSpace
-										spaceId={canvasId}
-										title={config.name ?? canvasId}
+										spaceId={spaceId}
+										title={config.name ?? spaceId}
 										responsiveSize={
-											canvasId === "server"
+											spaceId === "server"
 												? { base: [2, 6], xl: [3, 4] }
 												: undefined
 										}

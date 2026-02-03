@@ -6,13 +6,13 @@
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
 import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
-	CANVAS_CONFIGS,
-	CANVAS_ORDER,
 	FILE_INVENTORY_ITEMS,
 	MESSAGE_PACKET_ITEMS,
 	NOTES_FILE_ITEM,
 	NOTES_PACKET_ITEMS,
 	QUESTION_ID,
+	SPACE_CONFIGS,
+	SPACE_ORDER,
 	SYSTEM_PACKET_ITEMS,
 	TCP_TOOL_ITEMS,
 } from "./constants";
@@ -22,12 +22,12 @@ import {
 type GameDispatch = (action: any) => void;
 
 /**
- * Initialize all spaces (grid canvases + inventory pool) for the TCP question.
+ * Initialize all spaces (grid spaces + inventory pool) for the TCP question.
  */
 export const initializeSpaces = (dispatch: GameDispatch) => {
-	// Create grid spaces for each canvas
-	for (const canvasId of CANVAS_ORDER) {
-		const gridSpace = CANVAS_CONFIGS[canvasId];
+	// Create grid spaces for each space
+	for (const spaceId of SPACE_ORDER) {
+		const gridSpace = SPACE_CONFIGS[spaceId];
 		if (!gridSpace) continue;
 
 		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
@@ -187,7 +187,7 @@ export const initializeTerminal = (dispatch: GameDispatch) => {
 
 /**
  * Initialize the entire TCP question state.
- * This replaces the old INIT_MULTI_CANVAS action.
+ * This replaces the legacy INIT_MULTI_CANVAS action.
  */
 export const initializeTcpQuestion = (dispatch: GameDispatch) => {
 	// Set question metadata

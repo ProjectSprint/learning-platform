@@ -9,14 +9,14 @@ import type {
 	BoardItemLocation,
 	GameState,
 	InventoryGroup,
-	PuzzleConfig,
-	PuzzleState,
+	SpaceConfig,
+	SpaceState,
 } from "../types";
 import { updateBlock } from "./legacy-utils";
-import { createPuzzleState } from "./puzzle-state";
+import { createSpaceState } from "./puzzle-state";
 
-const defaultPuzzleConfig: PuzzleConfig = {
-	id: "default-puzzle",
+const defaultSpaceConfig: SpaceConfig = {
+	id: "default-space",
 	size: { base: [6, 4] },
 	orientation: "horizontal",
 };
@@ -33,7 +33,7 @@ export const createDefaultState = (): GameState => ({
 			},
 		],
 	},
-	puzzle: createPuzzleState(defaultPuzzleConfig),
+	space: createSpaceState(defaultSpaceConfig),
 	arrows: [],
 	terminal: {
 		visible: false,
@@ -55,15 +55,15 @@ export const createDefaultState = (): GameState => ({
 });
 
 const applyInitialPlacements = (
-	puzzle: PuzzleState,
+	space: SpaceState,
 	inventoryGroups: InventoryGroup[],
-): { puzzle: PuzzleState; inventoryGroups: InventoryGroup[] } => {
-	const placements = puzzle.config.initialPlacements ?? [];
+): { space: SpaceState; inventoryGroups: InventoryGroup[] } => {
+	const placements = space.config.initialPlacements ?? [];
 	if (placements.length === 0) {
-		return { puzzle, inventoryGroups };
+		return { space, inventoryGroups };
 	}
 
-	let nextBlocks = puzzle.blocks;
+	let nextBlocks = space.blocks;
 	const nextInventoryGroups = inventoryGroups;
 	const placedItems: BoardItemLocation[] = [];
 	placements.forEach((placement) => {
@@ -101,8 +101,8 @@ const applyInitialPlacements = (
 	});
 
 	return {
-		puzzle: {
-			...puzzle,
+		space: {
+			...space,
 			blocks: nextBlocks,
 			placedItems,
 		},
@@ -115,45 +115,44 @@ export const coreReducer = (
 	action: GameAction,
 ): GameState => {
 	switch (action.type) {
-		case "INIT_MULTI_CANVAS": {
+		case "INIT_MULTI_SPACE": {
 			const config = action.payload;
-			const entries = Object.entries(config.canvases);
+			const entries = Object.entries(config.spaces);
 			if (entries.length === 0) {
 				return state;
 			}
 
-			const puzzleIds = new Set<string>();
-			const normalizedPuzzles: Array<{ key: string; config: PuzzleConfig }> =
-				[];
-			for (const [entryKey, puzzleConfig] of entries) {
-				const resolvedKey = puzzleConfig.puzzleId ?? entryKey;
-				if (puzzleIds.has(resolvedKey)) {
+			const spaceIds = new Set<string>();
+			const normalizedSpaces: Array<{ key: string; config: SpaceConfig }> = [];
+			for (const [entryKey, spaceConfig] of entries) {
+				const resolvedKey = spaceConfig.spaceId ?? entryKey;
+				if (spaceIds.has(resolvedKey)) {
 					return state;
 				}
-				puzzleIds.add(resolvedKey);
-				normalizedPuzzles.push({ key: resolvedKey, config: puzzleConfig });
+				spaceIds.add(resolvedKey);
+				normalizedSpaces.push({ key: resolvedKey, config: spaceConfig });
 			}
 
 			let inventoryGroups = normalizeInventoryGroups(config.inventoryGroups);
-			const nextPuzzles: Record<string, PuzzleState> = {};
+			const nextSpaces: Record<string, SpaceState> = {};
 
-			for (const entry of normalizedPuzzles) {
+			for (const entry of normalizedSpaces) {
 				const key = entry.key;
-				const puzzleConfig = entry.config;
+				const spaceConfig = entry.config;
 				const seeded = applyInitialPlacements(
-					createPuzzleState(puzzleConfig),
+					createSpaceState(spaceConfig),
 					inventoryGroups,
 				);
 				inventoryGroups = seeded.inventoryGroups;
-				nextPuzzles[key] = seeded.puzzle;
+				nextSpaces[key] = seeded.space;
 			}
 
-			const firstKey = normalizedPuzzles[0]?.key;
+			const firstKey = normalizedSpaces[0]?.key;
 			if (!firstKey) {
 				return state;
 			}
-			const firstPuzzle = nextPuzzles[firstKey];
-			if (!firstPuzzle) {
+			const firstSpace = nextSpaces[firstKey];
+			if (!firstSpace) {
 				return state;
 			}
 
@@ -166,8 +165,8 @@ export const coreReducer = (
 				...createDefaultState(),
 				phase: config.phase ?? "setup",
 				inventory: { groups: inventoryGroups },
-				puzzle: firstPuzzle,
-				puzzles: nextPuzzles,
+				space: firstSpace,
+				spaces: nextSpaces,
 				terminal: {
 					visible: terminal.visible ?? false,
 					prompt: terminal.prompt ?? "",

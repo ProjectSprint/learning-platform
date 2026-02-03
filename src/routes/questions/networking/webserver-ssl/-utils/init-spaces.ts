@@ -7,9 +7,9 @@ import { createItemData } from "@/components/game/domain/entity/entity-fns";
 import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
 	BASIC_INVENTORY_ITEMS,
-	CANVAS_CONFIGS,
-	CANVAS_ORDER,
 	QUESTION_ID,
+	SPACE_CONFIGS,
+	SPACE_ORDER,
 	SSL_ITEMS_INVENTORY,
 	SSL_SETUP_INVENTORY_ITEMS,
 	TERMINAL_INTRO_ENTRIES,
@@ -21,12 +21,12 @@ import {
 type GameDispatch = (action: any) => void;
 
 /**
- * Initialize all spaces (grid canvases + inventory pool) for the SSL question.
+ * Initialize all spaces (grid spaces + inventory pool) for the SSL question.
  */
 export const initializeSpaces = (dispatch: GameDispatch) => {
-	// Create grid spaces for each canvas
-	for (const canvasId of CANVAS_ORDER) {
-		const gridSpace = CANVAS_CONFIGS[canvasId];
+	// Create grid spaces for each space
+	for (const spaceId of SPACE_ORDER) {
+		const gridSpace = SPACE_CONFIGS[spaceId];
 		if (!gridSpace) continue;
 
 		dispatch({
@@ -142,7 +142,7 @@ export const initializeTerminal = (dispatch: GameDispatch) => {
 
 /**
  * Initialize the entire SSL question state.
- * This replaces the old INIT_MULTI_CANVAS action.
+ * This replaces the legacy INIT_MULTI_CANVAS action.
  */
 export const initializeSslQuestion = (dispatch: GameDispatch) => {
 	// Set question metadata

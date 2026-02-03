@@ -6,10 +6,10 @@
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
 import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
-	CANVAS_CONFIGS,
-	CANVAS_ORDER,
 	INVENTORY_ITEMS,
 	QUESTION_ID,
+	SPACE_CONFIGS,
+	SPACE_ORDER,
 	TERMINAL_INTRO_ENTRIES,
 	TERMINAL_PROMPT,
 } from "./constants";
@@ -20,12 +20,12 @@ import {
 type GameDispatch = (action: any) => void;
 
 /**
- * Initialize all spaces (grid canvases + inventory pool) for the Internet question.
+ * Initialize all spaces (grid spaces + inventory pool) for the Internet question.
  */
 export const initializeSpaces = (dispatch: GameDispatch) => {
-	// Create grid spaces for each canvas
-	for (const canvasId of CANVAS_ORDER) {
-		const gridSpace = CANVAS_CONFIGS[canvasId];
+	// Create grid spaces for each space
+	for (const spaceId of SPACE_ORDER) {
+		const gridSpace = SPACE_CONFIGS[spaceId];
 		if (!gridSpace) continue;
 
 		dispatch({
@@ -98,7 +98,7 @@ export const initializeTerminal = (dispatch: GameDispatch) => {
 
 /**
  * Initialize the entire Internet question state.
- * This replaces the old INIT_MULTI_CANVAS action.
+ * This replaces the legacy INIT_MULTI_CANVAS action.
  */
 export const initializeInternetQuestion = (dispatch: GameDispatch) => {
 	// Set question metadata
@@ -130,6 +130,6 @@ export const initializeInternetQuestion = (dispatch: GameDispatch) => {
 };
 
 /**
- * Canvas IDs and order for easy reference
+ * Space IDs and order for easy reference
  */
-export { CANVAS_ORDER };
+export { SPACE_ORDER };

@@ -78,7 +78,7 @@ export type EntityData = {
  * Configuration for creating an Item entity.
  */
 export type ItemDataConfig = Omit<EntityDataConfig, "type"> & {
-	/** Spaces/puzzles where this item can be placed */
+	/** Spaces where this item can be placed */
 	allowedPlaces: string[];
 	/** Icon configuration */
 	icon?: IconInfo;
@@ -96,7 +96,7 @@ export type ItemDataConfig = Omit<EntityDataConfig, "type"> & {
  * FP replacement for Item class.
  */
 export type ItemData = EntityData & {
-	/** Spaces/puzzles where this item can be placed */
+	/** Spaces where this item can be placed */
 	allowedPlaces: string[];
 	/** Icon configuration */
 	icon?: IconInfo;

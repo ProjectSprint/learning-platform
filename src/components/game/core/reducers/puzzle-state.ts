@@ -2,20 +2,20 @@ import type {
 	Block,
 	BlockStatus,
 	GameState,
-	PuzzleConfig,
-	PuzzleSize,
-	PuzzleSizeValue,
-	PuzzleState,
+	SpaceConfig,
+	SpaceSize,
+	SpaceSizeValue,
+	SpaceState,
 } from "../types";
 
 /**
- * @internal Inlined from legacy puzzle/grid for cleanup
+ * @internal Inlined from legacy grid for cleanup
  */
-const getMaxPuzzleSize = (size: PuzzleSizeValue): PuzzleSize => {
+const getMaxSpaceSize = (size: SpaceSizeValue): SpaceSize => {
 	if (Array.isArray(size)) {
 		return size;
 	}
-	const values = Object.values(size).filter(Boolean) as PuzzleSize[];
+	const values = Object.values(size).filter(Boolean) as SpaceSize[];
 	if (values.length === 0) {
 		return [1, 1];
 	}
@@ -33,7 +33,7 @@ const getMaxPuzzleSize = (size: PuzzleSizeValue): PuzzleSize => {
 };
 
 /**
- * @internal Inlined from legacy puzzle/grid for cleanup
+ * @internal Inlined from legacy grid for cleanup
  */
 const createBlockGrid = (columns: number, rows: number): Block[][] =>
 	Array.from({ length: rows }, (_, rowIndex) =>
@@ -44,8 +44,8 @@ const createBlockGrid = (columns: number, rows: number): Block[][] =>
 		})),
 	);
 
-export const createPuzzleState = (config: PuzzleConfig): PuzzleState => {
-	const [columns, rows] = getMaxPuzzleSize(config.size);
+export const createSpaceState = (config: SpaceConfig): SpaceState => {
+	const [columns, rows] = getMaxSpaceSize(config.size);
 	return {
 		config,
 		blocks: createBlockGrid(columns, rows),
@@ -54,32 +54,32 @@ export const createPuzzleState = (config: PuzzleConfig): PuzzleState => {
 	};
 };
 
-export const resolvePuzzleState = (state: GameState, puzzleId?: string) => {
-	if (!puzzleId) {
-		return state.puzzle;
+export const resolveSpaceState = (state: GameState, spaceId?: string) => {
+	if (!spaceId) {
+		return state.space;
 	}
 
-	return state.puzzles?.[puzzleId] ?? state.puzzle;
+	return state.spaces?.[spaceId] ?? state.space;
 };
 
-export const updatePuzzleState = (
+export const updateSpaceState = (
 	state: GameState,
-	puzzleId: string | undefined,
-	nextPuzzle: PuzzleState,
+	spaceId: string | undefined,
+	nextSpace: SpaceState,
 ): GameState => {
-	if (!puzzleId) {
-		return { ...state, puzzle: nextPuzzle };
+	if (!spaceId) {
+		return { ...state, space: nextSpace };
 	}
 
 	const nextPrimary =
-		state.puzzle.config.puzzleId === puzzleId ? nextPuzzle : state.puzzle;
+		state.space.config.spaceId === spaceId ? nextSpace : state.space;
 
 	return {
 		...state,
-		puzzle: nextPrimary,
-		puzzles: {
-			...(state.puzzles ?? {}),
-			[puzzleId]: nextPuzzle,
+		space: nextPrimary,
+		spaces: {
+			...(state.spaces ?? {}),
+			[spaceId]: nextSpace,
 		},
 	};
 };

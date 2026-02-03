@@ -113,7 +113,7 @@ export type PlaceItemAction = {
 		itemId: string;
 		blockX: number;
 		blockY: number;
-		puzzleId?: string;
+		spaceId?: string;
 	};
 };
 
@@ -126,7 +126,7 @@ export type RemoveItemAction = {
 	payload: {
 		blockX: number;
 		blockY: number;
-		puzzleId?: string;
+		spaceId?: string;
 	};
 };
 
@@ -142,7 +142,7 @@ export type RepositionItemAction = {
 		fromBlockY: number;
 		toBlockX: number;
 		toBlockY: number;
-		puzzleId?: string;
+		spaceId?: string;
 	};
 };
 
@@ -154,10 +154,10 @@ export type TransferItemAction = {
 	type: "TRANSFER_ITEM";
 	payload: {
 		itemId: string;
-		fromPuzzle: string;
+		fromSpace: string;
 		fromBlockX: number;
 		fromBlockY: number;
-		toPuzzle: string;
+		toSpace: string;
 		toBlockX: number;
 		toBlockY: number;
 	};
@@ -170,8 +170,8 @@ export type TransferItemAction = {
 export type SwapItemsAction = {
 	type: "SWAP_ITEMS";
 	payload: {
-		from: { puzzleId?: string; blockX: number; blockY: number };
-		to: { puzzleId?: string; blockX: number; blockY: number };
+		from: { spaceId?: string; blockX: number; blockY: number };
+		to: { spaceId?: string; blockX: number; blockY: number };
 	};
 };
 

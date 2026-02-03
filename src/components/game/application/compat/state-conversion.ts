@@ -1,6 +1,6 @@
 /**
  * Compatibility layer for converting between new GameState (Spaces/Entities)
- * and old GameState (puzzle/inventory) format.
+ * and old GameState (space/inventory) format.
  *
  * This is a temporary bridge to support old UI components during the migration.
  * These functions should be removed once all components are updated.
@@ -12,8 +12,8 @@ import type {
 	BoardItemStatus,
 	InventoryGroup,
 	Item as LegacyItem,
-	PuzzleConfig,
-	PuzzleState,
+	SpaceConfig,
+	SpaceState,
 } from "../../core/types";
 import type { EntityData } from "../../domain/entity/entity-data";
 import { isItemData } from "../../domain/entity/entity-data";
@@ -28,17 +28,17 @@ const isBoardItemStatus = (value: unknown): value is BoardItemStatus =>
 	value === "error";
 
 /**
- * Convert a GridSpace to the old PuzzleState format.
+ * Convert a GridSpace to the old SpaceState format.
  * This allows old components to work with the new Space architecture.
  */
-export function spaceToPuzzleState(
+export function spaceToSpaceState(
 	space: SpaceData,
 	entities: Record<string, EntityData>,
-	puzzleId?: string,
-): PuzzleState {
+	spaceId?: string,
+): SpaceState {
 	// Check if it's a GridSpace and extract its properties
 	if (!isGridSpace(space)) {
-		// Return empty puzzle state for non-grid spaces
+		// Return empty space state for non-grid spaces
 		return {
 			config: {
 				id: space.id,
@@ -118,9 +118,9 @@ export function spaceToPuzzleState(
 
 	// Extract config from space metadata
 	const metadata = space.metadata ?? {};
-	const config: PuzzleConfig = {
+	const config: SpaceConfig = {
 		id: space.id,
-		puzzleId: puzzleId || space.id,
+		spaceId: spaceId || space.id,
 		title: (metadata.title as string | undefined) ?? space.name,
 		size: [cols, rows],
 		orientation: metadata.orientation as "horizontal" | "vertical" | undefined,
@@ -235,29 +235,29 @@ export function entitiesToInventory(
 }
 
 /**
- * Get a specific puzzle (GridSpace) from the state by ID.
+ * Get a specific space (GridSpace) from the state by ID.
  * Falls back to the first GridSpace if not found.
  */
-export function getPuzzleById(
+export function getSpaceById(
 	spaces: Record<string, SpaceData>,
 	entities: Record<string, EntityData>,
-	puzzleId?: string,
-): PuzzleState {
-	if (puzzleId) {
-		const space = spaces[puzzleId];
+	spaceId?: string,
+): SpaceState {
+	if (spaceId) {
+		const space = spaces[spaceId];
 		if (space) {
-			return spaceToPuzzleState(space, entities, puzzleId);
+			return spaceToSpaceState(space, entities, spaceId);
 		}
 	}
 
 	// Find first grid space
 	for (const [id, space] of Object.entries(spaces)) {
 		if (isGridSpace(space)) {
-			return spaceToPuzzleState(space, entities, id);
+			return spaceToSpaceState(space, entities, id);
 		}
 	}
 
-	// Return empty puzzle if no grid spaces found
+	// Return empty space if no grid spaces found
 	return {
 		config: { id: "default", size: [0, 0] },
 		blocks: [],
@@ -267,21 +267,21 @@ export function getPuzzleById(
 }
 
 /**
- * Get all puzzles (GridSpaces) from the state.
+ * Get all spaces (GridSpaces) from the state.
  */
-export function getAllPuzzles(
+export function getAllSpaces(
 	spaces: Record<string, SpaceData>,
 	entities: Record<string, EntityData>,
-): Record<string, PuzzleState> {
-	const puzzles: Record<string, PuzzleState> = {};
+): Record<string, SpaceState> {
+	const spacesMap: Record<string, SpaceState> = {};
 
 	for (const [id, space] of Object.entries(spaces)) {
 		if (isGridSpace(space)) {
-			puzzles[id] = spaceToPuzzleState(space, entities, id);
+			spacesMap[id] = spaceToSpaceState(space, entities, id);
 		}
 	}
 
-	return puzzles;
+	return spacesMap;
 }
 
 /**
@@ -290,15 +290,15 @@ export function getAllPuzzles(
  */
 export function createCompatState(
 	state: GameState,
-	puzzleId?: string,
+	spaceId?: string,
 ): {
-	puzzle: PuzzleState;
-	puzzles: Record<string, PuzzleState>;
+	space: SpaceState;
+	spaces: Record<string, SpaceState>;
 	inventory: { groups: InventoryGroup[] };
 } {
 	return {
-		puzzle: getPuzzleById(state.spaces, state.entities, puzzleId),
-		puzzles: getAllPuzzles(state.spaces, state.entities),
+		space: getSpaceById(state.spaces, state.entities, spaceId),
+		spaces: getAllSpaces(state.spaces, state.entities),
 		inventory: entitiesToInventory(state.spaces, state.entities),
 	};
 }

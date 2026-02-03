@@ -7,7 +7,7 @@ export type ArrowAnchorValue =
 	| Partial<Record<ArrowBreakpoint, ArrowAnchor>>;
 
 export type ArrowEndpoint = {
-	puzzleId: string;
+	spaceId: string;
 	anchor: ArrowAnchorValue;
 };
 

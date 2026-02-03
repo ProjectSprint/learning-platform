@@ -1,17 +1,17 @@
 import type {
 	GamePhase,
 	InventoryGroupConfig,
-	PuzzleConfig,
 	QuestionStatus,
+	SpaceConfig,
 	TerminalState,
 } from "../types";
 
 export type CoreAction =
 	| {
-			type: "INIT_MULTI_CANVAS";
+			type: "INIT_MULTI_SPACE";
 			payload: {
 				questionId: string;
-				canvases: Record<string, PuzzleConfig>;
+				spaces: Record<string, SpaceConfig>;
 				inventoryGroups?: InventoryGroupConfig[];
 				terminal?: Partial<TerminalState>;
 				phase?: GamePhase;

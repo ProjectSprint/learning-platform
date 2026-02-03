@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createCompatState } from "@/components/game/application/compat/state-conversion";
 import type { BoardItemLocation, Item } from "@/components/game/game-provider";
 import {
-	useAllPuzzles,
+	useAllSpaces,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
@@ -69,7 +69,7 @@ export const useTcpPhase = ({
 }: UseTcpPhaseOptions) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
-	const canvases = useAllPuzzles();
+	const spaces = useAllSpaces();
 	const compat = useMemo(() => createCompatState(state), [state]);
 
 	const [phase, setPhase] = useState<TcpPhase>("handshake-synack");
@@ -84,7 +84,7 @@ export const useTcpPhase = ({
 	const [clientPackets, setClientPackets] = useState(buildEmptyPacketTracker);
 	const [notice, setNotice] = useState<TcpNotice>(null);
 
-	const canvasesRef = useRef(canvases);
+	const spacesRef = useRef(spaces);
 	const activeRef = useRef(active);
 	const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 	const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -133,8 +133,8 @@ export const useTcpPhase = ({
 	}, []);
 
 	useEffect(() => {
-		canvasesRef.current = canvases;
-	}, [canvases]);
+		spacesRef.current = spaces;
+	}, [spaces]);
 
 	useEffect(() => {
 		activeRef.current = active;
@@ -236,21 +236,21 @@ export const useTcpPhase = ({
 	);
 
 	const findItemLocationLatest = useCallback((itemId: string) => {
-		for (const [canvasId, canvas] of Object.entries(canvasesRef.current)) {
-			const item = canvas.placedItems.find(
+		for (const [spaceId, space] of Object.entries(spacesRef.current)) {
+			const item = space.placedItems.find(
 				(entry: BoardItemLocation) => entry.id === itemId,
 			);
 			if (item) {
-				return { item, canvasId };
+				return { item, spaceId };
 			}
 		}
 		return null;
 	}, []);
 
-	const findEmptyBlockLatest = useCallback((canvasId: string) => {
-		const canvas = canvasesRef.current[canvasId];
-		if (!canvas) return null;
-		for (const row of canvas.blocks) {
+	const findEmptyBlockLatest = useCallback((spaceId: string) => {
+		const space = spacesRef.current[spaceId];
+		if (!space) return null;
+		for (const row of space.blocks) {
 			for (const block of row) {
 				if (block.status === "empty") {
 					return { blockX: block.x, blockY: block.y };
@@ -263,7 +263,7 @@ export const useTcpPhase = ({
 	const updateItemIfNeeded = useCallback(
 		(
 			item: BoardItemLocation,
-			canvasId: string,
+			spaceId: string,
 			updates: Record<string, unknown>,
 		) => {
 			const nextStatus =
@@ -282,7 +282,7 @@ export const useTcpPhase = ({
 				payload: {
 					deviceId: item.id,
 					config: updates,
-					puzzleId: canvasId,
+					spaceId: spaceId,
 				},
 			});
 		},
@@ -290,11 +290,11 @@ export const useTcpPhase = ({
 	);
 
 	const removeItem = useCallback(
-		(item: BoardItemLocation, canvasId: string) => {
+		(item: BoardItemLocation, spaceId: string) => {
 			dispatch({
 				type: "REMOVE_ITEM",
 				payload: {
-					puzzleId: canvasId,
+					spaceId: spaceId,
 					blockX: item.blockX,
 					blockY: item.blockY,
 				},
@@ -303,21 +303,21 @@ export const useTcpPhase = ({
 		[dispatch],
 	);
 
-	const transferItemToCanvas = useCallback(
-		(itemId: string, targetCanvas: string) => {
+	const transferItemToSpace = useCallback(
+		(itemId: string, targetSpace: string) => {
 			const location = findItemLocationLatest(itemId);
 			if (!location) return false;
-			if (location.canvasId === targetCanvas) return true;
-			const target = findEmptyBlockLatest(targetCanvas);
+			if (location.spaceId === targetSpace) return true;
+			const target = findEmptyBlockLatest(targetSpace);
 			if (!target) return false;
 			dispatch({
 				type: "TRANSFER_ITEM",
 				payload: {
 					itemId,
-					fromPuzzle: location.canvasId,
+					fromSpace: location.spaceId,
 					fromBlockX: location.item.blockX,
 					fromBlockY: location.item.blockY,
-					toPuzzle: targetCanvas,
+					toSpace: targetSpace,
 					toBlockX: target.blockX,
 					toBlockY: target.blockY,
 				},
@@ -417,7 +417,7 @@ export const useTcpPhase = ({
 		[],
 	);
 
-	const clearTcpCanvases = useCallback(() => {
+	const clearTcpSpaces = useCallback(() => {
 		const keys = [
 			"internet",
 			"client-a-inbox",
@@ -426,9 +426,9 @@ export const useTcpPhase = ({
 			"client-d-inbox",
 		];
 		for (const key of keys) {
-			const canvas = canvasesRef.current[key];
-			if (!canvas) continue;
-			for (const item of canvas.placedItems) {
+			const space = spacesRef.current[key];
+			if (!space) continue;
+			for (const item of space.placedItems) {
 				removeItem(item, key);
 			}
 		}
@@ -482,7 +482,7 @@ export const useTcpPhase = ({
 		for (const clientId of INITIAL_TCP_CLIENT_IDS) {
 			resetClientPackets(clientId);
 		}
-		clearTcpCanvases();
+		clearTcpSpaces();
 		updateInventoryGroup(INVENTORY_GROUP_IDS.received, {
 			visible: true,
 			items: RECEIVED_SYN_PACKETS,
@@ -498,7 +498,7 @@ export const useTcpPhase = ({
 			),
 		});
 	}, [
-		clearTcpCanvases,
+		clearTcpSpaces,
 		resetClientPackets,
 		resetClientState,
 		setClientStatusFor,
@@ -524,9 +524,9 @@ export const useTcpPhase = ({
 		updateInventoryGroup(INVENTORY_GROUP_IDS.outgoing, { visible: false });
 		updateInventoryGroup(INVENTORY_GROUP_IDS.dataPackets, { visible: false });
 		updateInventoryGroup(INVENTORY_GROUP_IDS.frames, { visible: true });
-		clearTcpCanvases();
+		clearTcpSpaces();
 		onTransitionToUdp();
-	}, [clearTcpCanvases, onTransitionToUdp, updateInventoryGroup]);
+	}, [clearTcpSpaces, onTransitionToUdp, updateInventoryGroup]);
 
 	const triggerBreakingPoint = useCallback(() => {
 		if (modalShownRef.current.breaking) return;
@@ -567,7 +567,7 @@ export const useTcpPhase = ({
 				const timer = setTimeout(() => {
 					const location = findItemLocationLatest(item.id);
 					if (location) {
-						removeItem(location.item, location.canvasId);
+						removeItem(location.item, location.spaceId);
 					}
 				}, 400);
 				registerTimer(timer);
@@ -594,7 +594,7 @@ export const useTcpPhase = ({
 			const timer = setTimeout(() => {
 				const location = findItemLocationLatest(item.id);
 				if (location) {
-					removeItem(location.item, location.canvasId);
+					removeItem(location.item, location.spaceId);
 				}
 			}, 400);
 			registerTimer(timer);
@@ -643,7 +643,7 @@ export const useTcpPhase = ({
 			const timer = setTimeout(() => {
 				const location = findItemLocationLatest(item.id);
 				if (location) {
-					removeItem(location.item, location.canvasId);
+					removeItem(location.item, location.spaceId);
 				}
 			}, 400);
 			registerTimer(timer);
@@ -681,7 +681,7 @@ export const useTcpPhase = ({
 				const timer = setTimeout(() => {
 					const location = findItemLocationLatest(item.id);
 					if (location) {
-						removeItem(location.item, location.canvasId);
+						removeItem(location.item, location.spaceId);
 					}
 				}, 400);
 				registerTimer(timer);
@@ -707,7 +707,7 @@ export const useTcpPhase = ({
 			const timer = setTimeout(() => {
 				const location = findItemLocationLatest(item.id);
 				if (location) {
-					removeItem(location.item, location.canvasId);
+					removeItem(location.item, location.spaceId);
 				}
 			}, 400);
 			registerTimer(timer);
@@ -738,7 +738,7 @@ export const useTcpPhase = ({
 				const timer = setTimeout(() => {
 					const location = findItemLocationLatest(item.id);
 					if (location) {
-						removeItem(location.item, location.canvasId);
+						removeItem(location.item, location.spaceId);
 					}
 				}, 400);
 				registerTimer(timer);
@@ -755,11 +755,11 @@ export const useTcpPhase = ({
 			const ackTimer = setTimeout(() => {
 				const location = findItemLocationLatest(item.id);
 				if (location) {
-					updateItemIfNeeded(location.item, location.canvasId, {
+					updateItemIfNeeded(location.item, location.spaceId, {
 						status: "success",
 						tcpState: "acked",
 					});
-					removeItem(location.item, location.canvasId);
+					removeItem(location.item, location.spaceId);
 				}
 				clientLocksRef.current[clientId] = false;
 				incrementPacketCount();
@@ -800,7 +800,7 @@ export const useTcpPhase = ({
 				const timer = setTimeout(() => {
 					if (!activeRef.current) return;
 					if (!targetInbox) return;
-					transferItemToCanvas(item.id, targetInbox);
+					transferItemToSpace(item.id, targetInbox);
 				}, INTERNET_TRAVEL_MS);
 				registerTimer(timer);
 				return;
@@ -822,7 +822,7 @@ export const useTcpPhase = ({
 					const timer = setTimeout(() => {
 						const location = findItemLocationLatest(item.id);
 						if (location) {
-							removeItem(location.item, location.canvasId);
+							removeItem(location.item, location.spaceId);
 						}
 					}, 400);
 					registerTimer(timer);
@@ -836,7 +836,7 @@ export const useTcpPhase = ({
 					const timer = setTimeout(() => {
 						const location = findItemLocationLatest(item.id);
 						if (location) {
-							removeItem(location.item, location.canvasId);
+							removeItem(location.item, location.spaceId);
 						}
 					}, 400);
 					registerTimer(timer);
@@ -855,7 +855,7 @@ export const useTcpPhase = ({
 					TCP_INBOX_IDS[clientId as keyof typeof TCP_INBOX_IDS];
 				const timer = setTimeout(() => {
 					if (!activeRef.current) return;
-					transferItemToCanvas(item.id, targetInbox);
+					transferItemToSpace(item.id, targetInbox);
 				}, INTERNET_TRAVEL_MS);
 				registerTimer(timer);
 			}
@@ -867,7 +867,7 @@ export const useTcpPhase = ({
 			removeItem,
 			removeInventoryItem,
 			showNotice,
-			transferItemToCanvas,
+			transferItemToSpace,
 			updateItemIfNeeded,
 		],
 	);
@@ -905,12 +905,12 @@ export const useTcpPhase = ({
 	const prevInternetIdsRef = useRef<Set<string>>(new Set());
 	useEffect(() => {
 		if (!active) return;
-		const internetCanvas = canvases.internet;
-		if (!internetCanvas) return;
+		const internetSpace = spaces.internet;
+		if (!internetSpace) return;
 		const currentIds = new Set(
-			internetCanvas.placedItems.map((item: BoardItemLocation) => item.id),
+			internetSpace.placedItems.map((item: BoardItemLocation) => item.id),
 		);
-		const newItems = internetCanvas.placedItems.filter(
+		const newItems = internetSpace.placedItems.filter(
 			(item: BoardItemLocation) => !prevInternetIdsRef.current.has(item.id),
 		);
 
@@ -919,7 +919,7 @@ export const useTcpPhase = ({
 		}
 
 		prevInternetIdsRef.current = currentIds;
-	}, [active, canvases.internet, handleInternetItem]);
+	}, [active, spaces.internet, handleInternetItem]);
 
 	const prevInboxIdsRef = useRef<Record<string, Set<string>>>({});
 	useEffect(() => {
@@ -935,13 +935,13 @@ export const useTcpPhase = ({
 			if (inboxId === "client-d-inbox" && !showClientD) {
 				continue;
 			}
-			const inboxCanvas = canvases[inboxId];
-			if (!inboxCanvas) continue;
+			const inboxSpace = spaces[inboxId];
+			if (!inboxSpace) continue;
 			const currentIds = new Set(
-				inboxCanvas.placedItems.map((item: BoardItemLocation) => item.id),
+				inboxSpace.placedItems.map((item: BoardItemLocation) => item.id),
 			);
 			const prevIds = prevInboxIdsRef.current[inboxId] ?? new Set();
-			const newItems = inboxCanvas.placedItems.filter(
+			const newItems = inboxSpace.placedItems.filter(
 				(item: BoardItemLocation) => !prevIds.has(item.id),
 			);
 
@@ -951,7 +951,7 @@ export const useTcpPhase = ({
 
 			prevInboxIdsRef.current[inboxId] = currentIds;
 		}
-	}, [active, canvases, handleInboxItem, showClientD]);
+	}, [active, spaces, handleInboxItem, showClientD]);
 
 	const dataSentCount = useMemo(() => packetsSent, [packetsSent]);
 

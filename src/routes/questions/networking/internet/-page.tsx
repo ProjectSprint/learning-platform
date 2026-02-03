@@ -33,13 +33,13 @@ import {
 import type { QuestionProps } from "@/components/module";
 
 import {
-	CANVAS_CONFIGS,
-	CANVAS_ORDER,
 	GOOGLE_IP,
-	type InternetCanvasKey,
+	type InternetSpaceKey,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
+	SPACE_CONFIGS,
+	SPACE_ORDER,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { initializeInternetQuestion } from "./-utils/init-spaces";
@@ -64,8 +64,8 @@ type InternetConditionKey =
 	| "dragStatus"
 	| "allDevicesPlaced";
 
-const COLUMN_ONE: InternetCanvasKey[] = ["local", "conn-1", "router"];
-const COLUMN_TWO: InternetCanvasKey[] = ["conn-2", "igw", "dns", "google"];
+const COLUMN_ONE: InternetSpaceKey[] = ["local", "conn-1", "router"];
+const COLUMN_TWO: InternetSpaceKey[] = ["conn-2", "igw", "dns", "google"];
 
 const INTERNET_SPEC_BASE: Omit<
 	QuestionSpec<InternetConditionKey>,
@@ -80,7 +80,7 @@ const INTERNET_SPEC_BASE: Omit<
 		kind: "multi" as const,
 		payload: {
 			questionId: QUESTION_ID,
-			canvases: {},
+			spaces: {},
 			inventoryGroups: [],
 		},
 	},
@@ -440,11 +440,11 @@ const InternetGame = ({
 			{
 				id: "client-conn-1",
 				from: {
-					puzzleId: "local",
+					spaceId: "local",
 					anchor: { base: "br", md: "tr", lg: "tr", xl: "tr" },
 				},
 				to: {
-					puzzleId: "conn-1",
+					spaceId: "conn-1",
 					anchor: { base: "bl", md: "tl", lg: "tl", xl: "tl" },
 				},
 				style: baseStyle,
@@ -452,11 +452,11 @@ const InternetGame = ({
 			{
 				id: "conn-1-router",
 				from: {
-					puzzleId: "conn-1",
+					spaceId: "conn-1",
 					anchor: { base: "br", md: "br", lg: "tr", xl: "tr" },
 				},
 				to: {
-					puzzleId: "router",
+					spaceId: "router",
 					anchor: { base: "tr", md: "tr", lg: "tl", xl: "tl" },
 				},
 				style: baseStyle,
@@ -464,11 +464,11 @@ const InternetGame = ({
 			{
 				id: "router-conn-2",
 				from: {
-					puzzleId: "router",
+					spaceId: "router",
 					anchor: { base: "bl", md: "bl", lg: "bl", xl: "tr" },
 				},
 				to: {
-					puzzleId: "conn-2",
+					spaceId: "conn-2",
 					anchor: { base: "tr", md: "tr", lg: "tl", xl: "tl" },
 				},
 				style: baseStyle,
@@ -476,11 +476,11 @@ const InternetGame = ({
 			{
 				id: "conn-2-igw",
 				from: {
-					puzzleId: "conn-2",
+					spaceId: "conn-2",
 					anchor: { base: "br", md: "tr", lg: "tr", xl: "tr" },
 				},
 				to: {
-					puzzleId: "igw",
+					spaceId: "igw",
 					anchor: { base: "bl", md: "tl", lg: "tl", xl: "tl" },
 				},
 				style: baseStyle,
@@ -488,11 +488,11 @@ const InternetGame = ({
 			{
 				id: "igw-dns",
 				from: {
-					puzzleId: "igw",
+					spaceId: "igw",
 					anchor: { base: "br", md: "tr", lg: "tr", xl: "tr" },
 				},
 				to: {
-					puzzleId: "dns",
+					spaceId: "dns",
 					anchor: { base: "bl", md: "tl", lg: "tl", xl: "tl" },
 				},
 				style: baseStyle,
@@ -500,11 +500,11 @@ const InternetGame = ({
 			{
 				id: "dns-google",
 				from: {
-					puzzleId: "dns",
+					spaceId: "dns",
 					anchor: { base: "br", md: "br", lg: "tr", xl: "tr" },
 				},
 				to: {
-					puzzleId: "google",
+					spaceId: "google",
 					anchor: { base: "tr", md: "tr", lg: "tl", xl: "tl" },
 				},
 				style: baseStyle,
@@ -551,8 +551,8 @@ const InternetGame = ({
 		}) ?? "row";
 
 	const renderBoard = useCallback(
-		(key: InternetCanvasKey) => {
-			const config = CANVAS_CONFIGS[key];
+		(key: InternetSpaceKey) => {
+			const config = SPACE_CONFIGS[key];
 			if (!config) return null;
 
 			return (
@@ -625,7 +625,7 @@ const InternetGame = ({
 							align="flex-start"
 							wrap="wrap"
 						>
-							{CANVAS_ORDER.map((key) => renderBoard(key))}
+							{SPACE_ORDER.map((key) => renderBoard(key))}
 						</Flex>
 					) : layoutMode === "columns" ? (
 						<Flex
@@ -669,7 +669,7 @@ const InternetGame = ({
 						</Flex>
 					) : (
 						<Flex direction="column" gap={{ base: 2, md: 4 }}>
-							{CANVAS_ORDER.map((key) => renderBoard(key))}
+							{SPACE_ORDER.map((key) => renderBoard(key))}
 						</Flex>
 					)}
 

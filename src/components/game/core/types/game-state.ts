@@ -2,7 +2,7 @@ import type { Arrow } from "./arrow";
 import type { HintState } from "./hint";
 import type { InventoryGroup } from "./inventory";
 import type { OverlayState } from "./modal";
-import type { PuzzleState } from "./puzzle";
+import type { SpaceState } from "./puzzle";
 import type { TerminalState } from "./terminal";
 
 export type GamePhase =
@@ -17,8 +17,8 @@ export type QuestionStatus = "in_progress" | "completed";
 export type GameState = {
 	phase: GamePhase;
 	inventory: { groups: InventoryGroup[] };
-	puzzle: PuzzleState;
-	puzzles?: Record<string, PuzzleState>;
+	space: SpaceState;
+	spaces?: Record<string, SpaceState>;
 	arrows: Arrow[];
 	terminal: TerminalState;
 	hint: HintState;

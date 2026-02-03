@@ -98,8 +98,8 @@ export const ArrowLayer = () => {
 		const containerRect = container.getBoundingClientRect();
 
 		return arrows.flatMap((arrow) => {
-			const fromElement = getBoardElement(arrow.from.puzzleId);
-			const toElement = getBoardElement(arrow.to.puzzleId);
+			const fromElement = getBoardElement(arrow.from.spaceId);
+			const toElement = getBoardElement(arrow.to.spaceId);
 
 			if (!fromElement || !toElement) {
 				return [];

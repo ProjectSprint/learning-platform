@@ -40,9 +40,9 @@ export type {
 	ItemTooltip,
 	ModalInstance,
 	OverlayState,
-	PuzzleConfig,
-	PuzzleState,
 	QuestionStatus,
+	SpaceConfig,
+	SpaceState,
 	TerminalEntry,
 	TerminalEntryType,
 	TerminalState,
@@ -100,7 +100,7 @@ export { findInventoryItem } from "./domain/validation/inventory";
 // Compatibility Layer (Legacy support)
 // ============================================================================
 
-export { useAllPuzzles } from "./application/compat/hooks";
+export { useAllSpaces } from "./application/compat/hooks";
 
 // ============================================================================
 // Context Setup

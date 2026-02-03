@@ -1,5 +1,5 @@
 // Constants for the webserver-ssl question
-// Contains all static configuration: items, canvases, inventory groups
+// Contains all static configuration: items, spaces, inventory groups
 
 import type { GridSpaceData } from "@/components/game/domain/space";
 import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
@@ -12,20 +12,16 @@ export const QUESTION_DESCRIPTION =
 export const TERMINAL_PROMPT =
 	"Your secure website is ready! Test both HTTP and HTTPS connections.";
 
-export type WebSslCanvasKey =
-	| "browser"
-	| "port-80"
-	| "letsencrypt"
-	| "port-443";
+export type WebSslSpaceKey = "browser" | "port-80" | "letsencrypt" | "port-443";
 
-export const CANVAS_ORDER: WebSslCanvasKey[] = [
+export const SPACE_ORDER: WebSslSpaceKey[] = [
 	"browser",
 	"port-80",
 	"letsencrypt",
 	"port-443",
 ];
 
-export const CANVAS_CONFIGS: Record<WebSslCanvasKey, GridSpaceData> = {
+export const SPACE_CONFIGS: Record<WebSslSpaceKey, GridSpaceData> = {
 	browser: createGridSpaceData({
 		id: "browser",
 		name: "Browser",

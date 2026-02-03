@@ -124,9 +124,9 @@ export const resetEntityState = (
 // ============================================================================
 
 /**
- * Checks if an item can be placed in a specific space/puzzle.
+ * Checks if an item can be placed in a specific space.
  * @param item The item data
- * @param placeId The ID of the space or puzzle
+ * @param placeId The ID of the space
  * @returns True if the item can be placed there
  */
 export const canPlaceIn = (item: ItemData, placeId: string): boolean => {

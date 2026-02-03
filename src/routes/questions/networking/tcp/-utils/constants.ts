@@ -9,11 +9,11 @@ export const QUESTION_DESCRIPTION =
 export const TERMINAL_PROMPT =
 	"Connection closed. Use the terminal to inspect the exchange.";
 
-export type TcpCanvasKey = "splitter" | "internet" | "server";
+export type TcpSpaceKey = "splitter" | "internet" | "server";
 
-export const CANVAS_ORDER: TcpCanvasKey[] = ["splitter", "internet", "server"];
+export const SPACE_ORDER: TcpSpaceKey[] = ["splitter", "internet", "server"];
 
-export const CANVAS_CONFIGS: Record<TcpCanvasKey, GridSpaceData> = {
+export const SPACE_CONFIGS: Record<TcpSpaceKey, GridSpaceData> = {
 	splitter: createGridSpaceData({
 		id: "splitter",
 		name: "Content Splitter",

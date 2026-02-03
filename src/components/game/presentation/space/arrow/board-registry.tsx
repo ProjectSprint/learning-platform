@@ -15,8 +15,8 @@ type BoardRegistryEntry = {
 type BoardRegistryContextValue = {
 	containerRef: React.RefObject<HTMLDivElement | null>;
 	layoutVersion: number;
-	registerBoard: (puzzleId: string, element: HTMLDivElement | null) => void;
-	getBoardElement: (puzzleId: string) => HTMLDivElement | null;
+	registerBoard: (spaceId: string, element: HTMLDivElement | null) => void;
+	getBoardElement: (spaceId: string) => HTMLDivElement | null;
 };
 
 const BoardRegistryContext = createContext<BoardRegistryContextValue | null>(
@@ -37,15 +37,15 @@ export const BoardRegistryProvider = ({
 	}, []);
 
 	const registerBoard = useCallback(
-		(puzzleId: string, element: HTMLDivElement | null) => {
+		(spaceId: string, element: HTMLDivElement | null) => {
 			const registry = registryRef.current;
-			const existing = registry.get(puzzleId);
+			const existing = registry.get(spaceId);
 
 			if (!element) {
 				if (existing?.observer) {
 					existing.observer.disconnect();
 				}
-				registry.delete(puzzleId);
+				registry.delete(spaceId);
 				bumpLayout();
 				return;
 			}
@@ -66,14 +66,14 @@ export const BoardRegistryProvider = ({
 				entry.observer.observe(element);
 			}
 
-			registry.set(puzzleId, entry);
+			registry.set(spaceId, entry);
 			bumpLayout();
 		},
 		[bumpLayout],
 	);
 
-	const getBoardElement = useCallback((puzzleId: string) => {
-		return registryRef.current.get(puzzleId)?.element ?? null;
+	const getBoardElement = useCallback((spaceId: string) => {
+		return registryRef.current.get(spaceId)?.element ?? null;
 	}, []);
 
 	useEffect(() => {

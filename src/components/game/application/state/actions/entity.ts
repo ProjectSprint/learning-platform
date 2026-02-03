@@ -149,7 +149,7 @@ export type ConfigureDeviceAction = {
 	payload: {
 		deviceId: string;
 		config: Record<string, unknown>;
-		puzzleId?: string;
+		spaceId?: string;
 	};
 };
 

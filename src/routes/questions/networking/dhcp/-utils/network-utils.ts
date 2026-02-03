@@ -2,7 +2,7 @@
 // Contains functions for parsing IP ranges, validating IPs, and building network snapshots
 
 import type { BoardItemLocation } from "@/components/game/game-provider";
-import { DHCP_CANVAS_IDS, PRIVATE_IP_RANGES } from "./constants";
+import { DHCP_SPACE_IDS, PRIVATE_IP_RANGES } from "./constants";
 
 export type DeviceConnection = {
 	fromId: string;
@@ -121,27 +121,25 @@ export const validateIpRange = (
 
 /**
  * Analyzes the network topology to identify key devices and their connections
- * @param placedItems - All items placed on the canvas
+ * @param placedItems - All items placed in the space
  * @returns Network snapshot containing router, PCs, cables, and connected IDs
  */
 export const buildNetworkSnapshot = (placements: BoardPlacements) => {
-	const pc1 = placements[DHCP_CANVAS_IDS.pc1]?.find(
+	const pc1 = placements[DHCP_SPACE_IDS.pc1]?.find(
 		(item) => item.type === "pc",
 	);
-	const pc2 = placements[DHCP_CANVAS_IDS.pc2]?.find(
+	const pc2 = placements[DHCP_SPACE_IDS.pc2]?.find(
 		(item) => item.type === "pc",
 	);
-	const router = placements[DHCP_CANVAS_IDS.router]?.find(
+	const router = placements[DHCP_SPACE_IDS.router]?.find(
 		(item) => item.type === "router",
 	);
 	const leftCables =
-		placements[DHCP_CANVAS_IDS.conn1]?.filter(
-			(item) => item.type === "cable",
-		) ?? [];
+		placements[DHCP_SPACE_IDS.conn1]?.filter((item) => item.type === "cable") ??
+		[];
 	const rightCables =
-		placements[DHCP_CANVAS_IDS.conn2]?.filter(
-			(item) => item.type === "cable",
-		) ?? [];
+		placements[DHCP_SPACE_IDS.conn2]?.filter((item) => item.type === "cable") ??
+		[];
 	const cables = [...leftCables, ...rightCables];
 	const connectedPcIds = new Set<string>();
 	const connectedCableIds = new Set<string>();
@@ -171,9 +169,8 @@ export const deriveConnectionsFromCables = (
 
 	if (snapshot.pc1 && snapshot.router) {
 		const leftCable =
-			placements[DHCP_CANVAS_IDS.conn1]?.find(
-				(item) => item.type === "cable",
-			) ?? null;
+			placements[DHCP_SPACE_IDS.conn1]?.find((item) => item.type === "cable") ??
+			null;
 		if (leftCable) {
 			connections.push({ fromId: snapshot.pc1.id, toId: snapshot.router.id });
 		}
@@ -181,9 +178,8 @@ export const deriveConnectionsFromCables = (
 
 	if (snapshot.pc2 && snapshot.router) {
 		const rightCable =
-			placements[DHCP_CANVAS_IDS.conn2]?.find(
-				(item) => item.type === "cable",
-			) ?? null;
+			placements[DHCP_SPACE_IDS.conn2]?.find((item) => item.type === "cable") ??
+			null;
 		if (rightCable) {
 			connections.push({ fromId: snapshot.pc2.id, toId: snapshot.router.id });
 		}

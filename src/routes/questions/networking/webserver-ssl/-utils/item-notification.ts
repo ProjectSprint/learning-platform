@@ -35,7 +35,7 @@ export const getSslItemLabel = (itemType: string): string => {
  */
 export const getSslStatusMessage = (
 	placedItem: BoardItemLocation,
-	canvasId?: string,
+	spaceId?: string,
 ): string | null => {
 	const { type, status, data } = placedItem;
 
@@ -64,8 +64,8 @@ export const getSslStatusMessage = (
 			return "serving HTTP";
 		}
 		if (status === "success") {
-			// Check if redirect is in the same canvas
-			if (canvasId === "port-80") {
+			// Check if redirect is in the same space
+			if (spaceId === "port-80") {
 				return "redirecting to HTTPS";
 			}
 			return "serving HTTP";
@@ -99,7 +99,7 @@ export const getSslStatusMessage = (
 	if (type === "domain") {
 		const domain =
 			typeof data?.domain === "string" ? data.domain : "example.com";
-		if (canvasId === "letsencrypt") {
+		if (spaceId === "letsencrypt") {
 			if (status === "error") {
 				return "Needs Issuing";
 			}

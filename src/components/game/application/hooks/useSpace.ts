@@ -21,7 +21,7 @@ import { useGameState } from "../../game-provider";
  *
  * @example
  * ```tsx
- * const space = useSpace("puzzle-1");
+ * const space = useSpace("space-1");
  * if (space) {
  *   console.log("Space has", spaceGetEntityCount(space), "entities");
  * }
@@ -87,9 +87,9 @@ export const useSpaceEntities = (spaceId: string): string[] => {
  *
  * @example
  * ```tsx
- * const isFull = useSpaceIsFull("puzzle");
+ * const isFull = useSpaceIsFull("space");
  * if (isFull) {
- *   console.log("Cannot add more items to puzzle");
+ *   console.log("Cannot add more items to space");
  * }
  * ```
  */
@@ -106,9 +106,9 @@ export const useSpaceIsFull = (spaceId: string): boolean => {
  *
  * @example
  * ```tsx
- * const isEmpty = useSpaceIsEmpty("puzzle");
+ * const isEmpty = useSpaceIsEmpty("space");
  * if (isEmpty) {
- *   console.log("Puzzle has no items");
+ *   console.log("Space has no items");
  * }
  * ```
  */
@@ -125,7 +125,7 @@ export const useSpaceIsEmpty = (spaceId: string): boolean => {
  *
  * @example
  * ```tsx
- * const capacity = useSpaceCapacity("puzzle");
+ * const capacity = useSpaceCapacity("space");
  * if (capacity) {
  *   console.log(`${capacity.current} / ${capacity.max ?? "∞"}`);
  * }

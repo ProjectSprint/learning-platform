@@ -2,7 +2,7 @@
  * DragContext for the presentation layer.
  * Manages drag and drop state for entities across spaces.
  *
- * Migrated from puzzle/drag/context.tsx but works with the Space/Entity model.
+ * Migrated from legacy drag context but works with the Space/Entity model.
  * Maintains the same drag & drop behavior while being space-agnostic.
  */
 
@@ -115,7 +115,7 @@ const DragContext = createContext<DragContextValue | null>(null);
  * @example
  * ```tsx
  * <DragProvider>
- *   <GridSpaceView spaceId="puzzle" />
+ *   <GridSpaceView spaceId="space" />
  *   <PoolSpaceView spaceId="inventory" />
  * </DragProvider>
  * ```

@@ -18,10 +18,10 @@ import {
 	useGameState,
 } from "@/components/game/game-provider";
 import {
-	CANVAS_ORDER,
 	GOOGLE_IP,
-	type InternetCanvasKey,
+	type InternetSpaceKey,
 	PUBLIC_DNS_SERVERS,
+	SPACE_ORDER,
 	VALID_PPPOE_CREDENTIALS,
 } from "./constants";
 import {
@@ -72,7 +72,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 	// Get all grid spaces
 	const spaces = useMemo(() => {
-		const result: Record<InternetCanvasKey, GridSpaceData | undefined> = {
+		const result: Record<InternetSpaceKey, GridSpaceData | undefined> = {
 			local: undefined,
 			"conn-1": undefined,
 			router: undefined,
@@ -81,9 +81,9 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			dns: undefined,
 			google: undefined,
 		};
-		for (const canvasId of CANVAS_ORDER) {
-			const space = state.spaces[canvasId];
-			result[canvasId] = space?.kind === "grid" ? space : undefined;
+		for (const spaceId of SPACE_ORDER) {
+			const space = state.spaces[spaceId];
+			result[spaceId] = space?.kind === "grid" ? space : undefined;
 		}
 		return result;
 	}, [state.spaces]);
@@ -93,8 +93,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		const items: BoardItemLocation[] = [];
 		let offsetX = 0;
 
-		for (const canvasId of CANVAS_ORDER) {
-			const space = spaces[canvasId];
+		for (const spaceId of SPACE_ORDER) {
+			const space = spaces[spaceId];
 			if (!space) {
 				offsetX += 1; // Still increment even if space not found
 				continue;
@@ -104,7 +104,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				if (entity.id in space.entityPositions) {
 					const boardItem = entityToBoardItem(entity, space);
 					if (boardItem) {
-						// Adjust X coordinate based on canvas offset
+						// Adjust X coordinate based on space offset
 						items.push({ ...boardItem, blockX: boardItem.blockX + offsetX });
 					}
 				}

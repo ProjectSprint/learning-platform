@@ -5,16 +5,16 @@
 
 import { useMemo } from "react";
 import { useGameState } from "../../game-provider";
-import { getAllPuzzles } from "./state-conversion";
+import { getAllSpaces } from "./state-conversion";
 
 /**
- * Legacy hook that returns all puzzles.
+ * Legacy hook that returns all spaces.
  * @deprecated Use useSpaces() instead
  */
-export function useAllPuzzles() {
+export function useAllSpaces() {
 	const state = useGameState();
 	return useMemo(
-		() => getAllPuzzles(state.spaces, state.entities),
+		() => getAllSpaces(state.spaces, state.entities),
 		[state.spaces, state.entities],
 	);
 }

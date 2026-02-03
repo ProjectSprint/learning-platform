@@ -1,5 +1,5 @@
 // Configuration constants for the internet gateway question
-// Contains all static configuration like inventory items, canvas setup, and question metadata
+// Contains all static configuration like inventory items, space setup, and question metadata
 
 import type { GridSpaceData } from "@/components/game/domain/space";
 import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
@@ -93,8 +93,8 @@ const TOOLTIP_GOOGLE = {
 	seeMoreHref: "https://www.google.com/search?q=how+do+websites+work",
 };
 
-// Canvas keys for allowedPlaces
-export type InternetCanvasKey =
+// Space keys for allowedPlaces
+export type InternetSpaceKey =
 	| "local"
 	| "conn-1"
 	| "router"
@@ -190,7 +190,7 @@ export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
 	},
 ];
 
-export const CANVAS_ORDER: InternetCanvasKey[] = [
+export const SPACE_ORDER: InternetSpaceKey[] = [
 	"local",
 	"conn-1",
 	"router",
@@ -200,7 +200,7 @@ export const CANVAS_ORDER: InternetCanvasKey[] = [
 	"google",
 ];
 
-export const CANVAS_CONFIGS: Record<InternetCanvasKey, GridSpaceData> = {
+export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceData> = {
 	local: createGridSpaceData({
 		id: "local",
 		name: "Client",

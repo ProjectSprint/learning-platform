@@ -3,7 +3,7 @@ import {
 	normalizeInventoryGroup,
 } from "../../domain/validation/inventory";
 import type { GameAction } from "../actions";
-import type { GameState, InventoryGroup, Item, PuzzleState } from "../types";
+import type { GameState, InventoryGroup, Item, SpaceState } from "../types";
 import { updateBlock } from "./legacy-utils";
 
 const removeInventoryItems = (
@@ -15,18 +15,18 @@ const removeInventoryItems = (
 		items: group.items.filter((item) => !itemIds.has(item.id)),
 	}));
 
-const removeItemsFromPuzzle = (
-	puzzle: PuzzleState,
+const removeItemsFromSpace = (
+	space: SpaceState,
 	itemIds: Set<string>,
-): PuzzleState => {
-	const removedItems = puzzle.placedItems.filter((item) =>
+): SpaceState => {
+	const removedItems = space.placedItems.filter((item) =>
 		itemIds.has(item.itemId),
 	);
 	if (removedItems.length === 0) {
-		return puzzle;
+		return space;
 	}
 
-	let nextBlocks = puzzle.blocks;
+	let nextBlocks = space.blocks;
 	for (const item of removedItems) {
 		nextBlocks = updateBlock(nextBlocks, item.blockX, item.blockY, {
 			status: "empty",
@@ -34,12 +34,12 @@ const removeItemsFromPuzzle = (
 		});
 	}
 
-	const nextPlacedItems = puzzle.placedItems.filter(
+	const nextPlacedItems = space.placedItems.filter(
 		(item) => !itemIds.has(item.itemId),
 	);
 
 	return {
-		...puzzle,
+		...space,
 		blocks: nextBlocks,
 		placedItems: nextPlacedItems,
 	};
@@ -176,26 +176,26 @@ export const inventoryReducer = (
 				itemIds,
 			);
 
-			let nextPuzzle = removeItemsFromPuzzle(state.puzzle, itemIds);
-			let nextPuzzles = state.puzzles;
-			if (state.puzzles) {
-				nextPuzzles = Object.fromEntries(
-					Object.entries(state.puzzles).map(([key, puzzle]) => [
+			let nextSpace = removeItemsFromSpace(state.space, itemIds);
+			let nextSpaces = state.spaces;
+			if (state.spaces) {
+				nextSpaces = Object.fromEntries(
+					Object.entries(state.spaces).map(([key, space]) => [
 						key,
-						removeItemsFromPuzzle(puzzle, itemIds),
+						removeItemsFromSpace(space, itemIds),
 					]),
 				);
 
-				const primaryPuzzleId = state.puzzle.config.puzzleId;
-				if (primaryPuzzleId && nextPuzzles[primaryPuzzleId]) {
-					nextPuzzle = nextPuzzles[primaryPuzzleId];
+				const primarySpaceId = state.space.config.spaceId;
+				if (primarySpaceId && nextSpaces[primarySpaceId]) {
+					nextSpace = nextSpaces[primarySpaceId];
 				}
 			}
 
 			return {
 				...state,
-				puzzle: nextPuzzle,
-				puzzles: nextPuzzles,
+				space: nextSpace,
+				spaces: nextSpaces,
 				inventory: { groups: nextInventoryGroups },
 			};
 		}

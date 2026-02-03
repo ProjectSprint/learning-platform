@@ -46,7 +46,7 @@ export const UDP_CLIENT_IDS = ["a", "b", "c"] as const;
 export type TcpClientId = (typeof TCP_CLIENT_IDS)[number];
 export type UdpClientId = (typeof UDP_CLIENT_IDS)[number];
 
-export type UdpCanvasKey =
+export type UdpSpaceKey =
 	| "internet"
 	| "client-a-inbox"
 	| "client-b-inbox"
@@ -63,22 +63,22 @@ export const TCP_INBOX_IDS = {
 	d: "client-d-inbox",
 } as const;
 
-export const UDP_CLIENT_CANVAS_IDS = {
+export const UDP_CLIENT_SPACE_IDS = {
 	a: "client-a",
 	b: "client-b",
 	c: "client-c",
 } as const;
 
-export const TCP_CANVAS_ORDER: UdpCanvasKey[] = [
+export const TCP_SPACE_ORDER: UdpSpaceKey[] = [
 	"client-a-inbox",
 	"client-b-inbox",
 	"client-c-inbox",
 	"internet",
 ];
 
-export const UDP_CANVAS_ORDER: UdpCanvasKey[] = ["internet"];
+export const UDP_SPACE_ORDER: UdpSpaceKey[] = ["internet"];
 
-export const CANVAS_CONFIGS: Record<UdpCanvasKey, GridSpaceData> = {
+export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
 	internet: createGridSpaceData({
 		id: "internet",
 		name: "Internet",

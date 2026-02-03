@@ -5,19 +5,19 @@ import type {
 	BoardItemLocation,
 	BoardItemStatus,
 	GameState,
-	PuzzleState,
+	SpaceState,
 } from "../types";
 import { updateBlock } from "./legacy-utils";
-import { resolvePuzzleState, updatePuzzleState } from "./puzzle-state";
+import { resolveSpaceState, updateSpaceState } from "./puzzle-state";
 
-export const puzzleReducer = (
+export const spaceReducer = (
 	state: GameState,
 	action: GameAction,
 ): GameState => {
 	switch (action.type) {
 		case "PLACE_ITEM": {
-			const targetPuzzleId = action.payload.puzzleId;
-			const puzzle = resolvePuzzleState(state, targetPuzzleId);
+			const targetSpaceId = action.payload.spaceId;
+			const space = resolveSpaceState(state, targetSpaceId);
 			const { itemId, blockX, blockY } = action.payload;
 			const match = findInventoryItem(state.inventory.groups, itemId);
 			const item = match?.item;
@@ -26,25 +26,22 @@ export const puzzleReducer = (
 				return state;
 			}
 			const allowedPlaceKey =
-				targetPuzzleId ??
-				puzzle.config.puzzleId ??
-				puzzle.config.id ??
-				"puzzle";
+				targetSpaceId ?? space.config.spaceId ?? space.config.id ?? "space";
 			if (!item.allowedPlaces.includes(allowedPlaceKey)) {
 				return state;
 			}
 
-			if (!puzzle.blocks[blockY]?.[blockX]) {
+			if (!space.blocks[blockY]?.[blockX]) {
 				return state;
 			}
 
-			if (puzzle.blocks[blockY][blockX].status === "occupied") {
+			if (space.blocks[blockY][blockX].status === "occupied") {
 				return state;
 			}
 
 			if (
-				typeof puzzle.config.maxItems === "number" &&
-				puzzle.placedItems.length >= puzzle.config.maxItems
+				typeof space.config.maxItems === "number" &&
+				space.placedItems.length >= space.config.maxItems
 			) {
 				return state;
 			}
@@ -60,59 +57,59 @@ export const puzzleReducer = (
 				data: item.data ?? {},
 			};
 
-			const nextBlocks = updateBlock(puzzle.blocks, blockX, blockY, {
+			const nextBlocks = updateBlock(space.blocks, blockX, blockY, {
 				status: "occupied",
 				itemId: item.id,
 			});
 
-			const nextPlacedItems = [...puzzle.placedItems, placedItem];
-			const nextPuzzle: PuzzleState = {
-				...puzzle,
+			const nextPlacedItems = [...space.placedItems, placedItem];
+			const nextSpace: SpaceState = {
+				...space,
 				blocks: nextBlocks,
 				placedItems: nextPlacedItems,
 			};
 
-			return updatePuzzleState(
+			return updateSpaceState(
 				{
 					...state,
 				},
-				targetPuzzleId,
-				nextPuzzle,
+				targetSpaceId,
+				nextSpace,
 			);
 		}
 		case "REMOVE_ITEM": {
-			const puzzle = resolvePuzzleState(state, action.payload.puzzleId);
+			const space = resolveSpaceState(state, action.payload.spaceId);
 			const { blockX, blockY } = action.payload;
-			const block = puzzle.blocks[blockY]?.[blockX];
+			const block = space.blocks[blockY]?.[blockX];
 
 			if (!block?.itemId) {
 				return state;
 			}
 
-			const nextBlocks = updateBlock(puzzle.blocks, blockX, blockY, {
+			const nextBlocks = updateBlock(space.blocks, blockX, blockY, {
 				status: "empty",
 				itemId: undefined,
 			});
 
-			const nextPlacedItems = puzzle.placedItems.filter(
+			const nextPlacedItems = space.placedItems.filter(
 				(item) => item.itemId !== block.itemId,
 			);
-			const nextPuzzle: PuzzleState = {
-				...puzzle,
+			const nextSpace: SpaceState = {
+				...space,
 				blocks: nextBlocks,
 				placedItems: nextPlacedItems,
 			};
 
-			return updatePuzzleState(
+			return updateSpaceState(
 				{
 					...state,
 				},
-				action.payload.puzzleId,
-				nextPuzzle,
+				action.payload.spaceId,
+				nextSpace,
 			);
 		}
 		case "REPOSITION_ITEM": {
-			const puzzle = resolvePuzzleState(state, action.payload.puzzleId);
+			const space = resolveSpaceState(state, action.payload.spaceId);
 			const { itemId, fromBlockX, fromBlockY, toBlockX, toBlockY } =
 				action.payload;
 
@@ -120,12 +117,12 @@ export const puzzleReducer = (
 				return state;
 			}
 
-			const fromBlock = puzzle.blocks[fromBlockY]?.[fromBlockX];
+			const fromBlock = space.blocks[fromBlockY]?.[fromBlockX];
 			if (!fromBlock?.itemId || fromBlock.itemId !== itemId) {
 				return state;
 			}
 
-			const toBlock = puzzle.blocks[toBlockY]?.[toBlockX];
+			const toBlock = space.blocks[toBlockY]?.[toBlockX];
 			if (!toBlock) {
 				return state;
 			}
@@ -134,12 +131,12 @@ export const puzzleReducer = (
 				return state;
 			}
 
-			const placedItem = puzzle.placedItems.find((p) => p.itemId === itemId);
+			const placedItem = space.placedItems.find((p) => p.itemId === itemId);
 			if (!placedItem) {
 				return state;
 			}
 
-			let nextBlocks = updateBlock(puzzle.blocks, fromBlockX, fromBlockY, {
+			let nextBlocks = updateBlock(space.blocks, fromBlockX, fromBlockY, {
 				status: "empty",
 				itemId: undefined,
 			});
@@ -148,56 +145,56 @@ export const puzzleReducer = (
 				itemId,
 			});
 
-			const nextPlacedItems = puzzle.placedItems.map((item) =>
+			const nextPlacedItems = space.placedItems.map((item) =>
 				item.itemId === itemId
 					? { ...item, blockX: toBlockX, blockY: toBlockY }
 					: item,
 			);
 
-			const nextPuzzle: PuzzleState = {
-				...puzzle,
+			const nextSpace: SpaceState = {
+				...space,
 				blocks: nextBlocks,
 				placedItems: nextPlacedItems,
 			};
 
-			return updatePuzzleState(state, action.payload.puzzleId, nextPuzzle);
+			return updateSpaceState(state, action.payload.spaceId, nextSpace);
 		}
 		case "TRANSFER_ITEM": {
 			const {
 				itemId,
-				fromPuzzle,
+				fromSpace,
 				fromBlockX,
 				fromBlockY,
-				toPuzzle,
+				toSpace,
 				toBlockX,
 				toBlockY,
 			} = action.payload;
 
-			if (!state.puzzles) {
+			if (!state.spaces) {
 				return state;
 			}
 
-			if (fromPuzzle === toPuzzle) {
+			if (fromSpace === toSpace) {
 				return state;
 			}
 
-			const sourcePuzzle = state.puzzles[fromPuzzle];
-			const targetPuzzle = state.puzzles[toPuzzle];
-			if (!sourcePuzzle || !targetPuzzle) {
+			const sourceSpace = state.spaces[fromSpace];
+			const targetSpace = state.spaces[toSpace];
+			if (!sourceSpace || !targetSpace) {
 				return state;
 			}
 
-			const sourceBlock = sourcePuzzle.blocks[fromBlockY]?.[fromBlockX];
+			const sourceBlock = sourceSpace.blocks[fromBlockY]?.[fromBlockX];
 			if (!sourceBlock?.itemId || sourceBlock.itemId !== itemId) {
 				return state;
 			}
 
-			const targetBlock = targetPuzzle.blocks[toBlockY]?.[toBlockX];
+			const targetBlock = targetSpace.blocks[toBlockY]?.[toBlockX];
 			if (!targetBlock || targetBlock.status === "occupied") {
 				return state;
 			}
 
-			const movingItem = sourcePuzzle.placedItems.find(
+			const movingItem = sourceSpace.placedItems.find(
 				(item) => item.itemId === itemId,
 			);
 			if (!movingItem) {
@@ -207,101 +204,101 @@ export const puzzleReducer = (
 			const inventoryMatch = findInventoryItem(state.inventory.groups, itemId);
 			if (
 				inventoryMatch?.item &&
-				!inventoryMatch.item.allowedPlaces.includes(toPuzzle)
+				!inventoryMatch.item.allowedPlaces.includes(toSpace)
 			) {
 				return state;
 			}
 
 			if (
-				typeof targetPuzzle.config.maxItems === "number" &&
-				targetPuzzle.placedItems.length >= targetPuzzle.config.maxItems
+				typeof targetSpace.config.maxItems === "number" &&
+				targetSpace.placedItems.length >= targetSpace.config.maxItems
 			) {
 				return state;
 			}
 
 			const nextSourceBlocks = updateBlock(
-				sourcePuzzle.blocks,
+				sourceSpace.blocks,
 				fromBlockX,
 				fromBlockY,
 				{ status: "empty", itemId: undefined },
 			);
-			const nextSourcePlacedItems = sourcePuzzle.placedItems.filter(
+			const nextSourcePlacedItems = sourceSpace.placedItems.filter(
 				(item) => item.itemId !== itemId,
 			);
-			const nextSourcePuzzle: PuzzleState = {
-				...sourcePuzzle,
+			const nextSourceSpace: SpaceState = {
+				...sourceSpace,
 				blocks: nextSourceBlocks,
 				placedItems: nextSourcePlacedItems,
 			};
 
 			const nextTargetBlocks = updateBlock(
-				targetPuzzle.blocks,
+				targetSpace.blocks,
 				toBlockX,
 				toBlockY,
 				{ status: "occupied", itemId },
 			);
 			const nextTargetPlacedItems = [
-				...targetPuzzle.placedItems,
+				...targetSpace.placedItems,
 				{
 					...movingItem,
 					blockX: toBlockX,
 					blockY: toBlockY,
 				},
 			];
-			const nextTargetPuzzle: PuzzleState = {
-				...targetPuzzle,
+			const nextTargetSpace: SpaceState = {
+				...targetSpace,
 				blocks: nextTargetBlocks,
 				placedItems: nextTargetPlacedItems,
 			};
 
-			const nextPuzzles = {
-				...state.puzzles,
-				[fromPuzzle]: nextSourcePuzzle,
-				[toPuzzle]: nextTargetPuzzle,
+			const nextSpaces = {
+				...state.spaces,
+				[fromSpace]: nextSourceSpace,
+				[toSpace]: nextTargetSpace,
 			};
 
-			let nextPrimaryPuzzle = state.puzzle;
-			if (state.puzzle.config.puzzleId === fromPuzzle) {
-				nextPrimaryPuzzle = nextSourcePuzzle;
-			} else if (state.puzzle.config.puzzleId === toPuzzle) {
-				nextPrimaryPuzzle = nextTargetPuzzle;
+			let nextPrimarySpace = state.space;
+			if (state.space.config.spaceId === fromSpace) {
+				nextPrimarySpace = nextSourceSpace;
+			} else if (state.space.config.spaceId === toSpace) {
+				nextPrimarySpace = nextTargetSpace;
 			}
 
 			return {
 				...state,
-				puzzle: nextPrimaryPuzzle,
-				puzzles: nextPuzzles,
+				space: nextPrimarySpace,
+				spaces: nextSpaces,
 			};
 		}
 		case "SWAP_ITEMS": {
 			const { from, to } = action.payload;
 
-			const resolvePuzzleByKey = (key?: string) => {
+			const resolveSpaceByKey = (key?: string) => {
 				if (!key) {
-					return state.puzzle;
+					return state.space;
 				}
-				if (state.puzzles?.[key]) {
-					return state.puzzles[key];
+				if (state.spaces?.[key]) {
+					return state.spaces[key];
 				}
-				if (state.puzzle.config.puzzleId === key) {
-					return state.puzzle;
+				if (state.space.config.spaceId === key) {
+					return state.space;
 				}
 				return undefined;
 			};
 
-			const fromPuzzleId = from.puzzleId;
-			const toPuzzleId = to.puzzleId;
-			const samePuzzle = fromPuzzleId === toPuzzleId;
+			const fromSpaceId = from.spaceId;
+			const toSpaceId = to.spaceId;
+			const sameSpace = fromSpaceId === toSpaceId;
 
-			const sourcePuzzle = resolvePuzzleByKey(fromPuzzleId);
-			const targetPuzzle = resolvePuzzleByKey(toPuzzleId);
+			const sourceSpace = resolveSpaceByKey(fromSpaceId);
+			const targetSpace = resolveSpaceByKey(toSpaceId);
 
-			if (!sourcePuzzle || !targetPuzzle) {
+			if (!sourceSpace || !targetSpace) {
 				return state;
 			}
 
-			const fromBlock = sourcePuzzle.blocks[from.blockY]?.[from.blockX];
-			const toBlock = targetPuzzle.blocks[to.blockY]?.[to.blockX];
+			const fromBlock = sourceSpace.blocks[from.blockY]?.[from.blockX];
+			const toBlock = targetSpace.blocks[to.blockY]?.[to.blockX];
 
 			if (!fromBlock?.itemId || !toBlock?.itemId) {
 				return state;
@@ -311,10 +308,10 @@ export const puzzleReducer = (
 				return state;
 			}
 
-			const fromItem = sourcePuzzle.placedItems.find(
+			const fromItem = sourceSpace.placedItems.find(
 				(item) => item.itemId === fromBlock.itemId,
 			);
-			const toItem = targetPuzzle.placedItems.find(
+			const toItem = targetSpace.placedItems.find(
 				(item) => item.itemId === toBlock.itemId,
 			);
 
@@ -322,9 +319,9 @@ export const puzzleReducer = (
 				return state;
 			}
 
-			if (samePuzzle || !fromPuzzleId || !toPuzzleId) {
+			if (sameSpace || !fromSpaceId || !toSpaceId) {
 				let nextBlocks = updateBlock(
-					sourcePuzzle.blocks,
+					sourceSpace.blocks,
 					from.blockX,
 					from.blockY,
 					{ itemId: toItem.itemId },
@@ -333,7 +330,7 @@ export const puzzleReducer = (
 					itemId: fromItem.itemId,
 				});
 
-				const nextPlacedItems = sourcePuzzle.placedItems.map((item) => {
+				const nextPlacedItems = sourceSpace.placedItems.map((item) => {
 					if (item.itemId === fromItem.itemId) {
 						return { ...item, blockX: to.blockX, blockY: to.blockY };
 					}
@@ -343,13 +340,13 @@ export const puzzleReducer = (
 					return item;
 				});
 
-				const nextPuzzle: PuzzleState = {
-					...sourcePuzzle,
+				const nextSpace: SpaceState = {
+					...sourceSpace,
 					blocks: nextBlocks,
 					placedItems: nextPlacedItems,
 				};
 
-				return updatePuzzleState(state, fromPuzzleId, nextPuzzle);
+				return updateSpaceState(state, fromSpaceId, nextSpace);
 			}
 
 			const toInvMatch = findInventoryItem(
@@ -364,7 +361,7 @@ export const puzzleReducer = (
 			if (
 				toInvMatch?.item &&
 				!toInvMatch.item.allowedPlaces.includes(
-					sourcePuzzle.config.puzzleId ?? fromPuzzleId ?? "",
+					sourceSpace.config.spaceId ?? fromSpaceId ?? "",
 				)
 			) {
 				return state;
@@ -373,72 +370,72 @@ export const puzzleReducer = (
 			if (
 				fromInvMatch?.item &&
 				!fromInvMatch.item.allowedPlaces.includes(
-					targetPuzzle.config.puzzleId ?? toPuzzleId ?? "",
+					targetSpace.config.spaceId ?? toSpaceId ?? "",
 				)
 			) {
 				return state;
 			}
 
 			const nextSourceBlocks = updateBlock(
-				sourcePuzzle.blocks,
+				sourceSpace.blocks,
 				from.blockX,
 				from.blockY,
 				{ itemId: toItem.itemId },
 			);
 			const nextTargetBlocks = updateBlock(
-				targetPuzzle.blocks,
+				targetSpace.blocks,
 				to.blockX,
 				to.blockY,
 				{ itemId: fromItem.itemId },
 			);
 
 			const nextSourcePlacedItems = [
-				...sourcePuzzle.placedItems.filter(
+				...sourceSpace.placedItems.filter(
 					(item) => item.itemId !== fromItem.itemId,
 				),
 				{ ...toItem, blockX: from.blockX, blockY: from.blockY },
 			];
 			const nextTargetPlacedItems = [
-				...targetPuzzle.placedItems.filter(
+				...targetSpace.placedItems.filter(
 					(item) => item.itemId !== toItem.itemId,
 				),
 				{ ...fromItem, blockX: to.blockX, blockY: to.blockY },
 			];
 
-			const nextSourcePuzzle: PuzzleState = {
-				...sourcePuzzle,
+			const nextSourceSpace: SpaceState = {
+				...sourceSpace,
 				blocks: nextSourceBlocks,
 				placedItems: nextSourcePlacedItems,
 			};
-			const nextTargetPuzzle: PuzzleState = {
-				...targetPuzzle,
+			const nextTargetSpace: SpaceState = {
+				...targetSpace,
 				blocks: nextTargetBlocks,
 				placedItems: nextTargetPlacedItems,
 			};
 
-			const nextPuzzles = {
-				...state.puzzles,
-				[fromPuzzleId]: nextSourcePuzzle,
-				[toPuzzleId]: nextTargetPuzzle,
+			const nextSpaces = {
+				...state.spaces,
+				[fromSpaceId]: nextSourceSpace,
+				[toSpaceId]: nextTargetSpace,
 			};
 
-			let nextPrimaryPuzzle = state.puzzle;
-			if (state.puzzle.config.puzzleId === fromPuzzleId) {
-				nextPrimaryPuzzle = nextSourcePuzzle;
-			} else if (state.puzzle.config.puzzleId === toPuzzleId) {
-				nextPrimaryPuzzle = nextTargetPuzzle;
+			let nextPrimarySpace = state.space;
+			if (state.space.config.spaceId === fromSpaceId) {
+				nextPrimarySpace = nextSourceSpace;
+			} else if (state.space.config.spaceId === toSpaceId) {
+				nextPrimarySpace = nextTargetSpace;
 			}
 
 			return {
 				...state,
-				puzzle: nextPrimaryPuzzle,
-				puzzles: nextPuzzles,
+				space: nextPrimarySpace,
+				spaces: nextSpaces,
 			};
 		}
 		case "CONFIGURE_DEVICE": {
 			const config = sanitizeDeviceConfig(action.payload.config);
-			const applyConfig = (puzzle: PuzzleState): PuzzleState | null => {
-				const itemIndex = puzzle.placedItems.findIndex(
+			const applyConfig = (space: SpaceState): SpaceState | null => {
+				const itemIndex = space.placedItems.findIndex(
 					(item) => item.id === action.payload.deviceId,
 				);
 
@@ -446,7 +443,7 @@ export const puzzleReducer = (
 					return null;
 				}
 
-				const nextPlacedItems = puzzle.placedItems.slice();
+				const nextPlacedItems = space.placedItems.slice();
 				const currentItem = nextPlacedItems[itemIndex];
 
 				const newStatus =
@@ -463,38 +460,38 @@ export const puzzleReducer = (
 				};
 
 				return {
-					...puzzle,
+					...space,
 					placedItems: nextPlacedItems,
 				};
 			};
 
-			if (action.payload.puzzleId) {
-				const puzzle = resolvePuzzleState(state, action.payload.puzzleId);
-				const nextPuzzle = applyConfig(puzzle);
-				if (!nextPuzzle) {
+			if (action.payload.spaceId) {
+				const space = resolveSpaceState(state, action.payload.spaceId);
+				const nextSpace = applyConfig(space);
+				if (!nextSpace) {
 					return state;
 				}
 
-				return updatePuzzleState(state, action.payload.puzzleId, nextPuzzle);
+				return updateSpaceState(state, action.payload.spaceId, nextSpace);
 			}
 
-			if (state.puzzles) {
-				for (const [puzzleId, puzzle] of Object.entries(state.puzzles)) {
-					const nextPuzzle = applyConfig(puzzle);
-					if (!nextPuzzle) {
+			if (state.spaces) {
+				for (const [spaceId, space] of Object.entries(state.spaces)) {
+					const nextSpace = applyConfig(space);
+					if (!nextSpace) {
 						continue;
 					}
 
-					return updatePuzzleState(state, puzzleId, nextPuzzle);
+					return updateSpaceState(state, spaceId, nextSpace);
 				}
 			}
 
-			const fallbackPuzzle = applyConfig(state.puzzle);
-			if (!fallbackPuzzle) {
+			const fallbackSpace = applyConfig(state.space);
+			if (!fallbackSpace) {
 				return state;
 			}
 
-			return updatePuzzleState(state, action.payload.puzzleId, fallbackPuzzle);
+			return updateSpaceState(state, action.payload.spaceId, fallbackSpace);
 		}
 		default:
 			return state;

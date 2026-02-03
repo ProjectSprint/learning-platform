@@ -27,11 +27,11 @@ import {
 import type { QuestionProps } from "@/components/module";
 
 import {
-	CANVAS_CONFIGS,
-	CANVAS_ORDER,
 	DEFAULT_DOMAIN,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
+	SPACE_CONFIGS,
+	SPACE_ORDER,
 	SSL_ITEMS_INVENTORY,
 	SSL_SETUP_INVENTORY_ITEMS,
 } from "./-utils/constants";
@@ -93,7 +93,7 @@ const SslGame = ({
 		port443Domain,
 		port443SslStatus,
 	} = useSslState();
-	const [showSslCanvases, setShowSslCanvases] = useState(false);
+	const [showSslSpaces, setShowSslSpaces] = useState(false);
 	const [showSslItems, setShowSslItems] = useState(false);
 	const [eventTick, setEventTick] = useState(0);
 	useDragEngine();
@@ -134,7 +134,7 @@ const SslGame = ({
 	useEffect(() => {
 		void eventTick;
 		if (httpReady) {
-			setShowSslCanvases(true);
+			setShowSslSpaces(true);
 		}
 	}, [eventTick, httpReady]);
 
@@ -215,7 +215,7 @@ const SslGame = ({
 		certificateDomain,
 	]);
 
-	const canvasAreas = useMemo(
+	const spaceAreas = useMemo(
 		() => ({
 			browser: "browser",
 			"port-80": "port-80",
@@ -224,10 +224,10 @@ const SslGame = ({
 		}),
 		[],
 	);
-	const visibleCanvases = showSslCanvases
-		? CANVAS_ORDER
+	const visibleSpaces = showSslSpaces
+		? SPACE_ORDER
 		: (["browser", "port-80"] as const);
-	const gridTemplateAreas = showSslCanvases
+	const gridTemplateAreas = showSslSpaces
 		? {
 				base: `"browser" "port-80" "letsencrypt" "port-443"`,
 				md: `"browser port-80" "letsencrypt port-443"`,
@@ -238,7 +238,7 @@ const SslGame = ({
 				md: `"browser port-80"`,
 				lg: `"browser port-80"`,
 			};
-	const gridTemplateColumns = showSslCanvases
+	const gridTemplateColumns = showSslSpaces
 		? {
 				base: "1fr",
 				md: "repeat(2, minmax(min-content, 1fr))",
@@ -251,7 +251,7 @@ const SslGame = ({
 			};
 
 	useEffect(() => {
-		if (!showSslCanvases) {
+		if (!showSslSpaces) {
 			return;
 		}
 
@@ -266,7 +266,7 @@ const SslGame = ({
 				payload: { entityId: item.id, spaceId: "ssl-setup" },
 			});
 		}
-	}, [dispatch, showSslCanvases, state]);
+	}, [dispatch, showSslSpaces, state]);
 
 	useEffect(() => {
 		if (!showSslItems) {
@@ -683,14 +683,14 @@ const SslGame = ({
 						gap={{ base: 2, md: 4 }}
 						alignItems="stretch"
 					>
-						{visibleCanvases.map((canvasId) => {
-							const config = CANVAS_CONFIGS[canvasId];
+						{visibleSpaces.map((spaceId) => {
+							const config = SPACE_CONFIGS[spaceId];
 							if (!config) return null;
 							return (
-								<GridItem key={canvasId} area={canvasAreas[canvasId]}>
+								<GridItem key={spaceId} area={spaceAreas[spaceId]}>
 									<GridSpace
-										spaceId={canvasId}
-										title={config.name ?? canvasId}
+										spaceId={spaceId}
+										title={config.name ?? spaceId}
 										onEntityClick={handleEntityClick}
 										isEntityClickable={isEntityClickable}
 										getEntityLabel={(entity) => getSslItemLabel(entity.type)}
@@ -703,7 +703,7 @@ const SslGame = ({
 
 					<Flex direction="column" gap={4} mt={4}>
 						<PoolSpace title="Inventory" />
-						{showSslCanvases && (
+						{showSslSpaces && (
 							<PoolSpace spaceId="ssl-setup" title="SSL Setup" />
 						)}
 						{showSslItems && (

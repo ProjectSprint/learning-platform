@@ -286,7 +286,7 @@ export const buildCertificateRequestModal = (
 	deviceId: string,
 	currentDomain: string,
 	certificateIssued: boolean,
-	port80CanvasConfig?: Record<string, unknown>,
+	port80SpaceConfig?: Record<string, unknown>,
 	onCertificateIssued?: (domain: string) => void,
 ): ModalInstance => {
 	// If certificate already issued, show status view
@@ -309,8 +309,8 @@ export const buildCertificateRequestModal = (
 	}
 
 	const existingPort80Domain =
-		typeof port80CanvasConfig?.domain === "string"
-			? port80CanvasConfig.domain
+		typeof port80SpaceConfig?.domain === "string"
+			? port80SpaceConfig.domain
 			: DEFAULT_DOMAIN;
 
 	const actions: ModalAction[] = [
@@ -352,7 +352,7 @@ export const buildCertificateRequestModal = (
 							verified: true,
 							certificateDomain: domain,
 						},
-						puzzleId: "letsencrypt",
+						spaceId: "letsencrypt",
 					},
 				});
 

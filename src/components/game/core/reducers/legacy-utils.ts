@@ -1,6 +1,6 @@
 /**
- * Legacy utility functions inlined from puzzle/grid for backward compatibility.
- * These support the old puzzle/inventory reducers during migration cleanup.
+ * Legacy utility functions inlined from the old grid implementation.
+ * These support the old space/inventory reducers during migration cleanup.
  * @internal These will be removed once legacy reducers are deprecated.
  */
 
@@ -8,7 +8,7 @@ import type { Block } from "../types";
 
 /**
  * Update a single block in a 2D block grid immutably.
- * @internal Inlined from puzzle/grid/blocks.ts
+ * @internal Inlined from legacy grid/blocks.ts
  */
 export const updateBlock = (
 	blocks: Block[][],

@@ -344,8 +344,13 @@ export const spaceReducer = (
 
 		case "PLACE_ITEM": {
 			// Map to ADD_ENTITY_TO_SPACE
-			const { itemId, blockX, blockY, puzzleId } = action.payload;
-			const spaceId = puzzleId ?? "puzzle";
+			const {
+				itemId,
+				blockX,
+				blockY,
+				spaceId: payloadSpaceId,
+			} = action.payload;
+			const spaceId = payloadSpaceId ?? "space";
 			return spaceReducer(state, {
 				type: "ADD_ENTITY_TO_SPACE",
 				payload: {
@@ -358,8 +363,8 @@ export const spaceReducer = (
 
 		case "REMOVE_ITEM": {
 			// Map to REMOVE_ENTITY_FROM_SPACE
-			const { blockX, blockY, puzzleId } = action.payload;
-			const spaceId = puzzleId ?? "puzzle";
+			const { blockX, blockY, spaceId: payloadSpaceId } = action.payload;
+			const spaceId = payloadSpaceId ?? "space";
 
 			return produce(state, (draft) => {
 				const space = draft.spaces[spaceId];
@@ -394,8 +399,13 @@ export const spaceReducer = (
 
 		case "REPOSITION_ITEM": {
 			// Map to UPDATE_ENTITY_POSITION
-			const { itemId, toBlockX, toBlockY, puzzleId } = action.payload;
-			const spaceId = puzzleId ?? "puzzle";
+			const {
+				itemId,
+				toBlockX,
+				toBlockY,
+				spaceId: payloadSpaceId,
+			} = action.payload;
+			const spaceId = payloadSpaceId ?? "space";
 			return spaceReducer(state, {
 				type: "UPDATE_ENTITY_POSITION",
 				payload: {
@@ -408,14 +418,13 @@ export const spaceReducer = (
 
 		case "TRANSFER_ITEM": {
 			// Map to MOVE_ENTITY_BETWEEN_SPACES
-			const { itemId, fromPuzzle, toBlockX, toBlockY, toPuzzle } =
-				action.payload;
+			const { itemId, fromSpace, toBlockX, toBlockY, toSpace } = action.payload;
 			return spaceReducer(state, {
 				type: "MOVE_ENTITY_BETWEEN_SPACES",
 				payload: {
 					entityId: itemId,
-					fromSpaceId: fromPuzzle,
-					toSpaceId: toPuzzle,
+					fromSpaceId: fromSpace,
+					toSpaceId: toSpace,
 					toPosition: { row: toBlockY, col: toBlockX },
 				},
 			});
@@ -424,8 +433,8 @@ export const spaceReducer = (
 		case "SWAP_ITEMS": {
 			// Map to SWAP_ENTITIES
 			const { from, to } = action.payload;
-			const fromSpaceId = from.puzzleId ?? "puzzle";
-			const toSpaceId = to.puzzleId ?? "puzzle";
+			const fromSpaceId = from.spaceId ?? "space";
+			const toSpaceId = to.spaceId ?? "space";
 
 			const fromSpace = state.spaces[fromSpaceId];
 			const toSpace = state.spaces[toSpaceId];

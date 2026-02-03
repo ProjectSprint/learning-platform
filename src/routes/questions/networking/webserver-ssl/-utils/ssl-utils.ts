@@ -1,16 +1,16 @@
 // Utility functions for the webserver-ssl question
 // Domain-specific helper functions for game logic
 
-import type { PuzzleState } from "@/components/game/game-provider";
+import type { SpaceState } from "@/components/game/game-provider";
 import { DEFAULT_DOMAIN } from "./constants";
 
 /**
- * Check if Port 80 canvas is complete
+ * Check if Port 80 space is complete
  * Requires: webserver-80 + domain + index-html
  */
-export const isPort80Complete = (canvas: PuzzleState | undefined): boolean => {
-	if (!canvas) return false;
-	const types = canvas.placedItems.map((item) => item.type);
+export const isPort80Complete = (space: SpaceState | undefined): boolean => {
+	if (!space) return false;
+	const types = space.placedItems.map((item) => item.type);
 	const hasContent =
 		types.includes("index-html") || types.includes("redirect-to-https");
 	return (
@@ -19,12 +19,12 @@ export const isPort80Complete = (canvas: PuzzleState | undefined): boolean => {
 };
 
 /**
- * Check if Port 443 canvas is complete
+ * Check if Port 443 space is complete
  * Requires: webserver-443 + domain + index.html + private-key + certificate
  */
-export const isPort443Complete = (canvas: PuzzleState | undefined): boolean => {
-	if (!canvas) return false;
-	const types = canvas.placedItems.map((item) => item.type);
+export const isPort443Complete = (space: SpaceState | undefined): boolean => {
+	if (!space) return false;
+	const types = space.placedItems.map((item) => item.type);
 	return (
 		types.includes("webserver-443") &&
 		types.includes("domain") &&
@@ -39,10 +39,10 @@ export const isPort443Complete = (canvas: PuzzleState | undefined): boolean => {
  * Requires: webserver-80 + domain + redirect-to-https
  */
 export const isPort80RedirectConfigured = (
-	canvas: PuzzleState | undefined,
+	space: SpaceState | undefined,
 ): boolean => {
-	if (!canvas) return false;
-	const types = canvas.placedItems.map((item) => item.type);
+	if (!space) return false;
+	const types = space.placedItems.map((item) => item.type);
 	return (
 		types.includes("webserver-80") &&
 		types.includes("domain") &&
@@ -51,27 +51,27 @@ export const isPort80RedirectConfigured = (
 };
 
 /**
- * Determine browser connection status based on canvas states
+ * Determine browser connection status based on space states
  */
 export const getBrowserStatus = (
-	browserCanvas: PuzzleState | undefined,
-	port80Canvas: PuzzleState | undefined,
-	port443Canvas: PuzzleState | undefined,
+	browserSpace: SpaceState | undefined,
+	port80Space: SpaceState | undefined,
+	port443Space: SpaceState | undefined,
 ): "error" | "warning" | "success" => {
-	if (!browserCanvas || browserCanvas.placedItems.length === 0) {
+	if (!browserSpace || browserSpace.placedItems.length === 0) {
 		return "error";
 	}
 
 	// Check if HTTPS is fully configured
 	if (
-		isPort443Complete(port443Canvas) &&
-		isPort80RedirectConfigured(port80Canvas)
+		isPort443Complete(port443Space) &&
+		isPort80RedirectConfigured(port80Space)
 	) {
 		return "success";
 	}
 
 	// Check if HTTP is configured (will show warning)
-	if (isPort80Complete(port80Canvas)) {
+	if (isPort80Complete(port80Space)) {
 		return "warning";
 	}
 
@@ -82,32 +82,32 @@ export const getBrowserStatus = (
  * Get the URL the browser is connecting to
  */
 export const getBrowserUrl = (
-	browserCanvas: PuzzleState | undefined,
-	port80Canvas: PuzzleState | undefined,
-	port443Canvas: PuzzleState | undefined,
+	browserSpace: SpaceState | undefined,
+	port80Space: SpaceState | undefined,
+	port443Space: SpaceState | undefined,
 ): string => {
-	if (!browserCanvas || browserCanvas.placedItems.length === 0) {
+	if (!browserSpace || browserSpace.placedItems.length === 0) {
 		return "Not connected";
 	}
 
-	const status = getBrowserStatus(browserCanvas, port80Canvas, port443Canvas);
+	const status = getBrowserStatus(browserSpace, port80Space, port443Space);
 	if (status === "success") {
-		return `https://${getDomainFromCanvas(port443Canvas) || DEFAULT_DOMAIN}`;
+		return `https://${getDomainFromSpace(port443Space) || DEFAULT_DOMAIN}`;
 	}
 	if (status === "warning") {
-		return `http://${getDomainFromCanvas(port80Canvas) || DEFAULT_DOMAIN}`;
+		return `http://${getDomainFromSpace(port80Space) || DEFAULT_DOMAIN}`;
 	}
 	return "Not connected";
 };
 
 /**
- * Get domain name from canvas
+ * Get domain name from space
  */
-export const getDomainFromCanvas = (
-	canvas: PuzzleState | undefined,
+export const getDomainFromSpace = (
+	space: SpaceState | undefined,
 ): string | undefined => {
-	if (!canvas) return undefined;
-	const domainItem = canvas.placedItems.find((item) => item.type === "domain");
+	if (!space) return undefined;
+	const domainItem = space.placedItems.find((item) => item.type === "domain");
 	if (domainItem && typeof domainItem.data?.domain === "string") {
 		return domainItem.data.domain;
 	}
@@ -115,14 +115,14 @@ export const getDomainFromCanvas = (
 };
 
 /**
- * Get certificate domain from letsencrypt canvas (domain item)
+ * Get certificate domain from letsencrypt space (domain item)
  */
 export const getCertificateDomain = (
-	canvas: PuzzleState | undefined,
+	space: SpaceState | undefined,
 ): string | undefined => {
-	if (!canvas) return undefined;
-	// The certificate domain is stored on the domain item in the letsencrypt canvas
-	const domainItem = canvas.placedItems.find((item) => item.type === "domain");
+	if (!space) return undefined;
+	// The certificate domain is stored on the domain item in the letsencrypt space
+	const domainItem = space.placedItems.find((item) => item.type === "domain");
 	if (domainItem && typeof domainItem.data?.certificateDomain === "string") {
 		return domainItem.data.certificateDomain;
 	}
@@ -139,11 +139,11 @@ export const validateDomain = (domain: string): boolean => {
 };
 
 /**
- * Check if an item type is allowed in a canvas
+ * Check if an item type is allowed in a space
  */
 export const isItemTypeAllowed = (
 	itemType: string,
-	canvasId: string,
+	spaceId: string,
 ): boolean => {
 	const errors: Record<string, string> = {
 		"private-key|port-80": "private-key",
@@ -154,6 +154,6 @@ export const isItemTypeAllowed = (
 	};
 
 	return Object.entries(errors).every(
-		([key]) => !key.startsWith(`${itemType}|${canvasId}`),
+		([key]) => !key.startsWith(`${itemType}|${spaceId}`),
 	);
 };
