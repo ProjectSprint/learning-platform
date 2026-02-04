@@ -109,10 +109,10 @@ export const ModalInstanceView = ({
 		}
 
 		dispatch({
-			type: "MODAL_ACTION",
+			type: "MODAL_SUBMITTED",
 			payload: {
 				modalId,
-				actionId: action.id,
+				modalActionId: action.id,
 				values,
 			},
 		});

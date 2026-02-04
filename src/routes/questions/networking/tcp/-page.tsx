@@ -127,7 +127,7 @@ const TcpGame = ({
 
 		for (const event of events) {
 			if (
-				event.type === "MODAL_ACTION" &&
+				event.type === "MODAL_SUBMITTED" &&
 				event.modalId === "tcp-success" &&
 				event.modalActionId === "primary"
 			) {

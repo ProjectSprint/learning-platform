@@ -28,10 +28,10 @@ export type ModalAction =
 	| { type: "OPEN_MODAL"; payload: ModalInstance }
 	| { type: "CLOSE_MODAL"; payload?: { modalId?: string } }
 	| {
-			type: "MODAL_ACTION";
+			type: "MODAL_SUBMITTED";
 			payload: {
 				modalId: string;
-				actionId: string;
+				modalActionId: string;
 				values: Record<string, unknown>;
 			};
 	  };

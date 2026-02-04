@@ -45,7 +45,7 @@ export const useInternetTerminal = ({
 
 		for (const event of events) {
 			if (
-				event.type === "MODAL_ACTION" &&
+				event.type === "MODAL_SUBMITTED" &&
 				event.modalId === "success" &&
 				event.modalActionId === "primary"
 			) {

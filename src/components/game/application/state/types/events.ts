@@ -65,8 +65,8 @@ export type ModalOpenedEvent = GameEventBase & {
 	modal: ModalInstance;
 };
 
-export type ModalActionEvent = GameEventBase & {
-	type: "MODAL_ACTION";
+export type ModalSubmittedEvent = GameEventBase & {
+	type: "MODAL_SUBMITTED";
 	modalId: string;
 	modalActionId: string;
 	values: Record<string, unknown>;
@@ -91,7 +91,7 @@ export type GameEvent =
 	| EntityMovedEvent
 	| EntityUpdatedEvent
 	| ModalOpenedEvent
-	| ModalActionEvent
+	| ModalSubmittedEvent
 	| ModalClosedEvent
 	| PhaseChangedEvent;
 

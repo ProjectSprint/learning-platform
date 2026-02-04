@@ -270,7 +270,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				shouldSync = true;
 			}
 
-			if (event.type === "MODAL_ACTION" && event.modalActionId === "save") {
+			if (event.type === "MODAL_SUBMITTED" && event.modalActionId === "save") {
 				if (event.modalId.startsWith("router-lan-config-")) {
 					const deviceId = event.modalId.replace("router-lan-config-", "");
 					const dhcpEnabled = !!event.values.dhcpEnabled;

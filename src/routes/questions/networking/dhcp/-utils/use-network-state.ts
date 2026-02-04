@@ -194,7 +194,7 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 			}
 
 			if (
-				event.type === "MODAL_ACTION" &&
+				event.type === "MODAL_SUBMITTED" &&
 				event.modalId.startsWith("router-config-") &&
 				event.modalActionId === "save"
 			) {

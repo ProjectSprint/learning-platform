@@ -264,12 +264,12 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 				eventQueue: nextQueue,
 			};
 		}
-		case "MODAL_ACTION": {
+		case "MODAL_SUBMITTED": {
 			const events: GameEventInput[] = [
 				{
-					type: "MODAL_ACTION",
+					type: "MODAL_SUBMITTED",
 					modalId: action.payload.modalId,
-					modalActionId: action.payload.actionId,
+					modalActionId: action.payload.modalActionId,
 					values: action.payload.values,
 				},
 			];

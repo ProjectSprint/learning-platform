@@ -117,7 +117,7 @@ const SslGame = ({
 			}
 
 			if (
-				event.type === "MODAL_ACTION" &&
+				event.type === "MODAL_SUBMITTED" &&
 				event.modalId.startsWith("certificate-request-") &&
 				event.modalActionId === "issue"
 			) {
@@ -146,7 +146,7 @@ const SslGame = ({
 			}
 
 			if (
-				event.type === "MODAL_ACTION" &&
+				event.type === "MODAL_SUBMITTED" &&
 				event.modalId === "success" &&
 				event.modalActionId === "primary"
 			) {

@@ -546,7 +546,7 @@ export const useTcpPhase = ({
 		}
 
 		for (const event of events) {
-			if (event.type !== "MODAL_ACTION") {
+			if (event.type !== "MODAL_SUBMITTED") {
 				continue;
 			}
 
