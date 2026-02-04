@@ -79,6 +79,12 @@ export type ModalClosedEvent = GameEventBase & {
 	reason?: ModalCloseReason;
 };
 
+export type TerminalInputEvent = GameEventBase & {
+	type: "TERMINAL_INPUT";
+	entryId: string;
+	input: string;
+};
+
 export type PhaseChangedEvent = GameEventBase & {
 	type: "PHASE_CHANGED";
 	from: GamePhase;
@@ -93,6 +99,7 @@ export type GameEvent =
 	| ModalOpenedEvent
 	| ModalSubmittedEvent
 	| ModalClosedEvent
+	| TerminalInputEvent
 	| PhaseChangedEvent;
 
 export type GameEventQueue = {

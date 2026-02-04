@@ -308,12 +308,25 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 			}
 
 			const { entry } = createEntry("input", input);
+			const events: GameEventInput[] = [
+				{
+					type: "TERMINAL_INPUT",
+					entryId: entry.id,
+					input,
+				},
+			];
+			const nextQueue = appendEvents(
+				state.eventQueue,
+				getNextActionId(state.eventQueue),
+				events,
+			);
 			return {
 				...state,
 				terminal: {
 					...state.terminal,
 					history: addHistoryEntry(state.terminal.history, entry),
 				},
+				eventQueue: nextQueue,
 			};
 		}
 		case "ADD_TERMINAL_OUTPUT": {

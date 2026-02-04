@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
 	EngineLifecycleCallbacks,
 	EngineProgress,
@@ -27,32 +27,44 @@ export const useEngineProgress = <TContext = unknown>(
 	const [progress, setProgress] = useState<EngineProgress>({
 		status: initialStatus,
 	});
+	const prevStatusRef = useRef<EngineProgressStatus>(progress.status);
 
 	const start = useCallback(() => {
 		setProgress((prev) => {
 			if (prev.status !== "pending") return prev;
-			const next: EngineProgress = { status: "started", startedAt: Date.now() };
-			onStarted?.(context as TContext);
-			return next;
+			return { status: "started", startedAt: Date.now() };
 		});
-	}, [context, onStarted]);
+	}, []);
 
 	const finish = useCallback(() => {
 		setProgress((prev) => {
 			if (prev.status === "finished") return prev;
-			const next: EngineProgress = {
+			return {
 				...prev,
 				status: "finished",
 				finishedAt: Date.now(),
 			};
-			onFinished?.(context as TContext);
-			return next;
 		});
-	}, [context, onFinished]);
+	}, []);
 
 	const reset = useCallback(() => {
 		setProgress({ status: "pending" });
 	}, []);
+
+	useEffect(() => {
+		const prevStatus = prevStatusRef.current;
+		if (prevStatus === progress.status) {
+			return;
+		}
+		prevStatusRef.current = progress.status;
+
+		if (progress.status === "started") {
+			onStarted?.(context as TContext);
+		}
+		if (progress.status === "finished") {
+			onFinished?.(context as TContext);
+		}
+	}, [context, onFinished, onStarted, progress.status]);
 
 	return { progress, start, finish, reset, context };
 };

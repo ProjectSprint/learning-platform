@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import {
 	type TerminalEntryType,
 	useGameDispatch,
-	useGameState,
+	useGameEvents,
 } from "@/components/game/game-provider";
 import type { EngineLifecycleCallbacks } from "../engine-types";
 import {
@@ -35,9 +35,8 @@ export const useTerminalEngine = <TContext = unknown>(
 	config: TerminalEngineConfig<TContext> = {},
 ): TerminalEngine<TContext> => {
 	const dispatch = useGameDispatch();
-	const state = useGameState();
+	const { events, ack } = useGameEvents();
 	const controller = useEngineProgress<TContext>(config);
-	const lastInputIdRef = useRef<string | null>(null);
 	const onCommandRef = useRef(config.onCommand);
 	onCommandRef.current = config.onCommand;
 
@@ -60,14 +59,8 @@ export const useTerminalEngine = <TContext = unknown>(
 	}, [controller]);
 
 	useEffect(() => {
-		const lastEntry = state.terminal.history[state.terminal.history.length - 1];
-		if (!lastEntry || lastEntry.type !== "input") return;
-
-		if (lastEntry.id === lastInputIdRef.current) return;
-		lastInputIdRef.current = lastEntry.id;
-
-		if (controller.progress.status === "pending") {
-			controller.start();
+		if (events.length === 0) {
+			return;
 		}
 
 		const helpers: TerminalCommandHelpers<TContext> = {
@@ -77,11 +70,24 @@ export const useTerminalEngine = <TContext = unknown>(
 			context: config.context,
 		};
 
-		onCommandRef.current?.(lastEntry.content, helpers);
+		const hasInput = events.some((event) => event.type === "TERMINAL_INPUT");
+		if (hasInput && controller.progress.status === "pending") {
+			controller.start();
+		}
+
+		for (const event of events) {
+			if (event.type !== "TERMINAL_INPUT") {
+				continue;
+			}
+			onCommandRef.current?.(event.input, helpers);
+		}
+
+		ack();
 	}, [
 		config.context,
 		controller,
-		state.terminal.history,
+		events,
+		ack,
 		writeOutput,
 		clearHistory,
 		finishEngine,
