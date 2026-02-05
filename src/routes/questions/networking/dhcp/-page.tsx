@@ -1,5 +1,5 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	clearBoardArrows,
 	setBoardArrows,
@@ -16,6 +16,7 @@ import {
 	type Arrow,
 	GameProvider,
 	useGameDispatch,
+	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 import {
@@ -107,22 +108,77 @@ const NetworkingGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
+	const { events, ack } = useGameEvents();
 	const initializedRef = useRef(false);
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
-	const networkState = useNetworkState({ dragEngine });
+	const [eventTick, setEventTick] = useState(0);
+	const networkState = useNetworkState({ dragEngine, eventTick });
 
 	const handleNetworkingCommand = useNetworkingTerminal({
 		pc2Ip: networkState.pc2Ip,
-		onQuestionComplete,
 	});
 
 	useTerminalEngine({
 		onCommand: handleNetworkingCommand,
 	});
+
+	useEffect(() => {
+		if (events.length === 0) {
+			return;
+		}
+
+		let shouldSync = false;
+
+		for (const event of events) {
+			if (
+				event.type === "ENTITY_ENTERED_SPACE" ||
+				event.type === "ENTITY_LEFT_SPACE" ||
+				event.type === "ENTITY_MOVED" ||
+				event.type === "ENTITY_UPDATED" ||
+				event.type === "PHASE_CHANGED"
+			) {
+				shouldSync = true;
+			}
+
+			if (
+				event.type === "MODAL_SUBMITTED" &&
+				event.modalId.startsWith("router-config-") &&
+				event.modalActionId === "save"
+			) {
+				const deviceId = event.modalId.replace("router-config-", "");
+				const dhcpEnabled = !!event.values.dhcpEnabled;
+				const startIp = String(event.values.startIp ?? "");
+				const endIp = String(event.values.endIp ?? "");
+
+				dispatch({
+					type: "CONFIGURE_DEVICE",
+					payload: {
+						deviceId,
+						config: { dhcpEnabled, startIp, endIp },
+					},
+				});
+
+				shouldSync = true;
+			}
+
+			if (
+				event.type === "MODAL_SUBMITTED" &&
+				event.modalId === "success" &&
+				event.modalActionId === "primary"
+			) {
+				onQuestionComplete();
+			}
+		}
+
+		if (shouldSync) {
+			setEventTick((prev) => prev + 1);
+		}
+		ack();
+	}, [ack, dispatch, events, onQuestionComplete]);
 
 	// Item click handlers - kept for compatibility but adapted for entities
 	const entityClickHandlers = useMemo(

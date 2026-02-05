@@ -23,6 +23,7 @@ bd ready --json
 ```
 
 **Create new issues:**
+> ⚠️ the `--description` can't accept `\n` directly, use `--description "$(cat <<'EOF' message here )"`
 
 ```bash
 bd create "Issue title" --description="Detailed context" -t bug|feature|task -p 0-4 --json
@@ -113,7 +114,7 @@ When creating a task, each task should:
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session**, you MUST complete ALL steps below
 
 **MANDATORY WORKFLOW:**
 

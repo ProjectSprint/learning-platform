@@ -3,7 +3,7 @@
  * Provides the same interface as the original useNetworkState but works with the new state format.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { gridGetPosition } from "@/components/game/domain/space/space-fns";
@@ -12,11 +12,7 @@ import type {
 	BoardItemLocation,
 	BoardItemStatus,
 } from "@/components/game/game-provider";
-import {
-	useGameDispatch,
-	useGameEvents,
-	useGameState,
-} from "@/components/game/game-provider";
+import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import { DHCP_SPACE_IDS } from "./constants";
 import {
 	type BoardPlacements,
@@ -29,6 +25,7 @@ import {
 
 interface UseNetworkStateArgs {
 	dragEngine: DragEngine | null;
+	eventTick: number;
 }
 
 /**
@@ -58,11 +55,12 @@ const entityToBoardItem = (
  * Hook to manage network state for DHCP question using new Space/Entity model.
  * Maintains the same interface as the original for compatibility.
  */
-export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
+export const useNetworkState = ({
+	dragEngine,
+	eventTick,
+}: UseNetworkStateArgs) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
-	const { events, ack } = useGameEvents();
-	const [eventTick, setEventTick] = useState(0);
 	const stateRef = useRef(state);
 	stateRef.current = state;
 
@@ -174,50 +172,6 @@ export const useNetworkState = ({ dragEngine }: UseNetworkStateArgs) => {
 		pc2Ip,
 		questionStatus: state.question.status,
 	};
-
-	useEffect(() => {
-		if (events.length === 0) {
-			return;
-		}
-
-		let shouldSync = false;
-
-		for (const event of events) {
-			if (
-				event.type === "ENTITY_ENTERED_SPACE" ||
-				event.type === "ENTITY_LEFT_SPACE" ||
-				event.type === "ENTITY_MOVED" ||
-				event.type === "ENTITY_UPDATED" ||
-				event.type === "PHASE_CHANGED"
-			) {
-				shouldSync = true;
-			}
-
-			if (
-				event.type === "MODAL_SUBMITTED" &&
-				event.modalId.startsWith("router-config-") &&
-				event.modalActionId === "save"
-			) {
-				const deviceId = event.modalId.replace("router-config-", "");
-				const dhcpEnabled = !!event.values.dhcpEnabled;
-				const startIp = String(event.values.startIp ?? "");
-				const endIp = String(event.values.endIp ?? "");
-
-				dispatch({
-					type: "CONFIGURE_DEVICE",
-					payload: {
-						deviceId,
-						config: { dhcpEnabled, startIp, endIp },
-					},
-				});
-			}
-		}
-
-		if (shouldSync) {
-			setEventTick((prev) => prev + 1);
-		}
-		ack();
-	}, [ack, dispatch, events]);
 
 	// Update device statuses based on network state
 	useEffect(() => {

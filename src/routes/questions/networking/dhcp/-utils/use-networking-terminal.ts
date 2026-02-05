@@ -1,42 +1,15 @@
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines";
-import {
-	useGameDispatch,
-	useGameEvents,
-	useGameState,
-} from "@/components/game/game-provider";
+import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import { buildSuccessModal } from "./modal-builders";
 
 interface UseNetworkingTerminalArgs {
 	pc2Ip: string | null;
-	onQuestionComplete: () => void;
 }
 
-export const useNetworkingTerminal = ({
-	pc2Ip,
-	onQuestionComplete,
-}: UseNetworkingTerminalArgs) => {
+export const useNetworkingTerminal = ({ pc2Ip }: UseNetworkingTerminalArgs) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
-	const { events, ack } = useGameEvents();
-
-	useEffect(() => {
-		if (events.length === 0) {
-			return;
-		}
-
-		for (const event of events) {
-			if (
-				event.type === "MODAL_SUBMITTED" &&
-				event.modalId === "success" &&
-				event.modalActionId === "primary"
-			) {
-				onQuestionComplete();
-			}
-		}
-
-		ack();
-	}, [ack, events, onQuestionComplete]);
 
 	const handleCommand = useCallback(
 		(input: string, helpers: TerminalCommandHelpers) => {
