@@ -1,4 +1,5 @@
 import type { BoardItemLocation } from "@/components/game/game-provider";
+import { VALID_PPPOE_CREDENTIALS } from "./constants";
 
 export const getInternetItemLabel = (itemType: string): string => {
 	switch (itemType) {
@@ -72,18 +73,22 @@ export const getInternetStatusMessage = (
 		}
 
 		case "router-wan": {
-			const publicIp =
-				typeof data?.publicIp === "string" ? data.publicIp : null;
-			if (status === "error") {
+			const username =
+				typeof data?.username === "string" ? data.username.trim() : "";
+			const password =
+				typeof data?.password === "string" ? data.password.trim() : "";
+			const hasCredentials = username.length > 0 && password.length > 0;
+			const isAuthenticated =
+				username === VALID_PPPOE_CREDENTIALS.username &&
+				password === VALID_PPPOE_CREDENTIALS.password;
+
+			if (!hasCredentials) {
 				return "not configured";
 			}
-			if (status === "warning") {
-				return "no credentials";
+			if (!isAuthenticated) {
+				return "wrong credentials";
 			}
-			if (status === "success") {
-				return publicIp ? `connected ${publicIp}` : "connected";
-			}
-			return null;
+			return "authenticated";
 		}
 
 		case "igw": {
