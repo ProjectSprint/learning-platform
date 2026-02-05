@@ -66,6 +66,7 @@ export const applicationReducer = (
 		case "REPLACE_HINT":
 		case "OPEN_MODAL":
 		case "CLOSE_MODAL":
+		case "MODAL_SUBMITTED":
 		case "OPEN_TERMINAL":
 		case "CLOSE_TERMINAL":
 		case "SUBMIT_COMMAND":
