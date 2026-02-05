@@ -3,8 +3,8 @@
  * Provides ordered event batches with a global ack cursor.
  */
 
-import { useCallback, useMemo } from "react";
-import { useGameDispatch, useGameState } from "../../game-provider";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useGameState } from "../../game-provider";
 import type { GameEvent } from "../state/types";
 
 export type GameEventBatch = {
@@ -14,10 +14,9 @@ export type GameEventBatch = {
 };
 
 export const useGameEvents = (): GameEventBatch => {
-	const { eventQueue, eventCursor } = useGameState();
-	const dispatch = useGameDispatch();
+	const { eventQueue } = useGameState();
 	const queue = eventQueue ?? { events: [], lastEventId: 0, lastActionId: 0 };
-	const cursor = eventCursor ?? 0;
+	const [cursor, setCursor] = useState(0);
 
 	const events = useMemo(() => {
 		if (queue.events.length === 0) {
@@ -28,11 +27,15 @@ export const useGameEvents = (): GameEventBatch => {
 
 	const ack = useCallback(() => {
 		if (events.length === 0) return;
-		dispatch({
-			type: "ACK_EVENTS",
-			payload: { cursor: events[events.length - 1].eventId },
-		});
-	}, [dispatch, events]);
+		const nextCursor = events[events.length - 1].eventId;
+		setCursor((prev) => (nextCursor > prev ? nextCursor : prev));
+	}, [events]);
+
+	useEffect(() => {
+		if (queue.lastEventId < cursor) {
+			setCursor(0);
+		}
+	}, [cursor, queue.lastEventId]);
 
 	return {
 		events,
