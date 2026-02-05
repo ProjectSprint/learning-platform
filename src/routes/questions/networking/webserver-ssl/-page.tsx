@@ -7,8 +7,8 @@ import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type BoardItemStatus,
 	GameProvider,
+	useEngineEvents,
 	useGameDispatch,
-	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 import type { EntityStatus } from "@/components/game/presentation/entity/PlacedEntity";
@@ -69,7 +69,7 @@ const SslGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
-	const { events, ack } = useGameEvents();
+	const { events, ack } = useEngineEvents("webserver-ssl-page");
 	const initializedRef = useRef(false);
 	const terminalOpenedRef = useRef(false);
 	const terminalInput = useTerminalInput();

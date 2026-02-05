@@ -13,8 +13,8 @@ import type {
 	BoardItemStatus,
 } from "@/components/game/game-provider";
 import {
+	useEngineEvents,
 	useGameDispatch,
-	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 import {
@@ -65,7 +65,7 @@ const entityToBoardItem = (
 export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 	const state = useGameState();
 	const dispatch = useGameDispatch();
-	const { events, ack } = useGameEvents();
+	const { events, ack } = useEngineEvents("internet-state");
 	const [eventTick, setEventTick] = useState(0);
 	const stateRef = useRef(state);
 	stateRef.current = state;

@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from "react";
 import {
 	type TerminalEntryType,
+	useEngineEvents,
 	useGameDispatch,
-	useGameEvents,
 } from "@/components/game/game-provider";
 import type { EngineLifecycleCallbacks } from "../engine-types";
 import {
@@ -35,7 +35,7 @@ export const useTerminalEngine = <TContext = unknown>(
 	config: TerminalEngineConfig<TContext> = {},
 ): TerminalEngine<TContext> => {
 	const dispatch = useGameDispatch();
-	const { events, ack } = useGameEvents();
+	const { events, ack } = useEngineEvents("terminal");
 	const controller = useEngineProgress<TContext>({
 		...config,
 		engineId: "terminal",

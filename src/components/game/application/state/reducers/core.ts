@@ -39,16 +39,18 @@ export const coreReducer = (
 				},
 			};
 		case "ACK_EVENTS": {
-			const nextCursor = Math.min(
-				action.payload.cursor,
-				state.eventQueue.lastEventId,
-			);
-			if (nextCursor <= state.eventCursor) {
+			const { engineId, cursor } = action.payload;
+			const nextCursor = Math.min(cursor, state.eventQueue.lastEventId);
+			const currentCursor = state.eventCursors[engineId] ?? 0;
+			if (nextCursor <= currentCursor) {
 				return state;
 			}
 			return {
 				...state,
-				eventCursor: nextCursor,
+				eventCursors: {
+					...state.eventCursors,
+					[engineId]: nextCursor,
+				},
 			};
 		}
 		case "EMIT_EVENTS": {

@@ -3,8 +3,8 @@ import { createCompatState } from "@/components/game/application/compat/state-co
 import type { BoardItemLocation, Item } from "@/components/game/game-provider";
 import {
 	useAllSpaces,
+	useEngineEvents,
 	useGameDispatch,
-	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 
@@ -539,7 +539,7 @@ export const useTcpPhase = ({
 		});
 	}, [dispatch]);
 
-	const { events, ack } = useGameEvents();
+	const { events, ack } = useEngineEvents("udp-tcp-phase");
 	useEffect(() => {
 		if (events.length === 0) {
 			return;

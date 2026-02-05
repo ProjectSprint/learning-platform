@@ -83,7 +83,7 @@ export {
 	useEntityStateValue,
 	useItem,
 } from "./application/hooks/useEntity";
-export { useGameEvents } from "./application/hooks/useEvents";
+export { useEngineEvents } from "./application/hooks/useEvents";
 export {
 	useEntityGridPosition,
 	useSpace,

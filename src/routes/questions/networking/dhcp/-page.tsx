@@ -15,8 +15,8 @@ import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
 	GameProvider,
+	useEngineEvents,
 	useGameDispatch,
-	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 import {
@@ -108,7 +108,7 @@ const NetworkingGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
-	const { events, ack } = useGameEvents();
+	const { events, ack } = useEngineEvents("dhcp-page");
 	const initializedRef = useRef(false);
 	const terminalInput = useTerminalInput();
 	const isCompleted = state.question.status === "completed";

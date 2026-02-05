@@ -117,7 +117,7 @@ export const createDefaultState = (): GameState => {
 			lastEventId: 0,
 			lastActionId: 0,
 		},
-		eventCursor: 0,
+		eventCursors: {},
 	};
 };
 

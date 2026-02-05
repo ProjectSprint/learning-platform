@@ -8,8 +8,8 @@ import { isGridSpace } from "@/components/game/domain/space";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { findEntitySpace } from "@/components/game/domain/space/validation";
 import {
+	useEngineEvents,
 	useGameDispatch,
-	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 import {
@@ -1202,7 +1202,7 @@ export const useTcpState = (): TcpState => {
 		],
 	);
 
-	const { events, ack } = useGameEvents();
+	const { events, ack } = useEngineEvents("tcp-state");
 	useEffect(() => {
 		if (events.length === 0) {
 			return;

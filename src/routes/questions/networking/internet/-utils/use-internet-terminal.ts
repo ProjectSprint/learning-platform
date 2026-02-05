@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines";
 import {
+	useEngineEvents,
 	useGameDispatch,
-	useGameEvents,
 	useGameState,
 } from "@/components/game/game-provider";
 import { GOOGLE_IP } from "./constants";
@@ -36,7 +36,7 @@ export const useInternetTerminal = ({
 }: UseInternetTerminalArgs) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
-	const { events, ack } = useGameEvents();
+	const { events, ack } = useEngineEvents("internet-terminal");
 
 	useEffect(() => {
 		if (events.length === 0) {

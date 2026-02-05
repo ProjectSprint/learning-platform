@@ -1,22 +1,27 @@
 /**
- * useGameEvents hook.
- * Provides ordered event batches with a global ack cursor.
+ * useEngineEvents hook.
+ * Provides ordered event batches with an engine-specific ack cursor.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useGameState } from "../../game-provider";
+import { useCallback, useEffect, useMemo } from "react";
+import { useGameDispatch, useGameState } from "../../game-provider";
 import type { GameEvent } from "../state/types";
 
-export type GameEventBatch = {
+export type EngineEventBatch = {
 	events: GameEvent[];
 	cursor: number;
 	ack: () => void;
 };
 
-export const useGameEvents = (): GameEventBatch => {
-	const { eventQueue } = useGameState();
-	const queue = eventQueue ?? { events: [], lastEventId: 0, lastActionId: 0 };
-	const [cursor, setCursor] = useState(0);
+export const useEngineEvents = (engineId: string): EngineEventBatch => {
+	const state = useGameState();
+	const dispatch = useGameDispatch();
+	const queue = state.eventQueue ?? {
+		events: [],
+		lastEventId: 0,
+		lastActionId: 0,
+	};
+	const cursor = state.eventCursors?.[engineId] ?? 0;
 
 	const events = useMemo(() => {
 		if (queue.events.length === 0) {
@@ -28,14 +33,23 @@ export const useGameEvents = (): GameEventBatch => {
 	const ack = useCallback(() => {
 		if (events.length === 0) return;
 		const nextCursor = events[events.length - 1].eventId;
-		setCursor((prev) => (nextCursor > prev ? nextCursor : prev));
-	}, [events]);
+		if (nextCursor <= cursor) {
+			return;
+		}
+		dispatch({
+			type: "ACK_EVENTS",
+			payload: { engineId, cursor: nextCursor },
+		});
+	}, [cursor, dispatch, engineId, events]);
 
 	useEffect(() => {
 		if (queue.lastEventId < cursor) {
-			setCursor(0);
+			dispatch({
+				type: "ACK_EVENTS",
+				payload: { engineId, cursor: 0 },
+			});
 		}
-	}, [cursor, queue.lastEventId]);
+	}, [cursor, dispatch, engineId, queue.lastEventId]);
 
 	return {
 		events,

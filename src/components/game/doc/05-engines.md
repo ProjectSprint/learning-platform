@@ -6,14 +6,14 @@ Engines add reactive, automated behavior to the game. They listen to state chang
 
 ## Game Events
 
-Engines can subscribe to ordered reducer events with `useGameEvents`. Events are append-only and must be acknowledged to advance the global cursor (only one consumer should `ack()` per stream).
+Engines can subscribe to ordered reducer events with `useEngineEvents`. Events are append-only and each engine has its own cursor, so acknowledgments are isolated per engine.
 
 ```tsx
 import { useEffect } from "react";
-import { useGameEvents } from "@/components/game/game-provider";
+import { useEngineEvents } from "@/components/game/game-provider";
 
 function ExampleEngine() {
-  const { events, ack } = useGameEvents();
+  const { events, ack } = useEngineEvents("example-engine");
 
   useEffect(() => {
     if (events.length === 0) return;
