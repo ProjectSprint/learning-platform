@@ -4,6 +4,7 @@ export interface EngineProgress {
 	status: EngineProgressStatus;
 	startedAt?: number;
 	finishedAt?: number;
+	autoStarted?: boolean;
 }
 
 export interface EngineLifecycleCallbacks<TContext = unknown> {

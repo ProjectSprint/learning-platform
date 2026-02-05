@@ -38,6 +38,32 @@ export const coreReducer = (
 					status: "completed",
 				},
 			};
+		case "ACK_EVENTS": {
+			const nextCursor = Math.min(
+				action.payload.cursor,
+				state.eventQueue.lastEventId,
+			);
+			if (nextCursor <= state.eventCursor) {
+				return state;
+			}
+			return {
+				...state,
+				eventCursor: nextCursor,
+			};
+		}
+		case "EMIT_EVENTS": {
+			if (action.payload.events.length === 0) {
+				return state;
+			}
+			return {
+				...state,
+				eventQueue: appendEvents(
+					state.eventQueue,
+					getNextActionId(state.eventQueue),
+					action.payload.events,
+				),
+			};
+		}
 		default:
 			return state;
 	}

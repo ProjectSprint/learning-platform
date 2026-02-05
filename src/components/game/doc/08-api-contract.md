@@ -130,6 +130,7 @@ interface EngineProgress {
   status: 'pending' | 'started' | 'finished';
   startedAt?: number;
   finishedAt?: number;
+  autoStarted?: boolean;
 }
 ```
 
@@ -152,7 +153,7 @@ interface EngineProgress {
 3. **Callbacks**
    - `onStarted` called exactly once when starting
    - `onFinished` called exactly once when finishing
-   - Callbacks called synchronously during state transition
+   - Callbacks run after lifecycle events are emitted
 
 ### Terminal Engine Contract
 

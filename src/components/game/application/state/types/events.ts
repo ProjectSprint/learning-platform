@@ -85,6 +85,16 @@ export type TerminalInputEvent = GameEventBase & {
 	input: string;
 };
 
+export type EngineStartedEvent = GameEventBase & {
+	type: "ENGINE_STARTED";
+	engineId?: string;
+};
+
+export type EngineFinishedEvent = GameEventBase & {
+	type: "ENGINE_FINISHED";
+	engineId?: string;
+};
+
 export type PhaseChangedEvent = GameEventBase & {
 	type: "PHASE_CHANGED";
 	from: GamePhase;
@@ -100,6 +110,8 @@ export type GameEvent =
 	| ModalSubmittedEvent
 	| ModalClosedEvent
 	| TerminalInputEvent
+	| EngineStartedEvent
+	| EngineFinishedEvent
 	| PhaseChangedEvent;
 
 export type GameEventQueue = {

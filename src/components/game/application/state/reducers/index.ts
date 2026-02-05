@@ -76,6 +76,8 @@ export const applicationReducer = (
 		// Core actions
 		case "SET_PHASE":
 		case "COMPLETE_QUESTION":
+		case "ACK_EVENTS":
+		case "EMIT_EVENTS":
 			return appCoreReducer(state, action);
 
 		default:
@@ -115,6 +117,7 @@ export const createDefaultState = (): GameState => {
 			lastEventId: 0,
 			lastActionId: 0,
 		},
+		eventCursor: 0,
 	};
 };
 

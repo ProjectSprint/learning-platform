@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import {
 	type TerminalEntryType,
 	useGameDispatch,
@@ -36,9 +36,10 @@ export const useTerminalEngine = <TContext = unknown>(
 ): TerminalEngine<TContext> => {
 	const dispatch = useGameDispatch();
 	const { events, ack } = useGameEvents();
-	const controller = useEngineProgress<TContext>(config);
-	const onCommandRef = useRef(config.onCommand);
-	onCommandRef.current = config.onCommand;
+	const controller = useEngineProgress<TContext>({
+		...config,
+		engineId: "terminal",
+	});
 
 	const writeOutput = useCallback(
 		(content: string, type: TerminalOutputType) => {
@@ -79,12 +80,13 @@ export const useTerminalEngine = <TContext = unknown>(
 			if (event.type !== "TERMINAL_INPUT") {
 				continue;
 			}
-			onCommandRef.current?.(event.input, helpers);
+			config.onCommand?.(event.input, helpers);
 		}
 
 		ack();
 	}, [
 		config.context,
+		config.onCommand,
 		controller,
 		events,
 		ack,

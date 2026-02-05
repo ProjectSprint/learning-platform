@@ -229,6 +229,7 @@ type EngineProgress = {
   status: 'pending' | 'started' | 'finished';
   startedAt?: number;    // Timestamp when started
   finishedAt?: number;   // Timestamp when finished
+  autoStarted?: boolean; // True when an engine auto-started itself
 };
 ```
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createCompatState } from "@/components/game/application/compat/state-conversion";
 import type {
 	BoardItemLocation,
@@ -32,8 +32,11 @@ export const useDragEngine = <TContext = unknown>(
 ): DragEngine<TContext> => {
 	const { autoStart = true, ...progressOptions } = config;
 	const gameState = useGameState();
-	const controller = useEngineProgress<TContext>(progressOptions);
-	const hasAutoStarted = useRef(false);
+	const controller = useEngineProgress<TContext>({
+		...progressOptions,
+		engineId: "drag",
+	});
+	const [autoStarted, setAutoStarted] = useState(false);
 
 	const compat = useMemo(() => createCompatState(gameState), [gameState]);
 
@@ -47,13 +50,23 @@ export const useDragEngine = <TContext = unknown>(
 
 	useEffect(() => {
 		if (!autoStart) return;
-		if (hasAutoStarted.current) return;
+		if (autoStarted) return;
 		if (controller.progress.status !== "pending") return;
 		if (state.placedItems.length === 0) return;
 
-		hasAutoStarted.current = true;
+		setAutoStarted(true);
 		controller.start();
-	}, [autoStart, controller, state.placedItems.length]);
+	}, [autoStart, autoStarted, controller, state.placedItems.length]);
 
-	return { ...controller, state };
+	const reset = useCallback(() => {
+		setAutoStarted(false);
+		controller.reset();
+	}, [controller]);
+
+	return {
+		...controller,
+		progress: { ...controller.progress, autoStarted },
+		reset,
+		state,
+	};
 };

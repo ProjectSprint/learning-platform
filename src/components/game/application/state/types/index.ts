@@ -46,6 +46,9 @@ export type GameState = {
 
 	/** Ordered engine events for deterministic transitions */
 	eventQueue: GameEventQueue;
+
+	/** Global cursor for acknowledged events */
+	eventCursor: number;
 };
 
 /**

@@ -1,14 +1,81 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer } from "react";
+import { useGameDispatch } from "@/components/game/game-provider";
+import type { GameEventInput } from "../application/state/events";
 import type {
 	EngineLifecycleCallbacks,
 	EngineProgress,
 	EngineProgressStatus,
 } from "./engine-types";
 
+type EngineLifecycleEventType = "ENGINE_STARTED" | "ENGINE_FINISHED";
+
+type EngineProgressState = {
+	progress: EngineProgress;
+	pendingEvents: EngineLifecycleEventType[];
+};
+
+type EngineProgressAction =
+	| { type: "START" }
+	| { type: "FINISH" }
+	| { type: "RESET" }
+	| { type: "ACK_EVENTS" };
+
+const createInitialState = (
+	initialStatus: EngineProgressStatus,
+): EngineProgressState => ({
+	progress: { status: initialStatus },
+	pendingEvents: [],
+});
+
+const progressReducer = (
+	state: EngineProgressState,
+	action: EngineProgressAction,
+): EngineProgressState => {
+	switch (action.type) {
+		case "START":
+			if (state.progress.status !== "pending") {
+				return state;
+			}
+			return {
+				progress: {
+					...state.progress,
+					status: "started",
+					startedAt: Date.now(),
+				},
+				pendingEvents: [...state.pendingEvents, "ENGINE_STARTED"],
+			};
+		case "FINISH":
+			if (state.progress.status === "finished") {
+				return state;
+			}
+			return {
+				progress: {
+					...state.progress,
+					status: "finished",
+					finishedAt: Date.now(),
+				},
+				pendingEvents: [...state.pendingEvents, "ENGINE_FINISHED"],
+			};
+		case "RESET":
+			return {
+				progress: { status: "pending" },
+				pendingEvents: [],
+			};
+		case "ACK_EVENTS":
+			if (state.pendingEvents.length === 0) {
+				return state;
+			}
+			return { ...state, pendingEvents: [] };
+		default:
+			return state;
+	}
+};
+
 interface UseEngineProgressOptions<TContext>
 	extends EngineLifecycleCallbacks<TContext> {
 	context?: TContext;
 	initialStatus?: EngineProgressStatus;
+	engineId?: string;
 }
 
 export interface EngineController<TContext = unknown> {
@@ -22,49 +89,60 @@ export interface EngineController<TContext = unknown> {
 export const useEngineProgress = <TContext = unknown>(
 	options: UseEngineProgressOptions<TContext> = {},
 ): EngineController<TContext> => {
-	const { onStarted, onFinished, context, initialStatus = "pending" } = options;
+	const {
+		onStarted,
+		onFinished,
+		context,
+		initialStatus = "pending",
+		engineId,
+	} = options;
+	const dispatch = useGameDispatch();
 
-	const [progress, setProgress] = useState<EngineProgress>({
-		status: initialStatus,
-	});
-	const prevStatusRef = useRef<EngineProgressStatus>(progress.status);
+	const [state, dispatchProgress] = useReducer(
+		progressReducer,
+		initialStatus,
+		createInitialState,
+	);
 
 	const start = useCallback(() => {
-		setProgress((prev) => {
-			if (prev.status !== "pending") return prev;
-			return { status: "started", startedAt: Date.now() };
-		});
+		dispatchProgress({ type: "START" });
 	}, []);
 
 	const finish = useCallback(() => {
-		setProgress((prev) => {
-			if (prev.status === "finished") return prev;
-			return {
-				...prev,
-				status: "finished",
-				finishedAt: Date.now(),
-			};
-		});
+		dispatchProgress({ type: "FINISH" });
 	}, []);
 
 	const reset = useCallback(() => {
-		setProgress({ status: "pending" });
+		dispatchProgress({ type: "RESET" });
 	}, []);
 
 	useEffect(() => {
-		const prevStatus = prevStatusRef.current;
-		if (prevStatus === progress.status) {
+		if (state.pendingEvents.length === 0) {
 			return;
 		}
-		prevStatusRef.current = progress.status;
 
-		if (progress.status === "started") {
-			onStarted?.(context as TContext);
-		}
-		if (progress.status === "finished") {
-			onFinished?.(context as TContext);
-		}
-	}, [context, onFinished, onStarted, progress.status]);
+		const lifecycleEvents: GameEventInput[] = state.pendingEvents.map(
+			(eventType) =>
+				eventType === "ENGINE_STARTED"
+					? { type: "ENGINE_STARTED", engineId }
+					: { type: "ENGINE_FINISHED", engineId },
+		);
 
-	return { progress, start, finish, reset, context };
+		if (lifecycleEvents.length > 0) {
+			dispatch({ type: "EMIT_EVENTS", payload: { events: lifecycleEvents } });
+		}
+
+		for (const eventType of state.pendingEvents) {
+			if (eventType === "ENGINE_STARTED") {
+				onStarted?.(context as TContext);
+			}
+			if (eventType === "ENGINE_FINISHED") {
+				onFinished?.(context as TContext);
+			}
+		}
+
+		dispatchProgress({ type: "ACK_EVENTS" });
+	}, [context, dispatch, engineId, onFinished, onStarted, state.pendingEvents]);
+
+	return { progress: state.progress, start, finish, reset, context };
 };
