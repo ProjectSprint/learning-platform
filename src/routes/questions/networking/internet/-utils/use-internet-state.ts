@@ -154,6 +154,11 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		typeof routerWanConfig.password === "string"
 			? routerWanConfig.password
 			: null;
+	const hasPppoeCredentials =
+		typeof username === "string" &&
+		typeof password === "string" &&
+		username.trim().length > 0 &&
+		password.trim().length > 0;
 	const publicIp =
 		typeof routerWanConfig.publicIp === "string"
 			? routerWanConfig.publicIp
@@ -230,6 +235,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		hasValidDnsServer,
 		natEnabled,
 		hasValidPppoeCredentials,
+		hasPppoeCredentials,
 		routerNatConfigured,
 		googleReachable,
 		allDevicesPlaced,
@@ -245,6 +251,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		hasValidDnsServer,
 		natEnabled,
 		hasValidPppoeCredentials,
+		hasPppoeCredentials,
 		routerNatConfigured,
 		googleReachable,
 		allDevicesPlaced,
@@ -389,6 +396,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			hasValidDnsServer,
 			natEnabled,
 			hasValidPppoeCredentials,
+			hasPppoeCredentials,
 			routerNatConfigured,
 			googleReachable,
 		} = snapshot;
@@ -457,16 +465,9 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		if (networkSnapshot.routerWan) {
 			const entity = stateRef.current.entities[networkSnapshot.routerWan.id];
 			let desiredStatus: "error" | "warning" | "success";
-			if (!hasValidPppoeCredentials) {
+			if (!hasPppoeCredentials || !hasValidPppoeCredentials) {
 				desiredStatus = "error";
-			} else if (!networkSnapshot.routerWanConnectedToIgw) {
-				// Has credentials but not connected to fiber → IGW
-				desiredStatus = "warning";
-			} else if (!networkSnapshot.igw) {
-				// Connected to fiber but IGW not placed
-				desiredStatus = "warning";
 			} else {
-				// Fully configured and connected
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
