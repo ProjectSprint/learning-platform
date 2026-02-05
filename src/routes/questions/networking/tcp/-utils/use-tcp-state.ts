@@ -13,6 +13,7 @@ import {
 	useGameState,
 } from "@/components/game/game-provider";
 import {
+	FILE_ITEM_ID,
 	MESSAGE_PACKET_IDS,
 	MESSAGE_PACKET_ITEMS,
 	NOTES_FILE_ITEM_ID,
@@ -126,7 +127,7 @@ export const useTcpState = (): TcpState => {
 		[state.phase],
 	);
 	const [splitterVisible, setSplitterVisible] = useState(false);
-	const [pendingSplitterReveal, setPendingSplitterReveal] = useState(false);
+	const [messageSplitterUnlocked, setMessageSplitterUnlocked] = useState(false);
 	const [pendingFileReturn, setPendingFileReturn] = useState<{
 		entityId: string;
 		spaceId: string;
@@ -146,7 +147,6 @@ export const useTcpState = (): TcpState => {
 	const phaseRef = useRef(phase);
 	const connectionActiveRef = useRef(connectionActive);
 	const lossScenarioRef = useRef(lossScenarioActive);
-	const splitterVisibleRef = useRef(splitterVisible);
 	const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 	const receivedSeqsRef = useRef<Set<number>>(new Set());
 	const waitingSeqsRef = useRef<Set<number>>(new Set());
@@ -189,14 +189,16 @@ export const useTcpState = (): TcpState => {
 	}, [lossScenarioActive]);
 
 	useEffect(() => {
-		splitterVisibleRef.current = splitterVisible;
-	}, [splitterVisible]);
-
-	useEffect(() => {
-		if (phase === "mtu" && splitterVisibleRef.current) {
-			setSplitterVisible(false);
+		const messageFileSpaceId = findEntitySpace(state, FILE_ITEM_ID);
+		const notesFileSpaceId = findEntitySpace(state, NOTES_FILE_ITEM_ID);
+		const shouldShowMessageSplitter =
+			messageSplitterUnlocked && Boolean(messageFileSpaceId);
+		const shouldShowSplitter =
+			shouldShowMessageSplitter || Boolean(notesFileSpaceId);
+		if (splitterVisible !== shouldShowSplitter) {
+			setSplitterVisible(shouldShowSplitter);
 		}
-	}, [phase]);
+	}, [messageSplitterUnlocked, splitterVisible, state]);
 
 	useEffect(() => {
 		return () => {
@@ -719,7 +721,6 @@ export const useTcpState = (): TcpState => {
 						dispatch({ type: "OPEN_MODAL", payload: buildMtuModal() });
 					}
 					setPhase("splitter");
-					setPendingSplitterReveal(true);
 					setPendingFileReturn({ entityId, spaceId });
 				}, FILE_REJECT_DELAY_MS);
 				registerTimer(resolveTimer);
@@ -1161,10 +1162,7 @@ export const useTcpState = (): TcpState => {
 			if (!modalId) return;
 
 			if (modalId === "mtu-limit") {
-				if (pendingSplitterReveal) {
-					setSplitterVisible(true);
-					setPendingSplitterReveal(false);
-				}
+				setMessageSplitterUnlocked(true);
 				if (pendingFileReturn) {
 					ensureInInventory(pendingFileReturn.entityId);
 					updateEntityState(pendingFileReturn.entityId, {
@@ -1193,13 +1191,7 @@ export const useTcpState = (): TcpState => {
 				allowPacket2Ref.current = true;
 			}
 		},
-		[
-			dispatch,
-			ensureInInventory,
-			pendingFileReturn,
-			pendingSplitterReveal,
-			updateEntityState,
-		],
+		[dispatch, ensureInInventory, pendingFileReturn, updateEntityState],
 	);
 
 	const { events, ack } = useEngineEvents("tcp-state");
