@@ -40,6 +40,9 @@ export const getInternetStatusMessage = (
 			if (status === "warning" && ip) {
 				return ip; // "192.168.1.100" (private IP without internet)
 			}
+			if (status === "warning") {
+				return "Can't reach Google";
+			}
 			if (status === "success" && ip) {
 				return `${ip} → internet`; // "192.168.1.100 → internet"
 			}
