@@ -404,7 +404,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		// PC status: error → warning → success based on IP and internet access
 		if (networkSnapshot.pc) {
 			const entity = stateRef.current.entities[networkSnapshot.pc.id];
-			const hasPcIp = entity?.state.ip !== undefined;
+			const hasPcIp = typeof entity?.state.ip === "string";
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasPcIp) {
 				desiredStatus = "error";
