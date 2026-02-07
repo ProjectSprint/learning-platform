@@ -109,7 +109,8 @@ When creating a task, each task should:
     - What to do
     - Do's and don't
     - References to related files
-    - Current progress
+    - Current progress 
+        - tell them to always update this because they can be cut off while working due to token limit, updating this regularly ensures that the progress context continues
     - `pnpm check:biome` and `pnpm check:tsc`
 
 ## Landing the Plane (Session Completion)
