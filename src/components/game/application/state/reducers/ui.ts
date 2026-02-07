@@ -284,6 +284,172 @@ export const uiReducer = (state: GameState, action: UIAction): GameState => {
 			};
 		}
 
+		// Drawer actions
+		case "REGISTER_DRAWER": {
+			const drawers = state.overlay.drawers ?? {};
+			const existing = drawers[action.payload.id];
+			if (existing) {
+				return state;
+			}
+
+			const resolvedState =
+				action.payload.state ?? action.payload.initialState ?? "expanded";
+
+			const nextDrawer = {
+				...action.payload,
+				state: resolvedState,
+				initialState: action.payload.initialState ?? resolvedState,
+				position: action.payload.position ?? "bottom",
+				mouseAware: action.payload.mouseAware ?? true,
+				showFloatingButton: action.payload.showFloatingButton ?? false,
+			};
+
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					drawers: {
+						...drawers,
+						[action.payload.id]: nextDrawer,
+					},
+				},
+			};
+		}
+		case "OPEN_DRAWER": {
+			const drawers = state.overlay.drawers ?? {};
+			const existing = drawers[action.payload.drawerId];
+			if (!existing) return state;
+
+			const events: GameEventInput[] = [
+				{ type: "DRAWER_OPEN", drawerId: action.payload.drawerId },
+			];
+			const shouldChange = existing.state !== "expanded";
+			if (shouldChange) {
+				events.push(
+					{ type: "DRAWER_OPENED", drawerId: action.payload.drawerId },
+					{ type: "DRAWER_EXPANDED", drawerId: action.payload.drawerId },
+				);
+			}
+			const nextQueue = appendEvents(
+				state.eventQueue,
+				getNextActionId(state.eventQueue),
+				events,
+			);
+
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					drawers: {
+						...drawers,
+						[action.payload.drawerId]: {
+							...existing,
+							state: "expanded",
+						},
+					},
+				},
+				eventQueue: nextQueue,
+			};
+		}
+		case "CLOSE_DRAWER": {
+			const drawers = state.overlay.drawers ?? {};
+			const existing = drawers[action.payload.drawerId];
+			if (!existing) return state;
+
+			const events: GameEventInput[] = [
+				{ type: "DRAWER_CLOSE", drawerId: action.payload.drawerId },
+			];
+			const shouldChange = existing.state !== "folded";
+			if (shouldChange) {
+				events.push(
+					{ type: "DRAWER_CLOSED", drawerId: action.payload.drawerId },
+					{ type: "DRAWER_FOLDED", drawerId: action.payload.drawerId },
+				);
+			}
+			const nextQueue = appendEvents(
+				state.eventQueue,
+				getNextActionId(state.eventQueue),
+				events,
+			);
+
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					drawers: {
+						...drawers,
+						[action.payload.drawerId]: {
+							...existing,
+							state: "folded",
+						},
+					},
+				},
+				eventQueue: nextQueue,
+			};
+		}
+		case "TOGGLE_DRAWER": {
+			const drawers = state.overlay.drawers ?? {};
+			const existing = drawers[action.payload.drawerId];
+			if (!existing) return state;
+
+			const nextState = existing.state === "expanded" ? "folded" : "expanded";
+			const events: GameEventInput[] = [
+				{ type: "DRAWER_TOGGLE", drawerId: action.payload.drawerId },
+			];
+
+			if (nextState === "expanded") {
+				events.push(
+					{ type: "DRAWER_OPENED", drawerId: action.payload.drawerId },
+					{ type: "DRAWER_EXPANDED", drawerId: action.payload.drawerId },
+				);
+			} else {
+				events.push(
+					{ type: "DRAWER_CLOSED", drawerId: action.payload.drawerId },
+					{ type: "DRAWER_FOLDED", drawerId: action.payload.drawerId },
+				);
+			}
+
+			const nextQueue = appendEvents(
+				state.eventQueue,
+				getNextActionId(state.eventQueue),
+				events,
+			);
+
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					drawers: {
+						...drawers,
+						[action.payload.drawerId]: {
+							...existing,
+							state: nextState,
+						},
+					},
+				},
+				eventQueue: nextQueue,
+			};
+		}
+		case "UPDATE_DRAWER_CONFIG": {
+			const drawers = state.overlay.drawers ?? {};
+			const existing = drawers[action.payload.drawerId];
+			if (!existing) return state;
+
+			return {
+				...state,
+				overlay: {
+					...state.overlay,
+					drawers: {
+						...drawers,
+						[action.payload.drawerId]: {
+							...existing,
+							...action.payload.config,
+						},
+					},
+				},
+			};
+		}
+
 		// Terminal actions
 		case "OPEN_TERMINAL":
 			return {

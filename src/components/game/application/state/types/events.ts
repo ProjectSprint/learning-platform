@@ -79,6 +79,43 @@ export type ModalClosedEvent = GameEventBase & {
 	reason?: ModalCloseReason;
 };
 
+// Drawer intent events
+export type DrawerOpenEvent = GameEventBase & {
+	type: "DRAWER_OPEN";
+	drawerId: string;
+};
+
+export type DrawerCloseEvent = GameEventBase & {
+	type: "DRAWER_CLOSE";
+	drawerId: string;
+};
+
+export type DrawerToggleEvent = GameEventBase & {
+	type: "DRAWER_TOGGLE";
+	drawerId: string;
+};
+
+// Drawer state events
+export type DrawerOpenedEvent = GameEventBase & {
+	type: "DRAWER_OPENED";
+	drawerId: string;
+};
+
+export type DrawerClosedEvent = GameEventBase & {
+	type: "DRAWER_CLOSED";
+	drawerId: string;
+};
+
+export type DrawerExpandedEvent = GameEventBase & {
+	type: "DRAWER_EXPANDED";
+	drawerId: string;
+};
+
+export type DrawerFoldedEvent = GameEventBase & {
+	type: "DRAWER_FOLDED";
+	drawerId: string;
+};
+
 export type TerminalInputEvent = GameEventBase & {
 	type: "TERMINAL_INPUT";
 	entryId: string;
@@ -109,6 +146,13 @@ export type GameEvent =
 	| ModalOpenedEvent
 	| ModalSubmittedEvent
 	| ModalClosedEvent
+	| DrawerOpenEvent
+	| DrawerCloseEvent
+	| DrawerToggleEvent
+	| DrawerOpenedEvent
+	| DrawerClosedEvent
+	| DrawerExpandedEvent
+	| DrawerFoldedEvent
 	| TerminalInputEvent
 	| EngineStartedEvent
 	| EngineFinishedEvent

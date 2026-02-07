@@ -29,7 +29,7 @@ function createTestGameState(
 		arrows: [],
 		terminal: { visible: false, prompt: "", history: [] },
 		hint: { visible: false, content: null },
-		overlay: { modals: {} },
+		overlay: { modals: {}, drawers: {} },
 		question: { id: "test", status: "in_progress" },
 		eventQueue: { events: [], lastEventId: 0, lastActionId: 0 },
 		eventCursors: {},

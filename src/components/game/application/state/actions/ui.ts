@@ -5,6 +5,7 @@
 
 import type {
 	Arrow,
+	DrawerInstance,
 	ModalInstance,
 	TerminalEntryType,
 } from "../../../core/types";
@@ -36,6 +37,18 @@ export type ModalAction =
 			};
 	  };
 
+// Drawer actions
+/** Register a drawer in overlay state. */
+export type DrawerAction =
+	| { type: "REGISTER_DRAWER"; payload: DrawerInstance }
+	| { type: "OPEN_DRAWER"; payload: { drawerId: string } }
+	| { type: "CLOSE_DRAWER"; payload: { drawerId: string } }
+	| { type: "TOGGLE_DRAWER"; payload: { drawerId: string } }
+	| {
+			type: "UPDATE_DRAWER_CONFIG";
+			payload: { drawerId: string; config: Partial<DrawerInstance> };
+	  };
+
 // Terminal actions
 export type TerminalAction =
 	| { type: "OPEN_TERMINAL" }
@@ -53,4 +66,9 @@ export type TerminalAction =
 /**
  * Union of all UI actions.
  */
-export type UIAction = ArrowAction | HintAction | ModalAction | TerminalAction;
+export type UIAction =
+	| ArrowAction
+	| HintAction
+	| ModalAction
+	| DrawerAction
+	| TerminalAction;

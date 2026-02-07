@@ -9,6 +9,15 @@ export type {
 	ArrowEndpoint,
 	ArrowStyle,
 } from "./arrow";
+// Drawer types
+export type {
+	DrawerBreakpoint,
+	DrawerConfig,
+	DrawerInstance,
+	DrawerPosition,
+	DrawerSizeMap,
+	DrawerState,
+} from "./drawer";
 // Game state types
 export type { GamePhase, GameState, QuestionStatus } from "./game-state";
 // Hint types

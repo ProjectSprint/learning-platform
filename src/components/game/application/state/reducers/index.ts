@@ -67,6 +67,11 @@ export const applicationReducer = (
 		case "OPEN_MODAL":
 		case "CLOSE_MODAL":
 		case "MODAL_SUBMITTED":
+		case "REGISTER_DRAWER":
+		case "OPEN_DRAWER":
+		case "CLOSE_DRAWER":
+		case "TOGGLE_DRAWER":
+		case "UPDATE_DRAWER_CONFIG":
 		case "OPEN_TERMINAL":
 		case "CLOSE_TERMINAL":
 		case "SUBMIT_COMMAND":
@@ -108,6 +113,7 @@ export const createDefaultState = (): GameState => {
 		},
 		overlay: {
 			modals: {},
+			drawers: {},
 		},
 		question: {
 			id: "",

@@ -29,6 +29,12 @@ export type {
 	Block,
 	BlockStatus,
 	BoardItemStatus,
+	DrawerBreakpoint,
+	DrawerConfig,
+	DrawerInstance,
+	DrawerPosition,
+	DrawerSizeMap,
+	DrawerState,
 	GamePhase,
 	HintState,
 	IconInfo,
@@ -65,11 +71,15 @@ import {
 	createDefaultState,
 } from "./application/state/reducers";
 import type { GameState } from "./application/state/types";
+import { DrawerContainer } from "./presentation/drawer/DrawerContainer";
+import { DragProvider } from "./presentation/interaction/drag/DragContext";
 
 // ============================================================================
 // Hook Exports
 // ============================================================================
 
+export { useDrawerEvents } from "./application/hooks/useDrawerEvents";
+export { useDrawerManager } from "./application/hooks/useDrawerManager";
 export {
 	useEntities,
 	useEntitiesByType,
@@ -124,10 +134,17 @@ export const GameProvider = ({ children, initialState }: GameProviderProps) => {
 		initialState ?? createDefaultState(),
 	);
 
+	const drawers = state.overlay.drawers ?? {};
+
 	return (
 		<GameStateContext.Provider value={state}>
 			<GameDispatchContext.Provider value={dispatch}>
-				{children}
+				<DragProvider>
+					{children}
+					{Object.entries(drawers).map(([drawerId, drawer]) => (
+						<DrawerContainer key={drawerId} drawer={drawer} />
+					))}
+				</DragProvider>
 			</GameDispatchContext.Provider>
 		</GameStateContext.Provider>
 	);

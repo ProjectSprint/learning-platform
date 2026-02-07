@@ -39,6 +39,7 @@ export type {
 } from "./space";
 export type {
 	ArrowAction,
+	DrawerAction,
 	HintAction,
 	ModalAction,
 	TerminalAction,

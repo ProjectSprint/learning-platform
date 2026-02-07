@@ -1,7 +1,7 @@
 /**
  * GameBoard component - Top-level wrapper for game spaces.
  *
- * Provides BoardRegistryProvider (for arrow registration), DragProvider,
+ * Provides BoardRegistryProvider (for arrow registration)
  * and BoardArrowSurface context for arrow visualization between spaces.
  *
  * @example
@@ -15,7 +15,6 @@
  */
 
 import type { ReactNode } from "react";
-import { DragProvider } from "../presentation/interaction/drag/DragContext";
 import {
 	BoardArrowSurface,
 	BoardRegistryProvider,
@@ -29,17 +28,15 @@ export type GameBoardProps = {
  * GameBoard - Wrapper component providing drag and arrow context.
  *
  * Wraps:
- * - DragProvider: Provides drag-drop state context
  * - BoardArrowSurface: Provides board registry and arrow layer
  *
  * All GridSpace and PoolSpace components should be children of GameBoard.
+ * DragProvider is mounted at GameProvider level to support drawer overlays.
  */
 export const GameBoard = ({ children }: GameBoardProps) => {
 	return (
 		<BoardRegistryProvider>
-			<DragProvider>
-				<BoardArrowSurface>{children}</BoardArrowSurface>
-			</DragProvider>
+			<BoardArrowSurface>{children}</BoardArrowSurface>
 		</BoardRegistryProvider>
 	);
 };
