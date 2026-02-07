@@ -10,6 +10,7 @@ import { useDragEngine } from "@/components/game/engines";
 import {
 	type Arrow,
 	GameProvider,
+	useDrawerManager,
 	useEngineEvents,
 	useGameDispatch,
 	useGameState,
@@ -38,6 +39,8 @@ import {
 } from "./-utils/item-notification";
 import { buildSuccessModal } from "./-utils/modal-builders";
 import { useTcpState } from "./-utils/use-tcp-state";
+
+const INVENTORY_DRAWER_ID = "inventory-drawer";
 
 export const TcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -73,6 +76,7 @@ const TcpGame = ({
 		phase: tcpPhase,
 	} = useTcpState();
 	useDragEngine();
+	const { registerDrawer } = useDrawerManager();
 
 	const contextualHint = useMemo(
 		() =>
@@ -98,6 +102,22 @@ const TcpGame = ({
 		],
 	);
 	useContextualHint(contextualHint);
+
+	useEffect(() => {
+		registerDrawer({
+			id: INVENTORY_DRAWER_ID,
+			contentType: "space",
+			spaceId: "inventory",
+			title: "Inventory",
+			position: "bottom",
+			initialState: "expanded",
+			expandedSize: { base: "65vh", md: "40vh" },
+			foldedSize: { md: "72px", lg: "80px" },
+			mouseAware: true,
+			showFloatingButton: true,
+			floatingButtonLabel: "Inventory",
+		});
+	}, [registerDrawer]);
 
 	// Initialize question
 	useEffect(() => {
@@ -385,9 +405,6 @@ const TcpGame = ({
 						</Box>
 					</Box>
 
-					<Box mt={4}>
-						<PoolSpace title="Inventory" />
-					</Box>
 					{receivedPoolVisible ? (
 						<Box mt={4}>
 							<PoolSpace id={INVENTORY_GROUP_IDS.received} title="Received" />

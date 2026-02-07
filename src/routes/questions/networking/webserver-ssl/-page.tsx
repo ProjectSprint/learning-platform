@@ -7,6 +7,7 @@ import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type BoardItemStatus,
 	GameProvider,
+	useDrawerManager,
 	useEngineEvents,
 	useGameDispatch,
 	useGameState,
@@ -55,6 +56,8 @@ import {
 import { useSslState } from "./-utils/use-ssl-state";
 import { useSslTerminal } from "./-utils/use-ssl-terminal";
 
+const INVENTORY_DRAWER_ID = "inventory-drawer";
+
 export const WebServerSslQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
 		<GameProvider>
@@ -98,6 +101,23 @@ const SslGame = ({
 	const [showSslItems, setShowSslItems] = useState(false);
 	const [eventTick, setEventTick] = useState(0);
 	useDragEngine();
+	const { registerDrawer } = useDrawerManager();
+
+	useEffect(() => {
+		registerDrawer({
+			id: INVENTORY_DRAWER_ID,
+			contentType: "space",
+			spaceId: "inventory",
+			title: "Inventory",
+			position: "bottom",
+			initialState: "expanded",
+			expandedSize: { base: "65vh", md: "40vh" },
+			foldedSize: { md: "72px", lg: "80px" },
+			mouseAware: true,
+			showFloatingButton: true,
+			floatingButtonLabel: "Inventory",
+		});
+	}, [registerDrawer]);
 
 	useEffect(() => {
 		if (events.length === 0) {
@@ -744,7 +764,6 @@ const SslGame = ({
 					</Grid>
 
 					<Flex direction="column" gap={4} mt={4}>
-						<PoolSpace title="Inventory" />
 						{showSslSpaces && (
 							<PoolSpace id={SSL_POOL_IDS.setup} title="SSL Setup" />
 						)}

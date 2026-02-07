@@ -1,10 +1,11 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
+import { GameBoard, GridSpace } from "@/components/game/engine";
 import { useDragEngine } from "@/components/game/engines";
 import {
 	GameProvider,
+	useDrawerManager,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
@@ -28,6 +29,8 @@ import {
 import { initializeUdpQuestion } from "./-utils/init-spaces";
 import { useUdpState } from "./-utils/use-udp-state";
 
+const INVENTORY_DRAWER_ID = "inventory-drawer";
+
 export const UdpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
 		<GameProvider>
@@ -49,6 +52,7 @@ const UdpGame = ({
 	const shouldShowTerminal = state.phase === "terminal";
 	useDragEngine();
 	useUdpState();
+	const { registerDrawer } = useDrawerManager();
 
 	// Initialize question
 	useEffect(() => {
@@ -59,6 +63,22 @@ const UdpGame = ({
 		initializedRef.current = true;
 		initializeUdpQuestion(dispatch);
 	}, [dispatch]);
+
+	useEffect(() => {
+		registerDrawer({
+			id: INVENTORY_DRAWER_ID,
+			contentType: "space",
+			spaceId: "inventory",
+			title: "Inventory",
+			position: "bottom",
+			initialState: "expanded",
+			expandedSize: { base: "65vh", md: "40vh" },
+			foldedSize: { md: "72px", lg: "80px" },
+			mouseAware: true,
+			showFloatingButton: true,
+			floatingButtonLabel: "Inventory",
+		});
+	}, [registerDrawer]);
 
 	// Terminal visibility
 	useEffect(() => {
@@ -145,10 +165,6 @@ const UdpGame = ({
 							);
 						})}
 					</Grid>
-
-					<Box mt={4}>
-						<PoolSpace title="Inventory" />
-					</Box>
 
 					<ContextualHint />
 

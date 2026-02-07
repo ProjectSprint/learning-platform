@@ -10,11 +10,12 @@ import {
 	type QuestionSpec,
 	resolvePhase,
 } from "@/components/game/domain/question";
-import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
+import { GameBoard, GridSpace } from "@/components/game/engine";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
 	GameProvider,
+	useDrawerManager,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
@@ -63,6 +64,7 @@ type InternetConditionKey =
 	| "questionStatus"
 	| "dragStatus"
 	| "allDevicesPlaced";
+const INVENTORY_DRAWER_ID = "inventory-drawer";
 
 const COLUMN_ONE: InternetSpaceKey[] = ["local", "conn-1", "router"];
 const COLUMN_TWO: InternetSpaceKey[] = ["conn-2", "igw", "dns", "google"];
@@ -134,6 +136,7 @@ const InternetGame = ({
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
 	const internetState = useInternetState({ dragEngine });
+	const { registerDrawer } = useDrawerManager();
 
 	// Entity click handlers - adapted for entities
 	const entityClickHandlers = useMemo(
@@ -238,6 +241,22 @@ const InternetGame = ({
 	useTerminalEngine({
 		onCommand: handleInternetCommand,
 	});
+
+	useEffect(() => {
+		registerDrawer({
+			id: INVENTORY_DRAWER_ID,
+			contentType: "space",
+			spaceId: "inventory",
+			title: "Inventory",
+			position: "bottom",
+			initialState: "expanded",
+			expandedSize: { base: "65vh", md: "40vh" },
+			foldedSize: { md: "72px", lg: "80px" },
+			mouseAware: true,
+			showFloatingButton: true,
+			floatingButtonLabel: "Inventory",
+		});
+	}, [registerDrawer]);
 
 	const spec = useMemo<QuestionSpec<InternetConditionKey>>(
 		() => ({
@@ -672,10 +691,6 @@ const InternetGame = ({
 							{SPACE_ORDER.map((key) => renderBoard(key))}
 						</Flex>
 					)}
-
-					<Box mt={4}>
-						<PoolSpace title="Inventory" />
-					</Box>
 
 					<ContextualHint />
 

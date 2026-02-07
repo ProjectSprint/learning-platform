@@ -10,11 +10,12 @@ import {
 	type QuestionSpec,
 	resolvePhase,
 } from "@/components/game/domain/question";
-import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
+import { GameBoard, GridSpace } from "@/components/game/engine";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
 	GameProvider,
+	useDrawerManager,
 	useEngineEvents,
 	useGameDispatch,
 	useGameState,
@@ -55,6 +56,7 @@ import { useNetworkState } from "./-utils/use-network-state";
 import { useNetworkingTerminal } from "./-utils/use-networking-terminal";
 
 type DhcpConditionKey = "dragStatus" | "questionStatus";
+const INVENTORY_DRAWER_ID = "inventory-drawer";
 
 const DHCP_SPEC_BASE: Omit<QuestionSpec<DhcpConditionKey>, "handlers"> = {
 	meta: {
@@ -117,6 +119,7 @@ const NetworkingGame = ({
 	const dragEngine = useDragEngine();
 	const [eventTick, setEventTick] = useState(0);
 	const networkState = useNetworkState({ dragEngine, eventTick });
+	const { registerDrawer } = useDrawerManager();
 
 	const handleNetworkingCommand = useNetworkingTerminal({
 		pc2Ip: networkState.pc2Ip,
@@ -125,6 +128,22 @@ const NetworkingGame = ({
 	useTerminalEngine({
 		onCommand: handleNetworkingCommand,
 	});
+
+	useEffect(() => {
+		registerDrawer({
+			id: INVENTORY_DRAWER_ID,
+			contentType: "space",
+			spaceId: "inventory",
+			title: "Inventory",
+			position: "bottom",
+			initialState: "expanded",
+			expandedSize: { base: "65vh", md: "40vh" },
+			foldedSize: { md: "72px", lg: "80px" },
+			mouseAware: true,
+			showFloatingButton: true,
+			floatingButtonLabel: "Inventory",
+		});
+	}, [registerDrawer]);
 
 	useEffect(() => {
 		if (events.length === 0) {
@@ -553,10 +572,6 @@ const NetworkingGame = ({
 							);
 						})}
 					</Grid>
-
-					<Box mt={4}>
-						<PoolSpace title="Inventory" />
-					</Box>
 
 					<ContextualHint />
 
