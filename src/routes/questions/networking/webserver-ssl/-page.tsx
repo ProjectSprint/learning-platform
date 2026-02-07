@@ -28,11 +28,12 @@ import type { QuestionProps } from "@/components/module";
 
 import {
 	DEFAULT_DOMAIN,
+	getSpaceConfig,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	SPACE_CONFIGS,
 	SPACE_ORDER,
 	SSL_ITEMS_INVENTORY,
+	SSL_POOL_IDS,
 	SSL_SETUP_INVENTORY_ITEMS,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
@@ -139,7 +140,7 @@ const SslGame = ({
 					});
 
 					dispatch({
-						type: "UPDATE_INVENTORY_GROUP",
+						type: "UPDATE_POOL_GROUP",
 						payload: { id: "ssl-items", visible: true },
 					});
 				}
@@ -304,7 +305,7 @@ const SslGame = ({
 
 			dispatch({
 				type: "ADD_ENTITY_TO_SPACE",
-				payload: { entityId: item.id, spaceId: "ssl-setup" },
+				payload: { entityId: item.id, spaceId: SSL_POOL_IDS.setup },
 			});
 		}
 	}, [dispatch, showSslSpaces, state]);
@@ -322,7 +323,7 @@ const SslGame = ({
 
 			dispatch({
 				type: "ADD_ENTITY_TO_SPACE",
-				payload: { entityId: item.id, spaceId: "ssl-items" },
+				payload: { entityId: item.id, spaceId: SSL_POOL_IDS.certificates },
 			});
 		}
 	}, [dispatch, showSslItems, state]);
@@ -725,12 +726,12 @@ const SslGame = ({
 						alignItems="stretch"
 					>
 						{visibleSpaces.map((spaceId) => {
-							const config = SPACE_CONFIGS[spaceId];
+							const config = getSpaceConfig(spaceId);
 							if (!config) return null;
 							return (
 								<GridItem key={spaceId} area={spaceAreas[spaceId]}>
 									<GridSpace
-										spaceId={spaceId}
+										id={spaceId}
 										title={config.name ?? spaceId}
 										onEntityClick={handleEntityClick}
 										isEntityClickable={isEntityClickable}
@@ -745,10 +746,13 @@ const SslGame = ({
 					<Flex direction="column" gap={4} mt={4}>
 						<PoolSpace title="Inventory" />
 						{showSslSpaces && (
-							<PoolSpace spaceId="ssl-setup" title="SSL Setup" />
+							<PoolSpace id={SSL_POOL_IDS.setup} title="SSL Setup" />
 						)}
 						{showSslItems && (
-							<PoolSpace spaceId="ssl-items" title="SSL Certificates" />
+							<PoolSpace
+								id={SSL_POOL_IDS.certificates}
+								title="SSL Certificates"
+							/>
 						)}
 					</Flex>
 

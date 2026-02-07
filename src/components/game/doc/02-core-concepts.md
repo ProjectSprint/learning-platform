@@ -37,7 +37,7 @@ All state changes happen through actions. Actions are dispatched to trigger stat
 type GameAction =
   | PuzzleAction     // Puzzle interactions
   | CoreAction       // Game lifecycle
-  | InventoryAction  // Inventory management
+  | PoolAction  // Inventory management
   | ModalAction      // Modal control
   | TerminalAction;  // Terminal interactions
 

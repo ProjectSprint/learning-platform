@@ -21,8 +21,8 @@ export const SPACE_ORDER: WebSslSpaceKey[] = [
 	"port-443",
 ];
 
-export const SPACE_CONFIGS: Record<WebSslSpaceKey, GridSpaceData> = {
-	browser: createGridSpaceData({
+export const SPACE_CONFIGS: GridSpaceData[] = [
+	createGridSpaceData({
 		id: "browser",
 		name: "Browser",
 		rows: 1,
@@ -30,7 +30,7 @@ export const SPACE_CONFIGS: Record<WebSslSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	"port-80": createGridSpaceData({
+	createGridSpaceData({
 		id: "port-80",
 		name: "Port 80 (HTTP)",
 		rows: 1,
@@ -38,7 +38,7 @@ export const SPACE_CONFIGS: Record<WebSslSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
 	}),
-	letsencrypt: createGridSpaceData({
+	createGridSpaceData({
 		id: "letsencrypt",
 		name: "Let's Encrypt",
 		rows: 1,
@@ -46,7 +46,7 @@ export const SPACE_CONFIGS: Record<WebSslSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	"port-443": createGridSpaceData({
+	createGridSpaceData({
 		id: "port-443",
 		name: "Port 443 (HTTPS)",
 		rows: 1,
@@ -54,7 +54,18 @@ export const SPACE_CONFIGS: Record<WebSslSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 5,
 	}),
-};
+];
+
+export const getSpaceConfig = (
+	spaceId: WebSslSpaceKey,
+): GridSpaceData | undefined =>
+	SPACE_CONFIGS.find((space) => space.id === spaceId);
+
+export const SSL_POOL_IDS = {
+	inventory: "inventory",
+	setup: "ssl-setup",
+	certificates: "ssl-items",
+} as const;
 
 export const DEFAULT_DOMAIN = "example.com";
 export const DEFAULT_INDEX_HTML = "/var/www/html/index.html";

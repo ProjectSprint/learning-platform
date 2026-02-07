@@ -1,11 +1,11 @@
 export {
-	DEFAULT_INVENTORY_GROUP_ID,
-	DEFAULT_INVENTORY_TITLE,
-	findInventoryItem,
-	normalizeInventory,
-	normalizeInventoryGroup,
-	normalizeInventoryGroups,
-} from "./inventory";
+	DEFAULT_POOL_GROUP_ID,
+	DEFAULT_POOL_TITLE,
+	findPoolItem,
+	normalizePoolGroup,
+	normalizePoolGroups,
+	normalizePoolItems,
+} from "./pool";
 
 export {
 	MAX_CONFIG_VALUE_LENGTH,

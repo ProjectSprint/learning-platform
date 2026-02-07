@@ -8,11 +8,11 @@
 
 import type {
 	Block,
-	BoardItemLocation,
 	BoardItemStatus,
 	InventoryGroup,
 	Item as LegacyItem,
 	SpaceConfig,
+	SpaceItemLocation,
 	SpaceState,
 } from "../../core/types";
 import type { EntityData } from "../../domain/entity/entity-data";
@@ -34,7 +34,6 @@ const isBoardItemStatus = (value: unknown): value is BoardItemStatus =>
 export function spaceToSpaceState(
 	space: SpaceData,
 	entities: Record<string, EntityData>,
-	spaceId?: string,
 ): SpaceState {
 	// Check if it's a GridSpace and extract its properties
 	if (!isGridSpace(space)) {
@@ -68,7 +67,7 @@ export function spaceToSpaceState(
 	}
 
 	// Get entities in this space
-	const placedItems: BoardItemLocation[] = [];
+	const placedItems: SpaceItemLocation[] = [];
 
 	for (const [entityId, position] of Object.entries(space.entityPositions)) {
 		const entity = entities[entityId];
@@ -120,7 +119,6 @@ export function spaceToSpaceState(
 	const metadata = space.metadata ?? {};
 	const config: SpaceConfig = {
 		id: space.id,
-		spaceId: spaceId || space.id,
 		title: (metadata.title as string | undefined) ?? space.name,
 		size: [cols, rows],
 		orientation: metadata.orientation as "horizontal" | "vertical" | undefined,
@@ -246,14 +244,14 @@ export function getSpaceById(
 	if (spaceId) {
 		const space = spaces[spaceId];
 		if (space) {
-			return spaceToSpaceState(space, entities, spaceId);
+			return spaceToSpaceState(space, entities);
 		}
 	}
 
 	// Find first grid space
-	for (const [id, space] of Object.entries(spaces)) {
+	for (const space of Object.values(spaces)) {
 		if (isGridSpace(space)) {
-			return spaceToSpaceState(space, entities, id);
+			return spaceToSpaceState(space, entities);
 		}
 	}
 
@@ -277,7 +275,7 @@ export function getAllSpaces(
 
 	for (const [id, space] of Object.entries(spaces)) {
 		if (isGridSpace(space)) {
-			spacesMap[id] = spaceToSpaceState(space, entities, id);
+			spacesMap[id] = spaceToSpaceState(space, entities);
 		}
 	}
 

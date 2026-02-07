@@ -309,13 +309,13 @@ dispatch({
 
 ## Inventory Actions
 
-### ADD_INVENTORY_GROUP
+### ADD_POOL_GROUP
 
 Add a new inventory group.
 
 ```tsx
 dispatch({
-  type: 'ADD_INVENTORY_GROUP',
+  type: 'ADD_POOL_GROUP',
   payload: {
     group: InventoryGroupConfig
   }
@@ -325,7 +325,7 @@ dispatch({
 **Example:**
 ```tsx
 dispatch({
-  type: 'ADD_INVENTORY_GROUP',
+  type: 'ADD_POOL_GROUP',
   payload: {
     group: {
       id: 'cables',
@@ -345,13 +345,13 @@ dispatch({
 });
 ```
 
-### UPDATE_INVENTORY_GROUP
+### UPDATE_POOL_GROUP
 
 Update an existing inventory group.
 
 ```tsx
 dispatch({
-  type: 'UPDATE_INVENTORY_GROUP',
+  type: 'UPDATE_POOL_GROUP',
   payload: {
     id: string,
     title?: string,
@@ -364,7 +364,7 @@ dispatch({
 **Example:**
 ```tsx
 dispatch({
-  type: 'UPDATE_INVENTORY_GROUP',
+  type: 'UPDATE_POOL_GROUP',
   payload: {
     id: 'devices',
     visible: false  // Hide the group
@@ -372,13 +372,13 @@ dispatch({
 });
 ```
 
-### REMOVE_INVENTORY_GROUP
+### REMOVE_POOL_GROUP
 
 Remove an inventory group.
 
 ```tsx
 dispatch({
-  type: 'REMOVE_INVENTORY_GROUP',
+  type: 'REMOVE_POOL_GROUP',
   payload: {
     id: string
   }
@@ -388,18 +388,18 @@ dispatch({
 **Example:**
 ```tsx
 dispatch({
-  type: 'REMOVE_INVENTORY_GROUP',
+  type: 'REMOVE_POOL_GROUP',
   payload: { id: 'obsolete-items' }
 });
 ```
 
-### PURGE_ITEMS
+### PURGE_POOL_ITEMS
 
 Remove multiple items from inventory permanently.
 
 ```tsx
 dispatch({
-  type: 'PURGE_ITEMS',
+  type: 'PURGE_POOL_ITEMS',
   payload: {
     itemIds: string[]
   }
@@ -409,7 +409,7 @@ dispatch({
 **Example:**
 ```tsx
 dispatch({
-  type: 'PURGE_ITEMS',
+  type: 'PURGE_POOL_ITEMS',
   payload: {
     itemIds: ['router-1', 'switch-old', 'cable-damaged']
   }

@@ -9,9 +9,9 @@ import {
 	ACK_PACKETS,
 	DATA_PACKETS,
 	FRAME_ITEMS,
+	getSpaceConfig,
 	QUESTION_ID,
 	RECEIVED_SYN_PACKETS,
-	SPACE_CONFIGS,
 	SYN_ACK_PACKETS,
 	SYN_PACKETS,
 	TCP_SPACE_ORDER,
@@ -28,7 +28,7 @@ type GameDispatch = (action: any) => void;
 export const initializeSpaces = (dispatch: GameDispatch) => {
 	// Create grid spaces for TCP phase
 	for (const spaceId of TCP_SPACE_ORDER) {
-		const gridSpace = SPACE_CONFIGS[spaceId];
+		const gridSpace = getSpaceConfig(spaceId);
 		if (!gridSpace) continue;
 
 		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
@@ -37,7 +37,7 @@ export const initializeSpaces = (dispatch: GameDispatch) => {
 	// Create grid spaces for UDP phase
 	for (const spaceId of UDP_SPACE_ORDER) {
 		if (TCP_SPACE_ORDER.includes(spaceId)) continue; // Skip duplicates
-		const gridSpace = SPACE_CONFIGS[spaceId];
+		const gridSpace = getSpaceConfig(spaceId);
 		if (!gridSpace) continue;
 
 		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });

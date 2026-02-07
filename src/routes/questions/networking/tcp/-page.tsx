@@ -23,9 +23,10 @@ import { Modal } from "@/components/game/presentation/modal";
 import type { QuestionProps } from "@/components/module";
 
 import {
+	getSpaceConfig,
+	INVENTORY_GROUP_IDS,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	SPACE_CONFIGS,
 	SPACE_ORDER,
 	type TcpSpaceKey,
 } from "./-utils/constants";
@@ -308,12 +309,12 @@ const TcpGame = ({
 						alignItems="stretch"
 					>
 						{visibleSpaces.map((spaceId) => {
-							const config = SPACE_CONFIGS[spaceId];
+							const config = getSpaceConfig(spaceId);
 							if (!config) return null;
 							return (
 								<GridItem key={spaceId} area={spaceAreas[spaceId]} minW={0}>
 									<GridSpace
-										spaceId={spaceId}
+										id={spaceId}
 										title={config.name ?? spaceId}
 										responsiveSize={
 											spaceId === "server"
@@ -389,7 +390,7 @@ const TcpGame = ({
 					</Box>
 					{receivedPoolVisible ? (
 						<Box mt={4}>
-							<PoolSpace spaceId="received" title="Received" />
+							<PoolSpace id={INVENTORY_GROUP_IDS.received} title="Received" />
 						</Box>
 					) : null}
 

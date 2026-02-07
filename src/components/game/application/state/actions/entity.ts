@@ -79,25 +79,25 @@ export type EntityAction =
 	| DeleteEntitiesAction;
 
 // Legacy action type aliases for backward compatibility
-// These map old inventory actions to new entity actions
+// These map old pool-group actions to new entity actions
 
 /**
- * Legacy alias for creating entities from inventory group.
+ * Legacy alias for creating entities from pool group.
  * @deprecated Use CREATE_ENTITY for individual entities instead
  */
-export type AddInventoryGroupAction = {
-	type: "ADD_INVENTORY_GROUP";
+export type AddPoolGroupAction = {
+	type: "ADD_POOL_GROUP";
 	payload: {
 		group: InventoryGroupConfig;
 	};
 };
 
 /**
- * Legacy alias for updating entities in a group.
+ * Legacy alias for updating entities in a pool group.
  * @deprecated Use UPDATE_ENTITY instead
  */
-export type UpdateInventoryGroupAction = {
-	type: "UPDATE_INVENTORY_GROUP";
+export type UpdatePoolGroupAction = {
+	type: "UPDATE_POOL_GROUP";
 	payload: {
 		id: string;
 		title?: string;
@@ -110,8 +110,8 @@ export type UpdateInventoryGroupAction = {
  * Legacy alias for updating entity tooltip.
  * @deprecated Use UPDATE_ENTITY instead
  */
-export type UpdateItemTooltipAction = {
-	type: "UPDATE_ITEM_TOOLTIP";
+export type UpdatePoolItemTooltipAction = {
+	type: "UPDATE_POOL_ITEM_TOOLTIP";
 	payload: {
 		itemId: string;
 		tooltip?: ItemTooltip | null;
@@ -119,11 +119,11 @@ export type UpdateItemTooltipAction = {
 };
 
 /**
- * Legacy alias for removing inventory group.
+ * Legacy alias for removing pool group.
  * @deprecated Use DELETE_ENTITIES instead
  */
-export type RemoveInventoryGroupAction = {
-	type: "REMOVE_INVENTORY_GROUP";
+export type RemovePoolGroupAction = {
+	type: "REMOVE_POOL_GROUP";
 	payload: {
 		id: string;
 	};
@@ -133,8 +133,8 @@ export type RemoveInventoryGroupAction = {
  * Legacy alias for DELETE_ENTITIES.
  * @deprecated Use DELETE_ENTITIES instead
  */
-export type PurgeItemsAction = {
-	type: "PURGE_ITEMS";
+export type PurgePoolItemsAction = {
+	type: "PURGE_POOL_ITEMS";
 	payload: {
 		itemIds: string[];
 	};
@@ -157,9 +157,9 @@ export type ConfigureDeviceAction = {
  * Union type including legacy action aliases.
  */
 export type LegacyEntityAction =
-	| AddInventoryGroupAction
-	| UpdateInventoryGroupAction
-	| UpdateItemTooltipAction
-	| RemoveInventoryGroupAction
-	| PurgeItemsAction
+	| AddPoolGroupAction
+	| UpdatePoolGroupAction
+	| UpdatePoolItemTooltipAction
+	| RemovePoolGroupAction
+	| PurgePoolItemsAction
 	| ConfigureDeviceAction;

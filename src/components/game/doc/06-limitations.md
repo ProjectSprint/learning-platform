@@ -96,7 +96,7 @@ When placing items via `PLACE_ITEM`, the following checks occur:
 
 ### Inventory Validation
 
-When adding inventory via `ADD_INVENTORY_GROUP`:
+When adding inventory via `ADD_POOL_GROUP`:
 
 1. **Duplicate Group ID**
    ```
@@ -318,7 +318,7 @@ items.forEach(item => {
 
 // ✅ Better: Batch operations
 dispatch({
-  type: 'PURGE_ITEMS',
+  type: 'PURGE_POOL_ITEMS',
   payload: { itemIds: items.map(i => i.id) }
 });
 ```

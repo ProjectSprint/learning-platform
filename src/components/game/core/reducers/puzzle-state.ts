@@ -72,7 +72,7 @@ export const updateSpaceState = (
 	}
 
 	const nextPrimary =
-		state.space.config.spaceId === spaceId ? nextSpace : state.space;
+		state.space.config.id === spaceId ? nextSpace : state.space;
 
 	return {
 		...state,

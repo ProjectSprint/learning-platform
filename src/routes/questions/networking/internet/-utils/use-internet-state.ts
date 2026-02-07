@@ -9,8 +9,8 @@ import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { gridGetPosition } from "@/components/game/domain/space/space-fns";
 import type { DragEngine } from "@/components/game/engines";
 import type {
-	BoardItemLocation,
 	BoardItemStatus,
+	SpaceItemLocation,
 } from "@/components/game/game-provider";
 import {
 	useEngineEvents,
@@ -36,12 +36,12 @@ interface UseInternetStateArgs {
 }
 
 /**
- * Convert Entity with position to BoardItemLocation for compatibility with network-utils
+ * Convert Entity with position to SpaceItemLocation for compatibility with network-utils
  */
 const entityToBoardItem = (
 	entity: EntityData,
 	space: GridSpaceData,
-): BoardItemLocation | null => {
+): SpaceItemLocation | null => {
 	const position = gridGetPosition(space, entity.id);
 	if (!position || !("row" in position && "col" in position)) {
 		return null;
@@ -88,9 +88,9 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		return result;
 	}, [state.spaces]);
 
-	// Convert entities to BoardItemLocation format with adjusted coordinates
+	// Convert entities to SpaceItemLocation format with adjusted coordinates
 	const placedItems = useMemo(() => {
-		const items: BoardItemLocation[] = [];
+		const items: SpaceItemLocation[] = [];
 		let offsetX = 0;
 
 		for (const spaceId of SPACE_ORDER) {

@@ -34,11 +34,11 @@ import type { QuestionProps } from "@/components/module";
 
 import {
 	GOOGLE_IP,
+	getSpaceConfig,
 	type InternetSpaceKey,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
-	SPACE_CONFIGS,
 	SPACE_ORDER,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
@@ -552,13 +552,13 @@ const InternetGame = ({
 
 	const renderBoard = useCallback(
 		(key: InternetSpaceKey) => {
-			const config = SPACE_CONFIGS[key];
+			const config = getSpaceConfig(key);
 			if (!config) return null;
 
 			return (
 				<Box flexGrow={1} flexBasis={0} key={key}>
 					<GridSpace
-						spaceId={key}
+						id={key}
 						title={config.name ?? key}
 						onEntityClick={handleEntityClick}
 						isEntityClickable={isEntityClickable}

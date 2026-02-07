@@ -240,7 +240,7 @@ Action Dispatched
       ↓
 Core Reducer (handles INIT_MULTI_CANVAS, SET_PHASE, COMPLETE_QUESTION)
       ↓
-Inventory Reducer (handles ADD_INVENTORY_GROUP, UPDATE_INVENTORY_GROUP, etc.)
+Pool Reducer (handles ADD_POOL_GROUP, UPDATE_POOL_GROUP, etc.)
       ↓
 Puzzle Reducer (handles PLACE_ITEM, REMOVE_ITEM, REPOSITION_ITEM, etc.)
       ↓
@@ -372,10 +372,10 @@ const ExpensiveComponent = memo(function ExpensiveComponent({ data }) {
 Use the helper function to locate items:
 
 ```tsx
-import { findInventoryItem, useGameState } from '@/components/game/game-provider';
+import { findPoolItem, useGameState } from '@/components/game/game-provider';
 
 const state = useGameState();
-const result = findInventoryItem(state.inventory.groups, 'router-1');
+const result = findPoolItem(state.inventory.groups, 'router-1');
 
 if (result) {
   console.log(result.item);       // The item

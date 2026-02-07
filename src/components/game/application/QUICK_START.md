@@ -188,7 +188,7 @@ dispatch({
 | `TRANSFER_ITEM` | `MOVE_ENTITY_BETWEEN_SPACES` | ✅ Works |
 | `SWAP_ITEMS` | `SWAP_ENTITIES` | ✅ Works |
 | `CONFIGURE_DEVICE` | `UPDATE_ENTITY_STATE` | ✅ Works |
-| `PURGE_ITEMS` | `DELETE_ENTITIES` | ✅ Works |
+| `PURGE_POOL_ITEMS` | `DELETE_ENTITIES` | ✅ Works |
 
 ## Hook Reference
 

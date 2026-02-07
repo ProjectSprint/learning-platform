@@ -10,6 +10,9 @@ count.txt
 .tanstack
 .wrangler
 .output
+.tanstack
 .vinxi
 todos.json
 .aider*
+# use this as the temp file to jot down your thoughts into ai
+commands.md

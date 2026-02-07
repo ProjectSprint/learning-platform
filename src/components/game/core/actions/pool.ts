@@ -1,12 +1,12 @@
 import type { InventoryGroupConfig, Item, ItemTooltip } from "../types";
 
-export type InventoryAction =
+export type PoolAction =
 	| {
-			type: "ADD_INVENTORY_GROUP";
+			type: "ADD_POOL_GROUP";
 			payload: { group: InventoryGroupConfig };
 	  }
 	| {
-			type: "UPDATE_INVENTORY_GROUP";
+			type: "UPDATE_POOL_GROUP";
 			payload: {
 				id: string;
 				title?: string;
@@ -15,17 +15,17 @@ export type InventoryAction =
 			};
 	  }
 	| {
-			type: "UPDATE_ITEM_TOOLTIP";
+			type: "UPDATE_POOL_ITEM_TOOLTIP";
 			payload: {
 				itemId: string;
 				tooltip?: ItemTooltip | null;
 			};
 	  }
 	| {
-			type: "REMOVE_INVENTORY_GROUP";
+			type: "REMOVE_POOL_GROUP";
 			payload: { id: string };
 	  }
 	| {
-			type: "PURGE_ITEMS";
+			type: "PURGE_POOL_ITEMS";
 			payload: { itemIds: string[] };
 	  };

@@ -25,10 +25,7 @@ type GameDispatch = (action: any) => void;
  */
 export const initializeSpaces = (dispatch: GameDispatch) => {
 	// Create grid spaces for each space
-	for (const spaceId of SPACE_ORDER) {
-		const gridSpace = SPACE_CONFIGS[spaceId];
-		if (!gridSpace) continue;
-
+	for (const gridSpace of SPACE_CONFIGS) {
 		dispatch({
 			type: "CREATE_SPACE",
 			payload: { space: gridSpace },

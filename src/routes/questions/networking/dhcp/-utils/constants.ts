@@ -107,10 +107,12 @@ export const SPACE_ORDER = [
 	DHCP_SPACE_IDS.router,
 	DHCP_SPACE_IDS.conn2,
 	DHCP_SPACE_IDS.pc2,
-];
+] as const;
 
-export const SPACE_CONFIGS: Record<string, GridSpaceData> = {
-	[DHCP_SPACE_IDS.pc1]: createGridSpaceData({
+export type DhcpSpaceKey = (typeof SPACE_ORDER)[number];
+
+export const SPACE_CONFIGS: GridSpaceData[] = [
+	createGridSpaceData({
 		id: DHCP_SPACE_IDS.pc1,
 		name: "PC-1",
 		rows: 1,
@@ -118,7 +120,7 @@ export const SPACE_CONFIGS: Record<string, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_SPACE_IDS.conn1]: createGridSpaceData({
+	createGridSpaceData({
 		id: DHCP_SPACE_IDS.conn1,
 		name: "Connector",
 		rows: 1,
@@ -126,7 +128,7 @@ export const SPACE_CONFIGS: Record<string, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_SPACE_IDS.router]: createGridSpaceData({
+	createGridSpaceData({
 		id: DHCP_SPACE_IDS.router,
 		name: "Router",
 		rows: 1,
@@ -134,7 +136,7 @@ export const SPACE_CONFIGS: Record<string, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_SPACE_IDS.conn2]: createGridSpaceData({
+	createGridSpaceData({
 		id: DHCP_SPACE_IDS.conn2,
 		name: "Connector",
 		rows: 1,
@@ -142,7 +144,7 @@ export const SPACE_CONFIGS: Record<string, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	[DHCP_SPACE_IDS.pc2]: createGridSpaceData({
+	createGridSpaceData({
 		id: DHCP_SPACE_IDS.pc2,
 		name: "PC-2",
 		rows: 1,
@@ -150,7 +152,10 @@ export const SPACE_CONFIGS: Record<string, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-};
+];
+
+export const getSpaceConfig = (spaceId: DhcpSpaceKey) =>
+	SPACE_CONFIGS.find((space) => space.id === spaceId);
 
 // Private IP address ranges for validation
 export const PRIVATE_IP_RANGES = [

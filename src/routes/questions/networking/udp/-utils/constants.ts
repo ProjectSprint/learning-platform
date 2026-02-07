@@ -78,8 +78,8 @@ export const TCP_SPACE_ORDER: UdpSpaceKey[] = [
 
 export const UDP_SPACE_ORDER: UdpSpaceKey[] = ["internet"];
 
-export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
-	internet: createGridSpaceData({
+export const SPACE_CONFIGS: GridSpaceData[] = [
+	createGridSpaceData({
 		id: "internet",
 		name: "Internet",
 		rows: 1,
@@ -87,7 +87,7 @@ export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
 	}),
-	"client-a-inbox": createGridSpaceData({
+	createGridSpaceData({
 		id: "client-a-inbox",
 		name: "Client A",
 		rows: 2,
@@ -95,7 +95,7 @@ export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
 	}),
-	"client-b-inbox": createGridSpaceData({
+	createGridSpaceData({
 		id: "client-b-inbox",
 		name: "Client B",
 		rows: 2,
@@ -103,7 +103,7 @@ export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
 	}),
-	"client-c-inbox": createGridSpaceData({
+	createGridSpaceData({
 		id: "client-c-inbox",
 		name: "Client C",
 		rows: 2,
@@ -111,7 +111,7 @@ export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
 	}),
-	"client-d-inbox": createGridSpaceData({
+	createGridSpaceData({
 		id: "client-d-inbox",
 		name: "Client D",
 		rows: 2,
@@ -119,7 +119,7 @@ export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
 	}),
-	"client-a": createGridSpaceData({
+	createGridSpaceData({
 		id: "client-a",
 		name: "Client A",
 		rows: 1,
@@ -127,7 +127,7 @@ export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 0,
 	}),
-	"client-b": createGridSpaceData({
+	createGridSpaceData({
 		id: "client-b",
 		name: "Client B",
 		rows: 1,
@@ -135,7 +135,7 @@ export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 0,
 	}),
-	"client-c": createGridSpaceData({
+	createGridSpaceData({
 		id: "client-c",
 		name: "Client C",
 		rows: 1,
@@ -143,9 +143,14 @@ export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 0,
 	}),
-};
+];
 
-export const INVENTORY_GROUP_IDS = {
+export const getSpaceConfig = (
+	spaceId: UdpSpaceKey,
+): GridSpaceData | undefined =>
+	SPACE_CONFIGS.find((space) => space.id === spaceId);
+
+export const POOL_GROUP_IDS = {
 	received: "received",
 	incoming: "incoming",
 	outgoing: "outgoing",
@@ -279,13 +284,13 @@ export const FRAME_ITEMS: Item[] = Array.from({ length: 6 }, (_, index) =>
 
 export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
 	{
-		id: INVENTORY_GROUP_IDS.incoming,
+		id: POOL_GROUP_IDS.incoming,
 		title: "Incoming Packets",
 		visible: false,
 		items: [],
 	},
 	{
-		id: INVENTORY_GROUP_IDS.outgoing,
+		id: POOL_GROUP_IDS.outgoing,
 		title: "Server Response",
 		visible: true,
 		items: SYN_ACK_PACKETS.filter((packet) =>
@@ -293,19 +298,19 @@ export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
 		),
 	},
 	{
-		id: INVENTORY_GROUP_IDS.dataPackets,
+		id: POOL_GROUP_IDS.dataPackets,
 		title: "Video Packets",
 		visible: false,
 		items: DATA_PACKETS,
 	},
 	{
-		id: INVENTORY_GROUP_IDS.received,
+		id: POOL_GROUP_IDS.received,
 		title: "Received",
 		visible: true,
 		items: RECEIVED_SYN_PACKETS,
 	},
 	{
-		id: INVENTORY_GROUP_IDS.frames,
+		id: POOL_GROUP_IDS.frames,
 		title: "Video Frames",
 		visible: false,
 		items: FRAME_ITEMS,

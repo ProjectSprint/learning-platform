@@ -35,10 +35,10 @@ import type { QuestionProps } from "@/components/module";
 
 import {
 	DHCP_SPACE_IDS,
+	getSpaceConfig,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
-	SPACE_CONFIGS,
 	SPACE_ORDER,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
@@ -498,12 +498,12 @@ const NetworkingGame = ({
 						alignItems="stretch"
 					>
 						{SPACE_ORDER.map((spaceId) => {
-							const config = SPACE_CONFIGS[spaceId];
+							const config = getSpaceConfig(spaceId);
 							if (!config) return null;
 							return (
 								<GridItem key={spaceId} area={spaceAreas[spaceId]} minW={0}>
 									<GridSpace
-										spaceId={spaceId}
+										id={spaceId}
 										title={config.name ?? spaceId}
 										onEntityClick={handleEntityClick}
 										isEntityClickable={isEntityClickable}

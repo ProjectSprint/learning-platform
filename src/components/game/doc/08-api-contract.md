@@ -109,7 +109,7 @@ Actions may fail silently if:
    - Device doesn't exist → ignored
    - Invalid puzzleId → ignored
 
-4. **UPDATE_INVENTORY_GROUP**
+4. **UPDATE_POOL_GROUP**
    - Group doesn't exist → ignored
 
 5. **TRANSFER_ITEM**

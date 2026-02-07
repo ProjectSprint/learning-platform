@@ -7,8 +7,8 @@
  * @example
  * ```tsx
  * <GameBoard>
- *   <GridSpace spaceId="router" />
- *   <GridSpace spaceId="server" />
+ *   <GridSpace id="router" />
+ *   <GridSpace id="server" />
  *   <PoolSpace />
  * </GameBoard>
  * ```

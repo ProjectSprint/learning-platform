@@ -1,4 +1,4 @@
-// Inventory validation and normalization utilities
+// Pool validation and normalization utilities
 
 import type {
 	InventoryGroup,
@@ -7,10 +7,10 @@ import type {
 } from "../../core/types";
 import { MAX_INVENTORY_ITEMS } from "./sanitize";
 
-export const DEFAULT_INVENTORY_GROUP_ID = "default";
-export const DEFAULT_INVENTORY_TITLE = "Inventory";
+export const DEFAULT_POOL_GROUP_ID = "default";
+export const DEFAULT_POOL_TITLE = "Inventory";
 
-export const normalizeInventory = (items: Item[]): Item[] =>
+export const normalizePoolItems = (items: Item[]): Item[] =>
 	items
 		.filter(
 			(item) =>
@@ -18,7 +18,7 @@ export const normalizeInventory = (items: Item[]): Item[] =>
 		)
 		.slice(0, MAX_INVENTORY_ITEMS);
 
-export const normalizeInventoryGroup = (
+export const normalizePoolGroup = (
 	group: InventoryGroupConfig,
 	usedIds: Set<string>,
 ): InventoryGroup | null => {
@@ -26,7 +26,7 @@ export const normalizeInventoryGroup = (
 		return null;
 	}
 
-	const normalizedItems = normalizeInventory(group.items ?? []).filter(
+	const normalizedItems = normalizePoolItems(group.items ?? []).filter(
 		(item) => {
 			if (usedIds.has(item.id)) {
 				return false;
@@ -41,13 +41,13 @@ export const normalizeInventoryGroup = (
 		title:
 			typeof group.title === "string" && group.title.trim().length > 0
 				? group.title
-				: DEFAULT_INVENTORY_TITLE,
+				: DEFAULT_POOL_TITLE,
 		visible: group.visible ?? true,
 		items: normalizedItems,
 	};
 };
 
-export const normalizeInventoryGroups = (
+export const normalizePoolGroups = (
 	inventoryGroups: InventoryGroupConfig[] | undefined,
 ): InventoryGroup[] => {
 	const usedIds = new Set<string>();
@@ -55,7 +55,7 @@ export const normalizeInventoryGroups = (
 
 	if (Array.isArray(inventoryGroups)) {
 		for (const group of inventoryGroups) {
-			const normalized = normalizeInventoryGroup(group, usedIds);
+			const normalized = normalizePoolGroup(group, usedIds);
 			if (!normalized) {
 				continue;
 			}
@@ -68,8 +68,8 @@ export const normalizeInventoryGroups = (
 
 	if (groups.length === 0) {
 		groups.push({
-			id: DEFAULT_INVENTORY_GROUP_ID,
-			title: DEFAULT_INVENTORY_TITLE,
+			id: DEFAULT_POOL_GROUP_ID,
+			title: DEFAULT_POOL_TITLE,
 			visible: true,
 			items: [],
 		});
@@ -78,7 +78,7 @@ export const normalizeInventoryGroups = (
 	return groups;
 };
 
-export const findInventoryItem = (
+export const findPoolItem = (
 	groups: InventoryGroup[],
 	itemId: string,
 ): { groupIndex: number; itemIndex: number; item: Item } | null => {

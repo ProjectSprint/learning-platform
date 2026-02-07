@@ -9,8 +9,8 @@ import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { gridGetPosition } from "@/components/game/domain/space/space-fns";
 import type { DragEngine } from "@/components/game/engines";
 import type {
-	BoardItemLocation,
 	BoardItemStatus,
+	SpaceItemLocation,
 } from "@/components/game/game-provider";
 import { useGameDispatch, useGameState } from "@/components/game/game-provider";
 import { DHCP_SPACE_IDS } from "./constants";
@@ -29,12 +29,12 @@ interface UseNetworkStateArgs {
 }
 
 /**
- * Convert Entity with position to BoardItemLocation for compatibility with network-utils
+ * Convert Entity with position to SpaceItemLocation for compatibility with network-utils
  */
 const entityToBoardItem = (
 	entity: EntityData,
 	space: GridSpaceData,
-): BoardItemLocation | null => {
+): SpaceItemLocation | null => {
 	const position = gridGetPosition(space, entity.id);
 	if (!position || !("row" in position && "col" in position)) {
 		return null;
@@ -74,7 +74,7 @@ export const useNetworkState = ({
 		return result;
 	}, [state.spaces]);
 
-	// Convert entities to BoardItemLocation format for compatibility
+	// Convert entities to SpaceItemLocation format for compatibility
 	const placements = useMemo<BoardPlacements>(() => {
 		const result: BoardPlacements = {
 			[DHCP_SPACE_IDS.pc1]: [],
@@ -87,7 +87,7 @@ export const useNetworkState = ({
 		for (const [spaceId, space] of Object.entries(spaces)) {
 			if (!space) continue;
 
-			const items: BoardItemLocation[] = [];
+			const items: SpaceItemLocation[] = [];
 			for (const entity of Object.values(state.entities)) {
 				if (entity.id in space.entityPositions) {
 					const boardItem = entityToBoardItem(entity, space);
@@ -183,7 +183,7 @@ export const useNetworkState = ({
 
 		const { network: networkSnapshot, routerConfigured, startIp } = snapshot;
 		const connectedPcs = [networkSnapshot.pc1, networkSnapshot.pc2].filter(
-			(pc): pc is BoardItemLocation =>
+			(pc): pc is SpaceItemLocation =>
 				Boolean(pc && networkSnapshot.connectedPcIds.has(pc.id)),
 		);
 		const desiredIps = new Map<string, string>();

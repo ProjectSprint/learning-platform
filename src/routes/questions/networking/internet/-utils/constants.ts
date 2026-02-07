@@ -93,15 +93,18 @@ const TOOLTIP_GOOGLE = {
 	seeMoreHref: "https://www.google.com/search?q=how+do+websites+work",
 };
 
+export const SPACE_ORDER = [
+	"local",
+	"conn-1",
+	"router",
+	"conn-2",
+	"igw",
+	"dns",
+	"google",
+] as const;
+
 // Space keys for allowedPlaces
-export type InternetSpaceKey =
-	| "local"
-	| "conn-1"
-	| "router"
-	| "conn-2"
-	| "igw"
-	| "dns"
-	| "google";
+export type InternetSpaceKey = (typeof SPACE_ORDER)[number];
 
 // Initial inventory items available for the internet gateway question
 export const INVENTORY_ITEMS: Item[] = [
@@ -190,18 +193,8 @@ export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
 	},
 ];
 
-export const SPACE_ORDER: InternetSpaceKey[] = [
-	"local",
-	"conn-1",
-	"router",
-	"conn-2",
-	"igw",
-	"dns",
-	"google",
-];
-
-export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceData> = {
-	local: createGridSpaceData({
+export const SPACE_CONFIGS: GridSpaceData[] = [
+	createGridSpaceData({
 		id: "local",
 		name: "Client",
 		rows: 1,
@@ -209,7 +202,7 @@ export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	"conn-1": createGridSpaceData({
+	createGridSpaceData({
 		id: "conn-1",
 		name: "Connector",
 		rows: 1,
@@ -217,7 +210,7 @@ export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	router: createGridSpaceData({
+	createGridSpaceData({
 		id: "router",
 		name: "Router",
 		rows: 1,
@@ -225,7 +218,7 @@ export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
 	}),
-	"conn-2": createGridSpaceData({
+	createGridSpaceData({
 		id: "conn-2",
 		name: "Connector",
 		rows: 1,
@@ -233,7 +226,7 @@ export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	igw: createGridSpaceData({
+	createGridSpaceData({
 		id: "igw",
 		name: "Gateway",
 		rows: 1,
@@ -241,7 +234,7 @@ export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	dns: createGridSpaceData({
+	createGridSpaceData({
 		id: "dns",
 		name: "DNS Server",
 		rows: 1,
@@ -249,7 +242,7 @@ export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	google: createGridSpaceData({
+	createGridSpaceData({
 		id: "google",
 		name: "Google",
 		rows: 1,
@@ -257,7 +250,10 @@ export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-};
+];
+
+export const getSpaceConfig = (spaceId: InternetSpaceKey) =>
+	SPACE_CONFIGS.find((space) => space.id === spaceId);
 
 // Private IP address ranges for validation
 export const PRIVATE_IP_RANGES = [

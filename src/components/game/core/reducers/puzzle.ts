@@ -1,10 +1,10 @@
-import { findInventoryItem } from "../../domain/validation/inventory";
+import { findPoolItem } from "../../domain/validation/pool";
 import { sanitizeDeviceConfig } from "../../domain/validation/sanitize";
 import type { GameAction } from "../actions";
 import type {
-	BoardItemLocation,
 	BoardItemStatus,
 	GameState,
+	SpaceItemLocation,
 	SpaceState,
 } from "../types";
 import { updateBlock } from "./legacy-utils";
@@ -19,14 +19,13 @@ export const spaceReducer = (
 			const targetSpaceId = action.payload.spaceId;
 			const space = resolveSpaceState(state, targetSpaceId);
 			const { itemId, blockX, blockY } = action.payload;
-			const match = findInventoryItem(state.inventory.groups, itemId);
+			const match = findPoolItem(state.inventory.groups, itemId);
 			const item = match?.item;
 
 			if (!item) {
 				return state;
 			}
-			const allowedPlaceKey =
-				targetSpaceId ?? space.config.spaceId ?? space.config.id ?? "space";
+			const allowedPlaceKey = targetSpaceId ?? space.config.id ?? "space";
 			if (!item.allowedPlaces.includes(allowedPlaceKey)) {
 				return state;
 			}
@@ -46,7 +45,7 @@ export const spaceReducer = (
 				return state;
 			}
 
-			const placedItem: BoardItemLocation = {
+			const placedItem: SpaceItemLocation = {
 				id: item.id,
 				itemId: item.id,
 				type: item.type,
@@ -201,7 +200,7 @@ export const spaceReducer = (
 				return state;
 			}
 
-			const inventoryMatch = findInventoryItem(state.inventory.groups, itemId);
+			const inventoryMatch = findPoolItem(state.inventory.groups, itemId);
 			if (
 				inventoryMatch?.item &&
 				!inventoryMatch.item.allowedPlaces.includes(toSpace)
@@ -258,9 +257,9 @@ export const spaceReducer = (
 			};
 
 			let nextPrimarySpace = state.space;
-			if (state.space.config.spaceId === fromSpace) {
+			if (state.space.config.id === fromSpace) {
 				nextPrimarySpace = nextSourceSpace;
-			} else if (state.space.config.spaceId === toSpace) {
+			} else if (state.space.config.id === toSpace) {
 				nextPrimarySpace = nextTargetSpace;
 			}
 
@@ -280,7 +279,7 @@ export const spaceReducer = (
 				if (state.spaces?.[key]) {
 					return state.spaces[key];
 				}
-				if (state.space.config.spaceId === key) {
+				if (state.space.config.id === key) {
 					return state.space;
 				}
 				return undefined;
@@ -349,11 +348,8 @@ export const spaceReducer = (
 				return updateSpaceState(state, fromSpaceId, nextSpace);
 			}
 
-			const toInvMatch = findInventoryItem(
-				state.inventory.groups,
-				toItem.itemId,
-			);
-			const fromInvMatch = findInventoryItem(
+			const toInvMatch = findPoolItem(state.inventory.groups, toItem.itemId);
+			const fromInvMatch = findPoolItem(
 				state.inventory.groups,
 				fromItem.itemId,
 			);
@@ -361,7 +357,7 @@ export const spaceReducer = (
 			if (
 				toInvMatch?.item &&
 				!toInvMatch.item.allowedPlaces.includes(
-					sourceSpace.config.spaceId ?? fromSpaceId ?? "",
+					sourceSpace.config.id ?? fromSpaceId ?? "",
 				)
 			) {
 				return state;
@@ -370,7 +366,7 @@ export const spaceReducer = (
 			if (
 				fromInvMatch?.item &&
 				!fromInvMatch.item.allowedPlaces.includes(
-					targetSpace.config.spaceId ?? toSpaceId ?? "",
+					targetSpace.config.id ?? toSpaceId ?? "",
 				)
 			) {
 				return state;
@@ -420,9 +416,9 @@ export const spaceReducer = (
 			};
 
 			let nextPrimarySpace = state.space;
-			if (state.space.config.spaceId === fromSpaceId) {
+			if (state.space.config.id === fromSpaceId) {
 				nextPrimarySpace = nextSourceSpace;
-			} else if (state.space.config.spaceId === toSpaceId) {
+			} else if (state.space.config.id === toSpaceId) {
 				nextPrimarySpace = nextTargetSpace;
 			}
 

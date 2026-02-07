@@ -25,13 +25,13 @@ export type {
 // Modal types
 export type { ModalInstance, OverlayState } from "./modal";
 // Placed item types
-export type { BoardItemLocation, BoardItemStatus } from "./placed-item";
+export type { BoardItemStatus, SpaceItemLocation } from "./placed-item";
 export type {
 	Block,
 	BlockStatus,
-	BoardItemLocationSeed,
 	SpaceBreakpoint,
 	SpaceConfig,
+	SpaceItemLocationSeed,
 	SpaceSize,
 	SpaceSizeValue,
 	SpaceState,

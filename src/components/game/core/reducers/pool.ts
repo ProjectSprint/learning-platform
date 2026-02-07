@@ -1,7 +1,7 @@
 import {
-	normalizeInventory,
-	normalizeInventoryGroup,
-} from "../../domain/validation/inventory";
+	normalizePoolGroup,
+	normalizePoolItems,
+} from "../../domain/validation/pool";
 import type { GameAction } from "../actions";
 import type { GameState, InventoryGroup, Item, SpaceState } from "../types";
 import { updateBlock } from "./legacy-utils";
@@ -45,12 +45,12 @@ const removeItemsFromSpace = (
 	};
 };
 
-export const inventoryReducer = (
+export const poolReducer = (
 	state: GameState,
 	action: GameAction,
 ): GameState => {
 	switch (action.type) {
-		case "ADD_INVENTORY_GROUP": {
+		case "ADD_POOL_GROUP": {
 			const { group } = action.payload;
 			if (state.inventory.groups.some((entry) => entry.id === group.id)) {
 				return state;
@@ -63,7 +63,7 @@ export const inventoryReducer = (
 				}
 			}
 
-			const normalized = normalizeInventoryGroup(group, usedIds);
+			const normalized = normalizePoolGroup(group, usedIds);
 			if (!normalized) {
 				return state;
 			}
@@ -75,7 +75,7 @@ export const inventoryReducer = (
 				},
 			};
 		}
-		case "UPDATE_INVENTORY_GROUP": {
+		case "UPDATE_POOL_GROUP": {
 			const { id, title, visible, items } = action.payload;
 			const groupIndex = state.inventory.groups.findIndex(
 				(entry) => entry.id === id,
@@ -95,7 +95,7 @@ export const inventoryReducer = (
 						usedIds.add(item.id);
 					}
 				}
-				const normalizedItems = normalizeInventory(items);
+				const normalizedItems = normalizePoolItems(items);
 				nextItems = normalizedItems.filter((item) => {
 					if (usedIds.has(item.id)) {
 						return false;
@@ -125,7 +125,7 @@ export const inventoryReducer = (
 				inventory: { groups: nextGroups },
 			};
 		}
-		case "REMOVE_INVENTORY_GROUP": {
+		case "REMOVE_POOL_GROUP": {
 			const nextGroups = state.inventory.groups.filter(
 				(entry) => entry.id !== action.payload.id,
 			);
@@ -135,7 +135,7 @@ export const inventoryReducer = (
 				inventory: { groups: nextGroups },
 			};
 		}
-		case "UPDATE_ITEM_TOOLTIP": {
+		case "UPDATE_POOL_ITEM_TOOLTIP": {
 			const { itemId, tooltip } = action.payload;
 			let updated = false;
 
@@ -165,7 +165,7 @@ export const inventoryReducer = (
 				inventory: { groups: nextGroups },
 			};
 		}
-		case "PURGE_ITEMS": {
+		case "PURGE_POOL_ITEMS": {
 			const itemIds = new Set(action.payload.itemIds);
 			if (itemIds.size === 0) {
 				return state;
@@ -186,7 +186,7 @@ export const inventoryReducer = (
 					]),
 				);
 
-				const primarySpaceId = state.space.config.spaceId;
+				const primarySpaceId = state.space.config.id;
 				if (primarySpaceId && nextSpaces[primarySpaceId]) {
 					nextSpace = nextSpaces[primarySpaceId];
 				}

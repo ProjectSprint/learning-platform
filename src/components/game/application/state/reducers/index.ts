@@ -47,11 +47,11 @@ export const applicationReducer = (
 		case "DELETE_ENTITY":
 		case "DELETE_ENTITIES":
 		// Legacy entity actions
-		case "ADD_INVENTORY_GROUP":
-		case "UPDATE_INVENTORY_GROUP":
-		case "UPDATE_ITEM_TOOLTIP":
-		case "REMOVE_INVENTORY_GROUP":
-		case "PURGE_ITEMS":
+		case "ADD_POOL_GROUP":
+		case "UPDATE_POOL_GROUP":
+		case "UPDATE_POOL_ITEM_TOOLTIP":
+		case "REMOVE_POOL_GROUP":
+		case "PURGE_POOL_ITEMS":
 		case "CONFIGURE_DEVICE":
 			return entityReducer(state, action);
 

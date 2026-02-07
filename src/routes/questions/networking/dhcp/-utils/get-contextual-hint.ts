@@ -1,12 +1,12 @@
-import type { BoardItemLocation } from "@/components/game/game-provider";
+import type { SpaceItemLocation } from "@/components/game/game-provider";
 import type { DeviceConnection } from "./network-utils";
 
 export interface NetworkState {
-	placedItems: BoardItemLocation[];
+	placedItems: SpaceItemLocation[];
 	connections: DeviceConnection[];
-	router: BoardItemLocation | undefined;
-	pc1: BoardItemLocation | undefined;
-	pc2: BoardItemLocation | undefined;
+	router: SpaceItemLocation | undefined;
+	pc1: SpaceItemLocation | undefined;
+	pc2: SpaceItemLocation | undefined;
 	connectedPcIds: Set<string>;
 	routerConfigured: boolean;
 	dhcpEnabled: boolean;

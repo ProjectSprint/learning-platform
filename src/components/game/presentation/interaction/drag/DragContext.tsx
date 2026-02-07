@@ -115,8 +115,8 @@ const DragContext = createContext<DragContextValue | null>(null);
  * @example
  * ```tsx
  * <DragProvider>
- *   <GridSpaceView spaceId="space" />
- *   <PoolSpaceView spaceId="inventory" />
+ *   <GridSpaceView space={space} entities={entities} />
+ *   <PoolSpaceView space={poolSpace} entities={entities} />
  * </DragProvider>
  * ```
  */

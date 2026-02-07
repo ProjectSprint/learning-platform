@@ -90,7 +90,7 @@ Key changes:
 - Import `useNewGameState` instead of `useGameState`
 - Access spaces via `state.spaces.get(spaceId)`
 - Access entities via `state.entities.get(entityId)` or `state.entities.values()`
-- Convert entities to `BoardItemLocation` for compatibility with existing network-utils
+- Convert entities to `SpaceItemLocation` for compatibility with existing network-utils
 - Use `UPDATE_ENTITY_STATE` instead of `CONFIGURE_DEVICE`
 
 ```typescript
@@ -106,14 +106,14 @@ const spaces = useMemo(() => {
   return result;
 }, [state.spaces]);
 
-// Convert entities to BoardItemLocation for compatibility
+// Convert entities to SpaceItemLocation for compatibility
 const placements = useMemo<BoardPlacements>(() => {
   const result: BoardPlacements = { /* ... */ };
 
   for (const [canvasId, space] of Object.entries(spaces)) {
     if (!space) continue;
 
-    const items: BoardItemLocation[] = [];
+    const items: SpaceItemLocation[] = [];
     for (const entity of state.entities.values()) {
       if (space.contains(entity)) {
         const position = space.getPosition(entity);
@@ -385,13 +385,13 @@ type GameDispatch = (action: any) => void;
 />
 ```
 
-### 3. BoardItemLocation Compatibility
+### 3. SpaceItemLocation Compatibility
 
-**Issue**: Existing network-utils expect BoardItemLocation format.
+**Issue**: Existing network-utils expect SpaceItemLocation format.
 
 **Solution**: Create conversion helper in state hook:
 ```typescript
-const entityToBoardItem = (entity: Entity, space: GridSpace): BoardItemLocation | null => {
+const entityToBoardItem = (entity: Entity, space: GridSpace): SpaceItemLocation | null => {
   const position = space.getPosition(entity);
   if (!position || !("row" in position && "col" in position)) {
     return null;

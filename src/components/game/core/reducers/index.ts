@@ -3,8 +3,8 @@ import type { GameState } from "../types";
 import { arrowsReducer } from "./arrows";
 import { coreReducer } from "./core";
 import { hintReducer } from "./hint";
-import { inventoryReducer } from "./inventory";
 import { modalReducer } from "./modal";
+import { poolReducer } from "./pool";
 import { spaceReducer } from "./puzzle";
 import { terminalReducer } from "./terminal";
 
@@ -16,7 +16,7 @@ export const gameReducer = (
 ): GameState => {
 	let nextState = coreReducer(state, action);
 	nextState = hintReducer(nextState, action);
-	nextState = inventoryReducer(nextState, action);
+	nextState = poolReducer(nextState, action);
 	nextState = spaceReducer(nextState, action);
 	nextState = arrowsReducer(nextState, action);
 	nextState = terminalReducer(nextState, action);

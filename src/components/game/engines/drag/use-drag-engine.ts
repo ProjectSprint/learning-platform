@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createCompatState } from "@/components/game/application/compat/state-conversion";
 import type {
-	BoardItemLocation,
+	SpaceItemLocation,
 	SpaceState,
 } from "@/components/game/game-provider";
 import { useGameState } from "@/components/game/game-provider";
@@ -13,7 +13,7 @@ import {
 
 export interface DragEngineState {
 	space: SpaceState;
-	placedItems: BoardItemLocation[];
+	placedItems: SpaceItemLocation[];
 }
 
 export interface DragEngineConfig<TContext = unknown>

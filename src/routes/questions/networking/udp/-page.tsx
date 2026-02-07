@@ -20,9 +20,9 @@ import {
 import type { QuestionProps } from "@/components/module";
 
 import {
+	getSpaceConfig,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	SPACE_CONFIGS,
 	TCP_SPACE_ORDER,
 } from "./-utils/constants";
 import { initializeUdpQuestion } from "./-utils/init-spaces";
@@ -131,12 +131,12 @@ const UdpGame = ({
 						alignItems="stretch"
 					>
 						{TCP_SPACE_ORDER.map((spaceId) => {
-							const config = SPACE_CONFIGS[spaceId];
+							const config = getSpaceConfig(spaceId);
 							if (!config) return null;
 							return (
 								<GridItem key={spaceId} area={spaceAreas[spaceId]} minW={0}>
 									<GridSpace
-										spaceId={spaceId}
+										id={spaceId}
 										title={config.name ?? spaceId}
 										onEntityClick={handleEntityClick}
 										isEntityClickable={isEntityClickable}

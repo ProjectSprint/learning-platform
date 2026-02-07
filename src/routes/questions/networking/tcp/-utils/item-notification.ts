@@ -1,4 +1,4 @@
-import type { BoardItemLocation } from "@/components/game/game-provider";
+import type { SpaceItemLocation } from "@/components/game/game-provider";
 
 type TcpStateLabel = {
 	label: string;
@@ -60,7 +60,7 @@ export const getTcpItemLabel = (itemType: string): string => {
  * Get status message for a placed item.
  */
 export const getTcpStatusMessage = (
-	placedItem: BoardItemLocation,
+	placedItem: SpaceItemLocation,
 ): string | null => {
 	const { type, data } = placedItem;
 	const tcpState = typeof data?.tcpState === "string" ? data.tcpState : "idle";

@@ -9,12 +9,11 @@ export const QUESTION_DESCRIPTION =
 export const TERMINAL_PROMPT =
 	"Connection closed. Use the terminal to inspect the exchange.";
 
-export type TcpSpaceKey = "splitter" | "internet" | "server";
+export const SPACE_ORDER = ["splitter", "internet", "server"] as const;
+export type TcpSpaceKey = (typeof SPACE_ORDER)[number];
 
-export const SPACE_ORDER: TcpSpaceKey[] = ["splitter", "internet", "server"];
-
-export const SPACE_CONFIGS: Record<TcpSpaceKey, GridSpaceData> = {
-	splitter: createGridSpaceData({
+export const SPACE_CONFIGS: GridSpaceData[] = [
+	createGridSpaceData({
 		id: "splitter",
 		name: "Content Splitter",
 		rows: 1,
@@ -22,7 +21,7 @@ export const SPACE_CONFIGS: Record<TcpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	}),
-	internet: createGridSpaceData({
+	createGridSpaceData({
 		id: "internet",
 		name: "Internet",
 		rows: 1,
@@ -30,7 +29,7 @@ export const SPACE_CONFIGS: Record<TcpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
 	}),
-	server: createGridSpaceData({
+	createGridSpaceData({
 		id: "server",
 		name: "Server",
 		rows: 4,
@@ -38,7 +37,10 @@ export const SPACE_CONFIGS: Record<TcpSpaceKey, GridSpaceData> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 12,
 	}),
-};
+];
+
+export const getSpaceConfig = (spaceId: TcpSpaceKey) =>
+	SPACE_CONFIGS.find((space) => space.id === spaceId);
 
 export const INVENTORY_GROUP_IDS = {
 	files: "files",

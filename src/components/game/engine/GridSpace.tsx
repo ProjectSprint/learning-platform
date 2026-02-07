@@ -4,7 +4,7 @@
  * Wraps GridSpaceView with game state integration, handling all drag-drop
  * logic internally using Phase 1 validation functions.
  *
- * Questions provide spaceId and callbacks - engine handles everything else.
+ * Questions provide id and callbacks - engine handles everything else.
  */
 
 import { useBreakpointValue } from "@chakra-ui/react";
@@ -55,7 +55,7 @@ const EMPTY_BREAKPOINTS: Record<string, [number, number]> = {};
 
 export type GridSpaceProps = {
 	/** ID of the space to render */
-	spaceId: string;
+	id: string;
 	/** Optional title for the space */
 	title?: string;
 	/** Responsive grid dimensions: breakpoint → [cols, rows]. Remaps entity positions at view layer. */
@@ -85,7 +85,7 @@ export type GridSpaceProps = {
  * @example
  * ```tsx
  * <GridSpace
- *   spaceId="router"
+ *   id="router"
  *   title="Router Board"
  *   onEntityClick={handleClick}
  * />
@@ -93,7 +93,7 @@ export type GridSpaceProps = {
  */
 export const GridSpace = memo(
 	({
-		spaceId,
+		id,
 		title,
 		responsiveSize,
 		onEntityClick,
@@ -110,7 +110,7 @@ export const GridSpace = memo(
 		) as [number, number] | undefined;
 
 		// Get space data
-		const space = state.spaces[spaceId] as GridSpaceData | undefined;
+		const space = state.spaces[id] as GridSpaceData | undefined;
 
 		// Derive view dimensions and whether remapping is active
 		const dataCols = space?.cols ?? 0;
@@ -177,7 +177,7 @@ export const GridSpace = memo(
 					? viewToData(toPosition, dataCols, viewCols)
 					: toPosition;
 
-			const toSpaceId = spaceId;
+			const toSpaceId = id;
 
 			// Validate placement before dispatching
 			if (!canEntityBePlaced(state, entityId, toSpaceId, dataToPosition)) {

@@ -6,19 +6,19 @@
 export type { CoreAction } from "./core";
 export type {
 	// Legacy aliases
-	AddInventoryGroupAction,
+	AddPoolGroupAction,
 	ConfigureDeviceAction,
 	CreateEntityAction,
 	DeleteEntitiesAction,
 	DeleteEntityAction,
 	EntityAction,
 	LegacyEntityAction,
-	PurgeItemsAction,
-	RemoveInventoryGroupAction,
+	PurgePoolItemsAction,
+	RemovePoolGroupAction,
 	UpdateEntityAction,
 	UpdateEntityStateAction,
-	UpdateInventoryGroupAction,
-	UpdateItemTooltipAction,
+	UpdatePoolGroupAction,
+	UpdatePoolItemTooltipAction,
 } from "./entity";
 export type {
 	AddEntityToSpaceAction,

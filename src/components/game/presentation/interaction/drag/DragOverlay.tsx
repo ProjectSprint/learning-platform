@@ -121,12 +121,13 @@ export const DragOverlay = ({
 		}
 
 		const handlePointerMove = (event: PointerEvent) => {
-			if (proxyRef.current) {
-				gsap.set(proxyRef.current, {
-					x: event.clientX - pointerOffsetRef.current.x,
-					y: event.clientY - pointerOffsetRef.current.y,
-				});
-			}
+			// Don't track mouse during drop animation
+			if (dropAnimationTarget || !proxyRef.current) return;
+
+			gsap.set(proxyRef.current, {
+				x: event.clientX - pointerOffsetRef.current.x,
+				y: event.clientY - pointerOffsetRef.current.y,
+			});
 		};
 
 		const handlePointerUp = () => {
@@ -164,6 +165,7 @@ export const DragOverlay = ({
 		setActiveDrag,
 		setLastDropResult,
 		setDropAnimationTarget,
+		dropAnimationTarget,
 	]);
 
 	// Animate overlay to drop target on successful placement

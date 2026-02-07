@@ -2,7 +2,7 @@ import type { IconInfo } from "./icon";
 
 export type BoardItemStatus = "normal" | "warning" | "success" | "error";
 
-export type BoardItemLocation = {
+export type SpaceItemLocation = {
 	id: string;
 	itemId: string;
 	type: string;

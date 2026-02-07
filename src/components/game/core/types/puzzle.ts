@@ -1,6 +1,6 @@
-import type { BoardItemLocation, BoardItemStatus } from "./placed-item";
+import type { BoardItemStatus, SpaceItemLocation } from "./placed-item";
 
-export type BoardItemLocationSeed = {
+export type SpaceItemLocationSeed = {
 	itemId: string;
 	blockX: number;
 	blockY: number;
@@ -21,9 +21,8 @@ export type SpaceConfig = {
 	title?: string;
 	size: SpaceSizeValue;
 	orientation?: "horizontal" | "vertical";
-	spaceId?: string;
 	maxItems?: number;
-	initialPlacements?: BoardItemLocationSeed[];
+	initialPlacements?: SpaceItemLocationSeed[];
 };
 
 export type BlockStatus = "empty" | "hover" | "occupied" | "invalid";
@@ -38,6 +37,6 @@ export type Block = {
 export type SpaceState = {
 	config: SpaceConfig;
 	blocks: Block[][];
-	placedItems: BoardItemLocation[];
+	placedItems: SpaceItemLocation[];
 	selectedBlock: { x: number; y: number } | null;
 };

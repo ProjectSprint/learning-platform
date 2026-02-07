@@ -1,15 +1,15 @@
 import {
-	DEFAULT_INVENTORY_GROUP_ID,
-	DEFAULT_INVENTORY_TITLE,
-	findInventoryItem,
-	normalizeInventoryGroups,
-} from "../../domain/validation/inventory";
+	DEFAULT_POOL_GROUP_ID,
+	DEFAULT_POOL_TITLE,
+	findPoolItem,
+	normalizePoolGroups,
+} from "../../domain/validation/pool";
 import type { GameAction } from "../actions";
 import type {
-	BoardItemLocation,
 	GameState,
 	InventoryGroup,
 	SpaceConfig,
+	SpaceItemLocation,
 	SpaceState,
 } from "../types";
 import { updateBlock } from "./legacy-utils";
@@ -26,8 +26,8 @@ export const createDefaultState = (): GameState => ({
 	inventory: {
 		groups: [
 			{
-				id: DEFAULT_INVENTORY_GROUP_ID,
-				title: DEFAULT_INVENTORY_TITLE,
+				id: DEFAULT_POOL_GROUP_ID,
+				title: DEFAULT_POOL_TITLE,
 				visible: true,
 				items: [],
 			},
@@ -65,7 +65,7 @@ const applyInitialPlacements = (
 
 	let nextBlocks = space.blocks;
 	const nextInventoryGroups = inventoryGroups;
-	const placedItems: BoardItemLocation[] = [];
+	const placedItems: SpaceItemLocation[] = [];
 	placements.forEach((placement) => {
 		if (!nextBlocks[placement.blockY]?.[placement.blockX]) {
 			return;
@@ -76,7 +76,7 @@ const applyInitialPlacements = (
 		}
 
 		const itemId = placement.itemId;
-		const inventoryMatch = findInventoryItem(nextInventoryGroups, itemId);
+		const inventoryMatch = findPoolItem(nextInventoryGroups, itemId);
 		const matchedItem = inventoryMatch?.item;
 
 		if (!matchedItem) {
@@ -117,15 +117,15 @@ export const coreReducer = (
 	switch (action.type) {
 		case "INIT_MULTI_SPACE": {
 			const config = action.payload;
-			const entries = Object.entries(config.spaces);
+			const entries = Object.values(config.spaces);
 			if (entries.length === 0) {
 				return state;
 			}
 
 			const spaceIds = new Set<string>();
 			const normalizedSpaces: Array<{ key: string; config: SpaceConfig }> = [];
-			for (const [entryKey, spaceConfig] of entries) {
-				const resolvedKey = spaceConfig.spaceId ?? entryKey;
+			for (const spaceConfig of entries) {
+				const resolvedKey = spaceConfig.id;
 				if (spaceIds.has(resolvedKey)) {
 					return state;
 				}
@@ -133,7 +133,7 @@ export const coreReducer = (
 				normalizedSpaces.push({ key: resolvedKey, config: spaceConfig });
 			}
 
-			let inventoryGroups = normalizeInventoryGroups(config.inventoryGroups);
+			let inventoryGroups = normalizePoolGroups(config.inventoryGroups);
 			const nextSpaces: Record<string, SpaceState> = {};
 
 			for (const entry of normalizedSpaces) {

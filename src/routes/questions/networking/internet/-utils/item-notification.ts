@@ -1,4 +1,4 @@
-import type { BoardItemLocation } from "@/components/game/game-provider";
+import type { SpaceItemLocation } from "@/components/game/game-provider";
 import { VALID_PPPOE_CREDENTIALS } from "./constants";
 
 export const getInternetItemLabel = (itemType: string): string => {
@@ -27,7 +27,7 @@ export const getInternetItemLabel = (itemType: string): string => {
 };
 
 export const getInternetStatusMessage = (
-	placedItem: BoardItemLocation,
+	placedItem: SpaceItemLocation,
 ): string | null => {
 	const { type, status, data } = placedItem;
 

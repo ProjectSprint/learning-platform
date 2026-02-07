@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createCompatState } from "@/components/game/application/compat/state-conversion";
-import type { BoardItemLocation, Item } from "@/components/game/game-provider";
+import type { Item, SpaceItemLocation } from "@/components/game/game-provider";
 import {
 	useAllSpaces,
 	useEngineEvents,
@@ -8,7 +8,7 @@ import {
 	useGameState,
 } from "@/components/game/game-provider";
 
-import { FRAME_ITEMS, INVENTORY_GROUP_IDS, UDP_CLIENT_IDS } from "./constants";
+import { FRAME_ITEMS, POOL_GROUP_IDS, UDP_CLIENT_IDS } from "./constants";
 import { FRAME_DESTINY, TOTAL_FRAMES } from "./frame-destiny";
 import { buildUdpSuccessModal } from "./modal-builders";
 import type { UdpPhase } from "./types";
@@ -107,26 +107,26 @@ export const useUdpPhase = ({
 		}, NOTICE_MS);
 	}, []);
 
-	const updateInventoryGroup = useCallback(
+	const updatePoolGroup = useCallback(
 		(id: string, updates: { visible?: boolean }) => {
 			dispatch({
-				type: "UPDATE_INVENTORY_GROUP",
+				type: "UPDATE_POOL_GROUP",
 				payload: { id, ...updates },
 			});
 		},
 		[dispatch],
 	);
 
-	const removeInventoryItem = useCallback(
+	const removePoolItem = useCallback(
 		(itemId: string) => {
 			const existing =
 				compat.inventory.groups.find(
-					(group) => group.id === INVENTORY_GROUP_IDS.frames,
+					(group) => group.id === POOL_GROUP_IDS.frames,
 				)?.items ?? [];
 			dispatch({
-				type: "UPDATE_INVENTORY_GROUP",
+				type: "UPDATE_POOL_GROUP",
 				payload: {
-					id: INVENTORY_GROUP_IDS.frames,
+					id: POOL_GROUP_IDS.frames,
 					items: existing.filter((item: Item) => item.id !== itemId),
 				},
 			});
@@ -136,12 +136,12 @@ export const useUdpPhase = ({
 
 	useEffect(() => {
 		if (!active) return;
-		updateInventoryGroup(INVENTORY_GROUP_IDS.frames, { visible: true });
-		updateInventoryGroup(INVENTORY_GROUP_IDS.received, { visible: false });
-		updateInventoryGroup(INVENTORY_GROUP_IDS.incoming, { visible: false });
-		updateInventoryGroup(INVENTORY_GROUP_IDS.outgoing, { visible: false });
-		updateInventoryGroup(INVENTORY_GROUP_IDS.dataPackets, { visible: false });
-	}, [active, updateInventoryGroup]);
+		updatePoolGroup(POOL_GROUP_IDS.frames, { visible: true });
+		updatePoolGroup(POOL_GROUP_IDS.received, { visible: false });
+		updatePoolGroup(POOL_GROUP_IDS.incoming, { visible: false });
+		updatePoolGroup(POOL_GROUP_IDS.outgoing, { visible: false });
+		updatePoolGroup(POOL_GROUP_IDS.dataPackets, { visible: false });
+	}, [active, updatePoolGroup]);
 
 	useEffect(() => {
 		if (!active) return;
@@ -155,7 +155,7 @@ export const useUdpPhase = ({
 	}, [active, phase, registerTimer]);
 
 	const handleFrameDrop = useCallback(
-		(item: BoardItemLocation) => {
+		(item: SpaceItemLocation) => {
 			const frameNumber =
 				typeof item.data?.frameNumber === "number" ? item.data.frameNumber : 0;
 			const expectedFrame = lastSentFrameRef.current + 1;
@@ -196,7 +196,7 @@ export const useUdpPhase = ({
 					config: { status: "warning", state: "sending" },
 				},
 			});
-			removeInventoryItem(item.id);
+			removePoolItem(item.id);
 
 			const timer = setTimeout(() => {
 				if (!activeRef.current) return;
@@ -236,7 +236,7 @@ export const useUdpPhase = ({
 			}, FRAME_SEND_MS);
 			registerTimer(timer);
 		},
-		[dispatch, registerTimer, removeInventoryItem, showNotice],
+		[dispatch, registerTimer, removePoolItem, showNotice],
 	);
 
 	const prevOutboxIdsRef = useRef<Set<string>>(new Set());

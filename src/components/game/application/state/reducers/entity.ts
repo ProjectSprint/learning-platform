@@ -217,7 +217,7 @@ export const entityReducer = (
 
 		// Legacy action handlers (for backward compatibility)
 
-		case "ADD_INVENTORY_GROUP": {
+		case "ADD_POOL_GROUP": {
 			// Create entities from inventory group items
 			return produce(state, (draft) => {
 				const { group } = action.payload;
@@ -243,7 +243,7 @@ export const entityReducer = (
 			});
 		}
 
-		case "UPDATE_INVENTORY_GROUP": {
+		case "UPDATE_POOL_GROUP": {
 			// Update entities in the group
 			return produce(state, (draft) => {
 				const { items } = action.payload;
@@ -275,7 +275,7 @@ export const entityReducer = (
 			});
 		}
 
-		case "UPDATE_ITEM_TOOLTIP": {
+		case "UPDATE_POOL_ITEM_TOOLTIP": {
 			// Map to UPDATE_ENTITY
 			const { itemId, tooltip } = action.payload;
 			return entityReducer(state, {
@@ -289,14 +289,14 @@ export const entityReducer = (
 			});
 		}
 
-		case "REMOVE_INVENTORY_GROUP": {
+		case "REMOVE_POOL_GROUP": {
 			// This would need to identify which entities belong to the group
 			// For now, we'll just return the state as-is since we need more context
 			// about which entities belong to which group
 			return state;
 		}
 
-		case "PURGE_ITEMS": {
+		case "PURGE_POOL_ITEMS": {
 			// Map to DELETE_ENTITIES
 			const { itemIds } = action.payload;
 			return entityReducer(state, {

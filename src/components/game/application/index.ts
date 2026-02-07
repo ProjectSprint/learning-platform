@@ -25,7 +25,7 @@ export {
 export type {
 	Action,
 	AddEntityToSpaceAction,
-	AddInventoryGroupAction,
+	AddPoolGroupAction,
 	// Combined actions
 	ApplicationAction,
 	ConfigureDeviceAction,
@@ -42,10 +42,10 @@ export type {
 	MoveEntityBetweenSpacesAction,
 	// Legacy aliases
 	PlaceItemAction,
-	PurgeItemsAction,
+	PurgePoolItemsAction,
 	RemoveEntityFromSpaceAction,
-	RemoveInventoryGroupAction,
 	RemoveItemAction,
+	RemovePoolGroupAction,
 	RemoveSpaceAction,
 	RepositionItemAction,
 	SpaceAction,
@@ -55,8 +55,8 @@ export type {
 	UpdateEntityAction,
 	UpdateEntityPositionAction,
 	UpdateEntityStateAction,
-	UpdateInventoryGroupAction,
-	UpdateItemTooltipAction,
+	UpdatePoolGroupAction,
+	UpdatePoolItemTooltipAction,
 } from "./state/actions";
 // Reducers
 export {

@@ -1,10 +1,10 @@
 import type { TerminalCommandHelpers } from "@/components/game/engines";
 import type {
-	BoardItemLocation,
 	GamePhase,
 	InventoryGroupConfig,
 	QuestionStatus,
 	SpaceConfig,
+	SpaceItemLocation,
 	TerminalState,
 } from "@/components/game/game-provider";
 
@@ -49,14 +49,14 @@ export type SpaceRule<ConditionKey extends string = string> =
 
 export type Labels = {
 	getItemLabel: (itemType: string) => string;
-	getStatusMessage: (item: BoardItemLocation) => string | null;
+	getStatusMessage: (item: SpaceItemLocation) => string | null;
 };
 
 export type Handlers = {
 	onCommand: (input: string, helpers: TerminalCommandHelpers) => void;
 	onItemClickByType: Record<
 		string,
-		(args: { item: BoardItemLocation }) => void
+		(args: { item: SpaceItemLocation }) => void
 	>;
 	isItemClickableByType: Record<string, boolean>;
 };

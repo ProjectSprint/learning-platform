@@ -28,8 +28,6 @@ export type {
 	ArrowStyle,
 	Block,
 	BlockStatus,
-	BoardItemLocation,
-	BoardItemLocationSeed,
 	BoardItemStatus,
 	GamePhase,
 	HintState,
@@ -42,6 +40,8 @@ export type {
 	OverlayState,
 	QuestionStatus,
 	SpaceConfig,
+	SpaceItemLocation,
+	SpaceItemLocationSeed,
 	SpaceState,
 	TerminalEntry,
 	TerminalEntryType,
@@ -94,7 +94,7 @@ export {
 	useSpaces,
 } from "./application/hooks/useSpace";
 
-export { findInventoryItem } from "./domain/validation/inventory";
+export { findPoolItem } from "./domain/validation/pool";
 
 // ============================================================================
 // Compatibility Layer (Legacy support)
