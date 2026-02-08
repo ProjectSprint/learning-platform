@@ -1,417 +1,98 @@
 # Game Engine Documentation
 
-Complete documentation for the interactive game engine framework.
-
-## Table of Contents
-
-### Getting Started
-
-1. **[Overview](./01-overview.md)**
-   - Introduction to the game engine
-   - Key features and capabilities
-   - Architecture overview
-   - Directory structure
-
-2. **[Architecture Quick Reference](../ARCHITECTURE.md)**
-   - Where to place new code
-   - Folder structure guide
-   - Decision tree for code placement
-   - Architecture rules and patterns
-
-3. **[Core Concepts](./02-core-concepts.md)**
-   - Game state structure
-   - Game phases
-   - Actions and dispatch
-   - Space/Entity architecture
-   - Terminal system
-   - Modal system
-   - Engines
-
-### Reference Documentation
-
-4. **[State Management](./03-state-management.md)**
-   - Provider setup
-   - Accessing state
-   - Dispatching actions
-   - Multi-puzzle management
-   - State immutability
-   - Performance considerations
-
-5. **[Actions API](./04-actions-api.md)**
-   - Core actions
-   - Space actions (add entity, remove entity, move entity)
-   - Entity actions
-   - Terminal actions
-   - Modal actions
-   - Action patterns and examples
-
-6. **[Engines](./05-engines.md)**
-   - Engine lifecycle
-   - Terminal Engine
-   - Drag Engine
-   - Creating custom engines
-   - Engine patterns
-
-7. **[Limitations](./06-limitations.md)**
-   - System limits
-   - Validation rules
-   - Known limitations
-   - Performance considerations
-   - Browser compatibility
-   - Security considerations
-
-### Practical Guides
-
-8. **[Usage Guide](./07-usage-guide.md)**
-   - Quick start
-   - Common patterns
-   - Complete examples
-   - Best practices
-
-9. **[API Contract](./08-api-contract.md)**
-   - State guarantees
-   - Action contracts
-   - Engine contracts
-   - Validation rules
-   - Error handling
-   - Type safety
+> Flat index with "when to read" guidance. Go-style: find what you need, read it, go build.
 
 ---
 
-## Quick Reference
+## Concepts (What and Why)
 
-### Essential Imports
+| Document | When to Read |
+|----------|-------------|
+| [concepts/overview.md](./concepts/overview.md) | You are new to the game engine and need the 30-second overview |
+| [concepts/architecture.md](./concepts/architecture.md) | You need to understand the layer structure or decide where to put code |
+| [concepts/core-concepts.md](./concepts/core-concepts.md) | You need to understand GameState, Spaces, Entities, Actions, Events, Engines |
+
+## Contracts (API Reference)
+
+| Document | When to Read |
+|----------|-------------|
+| [contracts/types.md](./contracts/types.md) | You need the exact shape of GameState, SpaceData, EntityData, or any type |
+| [contracts/actions.md](./contracts/actions.md) | You need to dispatch an action and want to know its validation, side effects, and events |
+| [contracts/events.md](./contracts/events.md) | You need to react to state changes via events, or understand event ordering |
+| [contracts/functions.md](./contracts/functions.md) | You need a pure function for entity/space manipulation, validation, or geometry |
+| [contracts/validation.md](./contracts/validation.md) | You need to understand why a placement was rejected, or pre-validate before dispatch |
+
+## Guides (How-To)
+
+| Document | When to Read |
+|----------|-------------|
+| [guides/state-management.md](./guides/state-management.md) | You need to wire up state access, dispatch actions, or listen to events |
+| [guides/immer-patterns.md](./guides/immer-patterns.md) | You are writing a reducer or mutation function and need Immer patterns |
+| [guides/engines.md](./guides/engines.md) | You need to set up drag, terminal, or custom game progression logic |
+| [guides/building-questions.md](./guides/building-questions.md) | You are creating a new question from scratch (step-by-step) |
+
+## Architecture Boundaries
+
+| Document | When to Read |
+|----------|-------------|
+| [19-core-ui-boundary.md](./19-core-ui-boundary.md) | You need to understand what belongs in core state vs UI-local providers |
+| [18-drawer-system.md](./18-drawer-system.md) | You need to register, configure, or render drawers |
+
+---
+
+## Quick Start
 
 ```tsx
-// Core provider and hooks
-import {
-  GameProvider,
-  useGameState,
-  useGameDispatch,
-  usePuzzleState,
-  useAllPuzzles
-} from '@/components/game/game-provider';
+import { GameProvider, useGameState, useGameDispatch } from "@/components/game/game-provider";
+import { GridSpace, PoolSpace } from "@/components/game/engine";
 
-// Engines
-import { useTerminalEngine } from '@/components/game/engines/terminal/use-terminal-engine';
-import { useDragEngine } from '@/components/game/engines/drag/use-drag-engine';
-
-// Space/Entity Components
-import { GridSpaceView } from '@/components/game/presentation/space/GridSpaceView';
-import { PoolSpaceView } from '@/components/game/presentation/space/PoolSpaceView';
-import { TerminalView } from '@/components/game/presentation/terminal';
-
-// Domain Models
-import { GridSpace } from '@/components/game/domain/space';
-import { Entity } from '@/components/game/domain/entity';
-
-// Types
-import type {
-  GameState,
-  GameAction,
-  ModalInstance
-} from '@/components/game/game-provider';
-```
-
-### Basic Setup
-
-```tsx
-import { GameProvider } from '@/components/game/game-provider';
-import { GridSpace } from '@/components/game/domain/space';
-import { Entity } from '@/components/game/domain/entity';
-import { GridSpaceView } from '@/components/game/presentation/space/GridSpaceView';
-import { useSpace } from '@/components/game/hooks';
-
-function App() {
+function MyQuestion() {
   return (
     <GameProvider>
-      <YourGame />
+      <MyGame />
     </GameProvider>
   );
 }
-
-function YourGame() {
-  const [spaces, setSpaces] = useState({});
-
-  useEffect(() => {
-    // Create a grid space
-    const gridSpace = new GridSpace({
-      id: 'game-grid',
-      rows: 4,
-      cols: 5,
-      metrics: {
-        cellWidth: 64,
-        cellHeight: 64,
-        gapX: 4,
-        gapY: 4,
-      },
-    });
-
-    // Create entities
-    const entity = new Entity({
-      id: 'item-1',
-      type: 'game-piece',
-      visual: { icon: '🎮' },
-    });
-
-    setSpaces({ 'game-grid': gridSpace });
-  }, []);
-
-  return (
-    <div>
-      {spaces['game-grid'] && (
-        <GridSpaceView space={spaces['game-grid']} />
-      )}
-    </div>
-  );
-}
 ```
 
----
+1. Wrap with `GameProvider` (sets up state + all UI providers)
+2. Define space configs in `constants.ts`
+3. Render `GridSpace`/`PoolSpace` with configs (spaces self-register)
+4. Initialize entities in `useEffect` with ref guard
+5. Listen to events with `useEngineEvents(id)` + `ack()`
+6. Register drawer in `useLayoutEffect`
 
-## Feature Matrix
-
-| Feature | Supported | Documentation |
-|---------|-----------|---------------|
-| GridSpace (2D layouts) | ✅ Yes | [Space Architecture](./09-space-architecture.md) |
-| PoolSpace (collections) | ✅ Yes | [Space Architecture](./09-space-architecture.md) |
-| Multiple spaces | ✅ Yes | [Space Architecture](./09-space-architecture.md) |
-| Drag and drop | ✅ Yes | [Engines](./05-engines.md#drag-engine) |
-| Terminal interface | ✅ Yes | [Engines](./05-engines.md#terminal-engine) |
-| Modal dialogs | ✅ Yes | [Core Concepts](./02-core-concepts.md#modal-system) |
-| Entity management | ✅ Yes | [Space Architecture](./09-space-architecture.md) |
-| Custom spaces | ✅ Yes | [Adding New Spaces](./10-adding-new-spaces.md) |
-| State persistence | ⚠️ Manual | [Limitations](./06-limitations.md#5-no-built-in-persistence) |
-| Undo/Redo | ❌ No | [Limitations](./06-limitations.md#2-no-undoredo) |
-| Multiplayer | ❌ No | - |
+Full walkthrough: [guides/building-questions.md](./guides/building-questions.md)
 
 ---
 
-## Common Use Cases
-
-### Network Topology Builder
-Build interactive network diagrams with drag-and-drop device placement.
-
-**See:** [Space Architecture](./09-space-architecture.md)
-
-**Key Features:**
-- GridSpace for network layout
-- Entity-based devices
-- Position validation
-- Completion detection
-
-### Terminal Simulator
-Create command-line interface simulations for learning.
-
-**See:** [Usage Guide - Command-Line Example](./07-usage-guide.md#example-2-command-line-simulation)
-
-**Key Features:**
-- Command parsing
-- Output formatting
-- Command history
-- Custom commands
-
-### Configuration Wizard
-Guide users through device or system configuration.
-
-**See:** [Usage Guide - Modal Configuration](./07-usage-guide.md#pattern-4-modal-configuration)
-
-**Key Features:**
-- Multi-field forms
-- Field validation
-- Conditional logic
-- Data persistence
-
-### Interactive Games
-Create grid-based games with entity placement and interaction.
-
-**See:** [Space Architecture](./09-space-architecture.md)
-
-**Key Features:**
-- Flexible space types (Grid, Pool, custom)
-- Entity state management
-- Placement constraints
-- Completion checking
-
----
-
-## Architecture Diagram
+## Provider Hierarchy
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     GameProvider                         │
-│  ┌────────────────────────────────────────────────┐    │
-│  │              GameState (Context)               │    │
-│  │                                                 │    │
-│  │  • phase                                        │    │
-│  │  • spaces { [id]: Space }                      │    │
-│  │  • entities { [id]: Entity }                   │    │
-│  │  • terminal                                    │    │
-│  │  • overlay (modals)                            │    │
-│  │  • question                                    │    │
-│  └────────────────────────────────────────────────┘    │
-│                          │                               │
-│                          ↓                               │
-│  ┌────────────────────────────────────────────────┐    │
-│  │           Reducer Pipeline                     │    │
-│  │                                                 │    │
-│  │  CoreReducer → SpaceReducer → EntityReducer      │
-│  │  → TerminalReducer → ModalReducer             │    │
-│  └────────────────────────────────────────────────┘    │
-│                          ↑                               │
-│                          │                               │
-│  ┌────────────────────────────────────────────────┐    │
-│  │           dispatch(GameAction)                 │    │
-│  └────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────┘
-                           │
-           ┌───────────────┴────────────────┐
-           │                                 │
-    ┌──────▼──────┐                  ┌──────▼──────┐
-    │  Components  │                  │   Engines   │
-    │              │                  │             │
-    │ • SpaceView  │                  │ • Terminal  │
-    │ • EntityCard │                  │ • Drag      │
-    │ • Terminal   │                  │ • Custom    │
-    │ • Modal      │                  │             │
-    └──────────────┘                  └─────────────┘
+GameProvider
+  GameStateContext + GameDispatchContext   (core state)
+    ArrowProvider                          (visual connections, UI-local)
+      DrawerProvider                       (panel management, UI-local)
+        HintProvider                       (contextual hints, UI-local)
+          TerminalProvider                 (CLI interface, UI-local)
+            DragProvider                   (drag-and-drop, UI-local)
 ```
 
----
-
-## Capabilities Summary
-
-### ✅ What the Engine Can Do
-
-1. **Space Management**
-   - Create multiple spaces (Grid, Pool, custom types)
-   - Configure space dimensions and constraints
-   - Set capacity limits per space
-   - Support different layouts (grid, flow, custom)
-   - Position entities within spaces
-
-2. **Entity Management**
-   - Create entities with types and properties
-   - Store entity state (dynamic data)
-   - Store entity data (static properties)
-   - Visual configuration (icons, colors)
-   - Behavior attachment
-
-3. **Entity Interactions**
-   - Add entities to spaces
-   - Remove entities from spaces
-   - Move entities within/between spaces
-   - Query entity positions
-   - Update entity state
-   - Validate placements
-
-4. **Terminal Features**
-   - Process user commands
-   - Display output, errors, hints
-   - Maintain command history
-   - Clear history
-   - Customizable prompt
-
-5. **Modal System**
-   - Create data-driven modals
-   - Multiple field types
-   - Field validation
-   - Custom actions with callbacks
-   - Blocking modals
-
-6. **Game Flow**
-   - Five distinct game phases
-   - Question tracking
-   - Completion detection
-   - Action sequencing
-
-7. **Engines**
-   - Terminal command processing
-   - Drag-and-drop tracking
-   - Lifecycle management (pending → started → finished)
-   - Custom engine creation
-
-### ⚠️ What the Engine Cannot Do
-
-1. **No Network/Multiplayer**
-   - No built-in server communication
-   - No real-time collaboration
-   - No player synchronization
-
-2. **No Animations**
-   - No built-in item animations
-   - No transition effects
-   - UI layer handles animations
-
-3. **No Persistence**
-   - No automatic state saving
-   - No localStorage integration
-   - Must implement manually
-
-4. **No Undo/Redo**
-   - No built-in history tracking
-   - No action reversal
-   - Must implement manually
-
-5. **Limited Drag Constraints**
-   - No grid snapping
-   - No drag boundaries
-   - Implemented in UI layer
-
-6. **Single Modal Only**
-   - Only one modal at a time
-   - No modal stacking
-   - No nested modals
+Core state tracks progression. UI providers manage transient visual state.
+See [19-core-ui-boundary.md](./19-core-ui-boundary.md).
 
 ---
 
-## Getting Help
+## Source Structure
 
-### Troubleshooting
-
-1. **Check the documentation section that matches your issue:**
-   - State not updating? → [State Management](./03-state-management.md)
-   - Action not working? → [Actions API](./04-actions-api.md)
-   - Validation failing? → [Limitations](./06-limitations.md#validation-rules)
-   - Engine not starting? → [Engines](./05-engines.md)
-
-2. **Common Issues:**
-   - Item won't place → Check `allowedPlaces` and block availability
-   - Terminal not responding → Ensure terminal engine is initialized
-   - Modal not closing → Check `closesModal` flag on actions
-   - Puzzle not found → Verify `puzzleId` matches canvas ID
-
-### Code Examples
-
-Every documentation page includes practical examples. Start with:
-- [Usage Guide](./07-usage-guide.md) - Complete working examples
-- [Actions API](./04-actions-api.md) - Action usage examples
-- [Engines](./05-engines.md) - Engine patterns
-
----
-
-## Contributing to Documentation
-
-If you find issues or want to improve this documentation:
-
-1. Documentation is located in `src/components/game/doc/`
-2. Each file covers a specific topic
-3. Follow the existing structure and formatting
-4. Include code examples where relevant
-5. Keep examples practical and tested
-
----
-
-## Version Information
-
-This documentation reflects the current state of the game engine as of the latest refactoring.
-
-**Last Updated:** 2026-01-29
-
-**Engine Version:** Post-refactoring (multi-puzzle support, modal system, engines)
-
----
-
-## License
-
-This documentation and the game engine are part of the learning platform project.
+```
+src/components/game/
+  application/     Orchestration: hooks, reducers, state types
+  core/            Legacy types (being migrated)
+  domain/          Pure functions: entity-fns, space-fns, validation
+  engine/          GridSpace, PoolSpace components (self-registering)
+  engines/         Terminal, Drag engine hooks
+  infrastructure/  Grid math, geometry, coordinates
+  presentation/    UI components: drawer, hint, arrow, terminal, drag, modal
+  game-provider.tsx  Provider + all hook exports
+```
