@@ -7,11 +7,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isGridSpace } from "@/components/game/domain/space";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { findEntitySpace } from "@/components/game/domain/space/validation";
-import {
-	useEngineEvents,
-	useGameDispatch,
-	useGameState,
-} from "@/components/game/game-provider";
+import { useEngineEvents, useGameState } from "@/components/game/game-provider";
+import type {
+	ExecutionFlowApi,
+	InteractionSessionApi,
+	WorldApi,
+} from "@/components/game/runtime";
 import {
 	FILE_ITEM_ID,
 	MESSAGE_PACKET_IDS,
@@ -118,8 +119,15 @@ const findEmptyGridPosition = (space: GridSpaceData) => {
 const formatSeqList = (seqs: number[]) =>
 	seqs.map((seq) => `#${seq}`).join(", ");
 
-export const useTcpState = (): TcpState => {
-	const dispatch = useGameDispatch();
+export const useTcpState = ({
+	world,
+	interactionSession,
+	executionFlow,
+}: {
+	world: WorldApi;
+	interactionSession: InteractionSessionApi;
+	executionFlow: ExecutionFlowApi;
+}): TcpState => {
 	const state = useGameState();
 
 	const phase = useMemo(
@@ -213,17 +221,21 @@ export const useTcpState = (): TcpState => {
 		timersRef.current.add(timer);
 	}, []);
 
+	const openModal = useCallback(
+		(modal: Parameters<InteractionSessionApi["openModal"]>[0]) => {
+			interactionSession.openModal(modal);
+		},
+		[interactionSession],
+	);
+
 	const setPhase = useCallback(
 		(next: TcpPhase) => {
 			if (stateRef.current.phase === next) {
 				return;
 			}
-			dispatch({
-				type: "SET_PHASE",
-				payload: { phase: next as typeof state.phase },
-			});
+			executionFlow.requestPhaseTransition(next, "tcp.state");
 		},
-		[dispatch],
+		[executionFlow],
 	);
 
 	const appendServerLog = useCallback((content: string) => {
@@ -244,49 +256,34 @@ export const useTcpState = (): TcpState => {
 		(entityId: string, updates: Record<string, unknown>) => {
 			const { status, ...dataUpdates } = updates;
 			if (Object.keys(dataUpdates).length > 0) {
-				dispatch({
-					type: "ENTITY_UPDATED",
-					payload: { entityId, updates: { data: dataUpdates } },
-				});
+				world.updateEntity(entityId, { data: dataUpdates });
 			}
 			if (status !== undefined) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: { entityId, state: { status } },
-				});
+				world.updateEntityState(entityId, { status });
 			}
 		},
-		[dispatch],
+		[world],
 	);
 
 	const setEntityDraggable = useCallback(
 		(entityId: string, draggable: boolean) => {
-			dispatch({
-				type: "ENTITY_UPDATED",
-				payload: { entityId, updates: { draggable } },
-			});
+			world.updateEntity(entityId, { visual: { draggable } });
 		},
-		[dispatch],
+		[world],
 	);
 
 	const updatePacketDisplayName = useCallback(
 		(entityId: string, displayName: string) => {
-			dispatch({
-				type: "ENTITY_UPDATED",
-				payload: { entityId, updates: { name: displayName } },
-			});
+			world.updateEntity(entityId, { name: displayName });
 		},
-		[dispatch],
+		[world],
 	);
 
 	const removeEntityFromSpace = useCallback(
 		(entityId: string, spaceId: string) => {
-			dispatch({
-				type: "ENTITY_REMOVED",
-				payload: { entityId, spaceId },
-			});
+			world.removeFromSpace(entityId, spaceId);
 		},
-		[dispatch],
+		[world],
 	);
 
 	const moveEntityToSpace = useCallback(
@@ -302,25 +299,14 @@ export const useTcpState = (): TcpState => {
 			}
 
 			if (!fromSpaceId) {
-				dispatch({
-					type: "ENTITY_ADDED",
-					payload: { entityId, spaceId, position },
-				});
+				world.addToSpace(entityId, spaceId, position);
 				return true;
 			}
 
-			dispatch({
-				type: "ENTITY_MOVED",
-				payload: {
-					entityId,
-					fromSpaceId,
-					toSpaceId: spaceId,
-					toPosition: position,
-				},
-			});
+			world.moveEntity(entityId, spaceId, position);
 			return true;
 		},
-		[dispatch],
+		[world],
 	);
 
 	const moveEntityToGrid = useCallback(
@@ -424,13 +410,10 @@ export const useTcpState = (): TcpState => {
 			}
 			if (!modalShownRef.current.duplicate) {
 				modalShownRef.current.duplicate = true;
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildDuplicateAckModal(missingSeq),
-				});
+				openModal(buildDuplicateAckModal(missingSeq));
 			}
 		},
-		[dispatch, setPhase, updatePacketDisplayName],
+		[openModal, setPhase, updatePacketDisplayName],
 	);
 
 	const logAckMessage = useCallback(() => {
@@ -509,10 +492,7 @@ export const useTcpState = (): TcpState => {
 					setPhase("closing");
 					if (!modalShownRef.current.close) {
 						modalShownRef.current.close = true;
-						dispatch({
-							type: "OPEN_MODAL",
-							payload: buildCloseConnectionModal(),
-						});
+						openModal(buildCloseConnectionModal());
 					}
 				}
 			}, ASSEMBLE_DELAY_MS);
@@ -520,8 +500,8 @@ export const useTcpState = (): TcpState => {
 		},
 		[
 			appendServerLog,
-			dispatch,
 			ensureInInventory,
+			openModal,
 			registerTimer,
 			resetBufferState,
 			setPhase,
@@ -611,10 +591,7 @@ export const useTcpState = (): TcpState => {
 				updateBufferDisplay();
 				if (!modalShownRef.current.hol) {
 					modalShownRef.current.hol = true;
-					dispatch({
-						type: "OPEN_MODAL",
-						payload: buildHolBlockingModal(),
-					});
+					openModal(buildHolBlockingModal());
 				}
 				logAckMessage();
 				if (
@@ -655,9 +632,9 @@ export const useTcpState = (): TcpState => {
 			logAckMessage();
 		},
 		[
-			dispatch,
 			handleFileComplete,
 			logAckMessage,
+			openModal,
 			resetBufferState,
 			scheduleBufferedRelease,
 			triggerResend,
@@ -718,7 +695,7 @@ export const useTcpState = (): TcpState => {
 				const resolveTimer = setTimeout(() => {
 					if (!modalShownRef.current.mtu) {
 						modalShownRef.current.mtu = true;
-						dispatch({ type: "OPEN_MODAL", payload: buildMtuModal() });
+						openModal(buildMtuModal());
 					}
 					setPhase("splitter");
 					setPendingFileReturn({ entityId, spaceId });
@@ -727,7 +704,7 @@ export const useTcpState = (): TcpState => {
 			}, FILE_PROCESS_DELAY_MS);
 			registerTimer(rejectTimer);
 		},
-		[dispatch, registerTimer, setPhase, updateEntityState],
+		[openModal, registerTimer, setPhase, updateEntityState],
 	);
 
 	const handlePacketRejected = useCallback(
@@ -758,10 +735,7 @@ export const useTcpState = (): TcpState => {
 							!modalShownRef.current.synIntro
 						) {
 							modalShownRef.current.synIntro = true;
-							dispatch({
-								type: "OPEN_MODAL",
-								payload: buildSynIntroModal(),
-							});
+							openModal(buildSynIntroModal());
 							setPhase("syn");
 							updateEntityState(TCP_TOOL_ITEMS.syn.id, {
 								tcpState: "idle",
@@ -777,8 +751,8 @@ export const useTcpState = (): TcpState => {
 		},
 		[
 			appendServerLog,
-			dispatch,
 			ensureInInventory,
+			openModal,
 			registerTimer,
 			setPhase,
 			updateEntityState,
@@ -826,15 +800,12 @@ export const useTcpState = (): TcpState => {
 				ensureInInventory(entityId);
 				if (!modalShownRef.current.loss) {
 					modalShownRef.current.loss = true;
-					dispatch({
-						type: "OPEN_MODAL",
-						payload: buildPacketLossModal(),
-					});
+					openModal(buildPacketLossModal());
 				}
 			}, LOSS_FADE_MS);
 			registerTimer(timer);
 		},
-		[dispatch, ensureInInventory, registerTimer, updateEntityState],
+		[ensureInInventory, openModal, registerTimer, updateEntityState],
 	);
 
 	const handleSynArrival = useCallback(
@@ -868,10 +839,7 @@ export const useTcpState = (): TcpState => {
 		setReceivedPoolVisible(true);
 		if (!modalShownRef.current.synAck) {
 			modalShownRef.current.synAck = true;
-			dispatch({
-				type: "OPEN_MODAL",
-				payload: buildSynAckModal(),
-			});
+			openModal(buildSynAckModal());
 		}
 		setPhase("ack");
 		updateEntityState(TCP_TOOL_ITEMS.ack.id, {
@@ -880,9 +848,9 @@ export const useTcpState = (): TcpState => {
 		});
 		ensureInInventory(TCP_TOOL_ITEMS.ack.id);
 	}, [
-		dispatch,
 		ensureInInventory,
 		moveEntityToSpace,
+		openModal,
 		setEntityDraggable,
 		setPhase,
 		updateEntityState,
@@ -903,17 +871,14 @@ export const useTcpState = (): TcpState => {
 			appendServerLog("🟢 Connected - Waiting for data...");
 			if (!modalShownRef.current.handshake) {
 				modalShownRef.current.handshake = true;
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildHandshakeCompleteModal(),
-				});
+				openModal(buildHandshakeCompleteModal());
 			}
 			setPhase("connected");
 		},
 		[
 			appendServerLog,
 			configurePackets,
-			dispatch,
+			openModal,
 			resetBufferState,
 			setPhase,
 			updateEntityState,
@@ -1180,10 +1145,7 @@ export const useTcpState = (): TcpState => {
 				!modalShownRef.current.ackIntro
 			) {
 				modalShownRef.current.ackIntro = true;
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildAckIntroModal(),
-				});
+				openModal(buildAckIntroModal());
 				return;
 			}
 
@@ -1191,7 +1153,7 @@ export const useTcpState = (): TcpState => {
 				allowPacket2Ref.current = true;
 			}
 		},
-		[dispatch, ensureInInventory, pendingFileReturn, updateEntityState],
+		[ensureInInventory, openModal, pendingFileReturn, updateEntityState],
 	);
 
 	const { events, ack } = useEngineEvents("tcp-state");

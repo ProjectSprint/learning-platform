@@ -1,14 +1,23 @@
 import { useCallback } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import { useGameState } from "@/components/game/game-provider";
+import type {
+	InteractionSessionApi,
+	ProgressApi,
+} from "@/components/game/runtime";
 import { buildSuccessModal } from "./modal-builders";
 
 interface UseNetworkingTerminalArgs {
 	pc2Ip: string | null;
+	interactionSession: InteractionSessionApi;
+	progress: ProgressApi;
 }
 
-export const useNetworkingTerminal = ({ pc2Ip }: UseNetworkingTerminalArgs) => {
-	const dispatch = useGameDispatch();
+export const useNetworkingTerminal = ({
+	pc2Ip,
+	interactionSession,
+	progress,
+}: UseNetworkingTerminalArgs) => {
 	const state = useGameState();
 
 	const handleCommand = useCallback(
@@ -81,23 +90,22 @@ export const useNetworkingTerminal = ({ pc2Ip }: UseNetworkingTerminalArgs) => {
 					"output",
 				);
 
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildSuccessModal(
+				interactionSession.openModal(
+					buildSuccessModal(
 						"Question complete",
 						"You connected two computers and verified their connection using ping.",
 						"Next question",
 					),
-				});
+				);
 
 				helpers.finishEngine();
-				dispatch({ type: "COMPLETE_QUESTION" });
+				progress.completeQuestion();
 				return;
 			}
 
 			helpers.writeOutput(`Error: Unknown target "${target}".`, "error");
 		},
-		[dispatch, pc2Ip, state.phase, state.question.status],
+		[interactionSession, pc2Ip, progress, state.phase, state.question.status],
 	);
 
 	return handleCommand;

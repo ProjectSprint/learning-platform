@@ -6,7 +6,11 @@ import {
 	useEngineEvents,
 	useGameState,
 } from "@/components/game/game-provider";
-import type { Commands } from "@/components/game/runtime";
+import type {
+	InteractionSessionApi,
+	ProgressApi,
+	WorldApi,
+} from "@/components/game/runtime";
 
 import { FRAME_ITEMS, UDP_CLIENT_IDS } from "./constants";
 import { FRAME_DESTINY, TOTAL_FRAMES } from "./frame-destiny";
@@ -20,11 +24,15 @@ export type UdpNotice = { message: string; tone: "error" | "info" } | null;
 
 export const useUdpPhase = ({
 	active,
-	commands,
+	world,
+	interactionSession,
+	progress,
 	onQuestionComplete,
 }: {
 	active: boolean;
-	commands: Commands;
+	world: WorldApi;
+	interactionSession: InteractionSessionApi;
+	progress: ProgressApi;
 	onQuestionComplete: () => void;
 }) => {
 	const state = useGameState();
@@ -113,9 +121,9 @@ export const useUdpPhase = ({
 			if (!spaceId) {
 				return;
 			}
-			commands.removeFromSpace(itemId, spaceId);
+			world.removeFromSpace(itemId, spaceId);
 		},
-		[commands, state],
+		[state, world],
 	);
 
 	useEffect(() => {
@@ -135,7 +143,7 @@ export const useUdpPhase = ({
 				typeof item.data?.frameNumber === "number" ? item.data.frameNumber : 0;
 			const expectedFrame = lastSentFrameRef.current + 1;
 			if (frameNumber !== expectedFrame) {
-				commands.updateEntity(item.id, {
+				world.updateEntity(item.id, {
 					data: { status: "error", state: "rejected" },
 				});
 				showNotice(`Send Frame ${expectedFrame} first.`, "error");
@@ -145,13 +153,13 @@ export const useUdpPhase = ({
 						(entry) => entry.id === item.id,
 					);
 					if (!placed) return;
-					commands.removeFromSpace(placed.id, "internet");
+					world.removeFromSpace(placed.id, "internet");
 				}, 400);
 				registerTimer(timer);
 				return;
 			}
 
-			commands.updateEntity(item.id, {
+			world.updateEntity(item.id, {
 				data: { status: "warning", state: "sending" },
 			});
 			removePoolItem(item.id);
@@ -163,7 +171,7 @@ export const useUdpPhase = ({
 					(entry) => entry.id === item.id,
 				);
 				if (placed) {
-					commands.removeFromSpace(placed.id, "internet");
+					world.removeFromSpace(placed.id, "internet");
 				}
 
 				lastSentFrameRef.current = frameNumber;
@@ -187,7 +195,7 @@ export const useUdpPhase = ({
 			}, FRAME_SEND_MS);
 			registerTimer(timer);
 		},
-		[commands, registerTimer, removePoolItem, showNotice],
+		[registerTimer, removePoolItem, showNotice, world],
 	);
 
 	const prevOutboxIdsRef = useRef<Set<string>>(new Set());
@@ -216,9 +224,9 @@ export const useUdpPhase = ({
 		if (state.question.status === "completed") return;
 
 		successShownRef.current = true;
-		commands.openModal(buildUdpSuccessModal());
-		commands.completeQuestion();
-	}, [active, commands, phase, state.question.status]);
+		interactionSession.openModal(buildUdpSuccessModal());
+		progress.completeQuestion();
+	}, [active, interactionSession, phase, progress, state.question.status]);
 
 	const expectedFrame = Math.min(lastSentFrame + 1, TOTAL_FRAMES);
 

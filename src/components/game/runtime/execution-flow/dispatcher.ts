@@ -1,0 +1,76 @@
+import type { Action } from "../../application/state/actions";
+import type { GameState } from "../../application/state/types";
+import type { ExecutionFlowIntent } from "../intents/execution-flow";
+import {
+	type RuntimeApiResult,
+	runtimeError,
+	runtimeOk,
+} from "../wrappers/result";
+
+const RAPID_INTENT_THRESHOLD_MS = 100;
+
+export type ExecutionFlowWarningEmitter = (message: string) => void;
+
+export type ExecutionFlowDispatcher = {
+	dispatchIntent: (intent: ExecutionFlowIntent) => RuntimeApiResult;
+};
+
+export type ExecutionFlowDispatcherDeps = {
+	dispatch: (action: Action) => void;
+	getState: () => GameState;
+	nowMs: () => number;
+	warn: ExecutionFlowWarningEmitter;
+};
+
+export const createExecutionFlowDispatcher = (
+	deps: ExecutionFlowDispatcherDeps,
+): ExecutionFlowDispatcher => {
+	const { dispatch, getState, nowMs, warn } = deps;
+	const lastIntentAtByType = new Map<ExecutionFlowIntent["type"], number>();
+
+	const dispatchIntent = (intent: ExecutionFlowIntent): RuntimeApiResult => {
+		const now = nowMs();
+		const lastSeen = lastIntentAtByType.get(intent.type);
+		if (
+			typeof lastSeen === "number" &&
+			now - lastSeen <= RAPID_INTENT_THRESHOLD_MS
+		) {
+			warn(
+				`executionFlow: rapid repeated intent "${intent.type}" within ${RAPID_INTENT_THRESHOLD_MS}ms`,
+			);
+		}
+		lastIntentAtByType.set(intent.type, now);
+
+		if (intent.type !== "execution_flow.phase_transition_requested") {
+			warn(`executionFlow: unsupported intent "${intent.type}"`);
+			return runtimeError(`executionFlow: unsupported intent "${intent.type}"`);
+		}
+
+		const targetPhase = intent.payload.phase.trim();
+		if (!targetPhase) {
+			warn("executionFlow: empty phase transition request ignored");
+			return runtimeError(
+				"executionFlow: empty phase transition request ignored",
+			);
+		}
+
+		const currentPhase = getState().phase;
+		if (currentPhase === targetPhase) {
+			warn(`executionFlow: phase "${targetPhase}" already active`);
+			return runtimeError(
+				`executionFlow: phase "${targetPhase}" already active`,
+			);
+		}
+
+		dispatch({
+			type: "SET_PHASE",
+			payload: { phase: targetPhase },
+		});
+
+		return runtimeOk();
+	};
+
+	return { dispatchIntent };
+};
+
+export const executionFlowRapidIntentThresholdMs = RAPID_INTENT_THRESHOLD_MS;

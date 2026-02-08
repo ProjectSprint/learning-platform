@@ -76,10 +76,15 @@ const NetworkingGame = ({
 	onQuestionComplete: () => void;
 }) => {
 	// Single runtime hook replaces useGameDispatch + useGameState + useEngineEvents + init useEffect
-	const { commands, state, events, ack, isCompleted } = useQuestionRuntime(
-		"dhcp-page",
-		DHCP_DEFINITION,
-	);
+	const {
+		world,
+		progress,
+		interactionSession,
+		state,
+		events,
+		ack,
+		isCompleted,
+	} = useQuestionRuntime("dhcp-page", DHCP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
 	const {
@@ -94,7 +99,7 @@ const NetworkingGame = ({
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
 	const [eventTick, setEventTick] = useState(0);
-	const networkState = useNetworkState({ dragEngine, eventTick });
+	const networkState = useNetworkState({ dragEngine, eventTick, world });
 	const { registerDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
 	const pc1Id = DHCP_SPACE_IDS.pc1;
@@ -140,6 +145,8 @@ const NetworkingGame = ({
 
 	const handleNetworkingCommand = useNetworkingTerminal({
 		pc2Ip: networkState.pc2Ip,
+		interactionSession,
+		progress,
 	});
 
 	useTerminalEngine({
@@ -190,7 +197,7 @@ const NetworkingGame = ({
 				const startIp = String(event.values.startIp ?? "");
 				const endIp = String(event.values.endIp ?? "");
 
-				commands.updateEntity(deviceId, {
+				world.updateEntity(deviceId, {
 					data: { dhcpEnabled, startIp, endIp },
 				});
 
@@ -210,21 +217,25 @@ const NetworkingGame = ({
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, commands, events, onQuestionComplete]);
+	}, [ack, events, onQuestionComplete, world]);
 
 	// Item click handlers
 	const entityClickHandlers = useMemo(
 		() => ({
 			router: (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				commands.openModal(buildRouterConfigModal(entity.id, currentConfig));
+				interactionSession.openModal(
+					buildRouterConfigModal(entity.id, currentConfig),
+				);
 			},
 			pc: (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				commands.openModal(buildPcConfigModal(entity.id, currentConfig));
+				interactionSession.openModal(
+					buildPcConfigModal(entity.id, currentConfig),
+				);
 			},
 		}),
-		[commands],
+		[interactionSession],
 	);
 
 	const isItemClickableByType: Record<string, boolean> = useMemo(
@@ -254,11 +265,14 @@ const NetworkingGame = ({
 		);
 
 		if (state.phase !== resolved.nextPhase) {
-			commands.setPhase(resolved.nextPhase);
+			interactionSession.requestPhaseTransition(
+				resolved.nextPhase,
+				"dhcp.phase_rules",
+			);
 		}
 	}, [
-		commands,
 		dragEngine.progress.status,
+		interactionSession,
 		state.phase,
 		state.question.status,
 	]);

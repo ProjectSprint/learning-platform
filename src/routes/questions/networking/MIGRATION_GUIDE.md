@@ -37,12 +37,21 @@ Each networking question must own a dedicated `-utils/definition.ts` file.
 import { useQuestionRuntime } from "@/components/game/runtime";
 import { MY_DEFINITION } from "./-utils/definition";
 
-const { commands, state, events, ack } = useQuestionRuntime(
+const {
+	world,
+	progress,
+	interactionSession,
+	state,
+	events,
+	ack,
+} = useQuestionRuntime(
 	"my-question-page",
 	MY_DEFINITION,
 );
 
-commands.updateEntity("router-1", { data: { online: true } });
+world.updateEntity("router-1", { data: { online: true } });
+interactionSession.requestPhaseTransition("terminal", "my_question.rules");
+progress.completeQuestion();
 ```
 
 ## Route Migration Checklist
@@ -52,7 +61,7 @@ commands.updateEntity("router-1", { data: { online: true } });
 3. Keep modal submission handling via `MODAL_SUBMITTED` events.
 4. Keep terminal output/input in terminal provider hooks; if needed, append domain-neutral events via `EMIT_EVENTS`.
 5. Consume reducer facts through `useEngineEvents("<route-id>")` and always call `ack()`.
-6. Verify question still reaches `terminal` and `completed` phases.
+6. Verify question still reaches `terminal` and `completed` phases through `executionFlow` handoff (`interactionSession.requestPhaseTransition(...)`), not direct phase mutation APIs.
 
 ## Forbidden Patterns
 

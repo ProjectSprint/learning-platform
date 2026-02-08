@@ -8,10 +8,11 @@
  *   useEffect(() => { initializeXxxQuestion(dispatch); }, []);
  *
  * With:
- *   const { commands, state, events, ack } = useQuestionRuntime("...", DEFINITION);
+ *   const { world, progress, executionFlow, interactionSession, state, events, ack }
+ *      = useQuestionRuntime("...", DEFINITION);
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GameEvent } from "../../application/state/types";
 import {
 	useEngineEvents,
@@ -20,13 +21,33 @@ import {
 } from "../../game-provider";
 import { bootstrapQuestion } from "../bootstrap/bootstrap";
 import { createCommands } from "../commands/create-commands";
-import type { Commands } from "../commands/types";
 import type { QuestionDefinition } from "../definition/types";
 import { validateDefinition } from "../definition/validate";
+import { createExecutionFlowDispatcher } from "../execution-flow/dispatcher";
+import { emitRuntimeWarning } from "../execution-flow/warning";
+import {
+	createExecutionFlowApi,
+	createInteractionSessionApi,
+	createProgressApi,
+	createWorldApi,
+	type ExecutionFlowApi,
+	type InteractionSessionApi,
+	type InteractionSessionState,
+	type ProgressApi,
+	type WorldApi,
+} from "../wrappers";
 
 export type QuestionRuntime = {
-	/** High-level commands for world mutations */
-	commands: Commands;
+	/** World domain wrappers (spaces/entities). */
+	world: WorldApi;
+	/** Progress domain wrappers (question progression). */
+	progress: ProgressApi;
+	/** executionFlow domain wrappers (phase orchestration owner). */
+	executionFlow: ExecutionFlowApi;
+	/** interactionSession wrappers for modal/terminal flow and progression handoff. */
+	interactionSession: InteractionSessionApi;
+	/** React-local ephemeral interaction state. */
+	interactionState: InteractionSessionState;
 	/** Current game state (read-only snapshot) */
 	state: ReturnType<typeof useGameState>;
 	/** Current game phase */
@@ -55,6 +76,11 @@ export function useQuestionRuntime(
 	const initializedRef = useRef(false);
 	const stateRef = useRef(state);
 	stateRef.current = state;
+	const [interactionState, setInteractionState] =
+		useState<InteractionSessionState>({
+			terminalVisible: false,
+			modalGateOpen: false,
+		});
 
 	if (definition) {
 		const errors = validateDefinition(definition);
@@ -78,7 +104,7 @@ export function useQuestionRuntime(
 	}, [definition, dispatch]);
 
 	// Create commands (stable as long as dispatch doesn't change)
-	const commandsRef = useRef<Commands | null>(null);
+	const commandsRef = useRef<ReturnType<typeof createCommands> | null>(null);
 	if (!commandsRef.current) {
 		commandsRef.current = createCommands({
 			dispatch,
@@ -86,8 +112,63 @@ export function useQuestionRuntime(
 		});
 	}
 
+	const warnRuntime = (message: string) => {
+		emitRuntimeWarning({
+			engineId,
+			message,
+			dispatch,
+			isProduction: process.env.NODE_ENV === "production",
+			log: (text) => console.warn(text),
+		});
+	};
+
+	const dispatcherRef = useRef<ReturnType<
+		typeof createExecutionFlowDispatcher
+	> | null>(null);
+	if (!dispatcherRef.current) {
+		dispatcherRef.current = createExecutionFlowDispatcher({
+			dispatch,
+			getState: () => stateRef.current,
+			nowMs: () => Date.now(),
+			warn: warnRuntime,
+		});
+	}
+
+	const executionFlowRef = useRef<ExecutionFlowApi | null>(null);
+	if (!executionFlowRef.current) {
+		executionFlowRef.current = createExecutionFlowApi({
+			dispatcher: dispatcherRef.current,
+		});
+	}
+
+	const worldRef = useRef<WorldApi | null>(null);
+	if (!worldRef.current) {
+		worldRef.current = createWorldApi({ commands: commandsRef.current });
+	}
+
+	const progressRef = useRef<ProgressApi | null>(null);
+	if (!progressRef.current) {
+		progressRef.current = createProgressApi({
+			commands: commandsRef.current,
+			dispatch,
+		});
+	}
+
+	const interactionSessionRef = useRef<InteractionSessionApi | null>(null);
+	if (!interactionSessionRef.current) {
+		interactionSessionRef.current = createInteractionSessionApi({
+			commands: commandsRef.current,
+			executionFlowApi: executionFlowRef.current,
+			setInteractionState,
+		});
+	}
+
 	return {
-		commands: commandsRef.current,
+		world: worldRef.current,
+		progress: progressRef.current,
+		executionFlow: executionFlowRef.current,
+		interactionSession: interactionSessionRef.current,
+		interactionState,
 		state,
 		phase: state.phase,
 		isCompleted: state.question.status === "completed",

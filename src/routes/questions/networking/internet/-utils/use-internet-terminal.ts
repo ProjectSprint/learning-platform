@@ -1,12 +1,16 @@
 import { useCallback, useEffect } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines";
 import { useEngineEvents, useGameState } from "@/components/game/game-provider";
-import type { Commands } from "@/components/game/runtime";
+import type {
+	InteractionSessionApi,
+	ProgressApi,
+} from "@/components/game/runtime";
 import { GOOGLE_IP } from "./constants";
 import { buildSuccessModal } from "./modal-builders";
 
 interface UseInternetTerminalArgs {
-	commands: Commands;
+	interactionSession: InteractionSessionApi;
+	progress: ProgressApi;
 	pcIp: string | null;
 	dnsConfigured: boolean;
 	natEnabled: boolean;
@@ -26,7 +30,8 @@ You learned how:
 Your request traveled: PC → Router LAN → Router NAT → Router WAN → IGW → Internet → Google!`;
 
 export const useInternetTerminal = ({
-	commands,
+	interactionSession,
+	progress,
 	pcIp,
 	dnsConfigured,
 	natEnabled,
@@ -201,12 +206,12 @@ export const useInternetTerminal = ({
 					);
 				}
 
-				commands.openModal(
+				interactionSession.openModal(
 					buildSuccessModal(SUCCESS_TITLE, SUCCESS_MESSAGE, "Next question"),
 				);
 
 				helpers.finishEngine();
-				commands.completeQuestion();
+				progress.completeQuestion();
 				return;
 			}
 
@@ -216,10 +221,11 @@ export const useInternetTerminal = ({
 			);
 		},
 		[
-			commands,
+			interactionSession,
 			pcIp,
 			dnsConfigured,
 			natEnabled,
+			progress,
 			wanConnected,
 			state.phase,
 			state.question.status,

@@ -135,14 +135,6 @@ export function createCommands(ctx: CommandContext): Commands {
 			return true;
 		},
 
-		// ── Phase ─────────────────────────────────────────────────────────
-		setPhase(phase) {
-			dispatch({
-				type: "SET_PHASE",
-				payload: { phase },
-			});
-		},
-
 		completeQuestion() {
 			dispatch({ type: "COMPLETE_QUESTION" });
 		},

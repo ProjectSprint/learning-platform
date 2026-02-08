@@ -83,10 +83,8 @@ const InternetGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { commands, state, isCompleted } = useQuestionRuntime(
-		"internet-page",
-		INTERNET_DEFINITION,
-	);
+	const { world, progress, interactionSession, state, isCompleted } =
+		useQuestionRuntime("internet-page", INTERNET_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
 	const {
@@ -100,7 +98,7 @@ const InternetGame = ({
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
-	const internetState = useInternetState({ dragEngine, commands });
+	const internetState = useInternetState({ dragEngine, world });
 	const { registerDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
 
@@ -109,19 +107,25 @@ const InternetGame = ({
 		() => ({
 			"router-lan": (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				commands.openModal(buildRouterLanConfigModal(entity.id, currentConfig));
+				interactionSession.openModal(
+					buildRouterLanConfigModal(entity.id, currentConfig),
+				);
 			},
 			"router-nat": (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				commands.openModal(buildRouterNatConfigModal(entity.id, currentConfig));
+				interactionSession.openModal(
+					buildRouterNatConfigModal(entity.id, currentConfig),
+				);
 			},
 			"router-wan": (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				commands.openModal(buildRouterWanConfigModal(entity.id, currentConfig));
+				interactionSession.openModal(
+					buildRouterWanConfigModal(entity.id, currentConfig),
+				);
 			},
 			pc: (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				commands.openModal(
+				interactionSession.openModal(
 					buildPcStatusModal(entity.id, {
 						ip:
 							typeof currentConfig.ip === "string"
@@ -134,7 +138,7 @@ const InternetGame = ({
 				);
 			},
 			igw: (entity: EntityData) => {
-				commands.openModal(
+				interactionSession.openModal(
 					buildIgwStatusModal(entity.id, {
 						status: internetState.hasValidPppoeCredentials
 							? "Authenticated"
@@ -143,7 +147,7 @@ const InternetGame = ({
 				);
 			},
 			dns: (entity: EntityData) => {
-				commands.openModal(
+				interactionSession.openModal(
 					buildDnsStatusModal(entity.id, {
 						ip: internetState.dnsServer ?? undefined,
 						status: internetState.hasValidDnsServer ? "Active" : "Unreachable",
@@ -160,7 +164,7 @@ const InternetGame = ({
 					reason = "WAN not connected";
 				}
 
-				commands.openModal(
+				interactionSession.openModal(
 					buildGoogleStatusModal(entity.id, {
 						domain: "google.com",
 						ip: internetState.googleReachable
@@ -173,7 +177,7 @@ const InternetGame = ({
 			},
 		}),
 		[
-			commands,
+			interactionSession,
 			internetState.dnsServer,
 			internetState.googleIp,
 			internetState.googleReachable,
@@ -184,7 +188,8 @@ const InternetGame = ({
 	);
 
 	const handleInternetCommand = useInternetTerminal({
-		commands,
+		interactionSession,
+		progress,
 		pcIp: internetState.pcIp,
 		dnsConfigured: internetState.hasValidDnsServer,
 		natEnabled: internetState.natEnabled,
@@ -249,11 +254,14 @@ const InternetGame = ({
 		);
 
 		if (state.phase !== resolved.nextPhase) {
-			commands.setPhase(resolved.nextPhase);
+			interactionSession.requestPhaseTransition(
+				resolved.nextPhase,
+				"internet.phase_rules",
+			);
 		}
 	}, [
-		commands,
 		dragEngine.progress.status,
+		interactionSession,
 		internetState.allDevicesPlaced,
 		state.phase,
 		state.question.status,

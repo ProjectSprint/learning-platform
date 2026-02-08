@@ -12,7 +12,8 @@ import type {
 	BoardItemStatus,
 	SpaceItemLocation,
 } from "@/components/game/game-provider";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import { useGameState } from "@/components/game/game-provider";
+import type { WorldApi } from "@/components/game/runtime";
 import { DHCP_SPACE_IDS } from "./constants";
 import {
 	type BoardPlacements,
@@ -26,6 +27,7 @@ import {
 interface UseNetworkStateArgs {
 	dragEngine: DragEngine | null;
 	eventTick: number;
+	world: WorldApi;
 }
 
 /**
@@ -58,9 +60,9 @@ const entityToBoardItem = (
 export const useNetworkState = ({
 	dragEngine,
 	eventTick,
+	world,
 }: UseNetworkStateArgs) => {
 	const state = useGameState();
-	const dispatch = useGameDispatch();
 	const stateRef = useRef(state);
 	stateRef.current = state;
 
@@ -207,12 +209,8 @@ export const useNetworkState = ({
 			const desiredRouterStatus = routerConfigured ? "success" : "error";
 			const entity = stateRef.current.entities[networkSnapshot.router.id];
 			if (entity && entity.state.status !== desiredRouterStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.router.id,
-						state: { status: desiredRouterStatus },
-					},
+				world.updateEntityState(networkSnapshot.router.id, {
+					status: desiredRouterStatus,
 				});
 			}
 		}
@@ -223,12 +221,8 @@ export const useNetworkState = ({
 			const desiredStatus = isConnected ? "success" : "warning";
 			const entity = stateRef.current.entities[cable.id];
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: cable.id,
-						state: { status: desiredStatus },
-					},
+				world.updateEntityState(cable.id, {
+					status: desiredStatus,
 				});
 			}
 		});
@@ -250,19 +244,13 @@ export const useNetworkState = ({
 			const currentStatus = entity.state.status;
 
 			if (currentIp !== desiredIp || currentStatus !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: pc.id,
-						state: {
-							ip: desiredIp,
-							status: desiredStatus,
-						},
-					},
+				world.updateEntityState(pc.id, {
+					ip: desiredIp,
+					status: desiredStatus,
 				});
 			}
 		});
-	}, [dispatch, eventTick]);
+	}, [eventTick, world]);
 
 	// Manage drag engine progress
 	useEffect(() => {

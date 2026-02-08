@@ -8,7 +8,10 @@ import {
 	useEngineEvents,
 	useGameState,
 } from "@/components/game/game-provider";
-import type { Commands } from "@/components/game/runtime";
+import type {
+	InteractionSessionApi,
+	WorldApi,
+} from "@/components/game/runtime";
 
 import {
 	buildReceivedAckPacket,
@@ -61,14 +64,16 @@ export type TcpNotice = { message: string; tone: "error" | "info" } | null;
 
 type UseTcpPhaseOptions = {
 	active: boolean;
-	commands: Commands;
+	world: WorldApi;
+	interactionSession: InteractionSessionApi;
 	onTransitionToUdp: () => void;
 	onPoolExpand?: () => void;
 };
 
 export const useTcpPhase = ({
 	active,
-	commands,
+	world,
+	interactionSession,
 	onTransitionToUdp,
 	onPoolExpand,
 }: UseTcpPhaseOptions) => {
@@ -253,13 +258,13 @@ export const useTcpPhase = ({
 
 					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
 					if (currentSpaceId === targetPoolId) {
-						commands.removeFromSpace(item.id, targetPoolId);
+						world.removeFromSpace(item.id, targetPoolId);
 					}
 				}
 
 				for (const item of updates.items) {
 					if (!stateRef.current.entities[item.id]) {
-						commands.createEntity({
+						world.createEntity({
 							id: item.id,
 							name: item.name,
 							allowedPlaces: item.allowedPlaces,
@@ -273,12 +278,12 @@ export const useTcpPhase = ({
 
 					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
 					if (!currentSpaceId) {
-						commands.addToSpace(item.id, targetPoolId);
+						world.addToSpace(item.id, targetPoolId);
 						continue;
 					}
 
 					if (currentSpaceId !== targetPoolId) {
-						commands.moveEntity(item.id, targetPoolId);
+						world.moveEntity(item.id, targetPoolId);
 					}
 				}
 			}
@@ -293,7 +298,7 @@ export const useTcpPhase = ({
 				}
 			}
 		},
-		[commands, getPoolGroupItems, onPoolExpand, resolvePoolSpaceId],
+		[world, getPoolGroupItems, onPoolExpand, resolvePoolSpaceId],
 	);
 
 	const ensurePoolItems = useCallback(
@@ -368,18 +373,18 @@ export const useTcpPhase = ({
 				}
 			}
 			if (!needsUpdate) return;
-			commands.updateEntity(item.id, {
+			world.updateEntity(item.id, {
 				data: updates,
 			});
 		},
-		[commands],
+		[world],
 	);
 
 	const removeItem = useCallback(
 		(item: SpaceItemLocation, spaceId: string) => {
-			commands.removeFromSpace(item.id, spaceId);
+			world.removeFromSpace(item.id, spaceId);
 		},
-		[commands],
+		[world],
 	);
 
 	const transferItemToSpace = useCallback(
@@ -389,13 +394,13 @@ export const useTcpPhase = ({
 			if (location.spaceId === targetSpace) return true;
 			const target = findEmptyBlockLatest(targetSpace);
 			if (!target) return false;
-			commands.moveEntity(itemId, targetSpace, {
+			world.moveEntity(itemId, targetSpace, {
 				row: target.blockY,
 				col: target.blockX,
 			});
 			return true;
 		},
-		[commands, findEmptyBlockLatest, findItemLocationLatest],
+		[world, findEmptyBlockLatest, findItemLocationLatest],
 	);
 
 	const resetClientState = useCallback((clientId: string) => {
@@ -513,8 +518,8 @@ export const useTcpPhase = ({
 			visible: true,
 			items: DATA_PACKETS,
 		});
-		commands.openModal(buildTcpConnectedModal());
-	}, [commands, updatePoolGroup]);
+		interactionSession.openModal(buildTcpConnectedModal());
+	}, [interactionSession, updatePoolGroup]);
 
 	const triggerNewClient = useCallback(() => {
 		if (modalShownRef.current.newClient) return;
@@ -530,8 +535,13 @@ export const useTcpPhase = ({
 			true,
 		);
 		ensurePoolItems(POOL_GROUP_IDS.outgoing, [buildSynAckPacket("d")], true);
-		commands.openModal(buildNewClientModal());
-	}, [commands, ensurePoolItems, resetClientState, setClientStatusFor]);
+		interactionSession.openModal(buildNewClientModal());
+	}, [
+		ensurePoolItems,
+		interactionSession,
+		resetClientState,
+		setClientStatusFor,
+	]);
 
 	const startReconnect = useCallback(() => {
 		setPhase("chaos-redo");
@@ -570,8 +580,8 @@ export const useTcpPhase = ({
 		if (modalShownRef.current.timeout) return;
 		modalShownRef.current.timeout = true;
 		setPhase("chaos-timeout");
-		commands.openModal(buildTimeoutModal());
-	}, [commands]);
+		interactionSession.openModal(buildTimeoutModal());
+	}, [interactionSession]);
 
 	const transitionToUdp = useCallback(() => {
 		if (udpTransitionRef.current) return;
@@ -590,8 +600,8 @@ export const useTcpPhase = ({
 		if (modalShownRef.current.breaking) return;
 		modalShownRef.current.breaking = true;
 		setPhase("breaking-point");
-		commands.openModal(buildBreakingPointModal());
-	}, [commands]);
+		interactionSession.openModal(buildBreakingPointModal());
+	}, [interactionSession]);
 
 	const { events, ack } = useEngineEvents("udp-tcp-phase");
 	useEffect(() => {

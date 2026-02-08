@@ -55,10 +55,6 @@ export type Commands = {
 	 */
 	moveEntityToGrid(entityId: string, spaceId: string): boolean;
 
-	// ── Phase ──────────────────────────────────────────────────────────
-	/** Set the current game phase. */
-	setPhase(phase: string): void;
-
 	/** Mark the question as completed. */
 	completeQuestion(): void;
 

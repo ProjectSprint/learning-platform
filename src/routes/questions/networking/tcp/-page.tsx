@@ -63,10 +63,16 @@ const TcpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { commands, state, events, ack, isCompleted } = useQuestionRuntime(
-		"tcp-page",
-		TCP_DEFINITION,
-	);
+	const {
+		world,
+		progress,
+		interactionSession,
+		executionFlow,
+		state,
+		events,
+		ack,
+		isCompleted,
+	} = useQuestionRuntime("tcp-page", TCP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const successShownRef = useRef(false);
 	const {
@@ -82,7 +88,7 @@ const TcpGame = ({
 		splitterVisible,
 		waitingCount,
 		phase: tcpPhase,
-	} = useTcpState();
+	} = useTcpState({ world, interactionSession, executionFlow });
 	useDragEngine();
 	const { registerDrawer, updateDrawerConfig, openDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
@@ -148,9 +154,9 @@ const TcpGame = ({
 			return;
 		}
 		successShownRef.current = true;
-		commands.openModal(buildSuccessModal());
-		commands.completeQuestion();
-	}, [commands, isCompleted, state.phase]);
+		interactionSession.openModal(buildSuccessModal());
+		progress.completeQuestion();
+	}, [interactionSession, isCompleted, progress, state.phase]);
 
 	useEffect(() => {
 		if (events.length === 0) {

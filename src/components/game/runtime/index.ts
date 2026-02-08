@@ -28,7 +28,10 @@ export type {
 export type { ValidationError } from "./definition/validate";
 // Definition validation
 export { validateDefinition } from "./definition/validate";
-
+export type { ExecutionFlowIntent } from "./intents/execution-flow";
+export type { InteractionSessionIntent } from "./intents/interaction-session";
+export type { ProgressIntent } from "./intents/progress";
+export type { WorldIntent } from "./intents/world";
 // Selectors
 export {
 	selectEntitiesByType,
@@ -36,3 +39,17 @@ export {
 	selectEntityStateValue,
 } from "./selectors/entity-selectors";
 export { selectDerivedPhase } from "./selectors/phase-selectors";
+export {
+	createExecutionFlowApi,
+	createInteractionSessionApi,
+	createProgressApi,
+	createWorldApi,
+	type ExecutionFlowApi,
+	type InteractionSessionApi,
+	type InteractionSessionState,
+	type ProgressApi,
+	type RuntimeApiFailure,
+	type RuntimeApiResult,
+	type RuntimeApiSuccess,
+	type WorldApi,
+} from "./wrappers";

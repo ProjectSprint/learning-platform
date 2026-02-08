@@ -101,6 +101,11 @@ export type PhaseChangedEvent = GameEventBase & {
 	to: string;
 };
 
+export type RuntimeWarningEvent = GameEventBase & {
+	type: "RUNTIME_WARNING";
+	message: string;
+};
+
 export type GameEvent =
 	| EntityEnteredSpaceEvent
 	| EntityLeftSpaceEvent
@@ -112,7 +117,8 @@ export type GameEvent =
 	| TerminalInputEvent
 	| EngineStartedEvent
 	| EngineFinishedEvent
-	| PhaseChangedEvent;
+	| PhaseChangedEvent
+	| RuntimeWarningEvent;
 
 export type GameEventQueue = {
 	events: GameEvent[];

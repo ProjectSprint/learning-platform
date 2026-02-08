@@ -13,7 +13,7 @@ import type {
 	SpaceItemLocation,
 } from "@/components/game/game-provider";
 import { useEngineEvents, useGameState } from "@/components/game/game-provider";
-import type { Commands } from "@/components/game/runtime";
+import type { WorldApi } from "@/components/game/runtime";
 import {
 	GOOGLE_IP,
 	type InternetSpaceKey,
@@ -29,7 +29,7 @@ import {
 
 interface UseInternetStateArgs {
 	dragEngine: DragEngine | null;
-	commands: Commands;
+	world: WorldApi;
 }
 
 const SPACE_IDS: InternetSpaceKey[] = [
@@ -71,7 +71,7 @@ const entityToBoardItem = (
  */
 export const useInternetState = ({
 	dragEngine,
-	commands,
+	world,
 }: UseInternetStateArgs) => {
 	const state = useGameState();
 	const { events, ack } = useEngineEvents("internet-state");
@@ -294,7 +294,7 @@ export const useInternetState = ({
 					const endIp = String(event.values.endIp ?? "");
 					const dnsServer = String(event.values.dnsServer ?? "");
 
-					commands.updateEntity(deviceId, {
+					world.updateEntity(deviceId, {
 						data: { dhcpEnabled, startIp, endIp, dnsServer },
 					});
 				}
@@ -302,7 +302,7 @@ export const useInternetState = ({
 				if (event.modalId.startsWith("router-nat-config-")) {
 					const deviceId = event.modalId.replace("router-nat-config-", "");
 					const natEnabled = !!event.values.natEnabled;
-					commands.updateEntity(deviceId, {
+					world.updateEntity(deviceId, {
 						data: { natEnabled },
 					});
 				}
@@ -312,7 +312,7 @@ export const useInternetState = ({
 					const username = String(event.values.username ?? "");
 					const password = String(event.values.password ?? "");
 
-					commands.updateEntity(deviceId, {
+					world.updateEntity(deviceId, {
 						data: { username, password },
 					});
 				}
@@ -323,7 +323,7 @@ export const useInternetState = ({
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, commands, events]);
+	}, [ack, world, events]);
 
 	// Auto-assign IP to PC when routerLan is configured and PC is connected via cable
 	useEffect(() => {
@@ -351,7 +351,7 @@ export const useInternetState = ({
 			const currentIp = entity?.state.ip ?? null;
 
 			if (currentIp !== desiredIp) {
-				commands.updateEntityState(networkSnapshot.pc.id, { ip: desiredIp });
+				world.updateEntityState(networkSnapshot.pc.id, { ip: desiredIp });
 			}
 		} else if (
 			networkSnapshot.pc &&
@@ -361,10 +361,10 @@ export const useInternetState = ({
 			const entity = stateRef.current.entities[networkSnapshot.pc.id];
 			const currentIp = entity?.state.ip ?? null;
 			if (currentIp !== null) {
-				commands.updateEntityState(networkSnapshot.pc.id, { ip: null });
+				world.updateEntityState(networkSnapshot.pc.id, { ip: null });
 			}
 		}
-	}, [commands, eventTick]);
+	}, [world, eventTick]);
 
 	// Update device statuses based on network state
 	useEffect(() => {
@@ -399,7 +399,7 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				commands.updateEntityState(networkSnapshot.pc.id, {
+				world.updateEntityState(networkSnapshot.pc.id, {
 					status: desiredStatus,
 				});
 			}
@@ -417,7 +417,7 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				commands.updateEntityState(networkSnapshot.routerLan.id, {
+				world.updateEntityState(networkSnapshot.routerLan.id, {
 					status: desiredStatus,
 				});
 			}
@@ -428,7 +428,7 @@ export const useInternetState = ({
 			const entity = stateRef.current.entities[networkSnapshot.routerNat.id];
 			const desiredStatus = natEnabled ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
-				commands.updateEntityState(networkSnapshot.routerNat.id, {
+				world.updateEntityState(networkSnapshot.routerNat.id, {
 					status: desiredStatus,
 				});
 			}
@@ -444,7 +444,7 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				commands.updateEntityState(networkSnapshot.routerWan.id, {
+				world.updateEntityState(networkSnapshot.routerWan.id, {
 					status: desiredStatus,
 				});
 			}
@@ -455,7 +455,7 @@ export const useInternetState = ({
 			const entity = stateRef.current.entities[networkSnapshot.igw.id];
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				commands.updateEntityState(networkSnapshot.igw.id, {
+				world.updateEntityState(networkSnapshot.igw.id, {
 					status: desiredStatus,
 				});
 			}
@@ -466,7 +466,7 @@ export const useInternetState = ({
 			const entity = stateRef.current.entities[networkSnapshot.dns.id];
 			const desiredStatus = hasValidDnsServer ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
-				commands.updateEntityState(networkSnapshot.dns.id, {
+				world.updateEntityState(networkSnapshot.dns.id, {
 					status: desiredStatus,
 				});
 			}
@@ -484,7 +484,7 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				commands.updateEntityState(networkSnapshot.google.id, {
+				world.updateEntityState(networkSnapshot.google.id, {
 					status: desiredStatus,
 				});
 			}
@@ -497,7 +497,7 @@ export const useInternetState = ({
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				commands.updateEntityState(networkSnapshot.cable.id, {
+				world.updateEntityState(networkSnapshot.cable.id, {
 					status: desiredStatus,
 				});
 			}
@@ -510,12 +510,12 @@ export const useInternetState = ({
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				commands.updateEntityState(networkSnapshot.fiber.id, {
+				world.updateEntityState(networkSnapshot.fiber.id, {
 					status: desiredStatus,
 				});
 			}
 		}
-	}, [commands, eventTick]);
+	}, [world, eventTick]);
 
 	// Phase transitions
 	useEffect(() => {

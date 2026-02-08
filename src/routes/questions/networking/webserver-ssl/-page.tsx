@@ -89,10 +89,15 @@ const SslGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { commands, state, events, ack, isCompleted } = useQuestionRuntime(
-		"webserver-ssl-page",
-		SSL_DEFINITION,
-	);
+	const {
+		world,
+		progress,
+		interactionSession,
+		state,
+		events,
+		ack,
+		isCompleted,
+	} = useQuestionRuntime("webserver-ssl-page", SSL_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalOpenedRef = useRef(false);
 	const terminalInput = useTerminalInput();
@@ -197,7 +202,7 @@ const SslGame = ({
 				const domain = String(event.values.domain ?? "").trim();
 
 				if (domain) {
-					commands.updateEntity(deviceId, {
+					world.updateEntity(deviceId, {
 						data: {
 							certificateIssued: true,
 							verified: true,
@@ -220,10 +225,11 @@ const SslGame = ({
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, commands, events, _onQuestionComplete]);
+	}, [ack, events, world, _onQuestionComplete]);
 
 	const handleSslCommand = useSslTerminal({
-		commands,
+		interactionSession,
+		progress,
 		httpReady,
 		httpsReady,
 		hasRedirect,
@@ -252,9 +258,12 @@ const SslGame = ({
 	useEffect(() => {
 		void eventTick;
 		if (httpsReady && hasRedirect && state.phase !== "terminal") {
-			commands.setPhase("terminal");
+			interactionSession.requestPhaseTransition(
+				"terminal",
+				"webserver_ssl.rules",
+			);
 		}
-	}, [commands, eventTick, hasRedirect, httpsReady, state.phase]);
+	}, [eventTick, hasRedirect, httpsReady, interactionSession, state.phase]);
 
 	useEffect(() => {
 		setPrompt(TERMINAL_PROMPT);
@@ -363,9 +372,9 @@ const SslGame = ({
 				continue;
 			}
 
-			commands.addToSpace(item.id, SSL_POOL_IDS.setup);
+			world.addToSpace(item.id, SSL_POOL_IDS.setup);
 		}
-	}, [commands, showSslSpaces, state]);
+	}, [showSslSpaces, state, world]);
 
 	useEffect(() => {
 		if (!showSslItems) {
@@ -378,9 +387,9 @@ const SslGame = ({
 				continue;
 			}
 
-			commands.addToSpace(item.id, SSL_POOL_IDS.certificates);
+			world.addToSpace(item.id, SSL_POOL_IDS.certificates);
 		}
-	}, [commands, showSslItems, state]);
+	}, [showSslItems, state, world]);
 
 	const port80Status = useMemo<BoardItemStatus>(() => {
 		if (
@@ -451,7 +460,7 @@ const SslGame = ({
 	const entityClickHandlers = useMemo(
 		() => ({
 			browser: (entity: EntityData) => {
-				commands.openModal(
+				interactionSession.openModal(
 					buildBrowserStatusModal(
 						entity.id,
 						browserModalStatus,
@@ -465,7 +474,7 @@ const SslGame = ({
 					: port80Config.hasIndexHtml
 						? "index.html"
 						: undefined;
-				commands.openModal(
+				interactionSession.openModal(
 					buildWebserver80StatusModal(entity.id, {
 						status:
 							port80Status === "error"
@@ -479,7 +488,7 @@ const SslGame = ({
 				);
 			},
 			"webserver-443": (entity: EntityData) => {
-				commands.openModal(
+				interactionSession.openModal(
 					buildWebserver443StatusModal(entity.id, {
 						status:
 							port443Status === "error"
@@ -511,25 +520,29 @@ const SslGame = ({
 					: typeof entity.data?.domain === "string"
 						? entity.data.domain
 						: port80Domain || DEFAULT_DOMAIN;
-				commands.openModal(
+				interactionSession.openModal(
 					buildCertificateRequestModal(entity.id, domainName, issued, {
 						domain: port80Domain || DEFAULT_DOMAIN,
 					}),
 				);
 			},
 			"index-html": (entity: EntityData) => {
-				commands.openModal(buildIndexHtmlViewModal(entity.id));
+				interactionSession.openModal(buildIndexHtmlViewModal(entity.id));
 			},
 			"private-key": (entity: EntityData) => {
 				const installed = findEntitySpace(state, entity.id) === "port-443";
-				commands.openModal(buildPrivateKeyInfoModal(entity.id, installed));
+				interactionSession.openModal(
+					buildPrivateKeyInfoModal(entity.id, installed),
+				);
 			},
 			certificate: (entity: EntityData) => {
 				const installed = findEntitySpace(state, entity.id) === "port-443";
-				commands.openModal(buildCertificateInfoModal(entity.id, installed));
+				interactionSession.openModal(
+					buildCertificateInfoModal(entity.id, installed),
+				);
 			},
 			"redirect-to-https": (entity: EntityData) => {
-				commands.openModal(buildRedirectInfoModal(entity.id));
+				interactionSession.openModal(buildRedirectInfoModal(entity.id));
 			},
 		}),
 		[
@@ -537,7 +550,7 @@ const SslGame = ({
 			browserStatus,
 			certificateDomain,
 			certificateIssued,
-			commands,
+			interactionSession,
 			port80Config,
 			port80Domain,
 			port80Status,

@@ -1,6 +1,10 @@
 import { useCallback } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import { useGameState } from "@/components/game/game-provider";
+import type {
+	InteractionSessionApi,
+	ProgressApi,
+} from "@/components/game/runtime";
 import { buildSuccessModal } from "./modal-builders";
 
 const NETSTAT_OUTPUT = `Active Connections
@@ -61,8 +65,13 @@ const HELP_OUTPUT = `Supported commands:
 - help
 - clear`;
 
-export const useTcpTerminal = () => {
-	const dispatch = useGameDispatch();
+export const useTcpTerminal = ({
+	interactionSession,
+	progress,
+}: {
+	interactionSession: InteractionSessionApi;
+	progress: ProgressApi;
+}) => {
 	const state = useGameState();
 
 	return useCallback(
@@ -117,12 +126,9 @@ export const useTcpTerminal = () => {
 					}
 
 					if (shouldComplete) {
-						dispatch({
-							type: "OPEN_MODAL",
-							payload: buildSuccessModal(),
-						});
+						interactionSession.openModal(buildSuccessModal());
 						helpers.finishEngine();
-						dispatch({ type: "COMPLETE_QUESTION" });
+						progress.completeQuestion();
 					}
 					return;
 				}
@@ -140,6 +146,6 @@ export const useTcpTerminal = () => {
 					);
 			}
 		},
-		[dispatch, state.phase, state.question.status],
+		[interactionSession, progress, state.phase, state.question.status],
 	);
 };
