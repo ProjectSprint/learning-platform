@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Action as GameAction } from "@/components/game/application/state/actions";
+import { bootstrapQuestion } from "@/components/game/runtime";
 import {
 	INVENTORY_POOL_CONFIG as DHCP_INVENTORY_POOL_CONFIG,
 	SPACE_CONFIGS as DHCP_SPACE_CONFIGS,
 } from "../dhcp/-utils/constants";
-import { initializeDhcpQuestion } from "../dhcp/-utils/init-spaces";
+import { DHCP_DEFINITION } from "../dhcp/-utils/definition";
 import {
 	INVENTORY_POOL_CONFIG as INTERNET_INVENTORY_POOL_CONFIG,
 	SPACE_CONFIGS as INTERNET_SPACE_CONFIGS,
@@ -15,7 +16,7 @@ import {
 	RECEIVED_POOL_CONFIG as TCP_RECEIVED_POOL_CONFIG,
 	SPACE_CONFIGS as TCP_SPACE_CONFIGS,
 } from "../tcp/-utils/constants";
-import { initializeTcpQuestion } from "../tcp/-utils/init-spaces";
+import { TCP_DEFINITION } from "../tcp/-utils/definition";
 import {
 	INVENTORY_POOL_CONFIG as UDP_INVENTORY_POOL_CONFIG,
 	SPACE_CONFIGS as UDP_SPACE_CONFIGS,
@@ -30,10 +31,10 @@ import {
 import { initializeSslQuestion } from "../webserver-ssl/-utils/init-spaces";
 
 const collectActions = (
-	initialize: (dispatch: (action: GameAction) => void) => void,
+	run: (dispatch: (action: GameAction) => void) => void,
 ): GameAction[] => {
 	const actions: GameAction[] = [];
-	initialize((action) => {
+	run((action) => {
 		actions.push(action);
 	});
 	return actions;
@@ -71,8 +72,10 @@ const assertSpaceCoverage = (
 };
 
 describe("networking init-spaces", () => {
-	it("initializes DHCP with explicit space creation before entities", () => {
-		const actions = collectActions(initializeDhcpQuestion);
+	it("initializes DHCP via QuestionDefinition bootstrap", () => {
+		const actions = collectActions((dispatch) => {
+			bootstrapQuestion(DHCP_DEFINITION, dispatch);
+		});
 		assertBootOrder(actions);
 		assertSpaceCoverage(actions, [
 			...Object.keys(DHCP_SPACE_CONFIGS),
@@ -89,8 +92,10 @@ describe("networking init-spaces", () => {
 		]);
 	});
 
-	it("initializes TCP with explicit space creation before entities", () => {
-		const actions = collectActions(initializeTcpQuestion);
+	it("initializes TCP via QuestionDefinition bootstrap", () => {
+		const actions = collectActions((dispatch) => {
+			bootstrapQuestion(TCP_DEFINITION, dispatch);
+		});
 		assertBootOrder(actions);
 		assertSpaceCoverage(actions, [
 			...Object.keys(TCP_SPACE_CONFIGS),

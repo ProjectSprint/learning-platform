@@ -10,7 +10,6 @@ import {
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import {
 	type ConditionContext,
-	type QuestionSpec,
 	resolvePhase,
 } from "@/components/game/domain/question";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
@@ -19,10 +18,7 @@ import {
 	type Arrow,
 	GameProvider,
 	useDrawerManager,
-	useEngineEvents,
 	useGameCtx,
-	useGameDispatch,
-	useGameState,
 } from "@/components/game/game-provider";
 import { DrawerLayout } from "@/components/game/presentation/drawer";
 import {
@@ -39,20 +35,20 @@ import {
 	useTerminalInput,
 	useTerminalStore,
 } from "@/components/game/presentation/terminal";
+import { useQuestionRuntime } from "@/components/game/runtime";
 import type { QuestionProps } from "@/components/module";
 
 import {
 	DHCP_SPACE_IDS,
 	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
-	QUESTION_ID,
 	QUESTION_TITLE,
 	SPACE_CONFIGS,
 	TERMINAL_INTRO_ENTRIES,
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
+import { DHCP_DEFINITION, type DhcpConditionKey } from "./-utils/definition";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import { initializeDhcpQuestion } from "./-utils/init-spaces";
 import {
 	getNetworkingItemLabel,
 	getNetworkingStatusMessage,
@@ -64,45 +60,7 @@ import {
 import { useNetworkState } from "./-utils/use-network-state";
 import { useNetworkingTerminal } from "./-utils/use-networking-terminal";
 
-type DhcpConditionKey = "dragStatus" | "questionStatus";
 const INVENTORY_DRAWER_ID = "inventory-drawer";
-
-const DHCP_SPEC_BASE: Omit<QuestionSpec<DhcpConditionKey>, "handlers"> = {
-	meta: {
-		id: QUESTION_ID,
-		title: QUESTION_TITLE,
-		description: QUESTION_DESCRIPTION,
-	},
-	init: {
-		kind: "multi" as const,
-		payload: {
-			questionId: QUESTION_ID,
-			spaces: {},
-			inventoryGroups: [],
-		},
-	},
-	phaseRules: [
-		{
-			kind: "set",
-			when: { kind: "eq", key: "questionStatus", value: "completed" },
-			to: "completed",
-		},
-		{
-			kind: "set",
-			when: { kind: "eq", key: "dragStatus", value: "finished" },
-			to: "terminal",
-		},
-		{
-			kind: "set",
-			when: { kind: "eq", key: "dragStatus", value: "started" },
-			to: "playing",
-		},
-	],
-	labels: {
-		getItemLabel: getNetworkingItemLabel,
-		getStatusMessage: getNetworkingStatusMessage,
-	},
-};
 
 export const DhcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -117,11 +75,12 @@ const NetworkingGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const dispatch = useGameDispatch();
-	const state = useGameState();
+	// Single runtime hook replaces useGameDispatch + useGameState + useEngineEvents + init useEffect
+	const { commands, state, events, ack, isCompleted } = useQuestionRuntime(
+		"dhcp-page",
+		DHCP_DEFINITION,
+	);
 	const gameCtx = useGameCtx();
-	const { events, ack } = useEngineEvents("dhcp-page");
-	const initializedRef = useRef(false);
 	const terminalInput = useTerminalInput();
 	const {
 		terminal,
@@ -131,7 +90,6 @@ const NetworkingGame = ({
 		addEntry,
 		addOutput,
 	} = useTerminalStore();
-	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
@@ -232,14 +190,8 @@ const NetworkingGame = ({
 				const startIp = String(event.values.startIp ?? "");
 				const endIp = String(event.values.endIp ?? "");
 
-				dispatch({
-					type: "ENTITY_UPDATED",
-					payload: {
-						entityId: deviceId,
-						updates: {
-							data: { dhcpEnabled, startIp, endIp },
-						},
-					},
+				commands.updateEntity(deviceId, {
+					data: { dhcpEnabled, startIp, endIp },
 				});
 
 				shouldSync = true;
@@ -258,50 +210,27 @@ const NetworkingGame = ({
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, dispatch, events, onQuestionComplete]);
+	}, [ack, commands, events, onQuestionComplete]);
 
-	// Item click handlers - kept for compatibility but adapted for entities
+	// Item click handlers
 	const entityClickHandlers = useMemo(
 		() => ({
 			router: (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildRouterConfigModal(entity.id, currentConfig),
-				});
+				commands.openModal(buildRouterConfigModal(entity.id, currentConfig));
 			},
 			pc: (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildPcConfigModal(entity.id, currentConfig),
-				});
+				commands.openModal(buildPcConfigModal(entity.id, currentConfig));
 			},
 		}),
-		[dispatch],
+		[commands],
 	);
 
-	const spec = useMemo<QuestionSpec<DhcpConditionKey>>(
-		() => ({
-			...DHCP_SPEC_BASE,
-			handlers: {
-				onCommand: handleNetworkingCommand,
-				onItemClickByType: {}, // Legacy - not used in new implementation
-				isItemClickableByType: { router: true, pc: true },
-			},
-		}),
-		[handleNetworkingCommand],
+	const isItemClickableByType: Record<string, boolean> = useMemo(
+		() => ({ router: true, pc: true }),
+		[],
 	);
-
-	// Initialize question
-	useEffect(() => {
-		if (initializedRef.current) {
-			return;
-		}
-
-		initializedRef.current = true;
-		initializeDhcpQuestion(dispatch);
-	}, [dispatch]);
 
 	useEffect(() => {
 		setPrompt(TERMINAL_PROMPT);
@@ -318,19 +247,18 @@ const NetworkingGame = ({
 			questionStatus: state.question.status,
 		};
 		const resolved = resolvePhase(
-			spec.phaseRules,
+			DHCP_DEFINITION.phaseRules,
 			context,
 			state.phase,
 			"setup",
 		);
 
 		if (state.phase !== resolved.nextPhase) {
-			dispatch({ type: "SET_PHASE", payload: { phase: resolved.nextPhase } });
+			commands.setPhase(resolved.nextPhase);
 		}
 	}, [
-		dispatch,
+		commands,
 		dragEngine.progress.status,
-		spec.phaseRules,
 		state.phase,
 		state.question.status,
 	]);
@@ -535,9 +463,8 @@ const NetworkingGame = ({
 	);
 
 	const isEntityClickable = useCallback(
-		(entity: EntityData) =>
-			spec.handlers.isItemClickableByType[entity.type] === true,
-		[spec.handlers.isItemClickableByType],
+		(entity: EntityData) => isItemClickableByType[entity.type] === true,
+		[isItemClickableByType],
 	);
 
 	return (

@@ -13,10 +13,7 @@ import {
 	type Arrow,
 	GameProvider,
 	useDrawerManager,
-	useEngineEvents,
 	useGameCtx,
-	useGameDispatch,
-	useGameState,
 } from "@/components/game/game-provider";
 import { DrawerLayout } from "@/components/game/presentation/drawer";
 import {
@@ -26,6 +23,7 @@ import {
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
 import { useBoardArrows } from "@/components/game/presentation/space/arrow";
+import { useQuestionRuntime } from "@/components/game/runtime";
 import type { QuestionProps } from "@/components/module";
 
 import {
@@ -36,8 +34,8 @@ import {
 	RECEIVED_POOL_CONFIG,
 	SPACE_CONFIGS,
 } from "./-utils/constants";
+import { TCP_DEFINITION } from "./-utils/definition";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import { initializeTcpQuestion } from "./-utils/init-spaces";
 import {
 	getTcpItemLabel,
 	getTcpStatusMessage,
@@ -65,12 +63,11 @@ const TcpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const dispatch = useGameDispatch();
-	const state = useGameState();
+	const { commands, state, events, ack, isCompleted } = useQuestionRuntime(
+		"tcp-page",
+		TCP_DEFINITION,
+	);
 	const gameCtx = useGameCtx();
-	const { events, ack } = useEngineEvents("tcp-page");
-	const initializedRef = useRef(false);
-	const isCompleted = state.question.status === "completed";
 	const successShownRef = useRef(false);
 	const {
 		bufferSlots,
@@ -146,27 +143,14 @@ const TcpGame = ({
 		lastReceivedVisibleRef.current = receivedPoolVisible;
 	}, [openDrawer, receivedPoolVisible, updateDrawerConfig]);
 
-	// Initialize question
-	useEffect(() => {
-		if (initializedRef.current) {
-			return;
-		}
-
-		initializedRef.current = true;
-		initializeTcpQuestion(dispatch);
-	}, [dispatch]);
-
 	useEffect(() => {
 		if (state.phase !== "terminal" || isCompleted || successShownRef.current) {
 			return;
 		}
 		successShownRef.current = true;
-		dispatch({
-			type: "OPEN_MODAL",
-			payload: buildSuccessModal(),
-		});
-		dispatch({ type: "COMPLETE_QUESTION" });
-	}, [dispatch, isCompleted, state.phase]);
+		commands.openModal(buildSuccessModal());
+		commands.completeQuestion();
+	}, [commands, isCompleted, state.phase]);
 
 	useEffect(() => {
 		if (events.length === 0) {
