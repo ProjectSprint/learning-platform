@@ -83,9 +83,9 @@ All frames sent → Success modal with comparison
 
 ### TCP Phase Configuration
 
-#### Canvas Setup (TCP)
+#### GridSpace Setup (TCP)
 
-| Canvas ID | Title | Dimensions | Max Items | Purpose |
+| GridSpace ID | Title | Dimensions | Max Items | Purpose |
 |-----------|-------|------------|-----------|---------|
 | `internet` | Internet | 4×1 | 4 | Packet transit zone |
 | `client-a-inbox` | Client A | 2×2 | 4 | Client A connection inbox |
@@ -93,10 +93,10 @@ All frames sent → Success modal with comparison
 | `client-c-inbox` | Client C | 2×2 | 4 | Client C connection inbox |
 | `client-d-inbox` | Client D | 2×2 | 4 | Client D (appears mid-phase) |
 
-**Canvas Visibility Rules**:
+**GridSpace Visibility Rules**:
 - `client-d-inbox`: Hidden initially, revealed when Client D joins
 
-#### Inventory Groups (TCP)
+#### PoolSpace Groups (TCP)
 
 | Group ID | Title | Initial Visibility | Purpose |
 |----------|-------|-------------------|---------|
@@ -135,18 +135,18 @@ All frames sent → Success modal with comparison
 
 ### UDP Phase Configuration
 
-#### Canvas Setup (UDP)
+#### GridSpace Setup (UDP)
 
-| Canvas ID | Title | Dimensions | Max Items | Purpose |
+| GridSpace ID | Title | Dimensions | Max Items | Purpose |
 |-----------|-------|------------|-----------|---------|
 | `outbox` | Outbox | 1×1 | 1 | Fire-and-forget send zone |
 | `client-a` | Client A | 1×1 | 0 | Display only (progress bar) |
 | `client-b` | Client B | 1×1 | 0 | Display only (progress bar) |
 | `client-c` | Client C | 1×1 | 0 | Display only (progress bar) |
 
-**Note**: Client canvases in UDP phase are display-only, showing progress bars. They don't accept item drops.
+**Note**: Client spaces in UDP phase are display-only, showing progress bars. They don't accept item drops.
 
-#### Inventory Groups (UDP)
+#### PoolSpace Groups (UDP)
 
 | Group ID | Title | Initial Visibility | Purpose |
 |----------|-------|-------------------|---------|
@@ -204,7 +204,7 @@ type UdpPhase =
 #### 1. handshake-syn (Initial State)
 
 **Initial Setup**:
-- 3 SYN packets appear in `internet` canvas (from Client A, B, C)
+- 3 SYN packets appear in `internet` space (from Client A, B, C)
 - Each labeled: "SYN from Client A", "SYN from Client B", "SYN from Client C"
 
 **User Action**: Drag each SYN to correct client inbox
@@ -217,18 +217,18 @@ type UdpPhase =
 
 **Side Effects**:
 - Each successful SYN placement shows client status: "🟡 SYN received"
-- Generate SYN-ACK in `outgoing` inventory for that client
+- Generate SYN-ACK in `outgoing` pool for that client
 
 ---
 
 #### 2. handshake-synack
 
-**State**: 3 SYN-ACK packets in `outgoing` inventory
+**State**: 3 SYN-ACK packets in `outgoing` pool
 
 **User Action**: Drag each SYN-ACK through `internet` to destination client
 
 **Mechanic**:
-1. User drags SYN-ACK to `internet` canvas
+1. User drags SYN-ACK to `internet` space
 2. After 1s delay, packet "arrives" (auto-moves to client inbox)
 3. Client status updates: "🟡 SYN-ACK sent, waiting for ACK..."
 
@@ -241,7 +241,7 @@ type UdpPhase =
 
 #### 3. handshake-ack
 
-**State**: 3 ACK packets in `incoming` inventory (labeled by client)
+**State**: 3 ACK packets in `incoming` pool (labeled by client)
 
 **User Action**: Drag each ACK to correct client inbox
 
@@ -250,13 +250,13 @@ type UdpPhase =
 **Side Effects**:
 - Each client status: "🟢 Connected"
 - Show brief modal: "All clients connected! Now send the video data."
-- Reveal `data-packets` inventory with video packets
+- Reveal `data-packets` pool with video packets
 
 ---
 
 #### 4. connected → data-transfer
 
-**State**: Video packets available in inventory
+**State**: Video packets available in pool
 
 **Mechanic**:
 - Packets labeled: "Packet 1 → Client A", "Packet 1 → Client B", etc.
@@ -286,7 +286,7 @@ type UdpPhase =
    > Client D wants to watch too!
    > Handle their connection request.
 
-2. Reveal `client-d-inbox` canvas
+2. Reveal `client-d-inbox` space
 3. Add SYN packet from Client D to `internet`
 
 **User Action**: Complete full handshake for Client D (SYN → SYN-ACK → ACK)
@@ -356,11 +356,11 @@ type UdpPhase =
 #### 9. intro
 
 **Actions**:
-1. Clear all TCP canvases and inventory
+1. Clear all TCP spaces and pools
 2. Show new layout:
-   - `outbox` canvas (center)
+   - `outbox` space (center)
    - 3 client displays with empty progress bars
-   - `frames` inventory with F1-F6
+   - `frames` pool with F1-F6
 
 3. Show intro text (inline, not modal):
    > **UDP: Fire and Forget**
@@ -375,7 +375,7 @@ type UdpPhase =
 
 #### 10. streaming
 
-**State**: 6 frames in inventory, outbox ready
+**State**: 6 frames in pool, outbox ready
 
 **Mechanic**:
 1. User drags frame to `outbox`
@@ -788,11 +788,11 @@ src/routes/questions/networking/udp/
 ├── index.tsx                      # Route definition
 ├── -page.tsx                      # Main component
 │                                  # - Phase management (TCP vs UDP)
-│                                  # - Canvas rendering
+│                                  # - GridSpace rendering
 │                                  # - Progress bar display
 │                                  # - Modal triggers
 └── -utils/
-    ├── constants.ts               # Canvas configs, item definitions
+    ├── constants.ts               # GridSpace configs, item definitions
     ├── use-tcp-phase.ts           # TCP phase state machine
     ├── use-udp-phase.ts           # UDP phase state machine
     ├── frame-destiny.ts           # Deterministic packet loss table
@@ -912,7 +912,7 @@ function processOutbox(frame: FrameItem) {
 
 1. **Timer cleanup**: Clear all timers on phase transition
 2. **State batching**: Batch progress bar updates to avoid excessive re-renders
-3. **Canvas clearing**: Properly dispose TCP canvases before UDP phase
+3. **Space clearing**: Properly dispose TCP spaces before UDP phase
 
 ---
 

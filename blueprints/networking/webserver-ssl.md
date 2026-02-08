@@ -16,49 +16,49 @@ Fill out this template to define a new question. This information will be used t
 
 ---
 
-## 2. Phase 1: Canvas Game
+## 2. Phase 1: Space Game
 
 **Type:** Drag-and-drop
 
 **Goal:** Set up a webserver with HTTP, then upgrade to HTTPS by obtaining and installing an SSL certificate from Let's Encrypt
 
-### 2.1 Canvas and Inventory Architecture
+### 2.1 GridSpace and PoolSpace Architecture
 
-**Engine Capability:** This question uses conditional canvas visibility and dynamic inventory items that appear based on game progress.
+**Engine Capability:** This question uses conditional space visibility and dynamic pool items that appear based on game progress.
 
 **Architecture Design Pattern:**
 
 ```
 Question State
-  ├── Canvas 1 (Browser) - Always visible
-  ├── Canvas 2 (Port 80) - Always visible
-  ├── Canvas 3 (Let's Encrypt) - Conditional: appears after HTTP works but shows "Not Secure"
-  ├── Canvas 4 (Port 443) - Conditional: appears with Canvas 3
+  ├── GridSpace 1 (Browser) - Always visible
+  ├── GridSpace 2 (Port 80) - Always visible
+  ├── GridSpace 3 (Let's Encrypt) - Conditional: appears after HTTP works but shows "Not Secure"
+  ├── GridSpace 4 (Port 443) - Conditional: appears with GridSpace 3
   │
-  ├── Inventory 1 (Basic Components) - Always visible
+  ├── PoolSpace 1 (Basic Components) - Always visible
   │   ├── browser
   │   ├── webserver-80
   │   ├── domain
   │   └── index-html
   │
-  ├── Inventory 2 (SSL Setup) - Conditional: appears after HTTP works (browser warning)
+  ├── PoolSpace 2 (SSL Setup) - Conditional: appears after HTTP works (browser warning)
   │   ├── webserver-443
   │   ├── domain
   │   ├── domain-ssl
   │   └── redirect-to-https
   │
-  ├── Inventory 3 (SSL Certificate) - Conditional: appears after certificate is issued
+  ├── PoolSpace 3 (SSL Certificate) - Conditional: appears after certificate is issued
   │   ├── private-key
   │   └── certificate
 ```
 
-### 2.1.1 Canvas Setup
+### 2.1.1 GridSpace Setup
 
-**Canvas Layout:** Four canvases, with canvases 3 and 4 appearing conditionally.
+**GridSpace Layout:** Four grid spaces, with spaces 3 and 4 appearing conditionally.
 
-**Canvas Order:** `browser` → `port-80` → `letsencrypt` → `port-443`
+**GridSpace Order:** `browser` → `port-80` → `letsencrypt` → `port-443`
 
-| Canvas Key | Title | Grid Size | Max Items | Allowed Item Types |
+| GridSpace Key | Title | Grid Size | Max Items | Allowed Item Types |
 |------------|-------|-----------|-----------|-------------------|
 | browser | Browser | 1 x 1 | 1 | ["browser"] |
 | port-80 | Port 80 (HTTP) | 3 x 1 | 3 | ["webserver-80", "domain", "index-html", "redirect-to-https"] |
@@ -66,30 +66,30 @@ Question State
 | port-443 | Port 443 (HTTPS) | 5 x 1 | 5 | ["webserver-443", "domain", "index-html", "private-key", "certificate"] |
 
 **Interaction Rules:**
-- Placed items can be repositioned within or across canvases (if allowed by item rules)
-- `index-html` can be placed in both port-80 and port-443 canvases (single inventory item)
+- Placed items can be repositioned within or across spaces (if allowed by item rules)
+- `index-html` can be placed in both port-80 and port-443 spaces (single pool item)
 - `domain` items are separate instances for port-80/port-443
-- `domain-ssl` can ONLY be placed in the Let's Encrypt canvas
+- `domain-ssl` can ONLY be placed in the Let's Encrypt space
 - `redirect-to-https` can ONLY be placed in port-80; port-80 is considered complete with `index-html` **or** `redirect-to-https`
 
-**Canvas Visibility Rules:**
+**GridSpace Visibility Rules:**
 
-| Canvas Key | Initial Visibility | Show Condition | Hide Condition | Notes |
+| GridSpace Key | Initial Visibility | Show Condition | Hide Condition | Notes |
 |------------|-------------------|----------------|----------------|----|
 | browser | Always visible | Always | Never | User's browser - core item |
 | port-80 | Always visible | Always | Never | HTTP setup - core item |
 | letsencrypt | Hidden initially | `port-80 complete` (browser shows warning) | Never (persistent once shown) | Appears when HTTP works |
 | port-443 | Hidden initially | `port-80 complete` (browser shows warning) | Never (persistent once shown) | Appears when HTTP works, alongside letsencrypt |
 
-**Implementation Note:** Once canvases 3 & 4 are shown (when HTTP is working), they remain visible for the rest of the question. Do NOT hide them again.
+**Implementation Note:** Once spaces 3 & 4 are shown (when HTTP is working), they remain visible for the rest of the question. Do NOT hide them again.
 
-### 2.1.2 Inventory Setup
+### 2.1.2 PoolSpace Setup
 
-**Inventory Configuration:** This question uses three inventory groups: basic (always visible), SSL setup (appears after HTTP works), and SSL certificate (appears after issuing a certificate).
+**PoolSpace Configuration:** This question uses three pool groups: basic (always visible), SSL setup (appears after HTTP works), and SSL certificate (appears after issuing a certificate).
 
-**Inventory Visibility Timeline:**
+**PoolSpace Visibility Timeline:**
 
-| Inventory Key | Initial Items | Phase 1 (Setup) | Phase 2 (SSL Setup) | Phase 3 (SSL Issued) | Phase 4 (HTTPS Ready) |
+| PoolSpace Key | Initial Items | Phase 1 (Setup) | Phase 2 (SSL Setup) | Phase 3 (SSL Issued) | Phase 4 (HTTPS Ready) |
 |---|---|---|---|---|---|
 | basic | browser-1, webserver-80-1, domain-1, index-html-1 | All 4 visible | (no change) | (no change) | (no change) |
 | ssl-setup | webserver-443-1, domain-2, domain-3, redirect-https-1 | Hidden | Visible after HTTP works | (no change) | (no change) |
@@ -102,7 +102,7 @@ Question State
 | `browser-1` | Visible | Always visible | Core HTTP item |
 | `webserver-80-1` | Visible | Always visible | Core HTTP item |
 | `domain-1` | Visible | Always visible | Used for port 80 |
-| `index-html-1` | Visible | Always visible | Single index.html item used in port 80 or port 443 |
+| `index-html-1` | Visible | Always visible | Single index.html pool item used in port 80 or port 443 |
 | `webserver-443-1` | Hidden | HTTP works (browser warning) | HTTPS webserver |
 | `domain-2` | Hidden | HTTP works (browser warning) | Secondary domain instance for port 443 |
 | `domain-3` | Hidden | HTTP works (browser warning) | Domain (SSL) for Let's Encrypt |
@@ -110,7 +110,7 @@ Question State
 | `private-key-1` | Hidden | Certificate issued from Domain (SSL) modal | Appears after certificate issuance |
 | `certificate-1` | Hidden | Certificate issued from Domain (SSL) modal | Appears after certificate issuance |
 
-**Implementation Note:** Inventory panel itself is always visible. Items are added/removed from inventory as conditions are met.
+**Implementation Note:** Pool panel itself is always visible. Items are added/removed from pool as conditions are met.
 
 ### 2.2 Item Types
 
@@ -184,16 +184,16 @@ Define the types of items in this question. Icons are from [Iconify](https://ico
 
 ### 2.4 Connection Rules
 
-**Connection Method:** Items must be placed in the correct canvas to function together.
+**Connection Method:** Items must be placed in the correct space to function together.
 
-**Port 80 Canvas Requirements:**
+**Port 80 GridSpace Requirements:**
 
 | Required Items | Optional Items | Result |
 |----------------|----------------|--------|
 | webserver-80 + domain + index-html | - | HTTP serving works |
 | webserver-80 + domain + redirect-to-https | - | HTTP redirects to HTTPS |
 
-**Port 443 Canvas Requirements:**
+**Port 443 GridSpace Requirements:**
 
 | Required Items | Result |
 |----------------|--------|
@@ -202,12 +202,12 @@ Define the types of items in this question. Icons are from [Iconify](https://ico
 | webserver-443 + domain + index-html + certificate | Shows "missing private key" |
 | webserver-443 + domain + index-html + private-key + certificate | 🔒 HTTPS working! |
 
-**Let's Encrypt Canvas Requirements:**
+**Let's Encrypt GridSpace Requirements:**
 
 | Required Items | Condition | Result |
 |----------------|-----------|--------|
 | domain-ssl | Click the Domain (SSL) item | Opens certificate request modal |
-| domain-ssl (configured) | Issue Certificate with matching Port 80 domain | Certificate issued, key + cert appear in inventory |
+| domain-ssl (configured) | Issue Certificate with matching Port 80 domain | Certificate issued, key + cert appear in pool |
 
 **Invalid Placements:**
 
@@ -218,9 +218,9 @@ Define the types of items in this question. Icons are from [Iconify](https://ico
 | redirect-to-https in port-443 | ❌ Redirect only makes sense on port 80 |
 | webserver-80 in port-443 | ❌ This webserver is for HTTP (port 80) |
 | webserver-443 in port-80 | ❌ This webserver is for HTTPS (port 443) |
-| domain-ssl in other canvases | Not allowed (no explicit error hint) |
+| domain-ssl in other spaces | Not allowed (no explicit error hint) |
 
-### 2.5 Inventory Items
+### 2.5 Pool Items
 
 | ID | Type | Display Name | Quantity | Visibility Phase | Notes |
 |----|------|--------------|----------|---|-------|
@@ -230,22 +230,22 @@ Define the types of items in this question. Icons are from [Iconify](https://ico
 | `index-html-1` | index-html | index.html | 1 | Always visible | Can be used on port 80 or port 443 |
 | `webserver-443-1` | webserver-443 | Webserver (HTTPS) | 1 | After HTTP works | Appears in SSL setup group |
 | `domain-2` | domain | Domain | 1 | After HTTP works | Secondary domain instance for port 443 |
-| `domain-3` | domain-ssl | Domain (SSL) | 1 | After HTTP works | Used in Let's Encrypt canvas |
+| `domain-3` | domain-ssl | Domain (SSL) | 1 | After HTTP works | Used in Let's Encrypt space |
 | `redirect-https-1` | redirect-to-https | Redirect | 1 | After HTTP works | HTTP→HTTPS redirect item |
 | `private-key-1` | private-key | Private Key | 1 | After certificate issued | Appears when certificate is issued |
 | `certificate-1` | certificate | Domain Certificate | 1 | After certificate issued | Appears when certificate is issued |
 
 **Important: Item Duplication**
 
-Items `domain-1` and `domain-2` represent the SAME conceptual domain but as separate inventory instances:
+Items `domain-1` and `domain-2` represent the SAME conceptual domain but as separate pool instances:
 
 - **`domain-1`** is intended for port 80.
 - **`domain-2`** is intended for port 443 (and can also be placed on port 80).
-- **`domain-3`** (`domain-ssl`) is a separate item used only in the Let's Encrypt canvas.
+- **`domain-3`** (`domain-ssl`) is a separate item used only in the Let's Encrypt space.
 
-`index-html-1` is a single inventory item that can be placed in either port 80 or port 443 (no duplicate index.html item).
+`index-html-1` is a single pool item that can be placed in either port 80 or port 443 (no duplicate index.html pool item).
 
-### 2.6 Inventory Tooltips
+### 2.6 Pool Tooltips
 
 | Item Type | Tooltip Text | Learn More URL |
 |-----------|--------------|----------------|
@@ -269,7 +269,7 @@ Items `domain-1` and `domain-2` represent the SAME conceptual domain but as sepa
 | webserver-80 | webserver-80-status-{deviceId} | Click on placed webserver-80 |
 | webserver-443 | webserver-443-status-{deviceId} | Click on placed webserver-443 |
 | index-html | index-html-view-{deviceId} | Click on placed index.html |
-| domain-ssl | certificate-request-{deviceId} / certificate-status-{deviceId} | Click Domain (SSL) in Let's Encrypt canvas |
+| domain-ssl | certificate-request-{deviceId} / certificate-status-{deviceId} | Click Domain (SSL) in Let's Encrypt space |
 | private-key | private-key-info-{deviceId} | Click on placed private key |
 | certificate | certificate-info-{deviceId} | Click on placed certificate |
 | redirect-to-https | redirect-info-{deviceId} | Click on placed redirect |
@@ -413,7 +413,7 @@ Items `domain-1` and `domain-2` represent the SAME conceptual domain but as sepa
 | domain | Must not be empty | Enter your domain name |
 | domain | Must match domain format | "Invalid domain format. Use: example.com" |
 
-**Cross-Canvas Validation (when "Issue Certificate" clicked):**
+**Cross-Space Validation (when "Issue Certificate" clicked):**
 
 Before issuing certificate, the engine only checks that the entered domain matches the Port 80 domain string (no hard validation of port-80 completeness):
 
@@ -439,12 +439,12 @@ Check if entered domain matches port-80 domain?
 ✅ Certificate Issued!
   - domain-ssl item gets `certificateIssued: true`
   - domain-ssl item stores `certificateDomain`
-  - ssl-items inventory group becomes visible
+  - ssl-items pool group becomes visible
 ```
 
 **Actions:**
 
-| ID | Label | Variant | Validates Field? | Validates Cross-Canvas? | Closes? |
+| ID | Label | Variant | Validates Field? | Validates Cross-Space? | Closes? |
 |----|-------|---------|------------------|------------------------|---------|
 | cancel | Cancel | ghost | No | No | Yes |
 | issue | Issue Certificate | primary | Yes | Yes (domain match only) | No (stays open on success) |
@@ -452,7 +452,7 @@ Check if entered domain matches port-80 domain?
 **On Issue (Success):**
 
 - domain-ssl item is updated with `certificateIssued` and `certificateDomain`
-- Items appear in inventory: `private-key-1`, `certificate-1`
+- Items appear in pool: `private-key-1`, `certificate-1`
 - Modal remains open until closed manually
 
 **On Issue (Failure):**
@@ -476,7 +476,7 @@ This is your server's SECRET key.
 - Must be installed on your webserver (port 443)
 - NEVER share this with anyone!
 
-Status: [In Inventory] / [Installed on server]
+Status: [In Pool] / [Installed on server]
 ```
 
 **Actions:**
@@ -503,7 +503,7 @@ Valid: 90 days
 This certificate is sent to browsers to prove your server's identity.
 It contains your public key (browsers use this to encrypt data to you).
 
-Status: [In Inventory] / [Installed on server]
+Status: [In Pool] / [Installed on server]
 ```
 
 **Actions:**
@@ -580,9 +580,9 @@ Location: https://example.com/
 ```
 Browser can connect (HTTP)  ← Port 80: webserver-80 + domain + (index-html or redirect)
 Browser shows warning       ← HTTP works but HTTPS not ready
-Canvases 3 & 4 appear       ← Port 80 complete (browser warning)
-SSL setup inventory appears ← Port 80 complete (browser warning)
-SSL cert inventory appears  ← Domain (SSL) certificate issued
+GridSpaces 3 & 4 appear       ← Port 80 complete (browser warning)
+SSL setup pool appears ← Port 80 complete (browser warning)
+SSL cert pool appears  ← Domain (SSL) certificate issued
 HTTPS works                 ← Port 443: webserver-443 + domain + index-html + key + cert
 Redirect enabled            ← redirect-to-https placed on port 80
 Browser shows secure        ← Port 443 complete + redirect on port 80
@@ -620,17 +620,17 @@ Browser shows secure        ← Port 443 complete + redirect on port 80
 
 | Condition | Hint Text |
 |-----------|-----------|
-| Canvas empty | Drag the Browser to the first canvas |
-| Browser placed, nothing else | Now set up your webserver! Drag Webserver (HTTP) to the Port 80 canvas |
-| Webserver-80 placed, no domain | Add your domain to the Port 80 canvas |
+| Space empty | Drag the Browser to the first space |
+| Browser placed, nothing else | Now set up your webserver! Drag Webserver (HTTP) to the Port 80 space |
+| Webserver-80 placed, no domain | Add your domain to the Port 80 space |
 | Webserver-80 + domain, no index or redirect | Add index.html so your webserver has something to serve |
 | Port 80 complete | Click the Browser to see your website! |
-| Browser shows warning + letsencrypt empty | ⚠️ Your site works but it's not secure! New canvases have appeared... |
-| Browser shows warning + letsencrypt has items | Drag the Domain (SSL) to the Let's Encrypt canvas to get a certificate |
-| Domain (SSL) placed, modal closed | Click the Domain (SSL) in the Let's Encrypt canvas to request a certificate |
+| Browser shows warning + letsencrypt empty | ⚠️ Your site works but it's not secure! New spaces have appeared... |
+| Browser shows warning + letsencrypt has items | Drag the Domain (SSL) to the Let's Encrypt space to get a certificate |
+| Domain (SSL) placed, modal closed | Click the Domain (SSL) in the Let's Encrypt space to request a certificate |
 | Domain (SSL) modal open | Enter your domain name (e.g., example.com) |
-| Certificate issued, port 443 empty | 🎉 You got a certificate! Drag the Private Key and Domain Certificate to the Port 443 canvas |
-| Certificate issued, port 443 missing webserver | Set up your HTTPS webserver in the Port 443 canvas |
+| Certificate issued, port 443 empty | 🎉 You got a certificate! Drag the Private Key and Domain Certificate to the Port 443 space |
+| Certificate issued, port 443 missing webserver | Set up your HTTPS webserver in the Port 443 space |
 | Port 443 missing key or cert | Install both the private key AND domain certificate on your HTTPS webserver |
 | Port 443 missing domain | Add your domain and index.html to Port 443 |
 | Port 443 missing index.html | Add index.html to Port 443 |
@@ -652,20 +652,20 @@ Browser shows secure        ← Port 443 complete + redirect on port 80
 
 | Current Phase | Condition | Next Phase | Changes |
 |---------------|-----------|------------|---------|
-| `setup` | Port 80 complete and browser status is warning | `playing` | SSL setup inventory appears; letsencrypt + port-443 canvases appear |
+| `setup` | Port 80 complete and browser status is warning | `playing` | SSL setup pool appears; letsencrypt + port-443 spaces appear |
 | `playing` | Port 443 complete + redirect configured + browser secure | `terminal` | Terminal panel appears |
 | `terminal` | `curl https://...` succeeds with redirect configured | `completed` | Success modal + question complete |
 
 **Phase Behaviors:**
 
-| Phase | Canvases Visible | Inventories Visible | Notes |
+| Phase | Spaces Visible | Pools Visible | Notes |
 |-------|------------------|---------------------|-------|
 | `setup` | browser, port-80 | basic | Only HTTP items |
 | `playing` | all 4 | basic + ssl-setup (+ ssl-items after issuance) | SSL setup and certificate flow |
 | `terminal` | all 4 (read-only) | all (read-only) | Terminal visible |
 | `completed` | all 4 (read-only) | all (read-only) | Success modal |
 
-**Note:** Once the SSL canvases appear, they remain visible even if Port 80 later becomes incomplete (the UI does not regress back to setup).
+**Note:** Once the SSL spaces appear, they remain visible even if Port 80 later becomes incomplete (the UI does not regress back to setup).
 
 ---
 
@@ -682,7 +682,7 @@ Browser shows secure        ← Port 443 complete + redirect on port 80
 
 **Visible UI:**
 - Terminal panel appears at bottom
-- All canvases remain visible (read-only)
+- All spaces remain visible (read-only)
 - SSL handshake animation can replay
 
 ### 3.2 Expected Commands
@@ -827,19 +827,19 @@ This puzzle assumes knowledge from:
 
 Before implementation, ensure you have defined:
 
-**Phase 1 - Canvas Game:**
-- [x] Canvas setup (4 canvases: browser, port-80, letsencrypt, port-443)
-- [x] Canvas visibility rules (conditional for letsencrypt and port-443)
+**Phase 1 - Space Game:**
+- [x] GridSpace setup (4 spaces: browser, port-80, letsencrypt, port-443)
+- [x] GridSpace visibility rules (conditional for letsencrypt and port-443)
 - [x] Item types with display labels, icons, and click behavior (9 types)
 - [x] Item states and status messages for each type
-- [x] Connection/placement rules for each canvas
+- [x] Connection/placement rules for each space
 - [x] Multiple inventories (basic, ssl-setup, ssl-items)
-- [x] Conditional inventory visibility rules
+- [x] Conditional pool visibility rules
 - [x] Tooltips for all item types
 - [x] Modal triggers and definitions (8 modals)
 - [x] SSL handshake visualization
 - [x] Progressive hints and error hints
-- [x] Phase transition rules with conditional canvas/inventory reveals
+- [x] Phase transition rules with conditional space/pool reveals
 
 **Phase 2 - Terminal Game:**
 - [x] Terminal prompt

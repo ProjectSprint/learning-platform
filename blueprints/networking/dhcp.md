@@ -16,13 +16,13 @@ Fill out this template to define a new question. This information will be used t
 
 ---
 
-## 2. Phase 1: Canvas Game
+## 2. Phase 1: Space Game
 
 **Type:** Drag-and-drop
 
 **Goal:** Build the network by placing and connecting devices
 
-### 2.1 Canvas Setup
+### 2.1 Space Setup
 
 **Grid Size:** `[columns] x [rows]` (e.g., 5x1)
 
@@ -92,7 +92,7 @@ For each item type, define the possible states and what message to display:
 | router → router | ❌ Both cable ends are on the router - connect one end to a PC |
 | pc with 2+ cables | ❌ This PC already has a cable - connect the other PC instead |
 
-### 2.5 Inventory Items
+### 2.5 PoolSpace Items
 
 | ID | Type | Display Name | Quantity | Notes |
 |----|------|--------------|----------|-------|
@@ -102,7 +102,7 @@ For each item type, define the possible states and what message to display:
 | `cable-1` | cable | Cable | 1 | Connects devices |
 | `cable-2` | cable | Cable | 1 | Connects devices |
 
-### 2.6 Inventory Tooltips
+### 2.6 PoolSpace Tooltips
 
 | Item Type | Tooltip Text | Learn More URL |
 |-----------|--------------|----------------|
@@ -213,7 +213,7 @@ Guide the learner through each step:
 
 | Condition | Hint Text |
 |-----------|-----------|
-| Canvas is empty | Drag a PC from inventory to any slot to start |
+| Space is empty | Drag a PC from the pool to any slot to start |
 | 1 PC placed, no router | Add the second PC to another slot |
 | 2 PCs placed, no router | Place the router in the middle slot to connect both PCs |
 | Router + 2 PCs, no cables | Connect PC-1 to the router using a cable |
@@ -244,14 +244,14 @@ The game automatically transitions between phases based on network state:
 
 **Phase Behaviors:**
 
-| Phase | Terminal Visible | Canvas Editable |
+| Phase | Terminal Visible | Spaces Editable |
 |-------|------------------|-----------------|
 | `setup` | No | Yes |
 | `playing` | No | Yes |
 | `terminal` | Yes | Read-only |
 | `completed` | Yes | Read-only |
 
-**Canvas Phase Completion Trigger:** Router configured + both PCs have IP addresses assigned
+**Space Phase Completion Trigger:** Router configured + both PCs have IP addresses assigned
 
 **Next Phase:** Terminal Game
 
@@ -270,7 +270,7 @@ The game automatically transitions between phases based on network state:
 
 **Visible UI:**
 - Terminal panel appears at bottom
-- Canvas remains visible (read-only)
+- Spaces remain visible (read-only)
 
 ### 3.2 Expected Command
 
@@ -340,13 +340,13 @@ Reply from 192.168.1.3: bytes=32 time<1ms TTL=64
 
 Before implementation, ensure you have defined:
 
-**Phase 1 - Canvas Game:**
-- [ ] Canvas setup (grid size, max items, allowed item types)
+**Phase 1 - Space Game:**
+- [ ] Space setup (grid size, max items, allowed item types)
 - [ ] Item types with display labels, icons, and click behavior
 - [ ] Item states and status messages for each type
 - [ ] Connection rules (valid and invalid)
-- [ ] Inventory items with IDs and types
-- [ ] Tooltips for item types
+- [ ] PoolSpace items with IDs and types
+- [ ] Tooltips for entity types
 - [ ] Modal triggers and definitions
 - [ ] Modal fields, validation rules, and validation constants
 - [ ] Automatic state changes (e.g., IP assignment)

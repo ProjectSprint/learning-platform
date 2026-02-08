@@ -71,24 +71,24 @@ Completion
 
 ## Game Configuration
 
-### Canvas Setup
+### GridSpace Setup
 
-Three canvases represent the data flow pipeline:
+Three grid spaces represent the data flow pipeline:
 
-| Canvas ID | Title | Dimensions | Max Items | Initial Visibility | Purpose |
+| GridSpace ID | Title | Dimensions | Max Items | Initial Visibility | Purpose |
 |-----------|-------|------------|-----------|-------------------|---------|
 | `splitter` | Content Splitter | 1×1 | 1 | Hidden | File fragmentation zone |
 | `internet` | Internet | 3×1 | 3 | Visible | Packet transit simulation |
 | `server` | Server | 3×4 | 12 | Visible | Data reception & buffering |
 
-**Canvas Visibility Rules**:
+**GridSpace Visibility Rules**:
 - `splitter`: Hidden initially, revealed after MTU limit modal (phase: mtu → splitter)
 - `internet`: Always visible
 - `server`: Always visible
 
-### Inventory Groups
+### PoolSpace Groups
 
-Four progressive inventory groups:
+Four progressive pool groups:
 
 | Group ID | Title | Initial Visibility | Purpose |
 |----------|-------|-------------------|---------|
@@ -164,19 +164,19 @@ type TcpPhase =
 
 #### 1. mtu → splitter
 
-**Trigger**: User drags file (message.txt or notes.txt) directly to `internet` canvas
+**Trigger**: User drags file (message.txt or notes.txt) directly to `internet` space
 
 **Conditions**:
 - Phase is `mtu`
-- File item placed on internet canvas
+- File item placed on internet space
 
 **Actions**:
 1. Reject the file placement (remove from internet)
 2. Update file item: `tcpState: "rejected"`
 3. Show MTU limit modal (if not shown before)
 4. Set phase to `splitter`
-5. Reveal `splitter` canvas (set visible: true)
-6. Add file back to inventory with status reset
+5. Reveal `splitter` space (set visible: true)
+6. Add file back to pool with status reset
 
 **Side Effects**:
 - Modal shown: `mtu-limit` (see Modal System section)
@@ -186,7 +186,7 @@ type TcpPhase =
 
 #### 2. splitter → split-send
 
-**Trigger**: User drops file onto `splitter` canvas
+**Trigger**: User drops file onto `splitter` space
 
 **Conditions**:
 - Phase is `splitter`
@@ -195,8 +195,8 @@ type TcpPhase =
 **Actions**:
 1. Determine packet count: message.txt → 3 packets, notes.txt → 6 packets
 2. Generate split packets with sequences 1 through N
-3. Hide `files` inventory group
-4. Show `split` inventory group
+3. Hide `files` pool group
+4. Show `split` pool group
 5. Populate split group with packet items
 6. Set phase to `split-send`
 7. Remove file from splitter
@@ -232,7 +232,7 @@ for (let seq = 1; seq <= packetCount; seq++) {
 
 **Conditions**:
 - Phase is `split-send`
-- Split packet transferred to `server` canvas
+- Split packet transferred to `server` space
 - Connection not established (sequenceEnabled = false)
 
 **Actions**:
@@ -240,7 +240,7 @@ for (let seq = 1; seq <= packetCount; seq++) {
 2. Remove rejected packet from server
 3. Show SYN intro modal (if not shown before)
 4. Set phase to `syn`
-5. Add SYN flag to `tcp-tools` inventory group
+5. Add SYN flag to `tcp-tools` pool group
 6. Make `tcp-tools` group visible
 
 **Server Response**:
@@ -260,7 +260,7 @@ for (let seq = 1; seq <= packetCount; seq++) {
 
 **Conditions**:
 - Phase is `syn`
-- SYN flag placed on `internet` canvas
+- SYN flag placed on `internet` space
 
 **Actions**:
 1. Mark SYN as in-transit: `tcpState: "in-transit"`
@@ -274,7 +274,7 @@ for (let seq = 1; seq <= packetCount; seq++) {
    - Server terminal: "🟡 SYN received - sending SYN-ACK..."
    - Mark SYN as received
    - Generate SYN-ACK flag
-   - Add SYN-ACK to `received` inventory group
+   - Add SYN-ACK to `received` pool group
    - Make `received` group visible
    - Send SYN-ACK to internet (travels back to client)
 
@@ -296,7 +296,7 @@ for (let seq = 1; seq <= packetCount; seq++) {
 1. Mark SYN-ACK as received
 2. Show SYN-ACK received modal
 3. Set phase to `ack`
-4. Add ACK flag to `tcp-tools` inventory
+4. Add ACK flag to `tcp-tools` pool
 5. Server status: "🟡 SYN-ACK sent - waiting for ACK..."
 
 **Modal Chain**:
@@ -355,7 +355,7 @@ for (let seq = 1; seq <= packetCount; seq++) {
 3. Server terminal: "Waiting for notes.txt packets..."
 4. Remove message packets from server
 5. Set phase to `notes`
-6. Add notes.txt file back to `files` inventory
+6. Add notes.txt file back to `files` pool
 7. Show `files` group again
 8. Reset buffer state (clear received/waiting sequences)
 
@@ -397,11 +397,11 @@ for (let seq = 1; seq <= packetCount; seq++) {
 **Conditions**:
 - Phase is `loss`
 - Server has sent same ACK number 3+ times consecutively
-- Missing packet exists in inventory
+- Missing packet exists in pool
 
 **Actions**:
 1. Set phase to `resend`
-2. Highlight missing packet (#2) in inventory:
+2. Highlight missing packet (#2) in pool:
    - Name: "Packet #2 (Resend?)"
    - Color: #F87171 (red)
 3. Show duplicate ACKs modal
@@ -464,7 +464,7 @@ if (duplicateCount >= 3) {
 2. Server terminal: "Processing..." then "📄 notes.txt received successfully!"
 3. Remove notes packets from server
 4. Show close connection modal
-5. Add FIN flag to `tcp-tools` inventory
+5. Add FIN flag to `tcp-tools` pool
 6. Set phase to `closing`
 
 **Side Effects**:
@@ -625,7 +625,7 @@ When packets buffered or missing:
 
 ### Connection Tunnel
 
-Animated visual element appearing between internet and server canvases.
+Animated visual element appearing between internet and server spacees.
 
 **Visibility**:
 - Show when: `connectionActive = true`
@@ -736,7 +736,7 @@ Ten modals guide the learning experience with exact text content.
 **Actions**:
 - Button: "Close" (primary, closes modal)
 
-**Effect**: Reveals splitter canvas
+**Effect**: Reveals splitter space
 
 ---
 
@@ -756,7 +756,7 @@ Ten modals guide the learning experience with exact text content.
 **Actions**:
 - Button: "Close" (primary, closes modal)
 
-**Effect**: Adds SYN flag to inventory
+**Effect**: Adds SYN flag to pool
 
 ---
 
@@ -794,7 +794,7 @@ Ten modals guide the learning experience with exact text content.
 **Actions**:
 - Button: "Send ACK" (primary, closes modal)
 
-**Effect**: Adds ACK flag to inventory
+**Effect**: Adds ACK flag to pool
 
 ---
 
@@ -873,7 +873,7 @@ Ten modals guide the learning experience with exact text content.
 **Actions**:
 - Button: "Close" (primary, closes modal)
 
-**Effect**: Highlights missing packet in inventory (red color, "Resend?" label)
+**Effect**: Highlights missing packet in pool (red color, "Resend?" label)
 
 ---
 
@@ -891,7 +891,7 @@ Ten modals guide the learning experience with exact text content.
 **Actions**:
 - Button: "Close" (primary, closes modal)
 
-**Effect**: Adds FIN flag to inventory
+**Effect**: Adds FIN flag to pool
 
 ---
 
@@ -1091,7 +1091,7 @@ Each item type has an educational tooltip with Wikipedia link.
 | `ack-flag` | "ACK completes the handshake so data can flow." | https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment |
 | `fin-flag` | "FIN closes a TCP connection cleanly after data transfer." | https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_termination |
 
-**Tooltip Display**: Show on hover over inventory item, with "Learn more →" link to Wikipedia.
+**Tooltip Display**: Show on hover over pool item, with "Learn more →" link to Wikipedia.
 
 ---
 
@@ -1101,7 +1101,7 @@ All delays specified in milliseconds.
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `INTERNET_TRAVEL_MS` | 2000 | Time for item to travel through internet canvas |
+| `INTERNET_TRAVEL_MS` | 2000 | Time for item to travel through internet space |
 | `SERVER_PROCESS_MS` | 3000 | Server processing delay before response |
 | `SERVER_REJECT_DELAY_MS` | 2000 | Delay before removing rejected items from server |
 | `MESSAGE_REJECT_DELAY_MS` | 2000 | Delay before removing rejected file from internet |
@@ -1116,17 +1116,17 @@ All delays specified in milliseconds.
 
 ### Packet Flow Simulation
 
-**Pattern**: Watch canvas for new items → Mark in-transit → Delay → Transfer to next canvas
+**Pattern**: Watch space for new items → Mark in-transit → Delay → Transfer to next space
 
 **Implementation Approach**:
-1. Track previous canvas item IDs in ref
-2. On canvas change, find new items (not in previous set)
+1. Track previous space item IDs in ref
+2. On space change, find new items (not in previous set)
 3. For each new item, apply business logic based on type and phase
 4. Register all timers for cleanup
 
-**Example - Internet Canvas**:
+**Example - Internet Space**:
 - New item detected → Mark as "in-transit"
-- After INTERNET_TRAVEL_MS → Transfer to server canvas
+- After INTERNET_TRAVEL_MS → Transfer to server space
 - If item is packet #2 during loss phase → Mark as "lost", remove after LOSS_FADE_MS
 
 ### Packet Loss Mechanism
@@ -1139,7 +1139,7 @@ All delays specified in milliseconds.
 
 **Logic**:
 ```
-When item arrives at internet canvas:
+When item arrives at internet space:
   If item type is split-packet
     AND lossScenarioActive is true
     AND item.seq is 2
@@ -1154,7 +1154,7 @@ When item arrives at internet canvas:
 ```
 When 3 duplicate ACKs detected:
   → Set allowPacket2 to true
-  → Highlight packet #2 in inventory (red, "Resend?" label)
+  → Highlight packet #2 in pool (red, "Resend?" label)
   → Change phase to "resend"
 
 When packet #2 sent again:
@@ -1315,17 +1315,17 @@ useEffect(() => {
 
 ### Item Tracking
 
-**Problem**: Need to find item's current location across multiple canvases.
+**Problem**: Need to find item's current location across multiple spaces.
 
-**Solution**: Search all canvases, return location + item.
+**Solution**: Search all spaces, return location + item.
 
 **Pattern**:
 ```typescript
 const findItemLocationLatest = (itemId: string) => {
-  for (const [canvasKey, canvas] of Object.entries(canvasesRef.current)) {
-    const item = canvas.placedItems.find(i => i.id === itemId);
+  for (const [spaceKey, space] of Object.entries(spacesRef.current)) {
+    const item = space.placedItems.find(i => i.id === itemId);
     if (item) {
-      return { canvasId: canvasKey, item };
+      return { spaceId: spaceKey, item };
     }
   }
   return null;
@@ -1342,7 +1342,7 @@ const findItemLocationLatest = (itemId: string) => {
 ```typescript
 const updateItemIfNeeded = (
   item: PlacedItem,
-  canvasId: string,
+  spaceId: string,
   updates: { status?: string; [key: string]: unknown }
 ) => {
   let needsUpdate = false;
@@ -1367,7 +1367,7 @@ const updateItemIfNeeded = (
     type: 'CONFIGURE_DEVICE',
     payload: {
       deviceId: item.id,
-      puzzleId: canvasId,
+      puzzleId: spaceId,
       config: updates
     }
   });
@@ -1376,7 +1376,7 @@ const updateItemIfNeeded = (
 
 ### Previous State Detection
 
-**Problem**: Need to detect NEW items placed on canvas (not existing items).
+**Problem**: Need to detect NEW items placed on space (not existing items).
 
 **Solution**: Track previous item IDs, compare with current.
 
@@ -1385,10 +1385,10 @@ const updateItemIfNeeded = (
 const prevInternetIdsRef = useRef<Set<string>>(new Set());
 
 useEffect(() => {
-  const currentIds = new Set(internetCanvas.placedItems.map(i => i.id));
+  const currentIds = new Set(internetSpace.placedItems.map(i => i.id));
 
   // Find new items (in current but not in previous)
-  const newItems = internetCanvas.placedItems.filter(
+  const newItems = internetSpace.placedItems.filter(
     item => !prevInternetIdsRef.current.has(item.id)
   );
 
@@ -1399,7 +1399,7 @@ useEffect(() => {
 
   // Update previous for next comparison
   prevInternetIdsRef.current = currentIds;
-}, [internetCanvas.placedItems]);
+}, [internetSpace.placedItems]);
 ```
 
 ### Modal Deduplication
@@ -1471,7 +1471,7 @@ Items use game engine status field for visual indication:
 
 ### Server Status Display
 
-**Location**: Above server canvas
+**Location**: Above server space
 
 **Content**: Current server log last entry (or status message)
 
@@ -1525,12 +1525,12 @@ Question completion requires:
 src/routes/questions/networking/tcp/
 ├── index.tsx                      # Route definition
 ├── -page.tsx                      # Main component (434 lines)
-│                                  # - Renders canvases, inventory, modals
+│                                  # - Renders spaces, pools, modals
 │                                  # - Manages game/business phase sync
 │                                  # - Displays server terminal, buffer, tunnel
 │                                  # - Shows contextual hints
 └── -utils/
-    ├── constants.ts               # Canvas configs, item definitions (184 lines)
+    ├── constants.ts               # Space configs, item definitions (184 lines)
     ├── use-tcp-state.ts           # Business logic state machine (1,195 lines)
     │                              # - Phase management
     │                              # - Packet flow simulation (internet, server)
@@ -1542,7 +1542,7 @@ src/routes/questions/networking/tcp/
     ├── use-tcp-terminal.ts        # Terminal command handler (75 lines)
     ├── modal-builders.ts          # Modal factory functions (188 lines)
     ├── get-contextual-hint.ts     # Phase-based hint logic (86 lines)
-    ├── inventory-tooltips.ts      # Educational tooltips (41 lines)
+    ├── pool-tooltips.ts      # Educational tooltips (41 lines)
     └── item-notification.ts       # Item labels & status messages (64 lines)
 ```
 
@@ -1551,14 +1551,14 @@ src/routes/questions/networking/tcp/
 ### Key Files Explained
 
 **-page.tsx**:
-- Renders UI: canvases, inventory, server terminal, buffer display, connection tunnel
+- Renders UI: spaces, pools, server terminal, buffer display, connection tunnel
 - Syncs business phase (useTcpState) with game phase (useGameState)
 - Shows contextual hints based on phase
 - Displays modals at appropriate triggers
 
 **use-tcp-state.ts** (Core Business Logic):
 - Manages TCP-specific phase state (11 phases)
-- Watches canvas changes, detects new items
+- Watches space changes, detects new items
 - Simulates packet travel with timers
 - Implements buffer logic (received/waiting sets)
 - Tracks duplicate ACKs
@@ -1581,7 +1581,7 @@ src/routes/questions/networking/tcp/
 - Returns hint text based on current phase and state
 - Handles special cases (packet waiting, out of order, connection lost)
 
-**inventory-tooltips.ts**:
+**pool-tooltips.ts**:
 - Returns tooltip text and Wikipedia links for each item type
 
 **item-notification.ts**:
@@ -1671,11 +1671,11 @@ src/routes/questions/networking/tcp/
 This blueprint represents the complete source of truth for the TCP File Fragmentation question. All content, behavior, timing, and logic are specified to enable implementation without ambiguity.
 
 **Implementation Checklist**:
-- [ ] Canvas setup (3 canvases with exact configs)
-- [ ] Inventory groups (4 groups, progressive visibility)
+- [ ] GridSpace setup (3 spaces with exact configs)
+- [ ] PoolSpace groups (4 groups, progressive visibility)
 - [ ] Item types (8 types with exact data schemas)
 - [ ] Phase state machine (11 phases with all transitions)
-- [ ] Packet flow simulation (internet/server canvas watchers)
+- [ ] Packet flow simulation (internet/server space watchers)
 - [ ] Buffer management (HOL blocking, release with stagger)
 - [ ] Duplicate ACK detection (tracking, threshold, fast retransmit)
 - [ ] Packet loss mechanism (packet #2, retransmit gate)

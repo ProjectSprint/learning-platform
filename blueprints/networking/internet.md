@@ -16,45 +16,45 @@ Fill out this template to define a new question. This information will be used t
 
 ---
 
-## 2. Phase 1: Canvas Game
+## 2. Phase 1: Space Game
 
 **Type:** Drag-and-drop
 
 **Goal:** Build a complete path from PC to Google by connecting devices and configuring the router's WAN settings, NAT, and DNS
 
-### 2.1 Canvas and Inventory Architecture
+### 2.1 GridSpace and PoolSpace Architecture
 
-**Engine Capability:** The game engine supports multiple canvases and multiple inventories with independent visibility rules and appearance/disappearance conditions.
+**Engine Capability:** The game engine supports multiple grid spaces and multiple pool spaces with independent visibility rules and appearance/disappearance conditions.
 
-**This Question:** Currently uses one inventory, but the architecture supports:
-- Multiple inventories (e.g., primary inventory, secondary inventory, context-specific inventories)
-- Per-canvas visibility rules (show/hide specific canvases based on game state)
-- Per-inventory visibility rules (show/hide specific inventory items based on game state)
-- Conditional inventory item availability (items appear/disappear based on game progress)
+**This Question:** Currently uses one pool, but the architecture supports:
+- Multiple pools (e.g., primary pool, secondary pool, context-specific pools)
+- Per-space visibility rules (show/hide specific spaces based on game state)
+- Per-pool visibility rules (show/hide specific pool items based on game state)
+- Conditional pool item availability (items appear/disappear based on game progress)
 
 **Architecture Design Pattern:**
 
 ```
 Question State
-  ├── Canvas 1 (Local)
-  ├── Canvas 2 (Connector)
+  ├── GridSpace 1 (Local)
+  ├── GridSpace 2 (Connector)
   ├── ...
-  ├── Inventory 1 (Primary)
+  ├── PoolSpace 1 (Primary)
   │   ├── Item 1 (visibility rules)
   │   ├── Item 2 (visibility rules)
   │   └── ...
-  ├── Inventory 2 (Secondary) [optional]
+  ├── PoolSpace 2 (Secondary) [optional]
   │   ├── Item X
   │   └── ...
 ```
 
-### 2.1.1 Canvas Setup
+### 2.1.1 GridSpace Setup
 
-**Canvas Layout:** Five canvases arranged left-to-right, each with its own title.
+**GridSpace Layout:** Five grid spaces arranged left-to-right, each with its own title.
 
-**Canvas Order:** `local` → `conn-1` → `router` → `conn-2` → `internet`
+**GridSpace Order:** `local` → `conn-1` → `router` → `conn-2` → `internet`
 
-| Canvas Key | Title | Grid Size | Max Items | Allowed Item Types |
+| GridSpace Key | Title | Grid Size | Max Items | Allowed Item Types |
 |------------|-------|-----------|----------|--------------------|
 | local | Local | 1 x 1 | 1 | ["pc"] |
 | conn-1 | Connector (Conn 1) | 1 x 1 | 1 | ["cable"] |
@@ -63,13 +63,13 @@ Question State
 | internet | Internet | 4 x 1 | 4 | ["igw", "internet", "dns", "google"] |
 
 **Interaction Rules:**
-- Placed items can be repositioned within or across canvases.
-- Dropping a placed item onto another placed item swaps them (cross-canvas allowed if both canvases allow the incoming type).
-- Inventory drops never swap; they only place into empty slots.
+- Placed items can be repositioned within or across spaces.
+- Dropping a placed item onto another placed item swaps them (cross-space allowed if both spaces allow the incoming type).
+- Pool drops never swap; they only place into empty slots.
 
-**Canvas Visibility Rules:**
+**GridSpace Visibility Rules:**
 
-| Canvas Key | Initial Visibility | Visibility Condition | Notes |
+| GridSpace Key | Initial Visibility | Visibility Condition | Notes |
 |------------|-------------------|----------------------|-------|
 | local | Always visible | Always visible | User's local network |
 | conn-1 | Always visible | Always visible | Connection point 1 |
@@ -77,19 +77,19 @@ Question State
 | conn-2 | Always visible | Always visible | Connection point 2 |
 | internet | Always visible | Always visible | Internet destination |
 
-*Note: For future puzzles with multiple inventories, canvases can be conditionally shown/hidden based on game progress, user level, or specific learning paths.*
+*Note: For future puzzles with multiple pools, spaces can be conditionally shown/hidden based on game progress, user level, or specific learning paths.*
 
-### 2.1.2 Inventory Setup
+### 2.1.2 PoolSpace Setup
 
-**Inventory Configuration:** This question uses a single primary inventory. The engine architecture supports multiple inventories:
+**PoolSpace Configuration:** This question uses a single primary pool. The engine architecture supports multiple pools:
 
-| Inventory Key | Display Name | Visibility | Item Groups | Visibility Rules |
+| PoolSpace Key | Display Name | Visibility | Item Groups | Visibility Rules |
 |---|---|---|---|---|
-| primary | Inventory | Always visible | All network items | Items visible based on game phase |
+| primary | Pool | Always visible | All network items | Items visible based on game phase |
 
-**Inventory Visibility Rules:**
+**PoolSpace Visibility Rules:**
 
-Items in the inventory can have conditional visibility rules:
+Items in the pool can have conditional visibility rules:
 
 | Item ID | Initial Visibility | Show Condition | Hide Condition | Notes |
 |---------|-------------------|----------------|-----------------|-------|
@@ -104,7 +104,7 @@ Items in the inventory can have conditional visibility rules:
 | dns-1 | Always visible | Always visible | Never hidden | Core item |
 | google-1 | Always visible | Always visible | Never hidden | Core item |
 
-*Note: In future puzzles with dynamic inventory, items can conditionally appear/disappear based on:*
+*Note: In future puzzles with dynamic pool, items can conditionally appear/disappear based on:*
 - *Game phase completion*
 - *Previous question results*
 - *Difficulty level selection*
@@ -218,7 +218,7 @@ For each item type, define the possible states and what message to display:
 
 **Connection Method:** `adjacency` - items connect when placed next to each other in correct order
 
-**Canvas Adjacency:** Canvases are treated as one continuous path in the order listed above (local → conn-1 → router → conn-2 → internet).
+**GridSpace Adjacency:** Grid spaces are treated as one continuous path in the order listed above (local → conn-1 → router → conn-2 → internet).
 
 **Required Order (left to right):**
 ```
@@ -248,7 +248,7 @@ For each item type, define the possible states and what message to display:
 | router-nat → igw | ❌ Router NAT must go through WAN first |
 | Items out of order | ❌ Devices must be connected in the correct order |
 
-### 2.5 Inventory Items
+### 2.5 Pool Items
 
 | ID | Type | Display Name | Quantity | Notes |
 |----|------|--------------|----------|-------|
@@ -263,7 +263,7 @@ For each item type, define the possible states and what message to display:
 | `dns-1` | dns | DNS Server | 1 | Resolves domains |
 | `google-1` | google | Google | 1 | Destination |
 
-### 2.6 Inventory Tooltips
+### 2.6 Pool Tooltips
 
 | Item Type | Tooltip Text | Learn More URL |
 |-----------|--------------|----------------|
@@ -583,16 +583,16 @@ Guide the learner through each step:
 
 | Condition | Hint Text |
 |-----------|-----------|
-| Canvas is empty | Drag the PC from inventory to the Local canvas |
+| Space is empty | Drag the PC from pool to the Local space |
 | PC placed, no cable | Place the Ethernet cable in Connector (Conn 1) |
-| Cable placed, no router-lan | Place the Router (LAN) in the Router canvas |
-| Router LAN placed, no router-nat | Place the Router (NAT) in the Router canvas |
-| Router NAT placed, no router-wan | Place the Router (WAN) in the Router canvas |
+| Cable placed, no router-lan | Place the Router (LAN) in the Router space |
+| Router LAN placed, no router-nat | Place the Router (NAT) in the Router space |
+| Router NAT placed, no router-wan | Place the Router (WAN) in the Router space |
 | Router WAN placed, no fiber | Place the fiber cable in Connector (Conn 2) |
-| Fiber placed, no IGW | Place the Internet Gateway in the Internet canvas |
-| IGW placed, no internet | Add the Internet cloud in the Internet canvas |
-| Internet placed, no DNS | Place the DNS server in the Internet canvas |
-| DNS placed, no Google | Finally, place Google in the Internet canvas |
+| Fiber placed, no IGW | Place the Internet Gateway in the Internet space |
+| IGW placed, no internet | Add the Internet cloud in the Internet space |
+| Internet placed, no DNS | Place the DNS server in the Internet space |
+| DNS placed, no Google | Finally, place Google in the Internet space |
 | All placed, router-lan not configured | Click Router (LAN) to configure DHCP and DNS settings |
 | Router LAN config open, DHCP off | Enable DHCP so your PC can get an IP address |
 | DHCP on, no IP range | Set the IP range (e.g., 192.168.1.100 to 192.168.1.200) |
@@ -629,7 +629,7 @@ The game automatically transitions between phases based on network state:
 
 **Phase Behaviors:**
 
-| Phase | Terminal Visible | Canvas Editable | Router Components Configurable |
+| Phase | Terminal Visible | Space Editable | Router Components Configurable |
 |-------|------------------|-----------------|-------------------------------|
 | `setup` | No | Yes | No |
 | `configuring` | No | No | Yes |
@@ -637,7 +637,7 @@ The game automatically transitions between phases based on network state:
 | `terminal` | Yes | Read-only | Read-only |
 | `completed` | Yes | Read-only | Read-only |
 
-**Canvas Phase Completion Trigger:** All devices connected across canvases AND all router components configured AND Google is reachable
+**GridSpace Phase Completion Trigger:** All devices connected across spaces AND all router components configured AND Google is reachable
 
 **Next Phase:** Terminal Game
 
@@ -656,7 +656,7 @@ The game automatically transitions between phases based on network state:
 
 **Visible UI:**
 - Terminal panel appears at bottom
-- Canvas remains visible (read-only)
+- Space remains visible (read-only)
 - Shows the full path with all green checkmarks
 
 ### 3.2 Expected Command
@@ -772,20 +772,20 @@ To reduce complexity, some values could be pre-filled:
 - DHCP range (from previous puzzle)
 - ISP username hint shown in placeholder
 
-### 5.5 Multi-Inventory & Multi-Canvas Extension
+### 5.5 Multi-PoolSpace & Multi-GridSpace Extension
 
 The game engine architecture supports extending this question with multiple inventories and advanced visibility rules. This section documents how to implement these features for future enhancements.
 
 #### 5.5.1 When to Use Multiple Inventories
 
-Multiple inventories are useful when:
+Multiple pools are useful when:
 - **Different item sets based on difficulty**: Beginner vs Advanced modes with different available tools
-- **Unlockable items**: Items appear in inventory only after completing previous questions
+- **Unlockable items**: Items appear in pool only after completing previous questions
 - **Scenario-based learning**: Different network scenarios (home, office, ISP) with different available devices
 - **Progressive complexity**: Items unlock as the player progresses through phases
 - **Conditional availability**: Items appear/disappear based on game state or user choices
 
-#### 5.5.2 Multi-Inventory Example Structure
+#### 5.5.2 Multi-PoolSpace Example Structure
 
 ```yaml
 Question: Internet Gateway Configuration
@@ -831,12 +831,12 @@ Inventories:
 | `on_repeat` | On replaying the question | Additional challenge items |
 | `time_based` | After time elapsed | Items appear after 5 minutes |
 
-#### 5.5.4 Canvas Visibility Rules
+#### 5.5.4 GridSpace Visibility Rules
 
-Similar to inventory items, canvases can have conditional visibility:
+Similar to pool items, grid spaces can have conditional visibility:
 
 ```yaml
-Canvases:
+GridSpaces:
   local:
     visibility: always_visible
 
@@ -854,7 +854,7 @@ Canvases:
     show_for: difficulty >= advanced
 ```
 
-#### 5.5.5 Implementation Pattern for Multi-Inventory
+#### 5.5.5 Implementation Pattern for Multi-PoolSpace
 
 When adding multiple inventories to a question, follow this pattern:
 
@@ -862,7 +862,7 @@ When adding multiple inventories to a question, follow this pattern:
 ```yaml
 inventories:
   - id: primary
-    name: "Inventory"
+    name: "Pool"
     visible_by_default: true
     item_groups: [core-networking]
 
@@ -873,15 +873,15 @@ inventories:
     item_groups: [advanced-networking]
 ```
 
-**Step 2: Define Inventory Items with Visibility**
+**Step 2: Define Pool Items with Visibility**
 ```yaml
 items:
   - id: pc-1
-    inventory_id: primary
+    pool_id: primary
     visibility: always_visible
 
   - id: firewall-1
-    inventory_id: advanced
+    pool_id: advanced
     visibility: conditional
     show_when: phase === "configuring"
     hide_when: phase === "setup"
@@ -900,23 +900,23 @@ visibility_conditions:
     condition: phase_transitions.current === "configuring"
 ```
 
-**Step 4: Apply to Canvases and Inventories**
+**Step 4: Apply to GridSpaces and PoolSpaces**
 ```yaml
-canvas_visibility:
+space_visibility:
   internet:
     show_when:
-      - always (base canvas)
+      - always (base space)
       - condition: after_lan_config
         items_to_show: [igw-1, internet-1, dns-1]
 
-inventory_visibility:
+pool_visibility:
   advanced:
     show_when:
       - condition: advanced_difficulty
       - condition: phase_dependent
 ```
 
-#### 5.5.6 Common Multi-Inventory Patterns
+#### 5.5.6 Common Multi-PoolSpace Patterns
 
 **Pattern 1: Progressive Unlock**
 ```
@@ -941,26 +941,26 @@ Scenario B (Office):  Multiple PCs, switch, firewall, corporate ISP
 Scenario C (Cloud):   Virtual machines, cloud gateway, CDN
 ```
 
-#### 5.5.7 Extending This Question to Multi-Inventory
+#### 5.5.7 Extending This Question to Multi-PoolSpace
 
 To extend the current "Internet Gateway" question with multiple inventories:
 
-1. **Keep primary inventory** as-is (all current items always visible)
+1. **Keep primary pool** as-is (all current items always visible)
 
-2. **Add advanced inventory** for network professionals:
+2. **Add advanced pool** for network professionals:
    - VLAN Switch (advanced network segmentation)
    - Load Balancer (distribute traffic)
    - Firewall (security filtering)
    - Intrusion Detection System (IDS)
    - Condition: `show_after: internet_phase_completion && difficulty === "advanced"`
 
-3. **Add optional inventory** for extended learning:
+3. **Add optional pool** for extended learning:
    - Redundant router (high availability)
    - Backup DNS server (fault tolerance)
    - VPN Gateway (secure remote access)
    - Condition: `show_after: question_completion`
 
-4. **Add diagnostic inventory** in testing phase:
+4. **Add diagnostic pool** in testing phase:
    - Packet analyzer
    - Network monitor
    - DNS tester
@@ -972,12 +972,12 @@ To extend the current "Internet Gateway" question with multiple inventories:
 
 Before implementation, ensure you have defined:
 
-**Phase 1 - Canvas Game:**
-- [x] Canvas setup (five canvases: local/conn-1/router/conn-2/internet; sizes 1x1/1x1/3x1/1x1/4x1)
+**Phase 1 - Space Game:**
+- [x] GridSpace setup (five spaces: local/conn-1/router/conn-2/internet; sizes 1x1/1x1/3x1/1x1/4x1)
 - [x] Item types with display labels, icons, and click behavior (10 types including split router)
 - [x] Item states and status messages for each type (PC has 3 states: error/warning/success)
 - [x] Connection rules (valid order and invalid connections)
-- [x] Inventory items with IDs and types (10 items)
+- [x] Pool items with IDs and types (10 items)
 - [x] Tooltips for item types (no tooltip for PC)
 - [x] Modal triggers and definitions (7 modals: 3 router configs + 4 status modals)
 - [x] Modal fields, validation rules, and validation constants
