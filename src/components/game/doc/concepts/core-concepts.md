@@ -14,9 +14,8 @@ type GameState = {
   spaces: Record<string, SpaceData>;      // GridSpace or PoolSpace
   entities: Record<string, EntityData>;   // Items, routers, PCs, cables, etc.
 
-  // UI State
-  terminal: TerminalState;       // Command history, output
-  overlay: OverlayState;         // Modals, hints
+  // UI State (core-managed)
+  overlay: OverlayState;         // Modals
   question: QuestionState;       // Question ID, status
 
   // Events
@@ -24,6 +23,8 @@ type GameState = {
   eventCursors: Record<string, number>;  // Engine consumption pointers
 };
 ```
+
+Terminal UI state is local to `TerminalProvider` and is not part of `GameState`.
 
 **Access:** `const state = useGameState()`
 **Modify:** `dispatch({ type: "ACTION_NAME", payload: {...} })`
@@ -132,7 +133,6 @@ type GameAction =
   | CoreAction         // SET_PHASE, COMPLETE_QUESTION, INIT_MULTI_SPACE
   | SpaceAction        // ADD_ENTITY_TO_SPACE, REMOVE_ENTITY_FROM_SPACE
   | EntityAction       // CREATE_ENTITY, UPDATE_ENTITY, DELETE_ENTITY
-  | TerminalAction     // SEND_COMMAND, CLEAR_HISTORY
   | ModalAction;       // OPEN_MODAL, CLOSE_MODAL
 ```
 
@@ -215,13 +215,15 @@ Each engine tracks its own event cursor, so multiple engines can consume the sam
 
 ### Common Engines
 
-**Terminal Engine:** Process commands, maintain history
+**Terminal Engine:** Process commands (terminal UI state is local)
 
 ```typescript
+const terminal = useTerminalStore();
 const engine = useTerminalEngine({
   onCommand: (input, helpers) => {
     if (input === "ping 192.168.1.1") {
       helpers.writeOutput("Reply from 192.168.1.1: bytes=32 time=1ms", "output");
+      terminal.addOutput("Reply from 192.168.1.1: bytes=32 time=1ms");
     }
   }
 });
@@ -321,25 +323,21 @@ dispatch({ type: "OPEN_MODAL", payload: dhcpModal });
 
 ## Terminal (Command Interface)
 
-**Terminal** = CLI within the game for running commands
+**Terminal** = CLI within the game for running commands. Terminal UI state is local to
+`TerminalProvider`/`useTerminalStore` and not stored in `GameState`.
+
+**Send command (UI → events):**
 
 ```typescript
-type TerminalState = {
-  history: TerminalLine[];       // Command history
-  prompt: string;                // Prompt text (e.g., "router>")
-  accepting: boolean;            // Accepting input?
-};
-
-type TerminalLine = {
-  type: "input" | "output" | "error" | "hint";
-  content: string;
-  timestamp: number;
-};
+const terminal = useTerminalStore();
+terminal.addInput("ping 192.168.1.1");
+dispatch({
+  type: "EMIT_EVENTS",
+  payload: { events: [{ type: "TERMINAL_INPUT", payload: { input: "ping 192.168.1.1" } }] }
+});
 ```
 
-**Send command:** `dispatch({ type: "SEND_COMMAND", payload: { input: "ping 192.168.1.1" } })`
-
-**Terminal engine processes commands and writes output**
+**Terminal engine processes commands and writes output via the store**
 
 **Details:** See [guides/engines.md](../guides/engines.md#terminal-engine)
 

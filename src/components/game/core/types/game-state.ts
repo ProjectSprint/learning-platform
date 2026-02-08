@@ -3,7 +3,6 @@ import type { HintState } from "./hint";
 import type { InventoryGroup } from "./inventory";
 import type { OverlayState } from "./modal";
 import type { SpaceState } from "./puzzle";
-import type { TerminalState } from "./terminal";
 
 export type GamePhase =
 	| "setup"
@@ -20,7 +19,6 @@ export type GameState = {
 	space: SpaceState;
 	spaces?: Record<string, SpaceState>;
 	arrows: Arrow[];
-	terminal: TerminalState;
 	hint: HintState;
 	overlay: OverlayState;
 	question: { id: string; status: QuestionStatus };

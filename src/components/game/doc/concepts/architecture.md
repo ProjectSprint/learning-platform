@@ -346,19 +346,16 @@ const router = createEntityData({
 ### Pattern 2: Adding a New Space
 
 ```typescript
-// 1. Use pure function in domain/
-const routerBoard = createGridSpaceData({
+// 1. Define config (domain shape)
+const routerBoardConfig = {
   id: "router-board",
   rows: 1,
   cols: 1,
-  // ...
-});
+  metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+};
 
-// 2. Add to state via reducer
-dispatch({ type: "CREATE_SPACE", payload: { space: routerBoard } });
-
-// 3. Render in presentation/
-<GridSpaceView space={routerBoard} />
+// 2. Render in presentation (self-registers on mount)
+<GridSpace ctx={useGameCtx()} config={routerBoardConfig} />
 ```
 
 ### Pattern 3: State Update Flow

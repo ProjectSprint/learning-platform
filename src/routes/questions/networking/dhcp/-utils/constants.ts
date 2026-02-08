@@ -1,8 +1,10 @@
 // Configuration constants for the networking question
 // Contains all static configuration like inventory items, space setup, and question metadata
 
-import type { GridSpaceData } from "@/components/game/domain/space";
-import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
+import type {
+	GridSpaceConfig,
+	PoolSpaceConfig,
+} from "@/components/game/domain/space";
 import type {
 	InventoryGroupConfig,
 	Item,
@@ -101,61 +103,56 @@ export const DHCP_SPACE_IDS = {
 	pc2: "pc-2-board",
 } as const;
 
-export const SPACE_ORDER = [
-	DHCP_SPACE_IDS.pc1,
-	DHCP_SPACE_IDS.conn1,
-	DHCP_SPACE_IDS.router,
-	DHCP_SPACE_IDS.conn2,
-	DHCP_SPACE_IDS.pc2,
-] as const;
+export type DhcpSpaceKey = (typeof DHCP_SPACE_IDS)[keyof typeof DHCP_SPACE_IDS];
 
-export type DhcpSpaceKey = (typeof SPACE_ORDER)[number];
-
-export const SPACE_CONFIGS: GridSpaceData[] = [
-	createGridSpaceData({
+export const SPACE_CONFIGS: Record<DhcpSpaceKey, GridSpaceConfig> = {
+	[DHCP_SPACE_IDS.pc1]: {
 		id: DHCP_SPACE_IDS.pc1,
 		name: "PC-1",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
-	}),
-	createGridSpaceData({
+	},
+	[DHCP_SPACE_IDS.conn1]: {
 		id: DHCP_SPACE_IDS.conn1,
 		name: "Connector",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
-	}),
-	createGridSpaceData({
+	},
+	[DHCP_SPACE_IDS.router]: {
 		id: DHCP_SPACE_IDS.router,
 		name: "Router",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
-	}),
-	createGridSpaceData({
+	},
+	[DHCP_SPACE_IDS.conn2]: {
 		id: DHCP_SPACE_IDS.conn2,
 		name: "Connector",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
-	}),
-	createGridSpaceData({
+	},
+	[DHCP_SPACE_IDS.pc2]: {
 		id: DHCP_SPACE_IDS.pc2,
 		name: "PC-2",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
-	}),
-];
+	},
+};
 
-export const getSpaceConfig = (spaceId: DhcpSpaceKey) =>
-	SPACE_CONFIGS.find((space) => space.id === spaceId);
+export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
+	id: "inventory",
+	name: "Items",
+	metadata: { visible: true },
+};
 
 // Private IP address ranges for validation
 export const PRIVATE_IP_RANGES = [

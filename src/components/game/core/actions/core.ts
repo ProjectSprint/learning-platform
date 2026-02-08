@@ -3,7 +3,6 @@ import type {
 	InventoryGroupConfig,
 	QuestionStatus,
 	SpaceConfig,
-	TerminalState,
 } from "../types";
 
 export type CoreAction =
@@ -13,7 +12,6 @@ export type CoreAction =
 				questionId: string;
 				spaces: Record<string, SpaceConfig>;
 				inventoryGroups?: InventoryGroupConfig[];
-				terminal?: Partial<TerminalState>;
 				phase?: GamePhase;
 				questionStatus?: QuestionStatus;
 			};

@@ -1,12 +1,12 @@
 import { Box, type BoxProps, Text } from "@chakra-ui/react";
-import { useGameState } from "@/components/game/game-provider";
+import { useHintStore } from "./hint-context";
 
 type ContextualHintProps = {
 	containerProps?: BoxProps;
 };
 
 export const ContextualHint = ({ containerProps }: ContextualHintProps) => {
-	const { hint } = useGameState();
+	const { hint } = useHintStore();
 
 	if (!hint.visible || !hint.content) {
 		return null;

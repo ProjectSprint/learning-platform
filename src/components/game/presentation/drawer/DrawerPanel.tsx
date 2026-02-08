@@ -7,45 +7,38 @@ import {
 } from "@chakra-ui/react";
 import {
 	type MutableRefObject,
+	type ReactNode,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
-import { createPortal } from "react-dom";
 import type { DrawerInstance } from "../../core/types";
-import type { SpaceData } from "../../domain/space/space-data";
-import { GridSpace, PoolSpace } from "../../engine";
-import { useGameDispatch, useGameState } from "../../game-provider";
 import { useDragContext } from "../interaction/drag/DragContext";
+import { useDrawerStore } from "./drawer-context";
 import { FloatingActionButton } from "./FloatingActionButton";
 
 const TITLEBAR_HEIGHT = "48px";
-const MOUSE_DEBOUNCE_MS = 200;
+const MOUSE_DEBOUNCE_MS = 0;
 
-export type DrawerContainerProps = {
+export type DrawerPanelProps = {
 	drawer: DrawerInstance;
+	children?: ReactNode;
 };
 
-const getDrawerSpaceTitle = (drawer: DrawerInstance, space?: SpaceData) => {
-	if (drawer.title) return drawer.title;
-	if (space?.name) return space.name;
-	return undefined;
-};
-
-export const DrawerContainer = ({ drawer }: DrawerContainerProps) => {
-	const dispatch = useGameDispatch();
-	const state = useGameState();
+export const DrawerPanel = ({ drawer, children }: DrawerPanelProps) => {
+	const { openDrawer, closeDrawer, toggleDrawer } = useDrawerStore();
 	const { activeDrag } = useDragContext();
-	const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 	const drawerRef = useRef<HTMLDivElement | null>(null);
 	const openTimeoutRef = useRef<number | null>(null);
 	const closeTimeoutRef = useRef<number | null>(null);
-	const lastDragIdRef = useRef<string | null>(null);
 	const [isDragTarget, setIsDragTarget] = useState(false);
 	const isExpanded = drawer.state === "expanded";
 	const isBase = useBreakpointValue({ base: true, sm: false }) ?? false;
-	const space = state.spaces[drawer.spaceId];
+	const spaceIds = useMemo(
+		() => (drawer.spaceIds?.length ? drawer.spaceIds : [drawer.spaceId]),
+		[drawer.spaceId, drawer.spaceIds],
+	);
 
 	const position = drawer.position ?? "bottom";
 	const positionProps = useMemo(() => {
@@ -84,42 +77,6 @@ export const DrawerContainer = ({ drawer }: DrawerContainerProps) => {
 		drawer.floatingButtonLabel ?? drawer.title ?? "Inventory";
 
 	useEffect(() => {
-		if (typeof document === "undefined") {
-			return;
-		}
-
-		let container = document.getElementById("drawer-portal");
-		if (!container) {
-			container = document.createElement("div");
-			container.id = "drawer-portal";
-			document.body.appendChild(container);
-		}
-		setPortalTarget(container);
-
-		return () => {
-			setPortalTarget(null);
-		};
-	}, []);
-
-	useEffect(() => {
-		if (!activeDrag) {
-			lastDragIdRef.current = null;
-			return;
-		}
-
-		if (activeDrag.sourceSpaceId !== drawer.spaceId) {
-			return;
-		}
-
-		if (lastDragIdRef.current === activeDrag.data.entityId) {
-			return;
-		}
-
-		lastDragIdRef.current = activeDrag.data.entityId;
-		dispatch({ type: "CLOSE_DRAWER", payload: { drawerId: drawer.id } });
-	}, [activeDrag, dispatch, drawer.id, drawer.spaceId]);
-
-	useEffect(() => {
 		if (!activeDrag) {
 			setIsDragTarget(false);
 			return;
@@ -138,10 +95,11 @@ export const DrawerContainer = ({ drawer }: DrawerContainerProps) => {
 
 			if (
 				isInside &&
-				activeDrag.sourceSpaceId !== drawer.spaceId &&
+				activeDrag.sourceSpaceId &&
+				!spaceIds.includes(activeDrag.sourceSpaceId) &&
 				drawer.state === "folded"
 			) {
-				dispatch({ type: "OPEN_DRAWER", payload: { drawerId: drawer.id } });
+				openDrawer(drawer.id);
 			}
 		};
 
@@ -156,7 +114,7 @@ export const DrawerContainer = ({ drawer }: DrawerContainerProps) => {
 			window.removeEventListener("pointermove", handlePointerMove);
 			window.removeEventListener("pointerup", handlePointerUp);
 		};
-	}, [activeDrag, dispatch, drawer.id, drawer.spaceId, drawer.state]);
+	}, [activeDrag, drawer.id, drawer.state, openDrawer, spaceIds]);
 
 	useEffect(() => {
 		const mouseAwareEnabled =
@@ -175,7 +133,7 @@ export const DrawerContainer = ({ drawer }: DrawerContainerProps) => {
 		const scheduleOpen = () => {
 			if (openTimeoutRef.current) return;
 			openTimeoutRef.current = window.setTimeout(() => {
-				dispatch({ type: "OPEN_DRAWER", payload: { drawerId: drawer.id } });
+				openDrawer(drawer.id);
 				openTimeoutRef.current = null;
 			}, MOUSE_DEBOUNCE_MS);
 		};
@@ -183,7 +141,7 @@ export const DrawerContainer = ({ drawer }: DrawerContainerProps) => {
 		const scheduleClose = () => {
 			if (closeTimeoutRef.current) return;
 			closeTimeoutRef.current = window.setTimeout(() => {
-				dispatch({ type: "CLOSE_DRAWER", payload: { drawerId: drawer.id } });
+				closeDrawer(drawer.id);
 				closeTimeoutRef.current = null;
 			}, MOUSE_DEBOUNCE_MS);
 		};
@@ -222,29 +180,24 @@ export const DrawerContainer = ({ drawer }: DrawerContainerProps) => {
 		};
 	}, [
 		activeDrag,
-		dispatch,
 		drawer.id,
 		drawer.mouseAware,
 		drawer.state,
+		closeDrawer,
 		isBase,
+		openDrawer,
 	]);
 
-	if (!portalTarget) {
-		return null;
-	}
-
-	if (drawer.contentType !== "space") {
-		return null;
-	}
-
-	if (!space) {
-		return null;
-	}
-
-	const contentTitle = getDrawerSpaceTitle(drawer, space);
+	const contentTitle = drawer.title ?? drawer.spaceId ?? drawer.id;
 	const titlebarBorder = isDragTarget ? "cyan.400" : "gray.700";
+	const contentVisible =
+		isExpanded ||
+		!isBase ||
+		(activeDrag?.sourceSpaceId
+			? spaceIds.includes(activeDrag.sourceSpaceId)
+			: false);
 
-	return createPortal(
+	return (
 		<>
 			<Box
 				ref={drawerRef}
@@ -271,12 +224,7 @@ export const DrawerContainer = ({ drawer }: DrawerContainerProps) => {
 					cursor="pointer"
 					role="button"
 					aria-expanded={isExpanded}
-					onClick={() =>
-						dispatch({
-							type: "TOGGLE_DRAWER",
-							payload: { drawerId: drawer.id },
-						})
-					}
+					onClick={() => toggleDrawer(drawer.id)}
 				>
 					<Text fontSize="sm" fontWeight="bold">
 						{contentTitle ?? drawer.spaceId}
@@ -286,39 +234,26 @@ export const DrawerContainer = ({ drawer }: DrawerContainerProps) => {
 						size="sm"
 						onClick={(event) => {
 							event.stopPropagation();
-							dispatch({
-								type: "CLOSE_DRAWER",
-								payload: { drawerId: drawer.id },
-							});
+							closeDrawer(drawer.id);
 						}}
 					/>
 				</Flex>
 				<Box
 					flex="1"
 					overflow="auto"
-					opacity={isExpanded ? 1 : 0}
-					pointerEvents={isExpanded ? "auto" : "none"}
+					opacity={contentVisible ? 1 : 0}
+					pointerEvents={contentVisible ? "auto" : "none"}
 					transition="opacity 0.2s ease"
 				>
-					{space.kind === "grid" ? (
-						<GridSpace id={space.id} title={contentTitle} />
-					) : (
-						<PoolSpace id={space.id} title={contentTitle} />
-					)}
+					{children}
 				</Box>
 			</Box>
 			{shouldShowFab ? (
 				<FloatingActionButton
 					label={floatingLabel}
-					onClick={() =>
-						dispatch({
-							type: "TOGGLE_DRAWER",
-							payload: { drawerId: drawer.id },
-						})
-					}
+					onClick={() => toggleDrawer(drawer.id)}
 				/>
 			) : null}
-		</>,
-		portalTarget,
+		</>
 	);
 };

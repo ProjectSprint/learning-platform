@@ -1,9 +1,11 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
-	clearBoardArrows,
-	setBoardArrows,
-} from "@/components/game/application/actions";
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+} from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine } from "@/components/game/engines";
@@ -12,24 +14,27 @@ import {
 	GameProvider,
 	useDrawerManager,
 	useEngineEvents,
+	useGameCtx,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import { DrawerLayout } from "@/components/game/presentation/drawer";
 import {
 	ContextualHint,
 	useContextualHint,
 } from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
+import { useBoardArrows } from "@/components/game/presentation/space/arrow";
 import type { QuestionProps } from "@/components/module";
 
 import {
-	getSpaceConfig,
 	INVENTORY_GROUP_IDS,
+	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	SPACE_ORDER,
-	type TcpSpaceKey,
+	RECEIVED_POOL_CONFIG,
+	SPACE_CONFIGS,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { initializeTcpQuestion } from "./-utils/init-spaces";
@@ -41,6 +46,11 @@ import { buildSuccessModal } from "./-utils/modal-builders";
 import { useTcpState } from "./-utils/use-tcp-state";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
+const TCP_SPACE_IDS = {
+	splitter: "splitter",
+	internet: "internet",
+	server: "server",
+} as const;
 
 export const TcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -57,6 +67,7 @@ const TcpGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
+	const gameCtx = useGameCtx();
 	const { events, ack } = useEngineEvents("tcp-page");
 	const initializedRef = useRef(false);
 	const isCompleted = state.question.status === "completed";
@@ -76,7 +87,9 @@ const TcpGame = ({
 		phase: tcpPhase,
 	} = useTcpState();
 	useDragEngine();
-	const { registerDrawer } = useDrawerManager();
+	const { registerDrawer, updateDrawerConfig, openDrawer } = useDrawerManager();
+	const { setArrows, clearArrows } = useBoardArrows();
+	const lastReceivedVisibleRef = useRef(receivedPoolVisible);
 
 	const contextualHint = useMemo(
 		() =>
@@ -103,21 +116,35 @@ const TcpGame = ({
 	);
 	useContextualHint(contextualHint);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		registerDrawer({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: "inventory",
+			spaceIds: ["inventory"],
 			title: "Inventory",
 			position: "bottom",
 			initialState: "expanded",
 			expandedSize: { base: "65vh", md: "40vh" },
-			foldedSize: { md: "72px", lg: "80px" },
+			foldedSize: { sm: "30vh" },
 			mouseAware: true,
 			showFloatingButton: true,
 			floatingButtonLabel: "Inventory",
 		});
 	}, [registerDrawer]);
+
+	useEffect(() => {
+		const nextSpaceIds = receivedPoolVisible
+			? ["inventory", INVENTORY_GROUP_IDS.received]
+			: ["inventory"];
+		updateDrawerConfig(INVENTORY_DRAWER_ID, { spaceIds: nextSpaceIds });
+
+		if (receivedPoolVisible && !lastReceivedVisibleRef.current) {
+			openDrawer(INVENTORY_DRAWER_ID);
+		}
+
+		lastReceivedVisibleRef.current = receivedPoolVisible;
+	}, [openDrawer, receivedPoolVisible, updateDrawerConfig]);
 
 	// Initialize question
 	useEffect(() => {
@@ -189,14 +216,14 @@ const TcpGame = ({
 
 	useEffect(() => {
 		if (isCompleted) {
-			clearBoardArrows(dispatch);
+			clearArrows();
 			return;
 		}
-		setBoardArrows(dispatch, boardArrows);
+		setArrows(boardArrows);
 		return () => {
-			clearBoardArrows(dispatch);
+			clearArrows();
 		};
-	}, [boardArrows, dispatch, isCompleted]);
+	}, [boardArrows, clearArrows, isCompleted, setArrows]);
 
 	const spaceAreas = useMemo(
 		() => ({
@@ -206,13 +233,9 @@ const TcpGame = ({
 		}),
 		[],
 	);
-	const visibleSpaces = useMemo(
-		() =>
-			splitterVisible
-				? SPACE_ORDER
-				: (SPACE_ORDER.filter((id) => id !== "splitter") as TcpSpaceKey[]),
-		[splitterVisible],
-	);
+	const splitterConfig = SPACE_CONFIGS[TCP_SPACE_IDS.splitter];
+	const internetConfig = SPACE_CONFIGS[TCP_SPACE_IDS.internet];
+	const serverConfig = SPACE_CONFIGS[TCP_SPACE_IDS.server];
 	const gridTemplateAreas = splitterVisible
 		? {
 				base: `"splitter" "internet" "server"`,
@@ -328,54 +351,124 @@ const TcpGame = ({
 						gap={{ base: 2, md: 4 }}
 						alignItems="stretch"
 					>
-						{visibleSpaces.map((spaceId) => {
-							const config = getSpaceConfig(spaceId);
-							if (!config) return null;
-							return (
-								<GridItem key={spaceId} area={spaceAreas[spaceId]} minW={0}>
-									<GridSpace
-										id={spaceId}
-										title={config.name ?? spaceId}
-										responsiveSize={
-											spaceId === "server"
-												? { base: [2, 6], xl: [3, 4] }
-												: undefined
-										}
-										onEntityClick={handleEntityClick}
-										isEntityClickable={isEntityClickable}
-										getEntityLabel={(entity) => getTcpItemLabel(entity.type)}
-										getEntityStatus={(entity) => {
-											const rawStatus =
-												(entity.state.status as string) ?? "normal";
-											const statusMessage = getTcpStatusMessage({
-												id: entity.id,
-												itemId: entity.id,
-												type: entity.type,
-												blockX: parseInt((entity.data.x ?? "0") as string, 10),
-												blockY: parseInt((entity.data.y ?? "0") as string, 10),
-												status: rawStatus as
-													| "normal"
-													| "warning"
-													| "success"
-													| "error",
-												data: entity.data,
-											});
-											return {
-												status:
-													rawStatus !== "normal"
-														? (rawStatus as
-																| "success"
-																| "warning"
-																| "error"
-																| "info")
-														: undefined,
-												message: statusMessage,
-											};
-										}}
-									/>
-								</GridItem>
-							);
-						})}
+						{splitterVisible && splitterConfig ? (
+							<GridItem area={spaceAreas.splitter} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={splitterConfig}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={(entity) => getTcpItemLabel(entity.type)}
+									getEntityStatus={(entity) => {
+										const rawStatus =
+											(entity.state.status as string) ?? "normal";
+										const statusMessage = getTcpStatusMessage({
+											id: entity.id,
+											itemId: entity.id,
+											type: entity.type,
+											blockX: parseInt((entity.data.x ?? "0") as string, 10),
+											blockY: parseInt((entity.data.y ?? "0") as string, 10),
+											status: rawStatus as
+												| "normal"
+												| "warning"
+												| "success"
+												| "error",
+											data: entity.data,
+										});
+										return {
+											status:
+												rawStatus !== "normal"
+													? (rawStatus as
+															| "success"
+															| "warning"
+															| "error"
+															| "info")
+													: undefined,
+											message: statusMessage,
+										};
+									}}
+								/>
+							</GridItem>
+						) : null}
+						{internetConfig ? (
+							<GridItem area={spaceAreas.internet} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={internetConfig}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={(entity) => getTcpItemLabel(entity.type)}
+									getEntityStatus={(entity) => {
+										const rawStatus =
+											(entity.state.status as string) ?? "normal";
+										const statusMessage = getTcpStatusMessage({
+											id: entity.id,
+											itemId: entity.id,
+											type: entity.type,
+											blockX: parseInt((entity.data.x ?? "0") as string, 10),
+											blockY: parseInt((entity.data.y ?? "0") as string, 10),
+											status: rawStatus as
+												| "normal"
+												| "warning"
+												| "success"
+												| "error",
+											data: entity.data,
+										});
+										return {
+											status:
+												rawStatus !== "normal"
+													? (rawStatus as
+															| "success"
+															| "warning"
+															| "error"
+															| "info")
+													: undefined,
+											message: statusMessage,
+										};
+									}}
+								/>
+							</GridItem>
+						) : null}
+						{serverConfig ? (
+							<GridItem area={spaceAreas.server} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={serverConfig}
+									responsiveSize={{ base: [2, 6], xl: [3, 4] }}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={(entity) => getTcpItemLabel(entity.type)}
+									getEntityStatus={(entity) => {
+										const rawStatus =
+											(entity.state.status as string) ?? "normal";
+										const statusMessage = getTcpStatusMessage({
+											id: entity.id,
+											itemId: entity.id,
+											type: entity.type,
+											blockX: parseInt((entity.data.x ?? "0") as string, 10),
+											blockY: parseInt((entity.data.y ?? "0") as string, 10),
+											status: rawStatus as
+												| "normal"
+												| "warning"
+												| "success"
+												| "error",
+											data: entity.data,
+										});
+										return {
+											status:
+												rawStatus !== "normal"
+													? (rawStatus as
+															| "success"
+															| "warning"
+															| "error"
+															| "info")
+													: undefined,
+											message: statusMessage,
+										};
+									}}
+								/>
+							</GridItem>
+						) : null}
 					</Grid>
 
 					<Box
@@ -404,12 +497,6 @@ const TcpGame = ({
 							/>
 						</Box>
 					</Box>
-
-					{receivedPoolVisible ? (
-						<Box mt={4}>
-							<PoolSpace id={INVENTORY_GROUP_IDS.received} title="Received" />
-						</Box>
-					) : null}
 
 					<Flex mt={4} gap={4} direction={{ base: "column", lg: "row" }}>
 						<Box
@@ -476,6 +563,14 @@ const TcpGame = ({
 					<ContextualHint />
 
 					<DragOverlay getEntityLabel={getTcpItemLabel} />
+					<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
+						<Flex direction="column" gap={3}>
+							<PoolSpace ctx={gameCtx} config={INVENTORY_POOL_CONFIG} />
+							<Box display={receivedPoolVisible ? "block" : "none"}>
+								<PoolSpace ctx={gameCtx} config={RECEIVED_POOL_CONFIG} />
+							</Box>
+						</Flex>
+					</DrawerLayout>
 				</GameBoard>
 
 				{null}

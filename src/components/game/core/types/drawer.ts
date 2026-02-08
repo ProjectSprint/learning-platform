@@ -42,6 +42,8 @@ export type DrawerConfig = {
 	contentType: "space";
 	/** Space ID to render inside the drawer. */
 	spaceId: string;
+	/** Optional additional space IDs to render in the drawer (order preserved). */
+	spaceIds?: string[];
 	/** Optional title for the drawer titlebar. */
 	title?: string;
 	/** Drawer position (defaults to bottom). */
@@ -61,7 +63,7 @@ export type DrawerConfig = {
 };
 
 /**
- * Drawer instance stored in overlay state.
+ * Drawer instance stored in DrawerProvider state.
  */
 export type DrawerInstance = DrawerConfig & {
 	/** Current drawer state. */

@@ -1,5 +1,7 @@
-import type { GridSpaceData } from "@/components/game/domain/space";
-import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
+import type {
+	GridSpaceConfig,
+	PoolSpaceConfig,
+} from "@/components/game/domain/space";
 import type {
 	InventoryGroupConfig,
 	Item,
@@ -9,6 +11,7 @@ export const QUESTION_ID = "udp-video-streaming";
 export const QUESTION_TITLE = "📺 Stream movie.mp4 to 3 viewers";
 export const QUESTION_DESCRIPTION =
 	"Your viewers are waiting! Establish connections and deliver the video stream to all clients.";
+export const TERMINAL_PROMPT = "Terminal ready.";
 
 const TOOLTIP_SYN = {
 	content: "SYN starts a TCP handshake to establish a connection.",
@@ -69,86 +72,78 @@ export const UDP_CLIENT_SPACE_IDS = {
 	c: "client-c",
 } as const;
 
-export const TCP_SPACE_ORDER: UdpSpaceKey[] = [
-	"client-a-inbox",
-	"client-b-inbox",
-	"client-c-inbox",
-	"internet",
-];
-
-export const UDP_SPACE_ORDER: UdpSpaceKey[] = ["internet"];
-
-export const SPACE_CONFIGS: GridSpaceData[] = [
-	createGridSpaceData({
+export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceConfig> = {
+	internet: {
 		id: "internet",
 		name: "Internet",
 		rows: 1,
 		cols: 3,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
-	}),
-	createGridSpaceData({
+	},
+	"client-a-inbox": {
 		id: "client-a-inbox",
 		name: "Client A",
 		rows: 2,
 		cols: 2,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
-	}),
-	createGridSpaceData({
+	},
+	"client-b-inbox": {
 		id: "client-b-inbox",
 		name: "Client B",
 		rows: 2,
 		cols: 2,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
-	}),
-	createGridSpaceData({
+	},
+	"client-c-inbox": {
 		id: "client-c-inbox",
 		name: "Client C",
 		rows: 2,
 		cols: 2,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
-	}),
-	createGridSpaceData({
+	},
+	"client-d-inbox": {
 		id: "client-d-inbox",
 		name: "Client D",
 		rows: 2,
 		cols: 2,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
-	}),
-	createGridSpaceData({
+	},
+	"client-a": {
 		id: "client-a",
 		name: "Client A",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 0,
-	}),
-	createGridSpaceData({
+	},
+	"client-b": {
 		id: "client-b",
 		name: "Client B",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 0,
-	}),
-	createGridSpaceData({
+	},
+	"client-c": {
 		id: "client-c",
 		name: "Client C",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 0,
-	}),
-];
+	},
+};
 
-export const getSpaceConfig = (
-	spaceId: UdpSpaceKey,
-): GridSpaceData | undefined =>
-	SPACE_CONFIGS.find((space) => space.id === spaceId);
+export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
+	id: "inventory",
+	name: "Inventory",
+	metadata: { visible: true },
+};
 
 export const POOL_GROUP_IDS = {
 	received: "received",

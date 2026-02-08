@@ -6,7 +6,13 @@
  * Maintains the same drag & drop behavior while being space-agnostic.
  */
 
-import { createContext, useContext, useRef, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useRef,
+	useState,
+} from "react";
 
 /**
  * Data about the entity being dragged.
@@ -120,8 +126,12 @@ const DragContext = createContext<DragContextValue | null>(null);
  * </DragProvider>
  * ```
  */
-export function DragProvider({ children }: { children: React.ReactNode }) {
-	const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
+export type DragProviderProps = {
+	children: React.ReactNode;
+};
+
+export function DragProvider({ children }: DragProviderProps) {
+	const [activeDrag, setActiveDragState] = useState<ActiveDrag | null>(null);
 	const [lastDropResult, setLastDropResult] = useState<DragDropResult | null>(
 		null,
 	);
@@ -129,6 +139,20 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
 		useState<DropAnimationTarget | null>(null);
 	const proxyRef = useRef<HTMLDivElement | null>(null);
 	const targetSpaceIdRef = useRef<string | undefined>(undefined);
+	const setActiveDrag = useCallback(
+		(
+			next:
+				| ActiveDrag
+				| null
+				| ((prev: ActiveDrag | null) => ActiveDrag | null),
+		) => {
+			setActiveDragState((prev) => {
+				const resolved = typeof next === "function" ? next(prev) : next;
+				return resolved;
+			});
+		},
+		[],
+	);
 
 	return (
 		<DragContext.Provider

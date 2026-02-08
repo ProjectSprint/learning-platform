@@ -3,9 +3,8 @@
  * Provides a convenient API for registering and controlling drawers.
  */
 
-import { useCallback } from "react";
 import type { DrawerConfig, DrawerInstance } from "../../core/types";
-import { useGameDispatch } from "../../game-provider";
+import { useDrawerStore } from "../../presentation/drawer/drawer-context";
 
 export type DrawerManager = {
 	registerDrawer: (config: DrawerConfig) => void;
@@ -37,52 +36,13 @@ export type DrawerManager = {
  * ```
  */
 export const useDrawerManager = (): DrawerManager => {
-	const dispatch = useGameDispatch();
-
-	const registerDrawer = useCallback(
-		(config: DrawerConfig) => {
-			const resolvedState = config.initialState ?? "expanded";
-			const instance: DrawerInstance = {
-				...config,
-				state: resolvedState,
-				initialState: config.initialState ?? resolvedState,
-			};
-
-			dispatch({ type: "REGISTER_DRAWER", payload: instance });
-		},
-		[dispatch],
-	);
-
-	const openDrawer = useCallback(
-		(drawerId: string) => {
-			dispatch({ type: "OPEN_DRAWER", payload: { drawerId } });
-		},
-		[dispatch],
-	);
-
-	const closeDrawer = useCallback(
-		(drawerId: string) => {
-			dispatch({ type: "CLOSE_DRAWER", payload: { drawerId } });
-		},
-		[dispatch],
-	);
-
-	const toggleDrawer = useCallback(
-		(drawerId: string) => {
-			dispatch({ type: "TOGGLE_DRAWER", payload: { drawerId } });
-		},
-		[dispatch],
-	);
-
-	const updateDrawerConfig = useCallback(
-		(drawerId: string, config: Partial<DrawerInstance>) => {
-			dispatch({
-				type: "UPDATE_DRAWER_CONFIG",
-				payload: { drawerId, config },
-			});
-		},
-		[dispatch],
-	);
+	const {
+		registerDrawer,
+		openDrawer,
+		closeDrawer,
+		toggleDrawer,
+		updateDrawerConfig,
+	} = useDrawerStore();
 
 	return {
 		registerDrawer,

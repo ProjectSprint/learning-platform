@@ -9,7 +9,7 @@
 
 import { Box, Text, useBreakpointValue } from "@chakra-ui/react";
 import { gsap } from "gsap";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDragContext } from "./DragContext";
 
 /**
@@ -72,7 +72,7 @@ export const DragOverlay = ({
 		cardSizeRef.current = { width: cardSize.width, height: cardSize.height };
 	}, [cardSize.height, cardSize.width]);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (!activeDrag) {
 			setIsVisible(false);
 			initializedRef.current = false;
@@ -200,17 +200,6 @@ export const DragOverlay = ({
 
 	const label =
 		activeDrag.data.entityName ?? getEntityLabel(activeDrag.data.entityType);
-	const initialRect = activeDrag.initialRect;
-	const pointerX =
-		activeDrag.pointerOffset?.x ?? (initialRect ? initialRect.width / 2 : 0);
-	const pointerY =
-		activeDrag.pointerOffset?.y ?? (initialRect ? initialRect.height / 2 : 0);
-	const initialX = initialRect
-		? initialRect.left + pointerX - pointerOffsetRef.current.x
-		: 0;
-	const initialY = initialRect
-		? initialRect.top + pointerY - pointerOffsetRef.current.y
-		: 0;
 
 	return (
 		<Box
@@ -230,7 +219,6 @@ export const DragOverlay = ({
 			pointerEvents="none"
 			zIndex={9999}
 			boxShadow="0 4px 20px rgba(0, 0, 0, 0.3)"
-			style={{ transform: `translate3d(${initialX}px, ${initialY}px, 0)` }}
 		>
 			<Text fontSize="sm" fontWeight="bold" color="gray.100">
 				{label}

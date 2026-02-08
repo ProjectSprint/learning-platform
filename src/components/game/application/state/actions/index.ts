@@ -38,11 +38,7 @@ export type {
 	UpdateEntityPositionAction,
 } from "./space";
 export type {
-	ArrowAction,
-	DrawerAction,
-	HintAction,
 	ModalAction,
-	TerminalAction,
 	UIAction,
 } from "./ui";
 

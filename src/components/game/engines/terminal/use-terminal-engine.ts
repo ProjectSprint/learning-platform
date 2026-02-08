@@ -2,8 +2,8 @@ import { useCallback, useEffect } from "react";
 import {
 	type TerminalEntryType,
 	useEngineEvents,
-	useGameDispatch,
 } from "@/components/game/game-provider";
+import { useTerminalStore } from "@/components/game/presentation/terminal/terminal-context";
 import type { EngineLifecycleCallbacks } from "../engine-types";
 import {
 	type EngineController,
@@ -34,7 +34,7 @@ export interface TerminalEngine<TContext = unknown>
 export const useTerminalEngine = <TContext = unknown>(
 	config: TerminalEngineConfig<TContext> = {},
 ): TerminalEngine<TContext> => {
-	const dispatch = useGameDispatch();
+	const { addOutput, clearHistory: clearTerminalHistory } = useTerminalStore();
 	const { events, ack } = useEngineEvents("terminal");
 	const controller = useEngineProgress<TContext>({
 		...config,
@@ -43,17 +43,14 @@ export const useTerminalEngine = <TContext = unknown>(
 
 	const writeOutput = useCallback(
 		(content: string, type: TerminalOutputType) => {
-			dispatch({
-				type: "ADD_TERMINAL_OUTPUT",
-				payload: { content, type },
-			});
+			addOutput(content, type);
 		},
-		[dispatch],
+		[addOutput],
 	);
 
 	const clearHistory = useCallback(() => {
-		dispatch({ type: "CLEAR_TERMINAL_HISTORY" });
-	}, [dispatch]);
+		clearTerminalHistory();
+	}, [clearTerminalHistory]);
 
 	const finishEngine = useCallback(() => {
 		controller.finish();

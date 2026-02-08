@@ -8,11 +8,19 @@
  */
 
 import { useBreakpointValue } from "@chakra-ui/react";
-import { memo, useMemo } from "react";
+import { memo, useLayoutEffect, useMemo } from "react";
 import type { EntityData } from "../domain/entity/entity-data";
-import type { GridPosition, GridSpaceData } from "../domain/space/space-data";
-import { gridGetPosition } from "../domain/space/space-fns";
+import type {
+	GridPosition,
+	GridSpaceConfig,
+	GridSpaceData,
+} from "../domain/space/space-data";
+import {
+	createGridSpaceData,
+	gridGetPosition,
+} from "../domain/space/space-fns";
 import { canEntityBePlaced, findEntitySpace } from "../domain/space/validation";
+import type { GameContextValue } from "../game-provider";
 import { useGameDispatch, useGameState } from "../game-provider";
 import type { EntityStatus } from "../presentation/entity/PlacedEntity";
 import { GridSpaceView } from "../presentation/space/GridSpaceView";
@@ -53,9 +61,13 @@ const viewToData = (
 
 const EMPTY_BREAKPOINTS: Record<string, [number, number]> = {};
 
-export type GridSpaceProps = {
+type GridSpacePropsBase = {
 	/** ID of the space to render */
-	id: string;
+	id?: string;
+	/** Optional game context for explicit registration */
+	ctx?: GameContextValue;
+	/** Optional config used to register the space on mount */
+	config?: GridSpaceConfig;
 	/** Optional title for the space */
 	title?: string;
 	/** Responsive grid dimensions: breakpoint → [cols, rows]. Remaps entity positions at view layer. */
@@ -72,6 +84,10 @@ export type GridSpaceProps = {
 		message?: string | null;
 	};
 };
+
+export type GridSpaceProps =
+	| (GridSpacePropsBase & { id: string; config?: GridSpaceConfig })
+	| (GridSpacePropsBase & { id?: string; config: GridSpaceConfig });
 
 /**
  * GridSpace - Engine layer component for GridSpaceView.
@@ -94,6 +110,8 @@ export type GridSpaceProps = {
 export const GridSpace = memo(
 	({
 		id,
+		ctx,
+		config,
 		title,
 		responsiveSize,
 		onEntityClick,
@@ -101,8 +119,22 @@ export const GridSpace = memo(
 		getEntityLabel,
 		getEntityStatus,
 	}: GridSpaceProps) => {
-		const state = useGameState();
-		const dispatch = useGameDispatch();
+		const contextState = useGameState();
+		const contextDispatch = useGameDispatch();
+		const state = ctx?.state ?? contextState;
+		const dispatch = ctx?.dispatch ?? contextDispatch;
+		const resolvedId = config?.id ?? id;
+		const hasSpace = resolvedId ? Boolean(state.spaces[resolvedId]) : false;
+		const shouldRegister = Boolean(config) && Boolean(resolvedId);
+
+		useLayoutEffect(() => {
+			if (!shouldRegister || !resolvedId) return;
+			if (hasSpace) return;
+			dispatch({
+				type: "CREATE_SPACE",
+				payload: { space: createGridSpaceData(config as GridSpaceConfig) },
+			});
+		}, [config, dispatch, hasSpace, resolvedId, shouldRegister]);
 
 		// Resolve responsive breakpoint to [viewCols, viewRows] (or undefined)
 		const resolvedSize = useBreakpointValue(
@@ -110,7 +142,9 @@ export const GridSpace = memo(
 		) as [number, number] | undefined;
 
 		// Get space data
-		const space = state.spaces[id] as GridSpaceData | undefined;
+		const space = resolvedId
+			? (state.spaces[resolvedId] as GridSpaceData | undefined)
+			: undefined;
 
 		// Derive view dimensions and whether remapping is active
 		const dataCols = space?.cols ?? 0;
@@ -151,6 +185,8 @@ export const GridSpace = memo(
 			return null;
 		}
 
+		const resolvedTitle = title ?? space.name ?? space.id;
+
 		// Validation callback using Phase 1 canEntityBePlaced
 		// When remapping, convert view position → data position before validating
 		const canPlaceAt = (
@@ -177,7 +213,10 @@ export const GridSpace = memo(
 					? viewToData(toPosition, dataCols, viewCols)
 					: toPosition;
 
-			const toSpaceId = id;
+			const toSpaceId = resolvedId;
+			if (!toSpaceId) {
+				return false;
+			}
 
 			// Validate placement before dispatching
 			if (!canEntityBePlaced(state, entityId, toSpaceId, dataToPosition)) {
@@ -241,7 +280,7 @@ export const GridSpace = memo(
 			<GridSpaceView
 				space={space}
 				entities={entities}
-				title={title}
+				title={resolvedTitle}
 				viewCols={viewCols}
 				viewRows={viewRows}
 				getEntityLabel={getEntityLabel}

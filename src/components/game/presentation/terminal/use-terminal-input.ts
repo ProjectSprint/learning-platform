@@ -2,16 +2,9 @@ import type { KeyboardEvent, RefObject } from "react";
 import { useCallback, useRef, useState } from "react";
 
 import { useGameDispatch } from "../../game-provider";
+import { useTerminalStore } from "./terminal-context";
 
-const MAX_INPUT_LENGTH = 200;
 const MAX_COMMAND_HISTORY = 50;
-
-const sanitizeInput = (input: string) =>
-	input
-		.slice(0, MAX_INPUT_LENGTH)
-		.replace(/<[^>]*>/g, "")
-		.replace(/[<>"'&]/g, "")
-		.trim();
 
 type TerminalInputController = {
 	value: string;
@@ -22,24 +15,36 @@ type TerminalInputController = {
 
 export const useTerminalInput = (): TerminalInputController => {
 	const dispatch = useGameDispatch();
+	const { addInput, clearHistory } = useTerminalStore();
 	const [input, setInput] = useState("");
 	const [historyIndex, setHistoryIndex] = useState<number | null>(null);
 	const [commandHistory, setCommandHistory] = useState<string[]>([]);
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	const handleSubmit = useCallback(() => {
-		const sanitized = sanitizeInput(input);
-		if (!sanitized) {
+		const entry = addInput(input);
+		if (!entry) {
 			return;
 		}
 
-		dispatch({ type: "SUBMIT_COMMAND", payload: { input: sanitized } });
+		dispatch({
+			type: "EMIT_EVENTS",
+			payload: {
+				events: [
+					{
+						type: "TERMINAL_INPUT",
+						entryId: entry.id,
+						input: entry.content,
+					},
+				],
+			},
+		});
 		setInput("");
 		setHistoryIndex(null);
 		setCommandHistory((prev) =>
-			[...prev, sanitized].slice(-MAX_COMMAND_HISTORY),
+			[...prev, entry.content].slice(-MAX_COMMAND_HISTORY),
 		);
-	}, [dispatch, input]);
+	}, [addInput, dispatch, input]);
 
 	const handleHistoryUp = useCallback(() => {
 		if (commandHistory.length === 0) {
@@ -103,10 +108,10 @@ export const useTerminalInput = (): TerminalInputController => {
 
 			if (event.key.toLowerCase() === "l" && event.ctrlKey) {
 				event.preventDefault();
-				dispatch({ type: "CLEAR_TERMINAL_HISTORY" });
+				clearHistory();
 			}
 		},
-		[dispatch, handleHistoryDown, handleHistoryUp, handleSubmit],
+		[clearHistory, handleHistoryDown, handleHistoryUp, handleSubmit],
 	);
 
 	return {

@@ -4,14 +4,12 @@
  */
 
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
-import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
 	FILE_INVENTORY_ITEMS,
 	MESSAGE_PACKET_ITEMS,
 	NOTES_FILE_ITEM,
 	NOTES_PACKET_ITEMS,
 	QUESTION_ID,
-	SPACE_CONFIGS,
 	SYSTEM_PACKET_ITEMS,
 	TCP_TOOL_ITEMS,
 } from "./constants";
@@ -19,39 +17,6 @@ import {
 // Use any for dispatch to work around Phase 5 integration issues
 // biome-ignore lint/suspicious/noExplicitAny: Phase 5 integration incomplete
 type GameDispatch = (action: any) => void;
-
-/**
- * Initialize all spaces (grid spaces + inventory pool) for the TCP question.
- */
-export const initializeSpaces = (dispatch: GameDispatch) => {
-	// Create grid spaces for each space
-	for (const gridSpace of SPACE_CONFIGS) {
-		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
-	}
-
-	// Create pool space for inventory
-	const inventorySpace = createPoolSpaceData({
-		id: "inventory",
-		name: "Inventory",
-		metadata: { visible: true },
-	});
-
-	dispatch({
-		type: "CREATE_SPACE",
-		payload: { space: inventorySpace },
-	});
-
-	const receivedSpace = createPoolSpaceData({
-		id: "received",
-		name: "Received",
-		metadata: { visible: false },
-	});
-
-	dispatch({
-		type: "CREATE_SPACE",
-		payload: { space: receivedSpace },
-	});
-};
 
 /**
  * Initialize all entities (inventory items) for the TCP question.
@@ -170,18 +135,6 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 };
 
 /**
- * Initialize terminal state for the TCP question.
- */
-export const initializeTerminal = (dispatch: GameDispatch) => {
-	dispatch({
-		type: "SET_TERMINAL_PROMPT",
-		payload: { prompt: "Use the terminal to inspect the TCP exchange." },
-	});
-
-	// No intro entries for TCP question
-};
-
-/**
  * Initialize the entire TCP question state.
  * This replaces the legacy INIT_MULTI_CANVAS action.
  */
@@ -202,14 +155,6 @@ export const initializeTcpQuestion = (dispatch: GameDispatch) => {
 	});
 
 	// Initialize spaces
-	initializeSpaces(dispatch);
-
 	// Initialize entities
 	initializeEntities(dispatch);
-
-	// Initialize terminal
-	initializeTerminal(dispatch);
-
-	// Close terminal initially
-	dispatch({ type: "CLOSE_TERMINAL" });
 };

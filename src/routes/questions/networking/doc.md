@@ -23,6 +23,7 @@ Connect two computers to a router, configure DHCP, and verify connectivity using
 - UI rendering, animations, or layout logic.
 - Low-level drag/drop behavior (handled by PlayCanvas and InventoryPanel).
 - Modal rendering and focus management (handled by OverlayLayer).
+- Hint rendering (handled by HintProvider / ContextualHint).
 
 ---
 
@@ -35,9 +36,9 @@ Connect two computers to a router, configure DHCP, and verify connectivity using
 - PlayCanvas
   - Handles drop targets, emits placement and connection actions.
 - TerminalLayout
-  - Captures input, dispatches SUBMIT_COMMAND, renders history from state.
+  - Captures input, writes to terminal store, emits TERMINAL_INPUT events.
 - OverlayLayer
-  - Renders configuration modals and hint toasts from state.overlay.
+  - Renders configuration modals from state.overlay.
 
 The question logic must not import UI components directly.
 
@@ -314,7 +315,7 @@ Step D1 | DHCP assignment pipeline
 - Validation checks intent and state, not raw strings.
 - Accepted: ping PC-2 or ping <ip> where <ip> is PC-2.
 - Rejected: unknown commands, malformed input, or targets without IPs.
-- Successful validation dispatches ADD_TERMINAL_OUTPUT and COMPLETE_QUESTION.
+- Successful validation writes output to the terminal store and dispatches COMPLETE_QUESTION.
 
 ```
 Step T1 | Terminal pipeline
@@ -326,14 +327,14 @@ Step T1 | Terminal pipeline
         |      |                 |
         |      |                 +-- reject -> error output
         |      v
-        |   accept -> ADD_TERMINAL_OUTPUT -> COMPLETE_QUESTION
+        |   accept -> terminal.addOutput -> COMPLETE_QUESTION
 --------+--------------------------------------------------------------------
 ```
 
 ### Hints and progression
-- Use progressive hints via SHOW_HINT and DISMISS_HINT, with time-based triggers.
+- Use progressive hints via HintProvider (useHintStore/useContextualHint), with time-based triggers.
 - Hints must be descriptive but never reveal the exact terminal answer.
-- When the terminal phase starts, set state.terminal.visible and prompt text.
+- When the terminal phase starts, call terminal.open() and setPrompt().
 
 ```
 Step H1 | Hints (progressive + phase-gated)
@@ -343,10 +344,10 @@ Step H1 | Hints (progressive + phase-gated)
         |                      -> idle >= 90s -> hint #3 (DHCP concept)
         |                      -> terminal phase -> hint #4 (ping intent)
         |
-        |   SHOW_HINT (state.overlay.hints)
+        |   showHint (hint store)
         |        |
         |        v
-        |   OverlayLayer renders toast -> DISMISS_HINT
+        |   ContextualHint renders toast -> dismissHint
 --------+--------------------------------------------------------------------
 ```
 
@@ -408,7 +409,7 @@ Rule H2 | Trigger gates
 ```
 Rule H3 | Hint priority (when multiple apply)
         |
-        |   if terminal visible -> show terminal hint
+        |   if terminal visible (terminal store) -> show terminal hint
         |   else if router unconfigured -> show router hint
         |   else if missing connections -> show connection hint
         |   else -> show placement hint
@@ -460,7 +461,7 @@ Rule H4 | Accessibility + reliability
 - Keep transitions deterministic and idempotent for repeated actions.
 
 ### Security
-- Sanitize terminal input and terminal output before storing in state.
+- Sanitize terminal input and terminal output before storing in terminal history.
 - Validate drag data and config input on receipt, not just on entry.
 - Never execute commands; only parse and match against known patterns.
 - Avoid dangerouslySetInnerHTML in all output paths.

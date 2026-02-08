@@ -4,57 +4,16 @@
  */
 
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
-import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
 	BASIC_INVENTORY_ITEMS,
 	QUESTION_ID,
-	SPACE_CONFIGS,
 	SSL_ITEMS_INVENTORY,
 	SSL_SETUP_INVENTORY_ITEMS,
-	TERMINAL_INTRO_ENTRIES,
-	TERMINAL_PROMPT,
 } from "./constants";
 
 // Use any for dispatch to work around Phase 5 integration issues
 // biome-ignore lint/suspicious/noExplicitAny: Phase 5 integration incomplete
 type GameDispatch = (action: any) => void;
-
-/**
- * Initialize all spaces (grid spaces + inventory pool) for the SSL question.
- */
-export const initializeSpaces = (dispatch: GameDispatch) => {
-	// Create grid spaces for each space
-	for (const gridSpace of SPACE_CONFIGS) {
-		dispatch({
-			type: "CREATE_SPACE",
-			payload: { space: gridSpace },
-		});
-	}
-
-	// Create pool spaces for inventory groups
-	const inventorySpace = createPoolSpaceData({
-		id: "inventory",
-		name: "Inventory",
-		metadata: { visible: true },
-	});
-	const sslSetupSpace = createPoolSpaceData({
-		id: "ssl-setup",
-		name: "SSL Setup",
-		metadata: { visible: false },
-	});
-	const sslItemsSpace = createPoolSpaceData({
-		id: "ssl-items",
-		name: "SSL Certificates",
-		metadata: { visible: false },
-	});
-
-	for (const space of [inventorySpace, sslSetupSpace, sslItemsSpace]) {
-		dispatch({
-			type: "CREATE_SPACE",
-			payload: { space },
-		});
-	}
-};
 
 /**
  * Initialize all entities (inventory items) for the SSL question.
@@ -119,24 +78,6 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 };
 
 /**
- * Initialize terminal state for the SSL question.
- */
-export const initializeTerminal = (dispatch: GameDispatch) => {
-	dispatch({
-		type: "SET_TERMINAL_PROMPT",
-		payload: { prompt: TERMINAL_PROMPT },
-	});
-
-	// Add intro entries
-	for (const entry of TERMINAL_INTRO_ENTRIES) {
-		dispatch({
-			type: "ADD_TERMINAL_ENTRY",
-			payload: { entry },
-		});
-	}
-};
-
-/**
  * Initialize the entire SSL question state.
  * This replaces the legacy INIT_MULTI_CANVAS action.
  */
@@ -157,14 +98,6 @@ export const initializeSslQuestion = (dispatch: GameDispatch) => {
 	});
 
 	// Initialize spaces
-	initializeSpaces(dispatch);
-
 	// Initialize entities
 	initializeEntities(dispatch);
-
-	// Initialize terminal
-	initializeTerminal(dispatch);
-
-	// Close terminal initially
-	dispatch({ type: "CLOSE_TERMINAL" });
 };

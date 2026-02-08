@@ -1,8 +1,10 @@
 // Constants for the webserver-ssl question
 // Contains all static configuration: items, spaces, inventory groups
 
-import type { GridSpaceData } from "@/components/game/domain/space";
-import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
+import type {
+	GridSpaceConfig,
+	PoolSpaceConfig,
+} from "@/components/game/domain/space";
 import type { Item, TerminalEntry } from "@/components/game/game-provider";
 
 export const QUESTION_ID = "webserver-ssl";
@@ -14,58 +16,64 @@ export const TERMINAL_PROMPT =
 
 export type WebSslSpaceKey = "browser" | "port-80" | "letsencrypt" | "port-443";
 
-export const SPACE_ORDER: WebSslSpaceKey[] = [
-	"browser",
-	"port-80",
-	"letsencrypt",
-	"port-443",
-];
-
-export const SPACE_CONFIGS: GridSpaceData[] = [
-	createGridSpaceData({
+export const SPACE_CONFIGS: Record<WebSslSpaceKey, GridSpaceConfig> = {
+	browser: {
 		id: "browser",
 		name: "Browser",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
-	}),
-	createGridSpaceData({
+	},
+	"port-80": {
 		id: "port-80",
 		name: "Port 80 (HTTP)",
 		rows: 1,
 		cols: 3,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
-	}),
-	createGridSpaceData({
+	},
+	letsencrypt: {
 		id: "letsencrypt",
 		name: "Let's Encrypt",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
-	}),
-	createGridSpaceData({
+	},
+	"port-443": {
 		id: "port-443",
 		name: "Port 443 (HTTPS)",
 		rows: 1,
 		cols: 5,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 5,
-	}),
-];
-
-export const getSpaceConfig = (
-	spaceId: WebSslSpaceKey,
-): GridSpaceData | undefined =>
-	SPACE_CONFIGS.find((space) => space.id === spaceId);
+	},
+};
 
 export const SSL_POOL_IDS = {
 	inventory: "inventory",
 	setup: "ssl-setup",
 	certificates: "ssl-items",
 } as const;
+
+export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
+	id: SSL_POOL_IDS.inventory,
+	name: "Inventory",
+	metadata: { visible: true },
+};
+
+export const SSL_SETUP_POOL_CONFIG: PoolSpaceConfig = {
+	id: SSL_POOL_IDS.setup,
+	name: "SSL Setup",
+	metadata: { visible: false },
+};
+
+export const SSL_ITEMS_POOL_CONFIG: PoolSpaceConfig = {
+	id: SSL_POOL_IDS.certificates,
+	name: "SSL Certificates",
+	metadata: { visible: false },
+};
 
 export const DEFAULT_DOMAIN = "example.com";
 export const DEFAULT_INDEX_HTML = "/var/www/html/index.html";

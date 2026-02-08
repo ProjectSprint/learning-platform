@@ -1,5 +1,12 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { findEntitySpace } from "@/components/game/domain/space/validation";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
@@ -9,9 +16,11 @@ import {
 	GameProvider,
 	useDrawerManager,
 	useEngineEvents,
+	useGameCtx,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import { DrawerLayout } from "@/components/game/presentation/drawer";
 import type { EntityStatus } from "@/components/game/presentation/entity/PlacedEntity";
 import {
 	ContextualHint,
@@ -24,18 +33,23 @@ import {
 	TerminalLayout,
 	TerminalView,
 	useTerminalInput,
+	useTerminalStore,
 } from "@/components/game/presentation/terminal";
 import type { QuestionProps } from "@/components/module";
 
 import {
 	DEFAULT_DOMAIN,
-	getSpaceConfig,
+	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	SPACE_ORDER,
+	SPACE_CONFIGS,
 	SSL_ITEMS_INVENTORY,
+	SSL_ITEMS_POOL_CONFIG,
 	SSL_POOL_IDS,
 	SSL_SETUP_INVENTORY_ITEMS,
+	SSL_SETUP_POOL_CONFIG,
+	TERMINAL_INTRO_ENTRIES,
+	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { initializeSslQuestion } from "./-utils/init-spaces";
@@ -57,6 +71,12 @@ import { useSslState } from "./-utils/use-ssl-state";
 import { useSslTerminal } from "./-utils/use-ssl-terminal";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
+const WEB_SSL_SPACE_IDS = {
+	browser: "browser",
+	port80: "port-80",
+	letsencrypt: "letsencrypt",
+	port443: "port-443",
+} as const;
 
 export const WebServerSslQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -73,10 +93,19 @@ const SslGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
+	const gameCtx = useGameCtx();
 	const { events, ack } = useEngineEvents("webserver-ssl-page");
 	const initializedRef = useRef(false);
 	const terminalOpenedRef = useRef(false);
 	const terminalInput = useTerminalInput();
+	const {
+		terminal,
+		openTerminal,
+		closeTerminal,
+		setPrompt,
+		addEntry,
+		addOutput,
+	} = useTerminalStore();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed" || isCompleted;
@@ -101,23 +130,48 @@ const SslGame = ({
 	const [showSslItems, setShowSslItems] = useState(false);
 	const [eventTick, setEventTick] = useState(0);
 	useDragEngine();
-	const { registerDrawer } = useDrawerManager();
+	const { registerDrawer, updateDrawerConfig, openDrawer } = useDrawerManager();
+	const lastSslSpacesRef = useRef(showSslSpaces);
+	const lastSslItemsRef = useRef(showSslItems);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		registerDrawer({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: "inventory",
+			spaceIds: ["inventory"],
 			title: "Inventory",
 			position: "bottom",
 			initialState: "expanded",
 			expandedSize: { base: "65vh", md: "40vh" },
-			foldedSize: { md: "72px", lg: "80px" },
+			foldedSize: { sm: "30vh" },
 			mouseAware: true,
 			showFloatingButton: true,
 			floatingButtonLabel: "Inventory",
 		});
 	}, [registerDrawer]);
+
+	useEffect(() => {
+		const nextSpaceIds = ["inventory"];
+		if (showSslSpaces) {
+			nextSpaceIds.push(SSL_POOL_IDS.setup);
+		}
+		if (showSslItems) {
+			nextSpaceIds.push(SSL_POOL_IDS.certificates);
+		}
+
+		updateDrawerConfig(INVENTORY_DRAWER_ID, { spaceIds: nextSpaceIds });
+
+		const shouldOpen =
+			(showSslSpaces && !lastSslSpacesRef.current) ||
+			(showSslItems && !lastSslItemsRef.current);
+		if (shouldOpen) {
+			openDrawer(INVENTORY_DRAWER_ID);
+		}
+
+		lastSslSpacesRef.current = showSslSpaces;
+		lastSslItemsRef.current = showSslItems;
+	}, [openDrawer, showSslItems, showSslSpaces, updateDrawerConfig]);
 
 	useEffect(() => {
 		if (events.length === 0) {
@@ -224,10 +278,18 @@ const SslGame = ({
 		initializeSslQuestion(dispatch);
 	}, [dispatch]);
 
+	useEffect(() => {
+		setPrompt(TERMINAL_PROMPT);
+		for (const entry of TERMINAL_INTRO_ENTRIES) {
+			addEntry(entry);
+		}
+		closeTerminal();
+	}, [addEntry, closeTerminal, setPrompt]);
+
 	// Terminal visibility and initial help message
 	useEffect(() => {
-		if (shouldShowTerminal && !state.terminal.visible) {
-			dispatch({ type: "OPEN_TERMINAL" });
+		if (shouldShowTerminal && !terminal.visible) {
+			openTerminal();
 
 			if (!terminalOpenedRef.current) {
 				terminalOpenedRef.current = true;
@@ -257,22 +319,21 @@ const SslGame = ({
 					];
 
 					for (const line of helpLines) {
-						dispatch({
-							type: "ADD_TERMINAL_OUTPUT",
-							payload: { content: line, type: "output" },
-						});
+						addOutput(line, "output");
 					}
 				}, 100);
 			}
 			return;
 		}
-		if (!shouldShowTerminal && state.terminal.visible) {
-			dispatch({ type: "CLOSE_TERMINAL" });
+		if (!shouldShowTerminal && terminal.visible) {
+			closeTerminal();
 		}
 	}, [
-		dispatch,
+		addOutput,
+		closeTerminal,
+		openTerminal,
 		shouldShowTerminal,
-		state.terminal.visible,
+		terminal.visible,
 		port80Domain,
 		certificateDomain,
 	]);
@@ -286,9 +347,10 @@ const SslGame = ({
 		}),
 		[],
 	);
-	const visibleSpaces = showSslSpaces
-		? SPACE_ORDER
-		: (["browser", "port-80"] as const);
+	const browserConfig = SPACE_CONFIGS[WEB_SSL_SPACE_IDS.browser];
+	const port80SpaceConfig = SPACE_CONFIGS[WEB_SSL_SPACE_IDS.port80];
+	const letsencryptConfig = SPACE_CONFIGS[WEB_SSL_SPACE_IDS.letsencrypt];
+	const port443Config = SPACE_CONFIGS[WEB_SSL_SPACE_IDS.port443];
 	const gridTemplateAreas = showSslSpaces
 		? {
 				base: `"browser" "port-80" "letsencrypt" "port-443"`,
@@ -745,48 +807,79 @@ const SslGame = ({
 						gap={{ base: 2, md: 4 }}
 						alignItems="stretch"
 					>
-						{visibleSpaces.map((spaceId) => {
-							const config = getSpaceConfig(spaceId);
-							if (!config) return null;
-							return (
-								<GridItem key={spaceId} area={spaceAreas[spaceId]}>
-									<GridSpace
-										id={spaceId}
-										title={config.name ?? spaceId}
-										onEntityClick={handleEntityClick}
-										isEntityClickable={isEntityClickable}
-										getEntityLabel={(entity) => getSslItemLabel(entity.type)}
-										getEntityStatus={getEntityStatus}
-									/>
-								</GridItem>
-							);
-						})}
+						{browserConfig ? (
+							<GridItem area={spaceAreas.browser}>
+								<GridSpace
+									ctx={gameCtx}
+									config={browserConfig}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={(entity) => getSslItemLabel(entity.type)}
+									getEntityStatus={getEntityStatus}
+								/>
+							</GridItem>
+						) : null}
+						{port80SpaceConfig ? (
+							<GridItem area={spaceAreas["port-80"]}>
+								<GridSpace
+									ctx={gameCtx}
+									config={port80SpaceConfig}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={(entity) => getSslItemLabel(entity.type)}
+									getEntityStatus={getEntityStatus}
+								/>
+							</GridItem>
+						) : null}
+						{showSslSpaces && letsencryptConfig ? (
+							<GridItem area={spaceAreas.letsencrypt}>
+								<GridSpace
+									ctx={gameCtx}
+									config={letsencryptConfig}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={(entity) => getSslItemLabel(entity.type)}
+									getEntityStatus={getEntityStatus}
+								/>
+							</GridItem>
+						) : null}
+						{showSslSpaces && port443Config ? (
+							<GridItem area={spaceAreas["port-443"]}>
+								<GridSpace
+									ctx={gameCtx}
+									config={port443Config}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={(entity) => getSslItemLabel(entity.type)}
+									getEntityStatus={getEntityStatus}
+								/>
+							</GridItem>
+						) : null}
 					</Grid>
-
-					<Flex direction="column" gap={4} mt={4}>
-						{showSslSpaces && (
-							<PoolSpace id={SSL_POOL_IDS.setup} title="SSL Setup" />
-						)}
-						{showSslItems && (
-							<PoolSpace
-								id={SSL_POOL_IDS.certificates}
-								title="SSL Certificates"
-							/>
-						)}
-					</Flex>
 
 					<ContextualHint />
 
 					<DragOverlay getEntityLabel={getSslItemLabel} />
+					<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
+						<Flex direction="column" gap={3}>
+							<PoolSpace ctx={gameCtx} config={INVENTORY_POOL_CONFIG} />
+							<Box display={showSslSpaces ? "block" : "none"}>
+								<PoolSpace ctx={gameCtx} config={SSL_SETUP_POOL_CONFIG} />
+							</Box>
+							<Box display={showSslItems ? "block" : "none"}>
+								<PoolSpace ctx={gameCtx} config={SSL_ITEMS_POOL_CONFIG} />
+							</Box>
+						</Flex>
+					</DrawerLayout>
 				</GameBoard>
 
 				<TerminalLayout
-					visible={state.terminal.visible}
+					visible={terminal.visible}
 					focusRef={terminalInput.inputRef}
 					view={
 						<TerminalView
-							history={state.terminal.history}
-							prompt={state.terminal.prompt}
+							history={terminal.history}
+							prompt={terminal.prompt}
 							isCompleted={isCompleted}
 						/>
 					}

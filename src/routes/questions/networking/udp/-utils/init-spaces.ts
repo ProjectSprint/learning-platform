@@ -4,54 +4,19 @@
  */
 
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
-import { createPoolSpaceData } from "@/components/game/domain/space/space-fns";
 import {
 	ACK_PACKETS,
 	DATA_PACKETS,
 	FRAME_ITEMS,
-	getSpaceConfig,
 	QUESTION_ID,
 	RECEIVED_SYN_PACKETS,
 	SYN_ACK_PACKETS,
 	SYN_PACKETS,
-	TCP_SPACE_ORDER,
-	UDP_SPACE_ORDER,
 } from "./constants";
 
 // Use any for dispatch to work around Phase 5 integration issues
 // biome-ignore lint/suspicious/noExplicitAny: Phase 5 integration incomplete
 type GameDispatch = (action: any) => void;
-
-/**
- * Initialize all spaces (grid spaces + inventory pool) for the UDP question.
- */
-export const initializeSpaces = (dispatch: GameDispatch) => {
-	// Create grid spaces for TCP phase
-	for (const spaceId of TCP_SPACE_ORDER) {
-		const gridSpace = getSpaceConfig(spaceId);
-		if (!gridSpace) continue;
-
-		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
-	}
-
-	// Create grid spaces for UDP phase
-	for (const spaceId of UDP_SPACE_ORDER) {
-		if (TCP_SPACE_ORDER.includes(spaceId)) continue; // Skip duplicates
-		const gridSpace = getSpaceConfig(spaceId);
-		if (!gridSpace) continue;
-
-		dispatch({ type: "CREATE_SPACE", payload: { space: gridSpace } });
-	}
-
-	// Create pool space for inventory
-	const inventorySpace = createPoolSpaceData({
-		id: "inventory",
-		name: "Inventory",
-		metadata: { visible: true },
-	});
-
-	dispatch({ type: "CREATE_SPACE", payload: { space: inventorySpace } });
-};
 
 /**
  * Initialize all entities (inventory items) for the UDP question.
@@ -167,16 +132,6 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 };
 
 /**
- * Initialize terminal state for the UDP question.
- */
-export const initializeTerminal = (dispatch: GameDispatch) => {
-	dispatch({
-		type: "SET_TERMINAL_PROMPT",
-		payload: { prompt: "Terminal ready." },
-	});
-};
-
-/**
  * Initialize the entire UDP question state.
  * This replaces the legacy INIT_MULTI_CANVAS action.
  */
@@ -197,14 +152,6 @@ export const initializeUdpQuestion = (dispatch: GameDispatch) => {
 	});
 
 	// Initialize spaces
-	initializeSpaces(dispatch);
-
 	// Initialize entities
 	initializeEntities(dispatch);
-
-	// Initialize terminal
-	initializeTerminal(dispatch);
-
-	// Close terminal initially
-	dispatch({ type: "CLOSE_TERMINAL" });
 };

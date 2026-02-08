@@ -56,27 +56,9 @@ export const applicationReducer = (
 			return entityReducer(state, action);
 
 		// UI actions
-		case "ADD_ARROW":
-		case "UPDATE_ARROW":
-		case "REMOVE_ARROW":
-		case "SET_ARROWS":
-		case "CLEAR_ARROWS":
-		case "SHOW_HINT":
-		case "HIDE_HINT":
-		case "REPLACE_HINT":
 		case "OPEN_MODAL":
 		case "CLOSE_MODAL":
 		case "MODAL_SUBMITTED":
-		case "REGISTER_DRAWER":
-		case "OPEN_DRAWER":
-		case "CLOSE_DRAWER":
-		case "TOGGLE_DRAWER":
-		case "UPDATE_DRAWER_CONFIG":
-		case "OPEN_TERMINAL":
-		case "CLOSE_TERMINAL":
-		case "SUBMIT_COMMAND":
-		case "ADD_TERMINAL_OUTPUT":
-		case "CLEAR_TERMINAL_HISTORY":
 			return uiReducer(state, action);
 
 		// Core actions
@@ -101,19 +83,8 @@ export const createDefaultState = (): GameState => {
 		phase: "setup",
 		spaces: {},
 		entities: {},
-		arrows: [],
-		terminal: {
-			visible: false,
-			prompt: "",
-			history: [],
-		},
-		hint: {
-			visible: false,
-			content: "",
-		},
 		overlay: {
 			modals: {},
-			drawers: {},
 		},
 		question: {
 			id: "",

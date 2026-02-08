@@ -5,21 +5,33 @@
  * from the inventory pool.
  */
 
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useLayoutEffect, useMemo } from "react";
 import type { EntityData } from "../domain/entity/entity-data";
 import { isItemData } from "../domain/entity/entity-data";
-import type { PoolSpaceData } from "../domain/space/space-data";
-import { spaceContains } from "../domain/space/space-fns";
+import type {
+	PoolSpaceConfig,
+	PoolSpaceData,
+} from "../domain/space/space-data";
+import { createPoolSpaceData, spaceContains } from "../domain/space/space-fns";
+import type { GameContextValue } from "../game-provider";
 import { useGameDispatch, useGameState } from "../game-provider";
 import { useDragContext } from "../presentation/interaction/drag/DragContext";
 import { PoolSpaceView } from "../presentation/space/PoolSpaceView";
 
-export type PoolSpaceProps = {
+type PoolSpacePropsBase = {
 	/** ID of the pool space to render (defaults to "inventory") */
 	id?: string;
+	/** Optional game context for explicit registration */
+	ctx?: GameContextValue;
+	/** Optional config used to register the space on mount */
+	config?: PoolSpaceConfig;
 	/** Optional title for the space */
 	title?: string;
 };
+
+export type PoolSpaceProps =
+	| (PoolSpacePropsBase & { id: string; config?: PoolSpaceConfig })
+	| (PoolSpacePropsBase & { id?: string; config: PoolSpaceConfig });
 
 /**
  * PoolSpace - Engine layer component for PoolSpaceView.
@@ -38,13 +50,29 @@ export type PoolSpaceProps = {
  * />
  * ```
  */
-export const PoolSpace = memo(({ id = "inventory", title }: PoolSpaceProps) => {
-	const state = useGameState();
-	const dispatch = useGameDispatch();
+export const PoolSpace = memo(({ id, ctx, config, title }: PoolSpaceProps) => {
+	const contextState = useGameState();
+	const contextDispatch = useGameDispatch();
+	const state = ctx?.state ?? contextState;
+	const dispatch = ctx?.dispatch ?? contextDispatch;
 	const { setActiveDrag, setLastDropResult } = useDragContext();
+	const resolvedId = config?.id ?? id ?? "inventory";
+	const hasSpace = resolvedId ? Boolean(state.spaces[resolvedId]) : false;
+	const shouldRegister = Boolean(config) && Boolean(resolvedId);
+
+	useLayoutEffect(() => {
+		if (!shouldRegister || !resolvedId) return;
+		if (hasSpace) return;
+		dispatch({
+			type: "CREATE_SPACE",
+			payload: { space: createPoolSpaceData(config as PoolSpaceConfig) },
+		});
+	}, [config, dispatch, hasSpace, resolvedId, shouldRegister]);
 
 	// Get pool space data
-	const pool = state.spaces[id] as PoolSpaceData | undefined;
+	const pool = resolvedId
+		? (state.spaces[resolvedId] as PoolSpaceData | undefined)
+		: undefined;
 
 	// Get entities in this pool
 	const poolEntityIds = pool?.entityIds ?? [];
@@ -62,7 +90,7 @@ export const PoolSpace = memo(({ id = "inventory", title }: PoolSpaceProps) => {
 			}
 			// Check if in any other space
 			for (const [spaceKey, space] of Object.entries(state.spaces)) {
-				if (spaceKey === id) continue; // Skip the pool itself
+				if (spaceKey === resolvedId) continue; // Skip the pool itself
 				if (spaceContains(space, entity.id)) {
 					placed.add(entity.id);
 					break;
@@ -70,7 +98,7 @@ export const PoolSpace = memo(({ id = "inventory", title }: PoolSpaceProps) => {
 			}
 		}
 		return placed;
-	}, [state.entities, state.spaces, pool?.entityIds, id]);
+	}, [state.entities, state.spaces, pool?.entityIds, resolvedId]);
 
 	// Handle drag start from pool
 	const handleDragStart = (entity: EntityData, event: React.PointerEvent) => {
@@ -113,7 +141,7 @@ export const PoolSpace = memo(({ id = "inventory", title }: PoolSpaceProps) => {
 			// Find which space the entity is currently in
 			let currentSpaceId: string | null = null;
 			for (const [spaceKey, space] of Object.entries(state.spaces)) {
-				if (spaceKey === id) continue; // Skip the pool itself
+				if (spaceKey === resolvedId) continue; // Skip the pool itself
 				if (spaceContains(space, entityId)) {
 					currentSpaceId = spaceKey;
 					break;
@@ -131,12 +159,12 @@ export const PoolSpace = memo(({ id = "inventory", title }: PoolSpaceProps) => {
 				payload: {
 					entityId,
 					fromSpaceId: currentSpaceId,
-					toSpaceId: id,
+					toSpaceId: resolvedId,
 				},
 			});
 			return true;
 		},
-		[dispatch, id, state.spaces],
+		[dispatch, resolvedId, state.spaces],
 	);
 
 	// Handle null/undefined pool
@@ -144,12 +172,14 @@ export const PoolSpace = memo(({ id = "inventory", title }: PoolSpaceProps) => {
 		return null;
 	}
 
+	const resolvedTitle = title ?? pool.name ?? pool.id;
+
 	return (
 		<PoolSpaceView
 			space={pool}
 			entities={entities}
 			placedEntityIds={placedEntityIds}
-			title={title}
+			title={resolvedTitle}
 			onEntityDragStart={handleDragStart}
 			onEntityReturn={handleEntityReturn}
 		/>

@@ -35,11 +35,6 @@ export const createDefaultState = (): GameState => ({
 	},
 	space: createSpaceState(defaultSpaceConfig),
 	arrows: [],
-	terminal: {
-		visible: false,
-		prompt: "",
-		history: [],
-	},
 	hint: {
 		visible: false,
 		content: null,
@@ -156,22 +151,12 @@ export const coreReducer = (
 				return state;
 			}
 
-			const terminal = {
-				...state.terminal,
-				...config.terminal,
-			};
-
 			return {
 				...createDefaultState(),
 				phase: config.phase ?? "setup",
 				inventory: { groups: inventoryGroups },
 				space: firstSpace,
 				spaces: nextSpaces,
-				terminal: {
-					visible: terminal.visible ?? false,
-					prompt: terminal.prompt ?? "",
-					history: terminal.history ?? [],
-				},
 				question: {
 					id: config.questionId,
 					status: config.questionStatus ?? "in_progress",

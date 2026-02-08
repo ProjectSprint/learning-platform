@@ -1,46 +1,54 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
-	clearBoardArrows,
-	setBoardArrows,
-} from "@/components/game/application/actions";
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+} from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import {
 	type ConditionContext,
 	type QuestionSpec,
 	resolvePhase,
 } from "@/components/game/domain/question";
-import { GameBoard, GridSpace } from "@/components/game/engine";
+import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
 	GameProvider,
 	useDrawerManager,
+	useGameCtx,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import { DrawerLayout } from "@/components/game/presentation/drawer";
 import {
 	ContextualHint,
 	useContextualHint,
 } from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
+import { useBoardArrows } from "@/components/game/presentation/space/arrow";
 import {
 	TerminalInput,
 	TerminalLayout,
 	TerminalView,
 	useTerminalInput,
+	useTerminalStore,
 } from "@/components/game/presentation/terminal";
 import type { QuestionProps } from "@/components/module";
 
 import {
 	GOOGLE_IP,
-	getSpaceConfig,
+	INVENTORY_POOL_CONFIG,
 	type InternetSpaceKey,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
-	SPACE_ORDER,
+	SPACE_CONFIGS,
+	TERMINAL_INTRO_ENTRIES,
+	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { initializeInternetQuestion } from "./-utils/init-spaces";
@@ -65,9 +73,6 @@ type InternetConditionKey =
 	| "dragStatus"
 	| "allDevicesPlaced";
 const INVENTORY_DRAWER_ID = "inventory-drawer";
-
-const COLUMN_ONE: InternetSpaceKey[] = ["local", "conn-1", "router"];
-const COLUMN_TWO: InternetSpaceKey[] = ["conn-2", "igw", "dns", "google"];
 
 const INTERNET_SPEC_BASE: Omit<
 	QuestionSpec<InternetConditionKey>,
@@ -129,14 +134,24 @@ const InternetGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
+	const gameCtx = useGameCtx();
 	const initializedRef = useRef(false);
 	const terminalInput = useTerminalInput();
+	const {
+		terminal,
+		openTerminal,
+		closeTerminal,
+		setPrompt,
+		addEntry,
+		addOutput,
+	} = useTerminalStore();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
 	const internetState = useInternetState({ dragEngine });
 	const { registerDrawer } = useDrawerManager();
+	const { setArrows, clearArrows } = useBoardArrows();
 
 	// Entity click handlers - adapted for entities
 	const entityClickHandlers = useMemo(
@@ -242,19 +257,19 @@ const InternetGame = ({
 		onCommand: handleInternetCommand,
 	});
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		registerDrawer({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: "inventory",
-			title: "Inventory",
+			title: "Items",
 			position: "bottom",
 			initialState: "expanded",
 			expandedSize: { base: "65vh", md: "40vh" },
-			foldedSize: { md: "72px", lg: "80px" },
+			foldedSize: { sm: "30vh" },
 			mouseAware: true,
 			showFloatingButton: true,
-			floatingButtonLabel: "Inventory",
+			floatingButtonLabel: "Items",
 		});
 	}, [registerDrawer]);
 
@@ -288,6 +303,14 @@ const InternetGame = ({
 		initializeInternetQuestion(dispatch);
 	}, [dispatch]);
 
+	useEffect(() => {
+		setPrompt(TERMINAL_PROMPT);
+		for (const entry of TERMINAL_INTRO_ENTRIES) {
+			addEntry(entry);
+		}
+		closeTerminal();
+	}, [addEntry, closeTerminal, setPrompt]);
+
 	// Phase management
 	useEffect(() => {
 		const context: ConditionContext<InternetConditionKey> = {
@@ -318,8 +341,8 @@ const InternetGame = ({
 	// Terminal visibility and initial help message
 	const terminalOpenedRef = useRef(false);
 	useEffect(() => {
-		if (shouldShowTerminal && !state.terminal.visible) {
-			dispatch({ type: "OPEN_TERMINAL" });
+		if (shouldShowTerminal && !terminal.visible) {
+			openTerminal();
 
 			// Show full help message on first terminal open
 			if (!terminalOpenedRef.current) {
@@ -363,19 +386,22 @@ const InternetGame = ({
 					];
 
 					for (const line of helpLines) {
-						dispatch({
-							type: "ADD_TERMINAL_OUTPUT",
-							payload: { content: line, type: "output" },
-						});
+						addOutput(line, "output");
 					}
 				}, 100);
 			}
 			return;
 		}
-		if (!shouldShowTerminal && state.terminal.visible) {
-			dispatch({ type: "CLOSE_TERMINAL" });
+		if (!shouldShowTerminal && terminal.visible) {
+			closeTerminal();
 		}
-	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
+	}, [
+		addOutput,
+		closeTerminal,
+		openTerminal,
+		shouldShowTerminal,
+		terminal.visible,
+	]);
 
 	// Contextual hints
 	const contextualHint = useMemo(
@@ -533,15 +559,15 @@ const InternetGame = ({
 
 	useEffect(() => {
 		if (isCompleted) {
-			clearBoardArrows(dispatch);
+			clearArrows();
 			return;
 		}
 
-		setBoardArrows(dispatch, boardArrows);
+		setArrows(boardArrows);
 		return () => {
-			clearBoardArrows(dispatch);
+			clearArrows();
 		};
-	}, [boardArrows, dispatch, isCompleted]);
+	}, [boardArrows, clearArrows, isCompleted, setArrows]);
 
 	const handleEntityClick = useCallback(
 		(entity: EntityData) => {
@@ -571,14 +597,14 @@ const InternetGame = ({
 
 	const renderBoard = useCallback(
 		(key: InternetSpaceKey) => {
-			const config = getSpaceConfig(key);
+			const config = SPACE_CONFIGS[key];
 			if (!config) return null;
 
 			return (
 				<Box flexGrow={1} flexBasis={0} key={key}>
 					<GridSpace
-						id={key}
-						title={config.name ?? key}
+						ctx={gameCtx}
+						config={config}
 						onEntityClick={handleEntityClick}
 						isEntityClickable={isEntityClickable}
 						getEntityLabel={(entity) => getInternetItemLabel(entity.type)}
@@ -605,7 +631,7 @@ const InternetGame = ({
 				</Box>
 			);
 		},
-		[handleEntityClick, isEntityClickable],
+		[gameCtx, handleEntityClick, isEntityClickable],
 	);
 
 	return (
@@ -644,7 +670,13 @@ const InternetGame = ({
 							align="flex-start"
 							wrap="wrap"
 						>
-							{SPACE_ORDER.map((key) => renderBoard(key))}
+							{renderBoard("local")}
+							{renderBoard("conn-1")}
+							{renderBoard("router")}
+							{renderBoard("conn-2")}
+							{renderBoard("igw")}
+							{renderBoard("dns")}
+							{renderBoard("google")}
 						</Flex>
 					) : layoutMode === "columns" ? (
 						<Flex
@@ -652,10 +684,15 @@ const InternetGame = ({
 							gap={{ base: 2, md: 4 }}
 						>
 							<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
-								{COLUMN_ONE.map((key) => renderBoard(key))}
+								{renderBoard("local")}
+								{renderBoard("conn-1")}
+								{renderBoard("router")}
 							</Flex>
 							<Flex direction="column" gap={{ base: 2, md: 4 }} flex="1">
-								{COLUMN_TWO.map((key) => renderBoard(key))}
+								{renderBoard("conn-2")}
+								{renderBoard("igw")}
+								{renderBoard("dns")}
+								{renderBoard("google")}
 							</Flex>
 						</Flex>
 					) : layoutMode === "structured-lg" ? (
@@ -688,22 +725,33 @@ const InternetGame = ({
 						</Flex>
 					) : (
 						<Flex direction="column" gap={{ base: 2, md: 4 }}>
-							{SPACE_ORDER.map((key) => renderBoard(key))}
+							{renderBoard("local")}
+							{renderBoard("conn-1")}
+							{renderBoard("router")}
+							{renderBoard("conn-2")}
+							{renderBoard("igw")}
+							{renderBoard("dns")}
+							{renderBoard("google")}
 						</Flex>
 					)}
 
 					<ContextualHint />
 
 					<DragOverlay getEntityLabel={getInternetItemLabel} />
+					<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
+						<Flex direction="column" gap={3}>
+							<PoolSpace ctx={gameCtx} config={INVENTORY_POOL_CONFIG} />
+						</Flex>
+					</DrawerLayout>
 				</GameBoard>
 
 				<TerminalLayout
-					visible={state.terminal.visible}
+					visible={terminal.visible}
 					focusRef={terminalInput.inputRef}
 					view={
 						<TerminalView
-							history={state.terminal.history}
-							prompt={state.terminal.prompt}
+							history={terminal.history}
+							prompt={terminal.prompt}
 							isCompleted={isCompleted}
 						/>
 					}

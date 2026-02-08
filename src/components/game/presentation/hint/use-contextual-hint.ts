@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useGameDispatch, useGameState } from "@/components/game/game-provider";
+import { useHintStore } from "./hint-context";
 
 const DEFAULT_HINT_DELAY_MS = 3000;
 
@@ -11,21 +11,20 @@ export const useContextualHint = (
 	content: string,
 	options: ContextualHintOptions = {},
 ) => {
-	const dispatch = useGameDispatch();
-	const { hint } = useGameState();
+	const { hint, hideHint, replaceHint, showHint } = useHintStore();
 	const delayMs = options.delayMs ?? DEFAULT_HINT_DELAY_MS;
 
 	useEffect(() => {
 		const nextContent = content.trim();
 		if (!nextContent) {
 			if (hint.visible || hint.content) {
-				dispatch({ type: "HIDE_HINT" });
+				hideHint();
 			}
 			return;
 		}
 
 		if (hint.content !== nextContent) {
-			dispatch({ type: "REPLACE_HINT", payload: { content: nextContent } });
+			replaceHint(nextContent);
 		}
 
 		if (hint.visible) {
@@ -33,14 +32,22 @@ export const useContextualHint = (
 		}
 
 		if (delayMs <= 0) {
-			dispatch({ type: "SHOW_HINT", payload: { content: nextContent } });
+			showHint(nextContent);
 			return;
 		}
 
 		const timer = setTimeout(() => {
-			dispatch({ type: "SHOW_HINT", payload: { content: nextContent } });
+			showHint(nextContent);
 		}, delayMs);
 
 		return () => clearTimeout(timer);
-	}, [content, delayMs, dispatch, hint.content, hint.visible]);
+	}, [
+		content,
+		delayMs,
+		hideHint,
+		hint.content,
+		hint.visible,
+		replaceHint,
+		showHint,
+	]);
 };

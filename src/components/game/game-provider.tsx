@@ -18,6 +18,10 @@ export type {
 	GameState,
 	ModalCloseReason,
 } from "./application/state/types";
+export type GameContextValue = {
+	state: GameState;
+	dispatch: Dispatch<Action>;
+};
 // Legacy types still used by UI components
 export type {
 	Arrow,
@@ -71,8 +75,11 @@ import {
 	createDefaultState,
 } from "./application/state/reducers";
 import type { GameState } from "./application/state/types";
-import { DrawerContainer } from "./presentation/drawer/DrawerContainer";
+import { DrawerProvider } from "./presentation/drawer";
+import { HintProvider } from "./presentation/hint";
 import { DragProvider } from "./presentation/interaction/drag/DragContext";
+import { ArrowProvider } from "./presentation/space/arrow";
+import { TerminalProvider } from "./presentation/terminal";
 
 // ============================================================================
 // Hook Exports
@@ -133,18 +140,18 @@ export const GameProvider = ({ children, initialState }: GameProviderProps) => {
 		applicationReducer,
 		initialState ?? createDefaultState(),
 	);
-
-	const drawers = state.overlay.drawers ?? {};
-
 	return (
 		<GameStateContext.Provider value={state}>
 			<GameDispatchContext.Provider value={dispatch}>
-				<DragProvider>
-					{children}
-					{Object.entries(drawers).map(([drawerId, drawer]) => (
-						<DrawerContainer key={drawerId} drawer={drawer} />
-					))}
-				</DragProvider>
+				<ArrowProvider>
+					<DrawerProvider>
+						<HintProvider>
+							<TerminalProvider>
+								<DragProvider>{children}</DragProvider>
+							</TerminalProvider>
+						</HintProvider>
+					</DrawerProvider>
+				</ArrowProvider>
 			</GameDispatchContext.Provider>
 		</GameStateContext.Provider>
 	);
@@ -174,4 +181,13 @@ export const useGameDispatch = () => {
 		throw new Error("useGameDispatch must be used within GameProvider");
 	}
 	return dispatch;
+};
+
+/**
+ * Hook to access both GameState and dispatch.
+ */
+export const useGameCtx = (): GameContextValue => {
+	const state = useGameState();
+	const dispatch = useGameDispatch();
+	return { state, dispatch };
 };

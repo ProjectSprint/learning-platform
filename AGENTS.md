@@ -73,7 +73,7 @@ bd close bd-42 --reason "Completed" --json
 bd automatically syncs with git:
 
 - Exports to `.beads/issues.jsonl` after changes (5s debounce)
-- Imports from JSONL when newer (e.g., after `git pull`)
+- Imports from JSONL when newer (, treat it as it's your last words to pass on into someone newe.g., after `git pull`)
 - No manual export/import needed!
 
 ### Important Rules
@@ -93,6 +93,7 @@ For more details, see README.md and docs/QUICKSTART.md.
 ## Task Creation
 When creating a task, each task should:
 - Assumed that the one that will work on it, ISN'T YOU, but someone else, so be VERY CLEAR about the context
+- Dump all your thinking and context into the task, treat it as it's your last words to pass on into someone new
 - Fulfill the principles
     - Maintainability
     - Usability

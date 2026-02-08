@@ -4,12 +4,9 @@
  */
 
 import type {
-	Arrow,
 	GamePhase,
-	HintState,
 	OverlayState,
 	QuestionStatus,
-	TerminalState,
 } from "../../../core/types";
 import type { EntityData } from "../../../domain/entity/entity-data";
 import type { SpaceData } from "../../../domain/space/space-data";
@@ -28,15 +25,6 @@ export type GameState = {
 
 	/** All entities in the game, keyed by entity ID */
 	entities: Record<string, EntityData>;
-
-	/** Visual arrows connecting elements */
-	arrows: Arrow[];
-
-	/** Terminal state */
-	terminal: TerminalState;
-
-	/** Hint system state */
-	hint: HintState;
 
 	/** Modal/overlay state */
 	overlay: OverlayState;

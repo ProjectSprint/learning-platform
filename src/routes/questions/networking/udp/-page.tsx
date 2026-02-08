@@ -1,14 +1,22 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+} from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import { GameBoard, GridSpace } from "@/components/game/engine";
+import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine } from "@/components/game/engines";
 import {
 	GameProvider,
 	useDrawerManager,
+	useGameCtx,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import { DrawerLayout } from "@/components/game/presentation/drawer";
 import { ContextualHint } from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
@@ -17,19 +25,23 @@ import {
 	TerminalLayout,
 	TerminalView,
 	useTerminalInput,
+	useTerminalStore,
 } from "@/components/game/presentation/terminal";
 import type { QuestionProps } from "@/components/module";
 
 import {
-	getSpaceConfig,
+	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	TCP_SPACE_ORDER,
+	SPACE_CONFIGS,
+	TCP_INBOX_IDS,
+	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { initializeUdpQuestion } from "./-utils/init-spaces";
 import { useUdpState } from "./-utils/use-udp-state";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
+const UDP_SPACE_ID_INTERNET = "internet";
 
 export const UdpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -46,8 +58,11 @@ const UdpGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
+	const gameCtx = useGameCtx();
 	const initializedRef = useRef(false);
 	const terminalInput = useTerminalInput();
+	const { terminal, openTerminal, closeTerminal, setPrompt } =
+		useTerminalStore();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal = state.phase === "terminal";
 	useDragEngine();
@@ -65,15 +80,21 @@ const UdpGame = ({
 	}, [dispatch]);
 
 	useEffect(() => {
+		setPrompt(TERMINAL_PROMPT);
+		closeTerminal();
+	}, [closeTerminal, setPrompt]);
+
+	useLayoutEffect(() => {
 		registerDrawer({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: "inventory",
+			spaceIds: ["inventory"],
 			title: "Inventory",
 			position: "bottom",
 			initialState: "expanded",
 			expandedSize: { base: "65vh", md: "40vh" },
-			foldedSize: { md: "72px", lg: "80px" },
+			foldedSize: { sm: "30vh" },
 			mouseAware: true,
 			showFloatingButton: true,
 			floatingButtonLabel: "Inventory",
@@ -82,14 +103,14 @@ const UdpGame = ({
 
 	// Terminal visibility
 	useEffect(() => {
-		if (shouldShowTerminal && !state.terminal.visible) {
-			dispatch({ type: "OPEN_TERMINAL" });
+		if (shouldShowTerminal && !terminal.visible) {
+			openTerminal();
 			return;
 		}
-		if (!shouldShowTerminal && state.terminal.visible) {
-			dispatch({ type: "CLOSE_TERMINAL" });
+		if (!shouldShowTerminal && terminal.visible) {
+			closeTerminal();
 		}
-	}, [dispatch, shouldShowTerminal, state.terminal.visible]);
+	}, [closeTerminal, openTerminal, shouldShowTerminal, terminal.visible]);
 
 	const spaceAreas = useMemo(
 		() =>
@@ -150,34 +171,65 @@ const UdpGame = ({
 						gap={{ base: 2, md: 4 }}
 						alignItems="stretch"
 					>
-						{TCP_SPACE_ORDER.map((spaceId) => {
-							const config = getSpaceConfig(spaceId);
-							if (!config) return null;
-							return (
-								<GridItem key={spaceId} area={spaceAreas[spaceId]} minW={0}>
-									<GridSpace
-										id={spaceId}
-										title={config.name ?? spaceId}
-										onEntityClick={handleEntityClick}
-										isEntityClickable={isEntityClickable}
-									/>
-								</GridItem>
-							);
-						})}
+						{SPACE_CONFIGS[TCP_INBOX_IDS.a] ? (
+							<GridItem area={spaceAreas[TCP_INBOX_IDS.a]} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={SPACE_CONFIGS[TCP_INBOX_IDS.a]}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+								/>
+							</GridItem>
+						) : null}
+						{SPACE_CONFIGS[TCP_INBOX_IDS.b] ? (
+							<GridItem area={spaceAreas[TCP_INBOX_IDS.b]} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={SPACE_CONFIGS[TCP_INBOX_IDS.b]}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+								/>
+							</GridItem>
+						) : null}
+						{SPACE_CONFIGS[TCP_INBOX_IDS.c] ? (
+							<GridItem area={spaceAreas[TCP_INBOX_IDS.c]} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={SPACE_CONFIGS[TCP_INBOX_IDS.c]}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+								/>
+							</GridItem>
+						) : null}
+						{SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
+							<GridItem area={spaceAreas.internet} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+								/>
+							</GridItem>
+						) : null}
 					</Grid>
 
 					<ContextualHint />
 
 					<DragOverlay getEntityLabel={(type) => type} />
+					<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
+						<Flex direction="column" gap={3}>
+							<PoolSpace ctx={gameCtx} config={INVENTORY_POOL_CONFIG} />
+						</Flex>
+					</DrawerLayout>
 				</GameBoard>
 
 				<TerminalLayout
-					visible={state.terminal.visible}
+					visible={terminal.visible}
 					focusRef={terminalInput.inputRef}
 					view={
 						<TerminalView
-							history={state.terminal.history}
-							prompt={state.terminal.prompt}
+							history={terminal.history}
+							prompt={terminal.prompt}
 							isCompleted={isCompleted}
 						/>
 					}

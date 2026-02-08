@@ -6,7 +6,7 @@ import type {
 	ArrowBreakpoint,
 	ArrowStyle,
 } from "@/components/game/game-provider";
-import { useGameState } from "@/components/game/game-provider";
+import { useBoardArrows } from "./arrow-context";
 import { useBoardRegistry } from "./board-registry";
 
 const breakpointFallbacks: Record<ArrowBreakpoint, ArrowBreakpoint[]> = {
@@ -77,7 +77,7 @@ const resolveStroke = (style?: ArrowStyle) => ({
 });
 
 export const ArrowLayer = () => {
-	const { arrows } = useGameState();
+	const { arrows } = useBoardArrows();
 	const { containerRef, layoutVersion, getBoardElement } = useBoardRegistry();
 	const container = containerRef.current;
 	const activeBreakpoint =

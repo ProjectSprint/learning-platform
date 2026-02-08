@@ -6,7 +6,6 @@ import { hintReducer } from "./hint";
 import { modalReducer } from "./modal";
 import { poolReducer } from "./pool";
 import { spaceReducer } from "./puzzle";
-import { terminalReducer } from "./terminal";
 
 export { createDefaultState } from "./core";
 
@@ -19,7 +18,6 @@ export const gameReducer = (
 	nextState = poolReducer(nextState, action);
 	nextState = spaceReducer(nextState, action);
 	nextState = arrowsReducer(nextState, action);
-	nextState = terminalReducer(nextState, action);
 	nextState = modalReducer(nextState, action);
 	return nextState;
 };

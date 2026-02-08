@@ -1,5 +1,7 @@
-import type { GridSpaceData } from "@/components/game/domain/space";
-import { createGridSpaceData } from "@/components/game/domain/space/space-fns";
+import type {
+	GridSpaceConfig,
+	PoolSpaceConfig,
+} from "@/components/game/domain/space";
 import type { Item } from "@/components/game/game-provider";
 
 export const QUESTION_ID = "tcp-fragmentation";
@@ -9,38 +11,46 @@ export const QUESTION_DESCRIPTION =
 export const TERMINAL_PROMPT =
 	"Connection closed. Use the terminal to inspect the exchange.";
 
-export const SPACE_ORDER = ["splitter", "internet", "server"] as const;
-export type TcpSpaceKey = (typeof SPACE_ORDER)[number];
+export type TcpSpaceKey = "splitter" | "internet" | "server";
 
-export const SPACE_CONFIGS: GridSpaceData[] = [
-	createGridSpaceData({
+export const SPACE_CONFIGS: Record<TcpSpaceKey, GridSpaceConfig> = {
+	splitter: {
 		id: "splitter",
 		name: "Content Splitter",
 		rows: 1,
 		cols: 1,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
-	}),
-	createGridSpaceData({
+	},
+	internet: {
 		id: "internet",
 		name: "Internet",
 		rows: 1,
 		cols: 3,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
-	}),
-	createGridSpaceData({
+	},
+	server: {
 		id: "server",
 		name: "Server",
 		rows: 4,
 		cols: 3,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 12,
-	}),
-];
+	},
+};
 
-export const getSpaceConfig = (spaceId: TcpSpaceKey) =>
-	SPACE_CONFIGS.find((space) => space.id === spaceId);
+export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
+	id: "inventory",
+	name: "Inventory",
+	metadata: { visible: true },
+};
+
+export const RECEIVED_POOL_CONFIG: PoolSpaceConfig = {
+	id: "received",
+	name: "Received",
+	metadata: { visible: false },
+};
 
 export const INVENTORY_GROUP_IDS = {
 	files: "files",

@@ -1,46 +1,55 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-	clearBoardArrows,
-	setBoardArrows,
-} from "@/components/game/application/actions";
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import {
 	type ConditionContext,
 	type QuestionSpec,
 	resolvePhase,
 } from "@/components/game/domain/question";
-import { GameBoard, GridSpace } from "@/components/game/engine";
+import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
 	type Arrow,
 	GameProvider,
 	useDrawerManager,
 	useEngineEvents,
+	useGameCtx,
 	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import { DrawerLayout } from "@/components/game/presentation/drawer";
 import {
 	ContextualHint,
 	useContextualHint,
 } from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
+import { useBoardArrows } from "@/components/game/presentation/space/arrow";
 import {
 	TerminalInput,
 	TerminalLayout,
 	TerminalView,
 	useTerminalInput,
+	useTerminalStore,
 } from "@/components/game/presentation/terminal";
 import type { QuestionProps } from "@/components/module";
 
 import {
 	DHCP_SPACE_IDS,
-	getSpaceConfig,
+	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
-	SPACE_ORDER,
+	SPACE_CONFIGS,
+	TERMINAL_INTRO_ENTRIES,
+	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { initializeDhcpQuestion } from "./-utils/init-spaces";
@@ -110,9 +119,18 @@ const NetworkingGame = ({
 }) => {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
+	const gameCtx = useGameCtx();
 	const { events, ack } = useEngineEvents("dhcp-page");
 	const initializedRef = useRef(false);
 	const terminalInput = useTerminalInput();
+	const {
+		terminal,
+		openTerminal,
+		closeTerminal,
+		setPrompt,
+		addEntry,
+		addOutput,
+	} = useTerminalStore();
 	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
@@ -120,6 +138,47 @@ const NetworkingGame = ({
 	const [eventTick, setEventTick] = useState(0);
 	const networkState = useNetworkState({ dragEngine, eventTick });
 	const { registerDrawer } = useDrawerManager();
+	const { setArrows, clearArrows } = useBoardArrows();
+	const pc1Id = DHCP_SPACE_IDS.pc1;
+	const conn1Id = DHCP_SPACE_IDS.conn1;
+	const routerId = DHCP_SPACE_IDS.router;
+	const conn2Id = DHCP_SPACE_IDS.conn2;
+	const pc2Id = DHCP_SPACE_IDS.pc2;
+	const pc1Config = SPACE_CONFIGS[pc1Id];
+	const conn1Config = SPACE_CONFIGS[conn1Id];
+	const routerConfig = SPACE_CONFIGS[routerId];
+	const conn2Config = SPACE_CONFIGS[conn2Id];
+	const pc2Config = SPACE_CONFIGS[pc2Id];
+	const getEntityLabel = useCallback(
+		(entity: EntityData) => getNetworkingItemLabel(entity.type),
+		[],
+	);
+	const getEntityStatus = useCallback((entity: EntityData) => {
+		const rawStatus = (entity.state.status as string) ?? "normal";
+		const dataWithIp = {
+			...entity.data,
+			ip: entity.state.ip ?? entity.data.ip,
+		};
+		const hasIp = typeof dataWithIp.ip === "string" && dataWithIp.ip.length > 0;
+		const effectiveStatus =
+			entity.type === "pc" && !hasIp ? "warning" : rawStatus;
+		const statusMessage = getNetworkingStatusMessage({
+			id: entity.id,
+			itemId: entity.id,
+			type: entity.type,
+			blockX: parseInt((entity.data.x ?? "0") as string, 10),
+			blockY: parseInt((entity.data.y ?? "0") as string, 10),
+			status: effectiveStatus as "normal" | "warning" | "success" | "error",
+			data: dataWithIp,
+		});
+		return {
+			status:
+				effectiveStatus !== "normal"
+					? (effectiveStatus as "success" | "warning" | "error" | "info")
+					: undefined,
+			message: statusMessage,
+		};
+	}, []);
 
 	const handleNetworkingCommand = useNetworkingTerminal({
 		pc2Ip: networkState.pc2Ip,
@@ -129,19 +188,19 @@ const NetworkingGame = ({
 		onCommand: handleNetworkingCommand,
 	});
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		registerDrawer({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: "inventory",
-			title: "Inventory",
+			title: "Items",
 			position: "bottom",
 			initialState: "expanded",
 			expandedSize: { base: "65vh", md: "40vh" },
-			foldedSize: { md: "72px", lg: "80px" },
+			foldedSize: { sm: "30vh" },
 			mouseAware: true,
 			showFloatingButton: true,
-			floatingButtonLabel: "Inventory",
+			floatingButtonLabel: "Items",
 		});
 	}, [registerDrawer]);
 
@@ -242,6 +301,14 @@ const NetworkingGame = ({
 		initializeDhcpQuestion(dispatch);
 	}, [dispatch]);
 
+	useEffect(() => {
+		setPrompt(TERMINAL_PROMPT);
+		for (const entry of TERMINAL_INTRO_ENTRIES) {
+			addEntry(entry);
+		}
+		closeTerminal();
+	}, [addEntry, closeTerminal, setPrompt]);
+
 	// Phase management
 	useEffect(() => {
 		const context: ConditionContext<DhcpConditionKey> = {
@@ -269,8 +336,8 @@ const NetworkingGame = ({
 	// Terminal visibility and initial help message
 	const terminalOpenedRef = useRef(false);
 	useEffect(() => {
-		if (shouldShowTerminal && !state.terminal.visible) {
-			dispatch({ type: "OPEN_TERMINAL" });
+		if (shouldShowTerminal && !terminal.visible) {
+			openTerminal();
 
 			// Show full help message on first terminal open
 			if (!terminalOpenedRef.current) {
@@ -308,22 +375,21 @@ const NetworkingGame = ({
 					];
 
 					for (const line of helpLines) {
-						dispatch({
-							type: "ADD_TERMINAL_OUTPUT",
-							payload: { content: line, type: "output" },
-						});
+						addOutput(line, "output");
 					}
 				}, 100);
 			}
 			return;
 		}
-		if (!shouldShowTerminal && state.terminal.visible) {
-			dispatch({ type: "CLOSE_TERMINAL" });
+		if (!shouldShowTerminal && terminal.visible) {
+			closeTerminal();
 		}
 	}, [
-		dispatch,
+		addOutput,
+		closeTerminal,
+		openTerminal,
 		shouldShowTerminal,
-		state.terminal.visible,
+		terminal.visible,
 		networkState.pc2Ip,
 	]);
 
@@ -403,11 +469,11 @@ const NetworkingGame = ({
 	);
 
 	useEffect(() => {
-		setBoardArrows(dispatch, arrows);
+		setArrows(arrows);
 		return () => {
-			clearBoardArrows(dispatch);
+			clearArrows();
 		};
-	}, [arrows, dispatch]);
+	}, [arrows, clearArrows, setArrows]);
 
 	const spaceAreas = useMemo(
 		() => ({
@@ -516,75 +582,85 @@ const NetworkingGame = ({
 						gap={{ base: 2, md: 4 }}
 						alignItems="stretch"
 					>
-						{SPACE_ORDER.map((spaceId) => {
-							const config = getSpaceConfig(spaceId);
-							if (!config) return null;
-							return (
-								<GridItem key={spaceId} area={spaceAreas[spaceId]} minW={0}>
-									<GridSpace
-										id={spaceId}
-										title={config.name ?? spaceId}
-										onEntityClick={handleEntityClick}
-										isEntityClickable={isEntityClickable}
-										getEntityLabel={(entity) =>
-											getNetworkingItemLabel(entity.type)
-										}
-										getEntityStatus={(entity) => {
-											const rawStatus =
-												(entity.state.status as string) ?? "normal";
-											// Merge entity.data with entity.state.ip for status message
-											const dataWithIp = {
-												...entity.data,
-												ip: entity.state.ip ?? entity.data.ip,
-											};
-											const hasIp =
-												typeof dataWithIp.ip === "string" &&
-												dataWithIp.ip.length > 0;
-											const effectiveStatus =
-												entity.type === "pc" && !hasIp ? "warning" : rawStatus;
-											const statusMessage = getNetworkingStatusMessage({
-												id: entity.id,
-												itemId: entity.id,
-												type: entity.type,
-												blockX: parseInt((entity.data.x ?? "0") as string, 10),
-												blockY: parseInt((entity.data.y ?? "0") as string, 10),
-												status: effectiveStatus as
-													| "normal"
-													| "warning"
-													| "success"
-													| "error",
-												data: dataWithIp,
-											});
-											return {
-												status:
-													effectiveStatus !== "normal"
-														? (effectiveStatus as
-																| "success"
-																| "warning"
-																| "error"
-																| "info")
-														: undefined,
-												message: statusMessage,
-											};
-										}}
-									/>
-								</GridItem>
-							);
-						})}
+						{pc1Config ? (
+							<GridItem area={spaceAreas[pc1Id]} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={pc1Config}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={getEntityLabel}
+									getEntityStatus={getEntityStatus}
+								/>
+							</GridItem>
+						) : null}
+						{conn1Config ? (
+							<GridItem area={spaceAreas[conn1Id]} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={conn1Config}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={getEntityLabel}
+									getEntityStatus={getEntityStatus}
+								/>
+							</GridItem>
+						) : null}
+						{routerConfig ? (
+							<GridItem area={spaceAreas[routerId]} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={routerConfig}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={getEntityLabel}
+									getEntityStatus={getEntityStatus}
+								/>
+							</GridItem>
+						) : null}
+						{conn2Config ? (
+							<GridItem area={spaceAreas[conn2Id]} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={conn2Config}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={getEntityLabel}
+									getEntityStatus={getEntityStatus}
+								/>
+							</GridItem>
+						) : null}
+						{pc2Config ? (
+							<GridItem area={spaceAreas[pc2Id]} minW={0}>
+								<GridSpace
+									ctx={gameCtx}
+									config={pc2Config}
+									onEntityClick={handleEntityClick}
+									isEntityClickable={isEntityClickable}
+									getEntityLabel={getEntityLabel}
+									getEntityStatus={getEntityStatus}
+								/>
+							</GridItem>
+						) : null}
 					</Grid>
 
 					<ContextualHint />
 
 					<DragOverlay getEntityLabel={getNetworkingItemLabel} />
+					<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
+						<Flex direction="column" gap={3}>
+							<PoolSpace ctx={gameCtx} config={INVENTORY_POOL_CONFIG} />
+						</Flex>
+					</DrawerLayout>
 				</GameBoard>
 
 				<TerminalLayout
-					visible={state.terminal.visible}
+					visible={terminal.visible}
 					focusRef={terminalInput.inputRef}
 					view={
 						<TerminalView
-							history={state.terminal.history}
-							prompt={state.terminal.prompt}
+							history={terminal.history}
+							prompt={terminal.prompt}
 							isCompleted={isCompleted}
 						/>
 					}

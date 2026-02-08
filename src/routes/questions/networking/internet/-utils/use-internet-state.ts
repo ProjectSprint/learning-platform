@@ -21,7 +21,6 @@ import {
 	GOOGLE_IP,
 	type InternetSpaceKey,
 	PUBLIC_DNS_SERVERS,
-	SPACE_ORDER,
 	VALID_PPPOE_CREDENTIALS,
 } from "./constants";
 import {
@@ -34,6 +33,16 @@ import {
 interface UseInternetStateArgs {
 	dragEngine: DragEngine | null;
 }
+
+const SPACE_IDS: InternetSpaceKey[] = [
+	"local",
+	"conn-1",
+	"router",
+	"conn-2",
+	"igw",
+	"dns",
+	"google",
+];
 
 /**
  * Convert Entity with position to SpaceItemLocation for compatibility with network-utils
@@ -81,7 +90,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			dns: undefined,
 			google: undefined,
 		};
-		for (const spaceId of SPACE_ORDER) {
+		for (const spaceId of SPACE_IDS) {
 			const space = state.spaces[spaceId];
 			result[spaceId] = space?.kind === "grid" ? space : undefined;
 		}
@@ -93,7 +102,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 		const items: SpaceItemLocation[] = [];
 		let offsetX = 0;
 
-		for (const spaceId of SPACE_ORDER) {
+		for (const spaceId of SPACE_IDS) {
 			const space = spaces[spaceId];
 			if (!space) {
 				offsetX += 1; // Still increment even if space not found
