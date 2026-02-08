@@ -1,14 +1,12 @@
 import { useCallback, useEffect } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines";
-import {
-	useEngineEvents,
-	useGameDispatch,
-	useGameState,
-} from "@/components/game/game-provider";
+import { useEngineEvents, useGameState } from "@/components/game/game-provider";
+import type { Commands } from "@/components/game/runtime";
 import { GOOGLE_IP } from "./constants";
 import { buildSuccessModal } from "./modal-builders";
 
 interface UseInternetTerminalArgs {
+	commands: Commands;
 	pcIp: string | null;
 	dnsConfigured: boolean;
 	natEnabled: boolean;
@@ -28,13 +26,13 @@ You learned how:
 Your request traveled: PC → Router LAN → Router NAT → Router WAN → IGW → Internet → Google!`;
 
 export const useInternetTerminal = ({
+	commands,
 	pcIp,
 	dnsConfigured,
 	natEnabled,
 	wanConnected,
 	onQuestionComplete,
 }: UseInternetTerminalArgs) => {
-	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const { events, ack } = useEngineEvents("internet-terminal");
 
@@ -203,17 +201,12 @@ export const useInternetTerminal = ({
 					);
 				}
 
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildSuccessModal(
-						SUCCESS_TITLE,
-						SUCCESS_MESSAGE,
-						"Next question",
-					),
-				});
+				commands.openModal(
+					buildSuccessModal(SUCCESS_TITLE, SUCCESS_MESSAGE, "Next question"),
+				);
 
 				helpers.finishEngine();
-				dispatch({ type: "COMPLETE_QUESTION" });
+				commands.completeQuestion();
 				return;
 			}
 
@@ -223,7 +216,7 @@ export const useInternetTerminal = ({
 			);
 		},
 		[
-			dispatch,
+			commands,
 			pcIp,
 			dnsConfigured,
 			natEnabled,

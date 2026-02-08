@@ -9,7 +9,6 @@ import {
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import {
 	type ConditionContext,
-	type QuestionSpec,
 	resolvePhase,
 } from "@/components/game/domain/question";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
@@ -19,8 +18,6 @@ import {
 	GameProvider,
 	useDrawerManager,
 	useGameCtx,
-	useGameDispatch,
-	useGameState,
 } from "@/components/game/game-provider";
 import { DrawerLayout } from "@/components/game/presentation/drawer";
 import {
@@ -37,6 +34,7 @@ import {
 	useTerminalInput,
 	useTerminalStore,
 } from "@/components/game/presentation/terminal";
+import { useQuestionRuntime } from "@/components/game/runtime";
 import type { QuestionProps } from "@/components/module";
 
 import {
@@ -44,14 +42,16 @@ import {
 	INVENTORY_POOL_CONFIG,
 	type InternetSpaceKey,
 	QUESTION_DESCRIPTION,
-	QUESTION_ID,
 	QUESTION_TITLE,
 	SPACE_CONFIGS,
 	TERMINAL_INTRO_ENTRIES,
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
+import {
+	INTERNET_DEFINITION,
+	type InternetConditionKey,
+} from "./-utils/definition";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import { initializeInternetQuestion } from "./-utils/init-spaces";
 import {
 	getInternetItemLabel,
 	getInternetStatusMessage,
@@ -68,56 +68,7 @@ import {
 import { useInternetState } from "./-utils/use-internet-state";
 import { useInternetTerminal } from "./-utils/use-internet-terminal";
 
-type InternetConditionKey =
-	| "questionStatus"
-	| "dragStatus"
-	| "allDevicesPlaced";
 const INVENTORY_DRAWER_ID = "inventory-drawer";
-
-const INTERNET_SPEC_BASE: Omit<
-	QuestionSpec<InternetConditionKey>,
-	"handlers"
-> = {
-	meta: {
-		id: QUESTION_ID,
-		title: QUESTION_TITLE,
-		description: QUESTION_DESCRIPTION,
-	},
-	init: {
-		kind: "multi" as const,
-		payload: {
-			questionId: QUESTION_ID,
-			spaces: {},
-			inventoryGroups: [],
-		},
-	},
-	phaseRules: [
-		{
-			kind: "set",
-			when: { kind: "eq", key: "allDevicesPlaced", value: true },
-			to: "configuring",
-		},
-		{
-			kind: "set",
-			when: { kind: "eq", key: "dragStatus", value: "started" },
-			to: "playing",
-		},
-		{
-			kind: "set",
-			when: { kind: "eq", key: "dragStatus", value: "finished" },
-			to: "terminal",
-		},
-		{
-			kind: "set",
-			when: { kind: "eq", key: "questionStatus", value: "completed" },
-			to: "completed",
-		},
-	],
-	labels: {
-		getItemLabel: getInternetItemLabel,
-		getStatusMessage: getInternetStatusMessage,
-	},
-};
 
 export const InternetQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -132,10 +83,11 @@ const InternetGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const dispatch = useGameDispatch();
-	const state = useGameState();
+	const { commands, state, isCompleted } = useQuestionRuntime(
+		"internet-page",
+		INTERNET_DEFINITION,
+	);
 	const gameCtx = useGameCtx();
-	const initializedRef = useRef(false);
 	const terminalInput = useTerminalInput();
 	const {
 		terminal,
@@ -145,11 +97,10 @@ const InternetGame = ({
 		addEntry,
 		addOutput,
 	} = useTerminalStore();
-	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
-	const internetState = useInternetState({ dragEngine });
+	const internetState = useInternetState({ dragEngine, commands });
 	const { registerDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
 
@@ -158,30 +109,20 @@ const InternetGame = ({
 		() => ({
 			"router-lan": (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildRouterLanConfigModal(entity.id, currentConfig),
-				});
+				commands.openModal(buildRouterLanConfigModal(entity.id, currentConfig));
 			},
 			"router-nat": (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildRouterNatConfigModal(entity.id, currentConfig),
-				});
+				commands.openModal(buildRouterNatConfigModal(entity.id, currentConfig));
 			},
 			"router-wan": (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildRouterWanConfigModal(entity.id, currentConfig),
-				});
+				commands.openModal(buildRouterWanConfigModal(entity.id, currentConfig));
 			},
 			pc: (entity: EntityData) => {
 				const currentConfig = entity.data ?? {};
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildPcStatusModal(entity.id, {
+				commands.openModal(
+					buildPcStatusModal(entity.id, {
 						ip:
 							typeof currentConfig.ip === "string"
 								? currentConfig.ip
@@ -190,26 +131,24 @@ const InternetGame = ({
 							? "Connected to internet"
 							: "Waiting for connection",
 					}),
-				});
+				);
 			},
 			igw: (entity: EntityData) => {
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildIgwStatusModal(entity.id, {
+				commands.openModal(
+					buildIgwStatusModal(entity.id, {
 						status: internetState.hasValidPppoeCredentials
 							? "Authenticated"
 							: "Waiting for authentication",
 					}),
-				});
+				);
 			},
 			dns: (entity: EntityData) => {
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildDnsStatusModal(entity.id, {
+				commands.openModal(
+					buildDnsStatusModal(entity.id, {
 						ip: internetState.dnsServer ?? undefined,
 						status: internetState.hasValidDnsServer ? "Active" : "Unreachable",
 					}),
-				});
+				);
 			},
 			google: (entity: EntityData) => {
 				let reason: string | undefined;
@@ -221,9 +160,8 @@ const InternetGame = ({
 					reason = "WAN not connected";
 				}
 
-				dispatch({
-					type: "OPEN_MODAL",
-					payload: buildGoogleStatusModal(entity.id, {
+				commands.openModal(
+					buildGoogleStatusModal(entity.id, {
 						domain: "google.com",
 						ip: internetState.googleReachable
 							? internetState.googleIp
@@ -231,11 +169,11 @@ const InternetGame = ({
 						status: internetState.googleReachable ? "Reachable" : "Unreachable",
 						reason,
 					}),
-				});
+				);
 			},
 		}),
 		[
-			dispatch,
+			commands,
 			internetState.dnsServer,
 			internetState.googleIp,
 			internetState.googleReachable,
@@ -246,6 +184,7 @@ const InternetGame = ({
 	);
 
 	const handleInternetCommand = useInternetTerminal({
+		commands,
 		pcIp: internetState.pcIp,
 		dnsConfigured: internetState.hasValidDnsServer,
 		natEnabled: internetState.natEnabled,
@@ -273,35 +212,18 @@ const InternetGame = ({
 		});
 	}, [registerDrawer]);
 
-	const spec = useMemo<QuestionSpec<InternetConditionKey>>(
+	const isItemClickableByType: Record<string, boolean> = useMemo(
 		() => ({
-			...INTERNET_SPEC_BASE,
-			handlers: {
-				onCommand: handleInternetCommand,
-				onItemClickByType: {}, // Legacy - not used in new implementation
-				isItemClickableByType: {
-					"router-lan": true,
-					"router-nat": true,
-					"router-wan": true,
-					pc: true,
-					igw: true,
-					dns: true,
-					google: true,
-				},
-			},
+			"router-lan": true,
+			"router-nat": true,
+			"router-wan": true,
+			pc: true,
+			igw: true,
+			dns: true,
+			google: true,
 		}),
-		[handleInternetCommand],
+		[],
 	);
-
-	// Initialize question
-	useEffect(() => {
-		if (initializedRef.current) {
-			return;
-		}
-
-		initializedRef.current = true;
-		initializeInternetQuestion(dispatch);
-	}, [dispatch]);
 
 	useEffect(() => {
 		setPrompt(TERMINAL_PROMPT);
@@ -320,20 +242,19 @@ const InternetGame = ({
 		};
 
 		const resolved = resolvePhase(
-			spec.phaseRules,
+			INTERNET_DEFINITION.phaseRules,
 			context,
 			state.phase,
 			"setup",
 		);
 
 		if (state.phase !== resolved.nextPhase) {
-			dispatch({ type: "SET_PHASE", payload: { phase: resolved.nextPhase } });
+			commands.setPhase(resolved.nextPhase);
 		}
 	}, [
-		dispatch,
+		commands,
 		dragEngine.progress.status,
 		internetState.allDevicesPlaced,
-		spec.phaseRules,
 		state.phase,
 		state.question.status,
 	]);
@@ -581,9 +502,8 @@ const InternetGame = ({
 	);
 
 	const isEntityClickable = useCallback(
-		(entity: EntityData) =>
-			spec.handlers.isItemClickableByType[entity.type] === true,
-		[spec.handlers.isItemClickableByType],
+		(entity: EntityData) => isItemClickableByType[entity.type] === true,
+		[isItemClickableByType],
 	);
 
 	const layoutMode =

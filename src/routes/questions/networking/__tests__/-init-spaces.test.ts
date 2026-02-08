@@ -10,7 +10,7 @@ import {
 	INVENTORY_POOL_CONFIG as INTERNET_INVENTORY_POOL_CONFIG,
 	SPACE_CONFIGS as INTERNET_SPACE_CONFIGS,
 } from "../internet/-utils/constants";
-import { initializeInternetQuestion } from "../internet/-utils/init-spaces";
+import { INTERNET_DEFINITION } from "../internet/-utils/definition";
 import {
 	INVENTORY_POOL_CONFIG as TCP_INVENTORY_POOL_CONFIG,
 	RECEIVED_POOL_CONFIG as TCP_RECEIVED_POOL_CONFIG,
@@ -84,7 +84,9 @@ describe("networking init-spaces", () => {
 	});
 
 	it("initializes Internet with explicit space creation before entities", () => {
-		const actions = collectActions(initializeInternetQuestion);
+		const actions = collectActions((dispatch) => {
+			bootstrapQuestion(INTERNET_DEFINITION, dispatch);
+		});
 		assertBootOrder(actions);
 		assertSpaceCoverage(actions, [
 			...Object.keys(INTERNET_SPACE_CONFIGS),

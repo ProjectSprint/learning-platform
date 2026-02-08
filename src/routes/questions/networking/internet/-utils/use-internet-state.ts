@@ -12,11 +12,8 @@ import type {
 	BoardItemStatus,
 	SpaceItemLocation,
 } from "@/components/game/game-provider";
-import {
-	useEngineEvents,
-	useGameDispatch,
-	useGameState,
-} from "@/components/game/game-provider";
+import { useEngineEvents, useGameState } from "@/components/game/game-provider";
+import type { Commands } from "@/components/game/runtime";
 import {
 	GOOGLE_IP,
 	type InternetSpaceKey,
@@ -32,6 +29,7 @@ import {
 
 interface UseInternetStateArgs {
 	dragEngine: DragEngine | null;
+	commands: Commands;
 }
 
 const SPACE_IDS: InternetSpaceKey[] = [
@@ -71,9 +69,11 @@ const entityToBoardItem = (
  * Hook to manage network state for Internet question using new Space/Entity model.
  * Maintains the same interface as the original for compatibility.
  */
-export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
+export const useInternetState = ({
+	dragEngine,
+	commands,
+}: UseInternetStateArgs) => {
 	const state = useGameState();
-	const dispatch = useGameDispatch();
 	const { events, ack } = useEngineEvents("internet-state");
 	const [eventTick, setEventTick] = useState(0);
 	const stateRef = useRef(state);
@@ -294,28 +294,16 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					const endIp = String(event.values.endIp ?? "");
 					const dnsServer = String(event.values.dnsServer ?? "");
 
-					dispatch({
-						type: "ENTITY_UPDATED",
-						payload: {
-							entityId: deviceId,
-							updates: {
-								data: { dhcpEnabled, startIp, endIp, dnsServer },
-							},
-						},
+					commands.updateEntity(deviceId, {
+						data: { dhcpEnabled, startIp, endIp, dnsServer },
 					});
 				}
 
 				if (event.modalId.startsWith("router-nat-config-")) {
 					const deviceId = event.modalId.replace("router-nat-config-", "");
 					const natEnabled = !!event.values.natEnabled;
-					dispatch({
-						type: "ENTITY_UPDATED",
-						payload: {
-							entityId: deviceId,
-							updates: {
-								data: { natEnabled },
-							},
-						},
+					commands.updateEntity(deviceId, {
+						data: { natEnabled },
 					});
 				}
 
@@ -324,14 +312,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					const username = String(event.values.username ?? "");
 					const password = String(event.values.password ?? "");
 
-					dispatch({
-						type: "ENTITY_UPDATED",
-						payload: {
-							entityId: deviceId,
-							updates: {
-								data: { username, password },
-							},
-						},
+					commands.updateEntity(deviceId, {
+						data: { username, password },
 					});
 				}
 			}
@@ -341,7 +323,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, dispatch, events]);
+	}, [ack, commands, events]);
 
 	// Auto-assign IP to PC when routerLan is configured and PC is connected via cable
 	useEffect(() => {
@@ -369,13 +351,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const currentIp = entity?.state.ip ?? null;
 
 			if (currentIp !== desiredIp) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.pc.id,
-						state: { ip: desiredIp },
-					},
-				});
+				commands.updateEntityState(networkSnapshot.pc.id, { ip: desiredIp });
 			}
 		} else if (
 			networkSnapshot.pc &&
@@ -385,16 +361,10 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const entity = stateRef.current.entities[networkSnapshot.pc.id];
 			const currentIp = entity?.state.ip ?? null;
 			if (currentIp !== null) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.pc.id,
-						state: { ip: null },
-					},
-				});
+				commands.updateEntityState(networkSnapshot.pc.id, { ip: null });
 			}
 		}
-	}, [dispatch, eventTick]);
+	}, [commands, eventTick]);
 
 	// Update device statuses based on network state
 	useEffect(() => {
@@ -429,12 +399,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.pc.id,
-						state: { status: desiredStatus },
-					},
+				commands.updateEntityState(networkSnapshot.pc.id, {
+					status: desiredStatus,
 				});
 			}
 		}
@@ -451,12 +417,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.routerLan.id,
-						state: { status: desiredStatus },
-					},
+				commands.updateEntityState(networkSnapshot.routerLan.id, {
+					status: desiredStatus,
 				});
 			}
 		}
@@ -466,12 +428,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const entity = stateRef.current.entities[networkSnapshot.routerNat.id];
 			const desiredStatus = natEnabled ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.routerNat.id,
-						state: { status: desiredStatus },
-					},
+				commands.updateEntityState(networkSnapshot.routerNat.id, {
+					status: desiredStatus,
 				});
 			}
 		}
@@ -486,12 +444,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.routerWan.id,
-						state: { status: desiredStatus },
-					},
+				commands.updateEntityState(networkSnapshot.routerWan.id, {
+					status: desiredStatus,
 				});
 			}
 		}
@@ -501,12 +455,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const entity = stateRef.current.entities[networkSnapshot.igw.id];
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.igw.id,
-						state: { status: desiredStatus },
-					},
+				commands.updateEntityState(networkSnapshot.igw.id, {
+					status: desiredStatus,
 				});
 			}
 		}
@@ -516,12 +466,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const entity = stateRef.current.entities[networkSnapshot.dns.id];
 			const desiredStatus = hasValidDnsServer ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.dns.id,
-						state: { status: desiredStatus },
-					},
+				commands.updateEntityState(networkSnapshot.dns.id, {
+					status: desiredStatus,
 				});
 			}
 		}
@@ -538,12 +484,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.google.id,
-						state: { status: desiredStatus },
-					},
+				commands.updateEntityState(networkSnapshot.google.id, {
+					status: desiredStatus,
 				});
 			}
 		}
@@ -555,12 +497,8 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.cable.id,
-						state: { status: desiredStatus },
-					},
+				commands.updateEntityState(networkSnapshot.cable.id, {
+					status: desiredStatus,
 				});
 			}
 		}
@@ -572,16 +510,12 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				dispatch({
-					type: "ENTITY_STATE_UPDATED",
-					payload: {
-						entityId: networkSnapshot.fiber.id,
-						state: { status: desiredStatus },
-					},
+				commands.updateEntityState(networkSnapshot.fiber.id, {
+					status: desiredStatus,
 				});
 			}
 		}
-	}, [dispatch, eventTick]);
+	}, [commands, eventTick]);
 
 	// Phase transitions
 	useEffect(() => {
