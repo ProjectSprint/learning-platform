@@ -3,11 +3,12 @@
 
 import { useCallback } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines/terminal/use-terminal-engine";
-import { useGameDispatch } from "@/components/game/game-provider";
+import type { Commands } from "@/components/game/runtime";
 import { INDEX_HTML_CONTENT } from "./constants";
 import { buildSuccessModal } from "./modal-builders";
 
 interface UseSslTerminalArgs {
+	commands: Commands;
 	httpReady: boolean;
 	httpsReady: boolean;
 	hasRedirect: boolean;
@@ -16,14 +17,13 @@ interface UseSslTerminalArgs {
 }
 
 export const useSslTerminal = ({
+	commands,
 	httpReady,
 	httpsReady,
 	hasRedirect,
 	port80Domain,
 	certificateDomain,
 }: UseSslTerminalArgs) => {
-	const dispatch = useGameDispatch();
-
 	return useCallback(
 		(input: string, helpers: TerminalCommandHelpers) => {
 			const trimmedInput = input.trim();
@@ -177,12 +177,9 @@ export const useSslTerminal = ({
 
 					// Complete the question only if fully configured with redirect
 					if (isHttpsReadyNow && (hasRedirectNow || hasRedirect)) {
-						dispatch({
-							type: "OPEN_MODAL",
-							payload: buildSuccessModal(),
-						});
+						commands.openModal(buildSuccessModal());
 						helpers.finishEngine();
-						dispatch({ type: "COMPLETE_QUESTION" });
+						commands.completeQuestion();
 					}
 					return;
 				}
@@ -287,7 +284,7 @@ export const useSslTerminal = ({
 			httpsReady,
 			port80Domain,
 			certificateDomain,
-			dispatch,
+			commands,
 		],
 	);
 };

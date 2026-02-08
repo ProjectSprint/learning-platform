@@ -28,7 +28,7 @@ import {
 	SSL_SETUP_POOL_CONFIG,
 	SPACE_CONFIGS as SSL_SPACE_CONFIGS,
 } from "../webserver-ssl/-utils/constants";
-import { initializeSslQuestion } from "../webserver-ssl/-utils/init-spaces";
+import { SSL_DEFINITION } from "../webserver-ssl/-utils/definition";
 
 const collectActions = (
 	run: (dispatch: (action: GameAction) => void) => void,
@@ -116,7 +116,9 @@ describe("networking init-spaces", () => {
 	});
 
 	it("initializes Webserver-SSL with explicit space creation before entities", () => {
-		const actions = collectActions(initializeSslQuestion);
+		const actions = collectActions((dispatch) => {
+			bootstrapQuestion(SSL_DEFINITION, dispatch);
+		});
 		assertBootOrder(actions);
 		assertSpaceCoverage(actions, [
 			...Object.keys(SSL_SPACE_CONFIGS),
