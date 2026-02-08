@@ -126,7 +126,7 @@ export const GridSpace = memo(
 			if (!resolvedId) return;
 			if (process.env.NODE_ENV === "development" && !state.spaces[resolvedId]) {
 				console.warn(
-					`[GridSpace] Space "${resolvedId}" not found in state. Did you forget to create it in init-spaces?`,
+					`[GridSpace] Space "${resolvedId}" not found in state. Did you forget to define it in QuestionDefinition?`,
 				);
 			}
 		}, [resolvedId, state.spaces]);

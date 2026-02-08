@@ -1,11 +1,5 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import {
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine } from "@/components/game/engines";
@@ -13,8 +7,6 @@ import {
 	GameProvider,
 	useDrawerManager,
 	useGameCtx,
-	useGameDispatch,
-	useGameState,
 } from "@/components/game/game-provider";
 import { DrawerLayout } from "@/components/game/presentation/drawer";
 import { ContextualHint } from "@/components/game/presentation/hint";
@@ -27,6 +19,7 @@ import {
 	useTerminalInput,
 	useTerminalStore,
 } from "@/components/game/presentation/terminal";
+import { useQuestionRuntime } from "@/components/game/runtime";
 import type { QuestionProps } from "@/components/module";
 
 import {
@@ -37,7 +30,7 @@ import {
 	TCP_INBOX_IDS,
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
-import { initializeUdpQuestion } from "./-utils/init-spaces";
+import { UDP_DEFINITION } from "./-utils/definition";
 import { useUdpState } from "./-utils/use-udp-state";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
@@ -56,28 +49,15 @@ const UdpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const dispatch = useGameDispatch();
-	const state = useGameState();
+	const { state, isCompleted } = useQuestionRuntime("udp-page", UDP_DEFINITION);
 	const gameCtx = useGameCtx();
-	const initializedRef = useRef(false);
 	const terminalInput = useTerminalInput();
 	const { terminal, openTerminal, closeTerminal, setPrompt } =
 		useTerminalStore();
-	const isCompleted = state.question.status === "completed";
 	const shouldShowTerminal = state.phase === "terminal";
 	useDragEngine();
 	useUdpState();
 	const { registerDrawer } = useDrawerManager();
-
-	// Initialize question
-	useEffect(() => {
-		if (initializedRef.current) {
-			return;
-		}
-
-		initializedRef.current = true;
-		initializeUdpQuestion(dispatch);
-	}, [dispatch]);
 
 	useEffect(() => {
 		setPrompt(TERMINAL_PROMPT);

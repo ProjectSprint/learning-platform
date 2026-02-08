@@ -62,7 +62,7 @@ export const PoolSpace = memo(({ id, ctx, config, title }: PoolSpaceProps) => {
 		if (!resolvedId) return;
 		if (process.env.NODE_ENV === "development" && !state.spaces[resolvedId]) {
 			console.warn(
-				`[PoolSpace] Space "${resolvedId}" not found in state. Did you forget to create it in init-spaces?`,
+				`[PoolSpace] Space "${resolvedId}" not found in state. Did you forget to define it in QuestionDefinition?`,
 			);
 		}
 	}, [resolvedId, state.spaces]);

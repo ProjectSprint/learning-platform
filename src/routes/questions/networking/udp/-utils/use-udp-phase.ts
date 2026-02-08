@@ -4,9 +4,9 @@ import type { SpaceItemLocation } from "@/components/game/game-provider";
 import {
 	useAllSpaces,
 	useEngineEvents,
-	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import type { Commands } from "@/components/game/runtime";
 
 import { FRAME_ITEMS, UDP_CLIENT_IDS } from "./constants";
 import { FRAME_DESTINY, TOTAL_FRAMES } from "./frame-destiny";
@@ -20,12 +20,13 @@ export type UdpNotice = { message: string; tone: "error" | "info" } | null;
 
 export const useUdpPhase = ({
 	active,
+	commands,
 	onQuestionComplete,
 }: {
 	active: boolean;
+	commands: Commands;
 	onQuestionComplete: () => void;
 }) => {
-	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const spaces = useAllSpaces();
 
@@ -112,15 +113,9 @@ export const useUdpPhase = ({
 			if (!spaceId) {
 				return;
 			}
-			dispatch({
-				type: "ENTITY_REMOVED",
-				payload: {
-					entityId: itemId,
-					spaceId,
-				},
-			});
+			commands.removeFromSpace(itemId, spaceId);
 		},
-		[dispatch, state],
+		[commands, state],
 	);
 
 	useEffect(() => {
@@ -140,14 +135,8 @@ export const useUdpPhase = ({
 				typeof item.data?.frameNumber === "number" ? item.data.frameNumber : 0;
 			const expectedFrame = lastSentFrameRef.current + 1;
 			if (frameNumber !== expectedFrame) {
-				dispatch({
-					type: "ENTITY_UPDATED",
-					payload: {
-						entityId: item.id,
-						updates: {
-							data: { status: "error", state: "rejected" },
-						},
-					},
+				commands.updateEntity(item.id, {
+					data: { status: "error", state: "rejected" },
 				});
 				showNotice(`Send Frame ${expectedFrame} first.`, "error");
 				const timer = setTimeout(() => {
@@ -156,26 +145,14 @@ export const useUdpPhase = ({
 						(entry) => entry.id === item.id,
 					);
 					if (!placed) return;
-					dispatch({
-						type: "ENTITY_REMOVED",
-						payload: {
-							entityId: placed.id,
-							spaceId: "internet",
-						},
-					});
+					commands.removeFromSpace(placed.id, "internet");
 				}, 400);
 				registerTimer(timer);
 				return;
 			}
 
-			dispatch({
-				type: "ENTITY_UPDATED",
-				payload: {
-					entityId: item.id,
-					updates: {
-						data: { status: "warning", state: "sending" },
-					},
-				},
+			commands.updateEntity(item.id, {
+				data: { status: "warning", state: "sending" },
 			});
 			removePoolItem(item.id);
 
@@ -186,13 +163,7 @@ export const useUdpPhase = ({
 					(entry) => entry.id === item.id,
 				);
 				if (placed) {
-					dispatch({
-						type: "ENTITY_REMOVED",
-						payload: {
-							entityId: placed.id,
-							spaceId: "internet",
-						},
-					});
+					commands.removeFromSpace(placed.id, "internet");
 				}
 
 				lastSentFrameRef.current = frameNumber;
@@ -216,7 +187,7 @@ export const useUdpPhase = ({
 			}, FRAME_SEND_MS);
 			registerTimer(timer);
 		},
-		[dispatch, registerTimer, removePoolItem, showNotice],
+		[commands, registerTimer, removePoolItem, showNotice],
 	);
 
 	const prevOutboxIdsRef = useRef<Set<string>>(new Set());
@@ -245,12 +216,9 @@ export const useUdpPhase = ({
 		if (state.question.status === "completed") return;
 
 		successShownRef.current = true;
-		dispatch({
-			type: "OPEN_MODAL",
-			payload: buildUdpSuccessModal(),
-		});
-		dispatch({ type: "COMPLETE_QUESTION" });
-	}, [active, dispatch, phase, state.question.status]);
+		commands.openModal(buildUdpSuccessModal());
+		commands.completeQuestion();
+	}, [active, commands, phase, state.question.status]);
 
 	const expectedFrame = Math.min(lastSentFrame + 1, TOTAL_FRAMES);
 

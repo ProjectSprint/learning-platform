@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const readSource = (relativePath: string) =>
 	readFileSync(resolve(process.cwd(), relativePath), "utf8");
 const missingSpaceWarningSuffix =
-	"not found in state. Did you forget to create it in init-spaces?";
+	"not found in state. Did you forget to define it in QuestionDefinition?";
 
 describe("engine space contract", () => {
 	it("GridSpace has no implicit space-creation dispatch path", () => {

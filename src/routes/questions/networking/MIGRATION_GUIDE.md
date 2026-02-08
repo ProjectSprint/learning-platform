@@ -31,41 +31,23 @@
 
 ## Bootstrapping Pattern
 
-Each networking question must own a dedicated `-utils/init-spaces.ts` file.
+Each networking question must own a dedicated `-utils/definition.ts` file.
 
 ```ts
-import { createItemData } from "@/components/game/domain/entity/entity-fns";
-import { createGridSpaceData, createPoolSpaceData } from "@/components/game/domain/space/space-fns";
-import type { GameAction } from "@/components/game/game-provider";
+import { useQuestionRuntime } from "@/components/game/runtime";
+import { MY_DEFINITION } from "./-utils/definition";
 
-type GameDispatch = (action: GameAction) => void;
+const { commands, state, events, ack } = useQuestionRuntime(
+	"my-question-page",
+	MY_DEFINITION,
+);
 
-export const initializeQuestion = (dispatch: GameDispatch) => {
-  dispatch({
-    type: "SET_QUESTION",
-    payload: { id: "my-question", status: "in_progress" },
-  });
-
-  dispatch({ type: "SET_PHASE", payload: { phase: "setup" } });
-
-  // 1) Create all spaces first
-  dispatch({ type: "SPACE_CREATED", payload: { space: createGridSpaceData({
-    id: "board", rows: 1, cols: 1, metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-  }) } });
-  dispatch({ type: "SPACE_CREATED", payload: { space: createPoolSpaceData({ id: "inventory" }) } });
-
-  // 2) Create entities
-  const entity = createItemData({ id: "router-1", name: "Router", allowedPlaces: ["inventory", "board"] });
-  dispatch({ type: "ENTITY_CREATED", payload: { entity } });
-
-  // 3) Place entities
-  dispatch({ type: "ENTITY_ADDED", payload: { entityId: entity.id, spaceId: "inventory" } });
-};
+commands.updateEntity("router-1", { data: { online: true } });
 ```
 
 ## Route Migration Checklist
 
-1. Replace legacy route init with explicit `SPACE_CREATED`/`ENTITY_CREATED` setup.
+1. Replace legacy route init with `QuestionDefinition` + `useQuestionRuntime`.
 2. Remove all deprecated world action dispatches from pages/hooks.
 3. Keep modal submission handling via `MODAL_SUBMITTED` events.
 4. Keep terminal output/input in terminal provider hooks; if needed, append domain-neutral events via `EMIT_EVENTS`.
@@ -89,4 +71,3 @@ No compatibility aliases should remain in runtime world flows.
 - `pnpm check:biome`
 - `pnpm check:tsc`
 - `pnpm exec vitest run src/components/game/application/state/reducers/__tests__/events.test.ts src/components/game/engine/__tests__/space-contract.test.ts src/routes/questions/networking/__tests__/-init-spaces.test.ts`
-

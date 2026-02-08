@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { isItemData } from "@/components/game/domain/entity/entity-data";
-import { createItemData } from "@/components/game/domain/entity/entity-fns";
 import { findEntitySpace } from "@/components/game/domain/space/validation";
 import type { Item, SpaceItemLocation } from "@/components/game/game-provider";
 import {
 	useAllSpaces,
 	useEngineEvents,
-	useGameDispatch,
 	useGameState,
 } from "@/components/game/game-provider";
+import type { Commands } from "@/components/game/runtime";
 
 import {
 	buildReceivedAckPacket,
@@ -62,16 +61,17 @@ export type TcpNotice = { message: string; tone: "error" | "info" } | null;
 
 type UseTcpPhaseOptions = {
 	active: boolean;
+	commands: Commands;
 	onTransitionToUdp: () => void;
 	onPoolExpand?: () => void;
 };
 
 export const useTcpPhase = ({
 	active,
+	commands,
 	onTransitionToUdp,
 	onPoolExpand,
 }: UseTcpPhaseOptions) => {
-	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const spaces = useAllSpaces();
 
@@ -253,50 +253,32 @@ export const useTcpPhase = ({
 
 					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
 					if (currentSpaceId === targetPoolId) {
-						dispatch({
-							type: "ENTITY_REMOVED",
-							payload: { entityId: item.id, spaceId: targetPoolId },
-						});
+						commands.removeFromSpace(item.id, targetPoolId);
 					}
 				}
 
 				for (const item of updates.items) {
 					if (!stateRef.current.entities[item.id]) {
-						dispatch({
-							type: "ENTITY_CREATED",
-							payload: {
-								entity: createItemData({
-									id: item.id,
-									name: item.name,
-									allowedPlaces: item.allowedPlaces,
-									icon: item.icon,
-									tooltip: item.tooltip,
-									data: { ...item.data, type: item.type },
-									draggable: item.draggable,
-									category: item.category,
-								}),
-							},
+						commands.createEntity({
+							id: item.id,
+							name: item.name,
+							allowedPlaces: item.allowedPlaces,
+							icon: item.icon,
+							tooltip: item.tooltip,
+							data: { ...item.data, type: item.type },
+							draggable: item.draggable,
+							category: item.category,
 						});
 					}
 
 					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
 					if (!currentSpaceId) {
-						dispatch({
-							type: "ENTITY_ADDED",
-							payload: { entityId: item.id, spaceId: targetPoolId },
-						});
+						commands.addToSpace(item.id, targetPoolId);
 						continue;
 					}
 
 					if (currentSpaceId !== targetPoolId) {
-						dispatch({
-							type: "ENTITY_MOVED",
-							payload: {
-								entityId: item.id,
-								fromSpaceId: currentSpaceId,
-								toSpaceId: targetPoolId,
-							},
-						});
+						commands.moveEntity(item.id, targetPoolId);
 					}
 				}
 			}
@@ -311,7 +293,7 @@ export const useTcpPhase = ({
 				}
 			}
 		},
-		[dispatch, getPoolGroupItems, onPoolExpand, resolvePoolSpaceId],
+		[commands, getPoolGroupItems, onPoolExpand, resolvePoolSpaceId],
 	);
 
 	const ensurePoolItems = useCallback(
@@ -386,30 +368,18 @@ export const useTcpPhase = ({
 				}
 			}
 			if (!needsUpdate) return;
-			dispatch({
-				type: "ENTITY_UPDATED",
-				payload: {
-					entityId: item.id,
-					updates: {
-						data: updates,
-					},
-				},
+			commands.updateEntity(item.id, {
+				data: updates,
 			});
 		},
-		[dispatch],
+		[commands],
 	);
 
 	const removeItem = useCallback(
 		(item: SpaceItemLocation, spaceId: string) => {
-			dispatch({
-				type: "ENTITY_REMOVED",
-				payload: {
-					entityId: item.id,
-					spaceId: spaceId,
-				},
-			});
+			commands.removeFromSpace(item.id, spaceId);
 		},
-		[dispatch],
+		[commands],
 	);
 
 	const transferItemToSpace = useCallback(
@@ -419,18 +389,13 @@ export const useTcpPhase = ({
 			if (location.spaceId === targetSpace) return true;
 			const target = findEmptyBlockLatest(targetSpace);
 			if (!target) return false;
-			dispatch({
-				type: "ENTITY_MOVED",
-				payload: {
-					entityId: itemId,
-					fromSpaceId: location.spaceId,
-					toSpaceId: targetSpace,
-					toPosition: { row: target.blockY, col: target.blockX },
-				},
+			commands.moveEntity(itemId, targetSpace, {
+				row: target.blockY,
+				col: target.blockX,
 			});
 			return true;
 		},
-		[dispatch, findEmptyBlockLatest, findItemLocationLatest],
+		[commands, findEmptyBlockLatest, findItemLocationLatest],
 	);
 
 	const resetClientState = useCallback((clientId: string) => {
@@ -548,11 +513,8 @@ export const useTcpPhase = ({
 			visible: true,
 			items: DATA_PACKETS,
 		});
-		dispatch({
-			type: "OPEN_MODAL",
-			payload: buildTcpConnectedModal(),
-		});
-	}, [dispatch, updatePoolGroup]);
+		commands.openModal(buildTcpConnectedModal());
+	}, [commands, updatePoolGroup]);
 
 	const triggerNewClient = useCallback(() => {
 		if (modalShownRef.current.newClient) return;
@@ -568,11 +530,8 @@ export const useTcpPhase = ({
 			true,
 		);
 		ensurePoolItems(POOL_GROUP_IDS.outgoing, [buildSynAckPacket("d")], true);
-		dispatch({
-			type: "OPEN_MODAL",
-			payload: buildNewClientModal(),
-		});
-	}, [dispatch, ensurePoolItems, resetClientState, setClientStatusFor]);
+		commands.openModal(buildNewClientModal());
+	}, [commands, ensurePoolItems, resetClientState, setClientStatusFor]);
 
 	const startReconnect = useCallback(() => {
 		setPhase("chaos-redo");
@@ -611,11 +570,8 @@ export const useTcpPhase = ({
 		if (modalShownRef.current.timeout) return;
 		modalShownRef.current.timeout = true;
 		setPhase("chaos-timeout");
-		dispatch({
-			type: "OPEN_MODAL",
-			payload: buildTimeoutModal(),
-		});
-	}, [dispatch]);
+		commands.openModal(buildTimeoutModal());
+	}, [commands]);
 
 	const transitionToUdp = useCallback(() => {
 		if (udpTransitionRef.current) return;
@@ -634,11 +590,8 @@ export const useTcpPhase = ({
 		if (modalShownRef.current.breaking) return;
 		modalShownRef.current.breaking = true;
 		setPhase("breaking-point");
-		dispatch({
-			type: "OPEN_MODAL",
-			payload: buildBreakingPointModal(),
-		});
-	}, [dispatch]);
+		commands.openModal(buildBreakingPointModal());
+	}, [commands]);
 
 	const { events, ack } = useEngineEvents("udp-tcp-phase");
 	useEffect(() => {

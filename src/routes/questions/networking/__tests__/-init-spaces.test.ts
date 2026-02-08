@@ -21,7 +21,7 @@ import {
 	INVENTORY_POOL_CONFIG as UDP_INVENTORY_POOL_CONFIG,
 	SPACE_CONFIGS as UDP_SPACE_CONFIGS,
 } from "../udp/-utils/constants";
-import { initializeUdpQuestion } from "../udp/-utils/init-spaces";
+import { UDP_DEFINITION } from "../udp/-utils/definition";
 import {
 	INVENTORY_POOL_CONFIG as SSL_INVENTORY_POOL_CONFIG,
 	SSL_ITEMS_POOL_CONFIG,
@@ -106,8 +106,10 @@ describe("networking init-spaces", () => {
 		]);
 	});
 
-	it("initializes UDP with explicit space creation before entities", () => {
-		const actions = collectActions(initializeUdpQuestion);
+	it("initializes UDP via QuestionDefinition bootstrap", () => {
+		const actions = collectActions((dispatch) => {
+			bootstrapQuestion(UDP_DEFINITION, dispatch);
+		});
 		assertBootOrder(actions);
 		assertSpaceCoverage(actions, [
 			...Object.keys(UDP_SPACE_CONFIGS),
