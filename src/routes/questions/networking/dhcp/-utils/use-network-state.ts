@@ -208,7 +208,7 @@ export const useNetworkState = ({
 			const entity = stateRef.current.entities[networkSnapshot.router.id];
 			if (entity && entity.state.status !== desiredRouterStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.router.id,
 						state: { status: desiredRouterStatus },
@@ -224,7 +224,7 @@ export const useNetworkState = ({
 			const entity = stateRef.current.entities[cable.id];
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: cable.id,
 						state: { status: desiredStatus },
@@ -251,7 +251,7 @@ export const useNetworkState = ({
 
 			if (currentIp !== desiredIp || currentStatus !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: pc.id,
 						state: {

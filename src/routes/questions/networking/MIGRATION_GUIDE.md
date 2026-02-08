@@ -1,5 +1,7 @@
 # Networking Questions: Space/Entity Migration Guide
 
+> **Architecture Spec:** See [Architecture Contract: Space-Owned Interaction & Fact-Only World Events](../../../components/game/doc/contracts/architecture-spec.md) for the target architecture, nomenclature rules, and forbidden patterns.
+
 This guide documents the migration from the legacy puzzle/inventory system to the new Space/Entity presentation architecture.
 
 ## Overview

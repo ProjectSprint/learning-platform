@@ -8,17 +8,14 @@
  */
 
 import { useBreakpointValue } from "@chakra-ui/react";
-import { memo, useLayoutEffect, useMemo } from "react";
+import { memo, useEffect, useMemo } from "react";
 import type { EntityData } from "../domain/entity/entity-data";
 import type {
 	GridPosition,
 	GridSpaceConfig,
 	GridSpaceData,
 } from "../domain/space/space-data";
-import {
-	createGridSpaceData,
-	gridGetPosition,
-} from "../domain/space/space-fns";
+import { gridGetPosition } from "../domain/space/space-fns";
 import { canEntityBePlaced, findEntitySpace } from "../domain/space/validation";
 import type { GameContextValue } from "../game-provider";
 import { useGameDispatch, useGameState } from "../game-provider";
@@ -124,17 +121,15 @@ export const GridSpace = memo(
 		const state = ctx?.state ?? contextState;
 		const dispatch = ctx?.dispatch ?? contextDispatch;
 		const resolvedId = config?.id ?? id;
-		const hasSpace = resolvedId ? Boolean(state.spaces[resolvedId]) : false;
-		const shouldRegister = Boolean(config) && Boolean(resolvedId);
 
-		useLayoutEffect(() => {
-			if (!shouldRegister || !resolvedId) return;
-			if (hasSpace) return;
-			dispatch({
-				type: "CREATE_SPACE",
-				payload: { space: createGridSpaceData(config as GridSpaceConfig) },
-			});
-		}, [config, dispatch, hasSpace, resolvedId, shouldRegister]);
+		useEffect(() => {
+			if (!resolvedId) return;
+			if (process.env.NODE_ENV === "development" && !state.spaces[resolvedId]) {
+				console.warn(
+					`[GridSpace] Space "${resolvedId}" not found in state. Did you forget to create it in init-spaces?`,
+				);
+			}
+		}, [resolvedId, state.spaces]);
 
 		// Resolve responsive breakpoint to [viewCols, viewRows] (or undefined)
 		const resolvedSize = useBreakpointValue(
@@ -229,7 +224,7 @@ export const GridSpace = memo(
 			// If moving within same space
 			if (fromSpaceId && fromSpaceId === toSpaceId) {
 				dispatch({
-					type: "UPDATE_ENTITY_POSITION",
+					type: "ENTITY_POSITION_UPDATED",
 					payload: {
 						entityId,
 						spaceId: toSpaceId,
@@ -242,7 +237,7 @@ export const GridSpace = memo(
 			// If moving between spaces
 			if (fromSpaceId && fromSpaceId !== toSpaceId) {
 				dispatch({
-					type: "MOVE_ENTITY_BETWEEN_SPACES",
+					type: "ENTITY_MOVED",
 					payload: {
 						entityId,
 						fromSpaceId,
@@ -256,7 +251,7 @@ export const GridSpace = memo(
 			// Adding from nowhere (entity not in any space)
 			if (!fromSpaceId) {
 				dispatch({
-					type: "ADD_ENTITY_TO_SPACE",
+					type: "ENTITY_ADDED",
 					payload: {
 						entityId,
 						spaceId: toSpaceId,

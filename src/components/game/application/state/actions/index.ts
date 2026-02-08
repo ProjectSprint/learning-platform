@@ -5,37 +5,21 @@
 
 export type { CoreAction } from "./core";
 export type {
-	// Legacy aliases
-	AddPoolGroupAction,
-	ConfigureDeviceAction,
-	CreateEntityAction,
-	DeleteEntitiesAction,
-	DeleteEntityAction,
+	EntitiesDeletedAction,
 	EntityAction,
-	LegacyEntityAction,
-	PurgePoolItemsAction,
-	RemovePoolGroupAction,
-	UpdateEntityAction,
-	UpdateEntityStateAction,
-	UpdatePoolGroupAction,
-	UpdatePoolItemTooltipAction,
+	EntityCreatedAction,
+	EntityStateUpdatedAction,
+	EntityUpdatedAction,
 } from "./entity";
 export type {
-	AddEntityToSpaceAction,
-	CreateSpaceAction,
-	LegacySpaceAction,
-	MoveEntityBetweenSpacesAction,
-	// Legacy aliases
-	PlaceItemAction,
-	RemoveEntityFromSpaceAction,
-	RemoveItemAction,
-	RemoveSpaceAction,
-	RepositionItemAction,
+	EntitiesSwappedAction,
+	EntityAddedAction,
+	EntityMovedAction,
+	EntityPositionUpdatedAction,
+	EntityRemovedAction,
 	SpaceAction,
-	SwapEntitiesAction,
-	SwapItemsAction,
-	TransferItemAction,
-	UpdateEntityPositionAction,
+	SpaceCreatedAction,
+	SpaceRemovedAction,
 } from "./space";
 export type {
 	ModalAction,
@@ -43,22 +27,12 @@ export type {
 } from "./ui";
 
 import type { CoreAction } from "./core";
-import type { EntityAction, LegacyEntityAction } from "./entity";
-import type { LegacySpaceAction, SpaceAction } from "./space";
+import type { EntityAction } from "./entity";
+import type { SpaceAction } from "./space";
 import type { UIAction } from "./ui";
 
 /**
  * Union of all application layer actions.
  */
 export type ApplicationAction = SpaceAction | EntityAction;
-
-/**
- * Union of all legacy actions for backward compatibility.
- */
-export type LegacyAction = LegacySpaceAction | LegacyEntityAction;
-
-/**
- * Combined action type including both new and legacy actions.
- * This allows for gradual migration.
- */
-export type Action = ApplicationAction | LegacyAction | UIAction | CoreAction;
+export type Action = ApplicationAction | UIAction | CoreAction;

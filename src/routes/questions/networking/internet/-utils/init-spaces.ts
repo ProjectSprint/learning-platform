@@ -4,7 +4,16 @@
  */
 
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
-import { INVENTORY_ITEMS, QUESTION_ID } from "./constants";
+import {
+	createGridSpaceData,
+	createPoolSpaceData,
+} from "@/components/game/domain/space/space-fns";
+import {
+	INVENTORY_ITEMS,
+	INVENTORY_POOL_CONFIG,
+	QUESTION_ID,
+	SPACE_CONFIGS,
+} from "./constants";
 
 // Use any for dispatch to work around Phase 5 integration issues
 // The new actions exist but aren't in GameAction type yet
@@ -29,11 +38,11 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 		});
 
 		// Create entity
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 
 		// Add to inventory space
 		dispatch({
-			type: "ADD_ENTITY_TO_SPACE",
+			type: "ENTITY_ADDED",
 			payload: {
 				entityId: entity.id,
 				spaceId: "inventory",
@@ -63,6 +72,17 @@ export const initializeInternetQuestion = (dispatch: GameDispatch) => {
 	});
 
 	// Initialize spaces
+	for (const config of Object.values(SPACE_CONFIGS)) {
+		dispatch({
+			type: "SPACE_CREATED",
+			payload: { space: createGridSpaceData(config) },
+		});
+	}
+	dispatch({
+		type: "SPACE_CREATED",
+		payload: { space: createPoolSpaceData(INVENTORY_POOL_CONFIG) },
+	});
+
 	// Initialize entities
 	initializeEntities(dispatch);
 };

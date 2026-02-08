@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createCompatState } from "@/components/game/application/compat/state-conversion";
+import type { EntityData } from "@/components/game/domain/entity/entity-data";
+import { isItemData } from "@/components/game/domain/entity/entity-data";
+import { createItemData } from "@/components/game/domain/entity/entity-fns";
+import { findEntitySpace } from "@/components/game/domain/space/validation";
 import type { Item, SpaceItemLocation } from "@/components/game/game-provider";
 import {
 	useAllSpaces,
@@ -71,7 +74,6 @@ export const useTcpPhase = ({
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const spaces = useAllSpaces();
-	const compat = useMemo(() => createCompatState(state), [state]);
 
 	const [phase, setPhase] = useState<TcpPhase>("handshake-synack");
 	const [packetsSent, setPacketsSent] = useState(0);
@@ -85,6 +87,7 @@ export const useTcpPhase = ({
 	const [clientPackets, setClientPackets] = useState(buildEmptyPacketTracker);
 	const [notice, setNotice] = useState<TcpNotice>(null);
 
+	const stateRef = useRef(state);
 	const spacesRef = useRef(spaces);
 	const activeRef = useRef(active);
 	const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -134,6 +137,10 @@ export const useTcpPhase = ({
 	}, []);
 
 	useEffect(() => {
+		stateRef.current = state;
+	}, [state]);
+
+	useEffect(() => {
 		spacesRef.current = spaces;
 	}, [spaces]);
 
@@ -175,11 +182,53 @@ export const useTcpPhase = ({
 		}, NOTICE_MS);
 	}, []);
 
+	const resolvePoolSpaceId = useCallback((id: string) => {
+		const candidate = stateRef.current.spaces[id];
+		if (candidate && candidate.kind === "pool") {
+			return id;
+		}
+		return "inventory";
+	}, []);
+
 	const getPoolGroupItems = useCallback(
-		(id: string) =>
-			compat.inventory.groups.find((group: { id: string }) => group.id === id)
-				?.items ?? [],
-		[compat.inventory.groups],
+		(id: string): Item[] => {
+			const poolId = resolvePoolSpaceId(id);
+			const space = stateRef.current.spaces[poolId];
+			if (!space || space.kind !== "pool") {
+				return [];
+			}
+
+			return space.entityIds
+				.map((entityId) => stateRef.current.entities[entityId])
+				.filter((entity): entity is EntityData => entity !== undefined)
+				.map((entity) => {
+					if (isItemData(entity)) {
+						return {
+							id: entity.id,
+							type: entity.type,
+							name: entity.name,
+							allowedPlaces: entity.allowedPlaces,
+							icon: entity.icon,
+							tooltip: entity.tooltip,
+							data: entity.data,
+							draggable: entity.draggable,
+							category: entity.category,
+						} satisfies Item;
+					}
+
+					const allowedPlaces = Array.isArray(entity.data.allowedPlaces)
+						? (entity.data.allowedPlaces as string[])
+						: [];
+					return {
+						id: entity.id,
+						type: entity.type,
+						name: entity.name,
+						allowedPlaces,
+						data: entity.data,
+					} satisfies Item;
+				});
+		},
+		[resolvePoolSpaceId],
 	);
 
 	const updatePoolGroup = useCallback(
@@ -187,29 +236,90 @@ export const useTcpPhase = ({
 			id: string,
 			updates: { visible?: boolean; title?: string; items?: Item[] },
 		) => {
+			const targetPoolId = resolvePoolSpaceId(id);
+			const targetPool = stateRef.current.spaces[targetPoolId];
+			if (!targetPool || targetPool.kind !== "pool") {
+				return;
+			}
+
 			const existingItems = getPoolGroupItems(id);
-			dispatch({
-				type: "UPDATE_POOL_GROUP",
-				payload: { id, ...updates },
-			});
+
+			if (updates.items) {
+				const nextIds = new Set(updates.items.map((item) => item.id));
+				for (const item of existingItems) {
+					if (nextIds.has(item.id)) {
+						continue;
+					}
+
+					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
+					if (currentSpaceId === targetPoolId) {
+						dispatch({
+							type: "ENTITY_REMOVED",
+							payload: { entityId: item.id, spaceId: targetPoolId },
+						});
+					}
+				}
+
+				for (const item of updates.items) {
+					if (!stateRef.current.entities[item.id]) {
+						dispatch({
+							type: "ENTITY_CREATED",
+							payload: {
+								entity: createItemData({
+									id: item.id,
+									name: item.name,
+									allowedPlaces: item.allowedPlaces,
+									icon: item.icon,
+									tooltip: item.tooltip,
+									data: { ...item.data, type: item.type },
+									draggable: item.draggable,
+									category: item.category,
+								}),
+							},
+						});
+					}
+
+					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
+					if (!currentSpaceId) {
+						dispatch({
+							type: "ENTITY_ADDED",
+							payload: { entityId: item.id, spaceId: targetPoolId },
+						});
+						continue;
+					}
+
+					if (currentSpaceId !== targetPoolId) {
+						dispatch({
+							type: "ENTITY_MOVED",
+							payload: {
+								entityId: item.id,
+								fromSpaceId: currentSpaceId,
+								toSpaceId: targetPoolId,
+							},
+						});
+					}
+				}
+			}
 
 			if (updates.items && onPoolExpand) {
-				const existingIds = new Set(existingItems.map((item: Item) => item.id));
+				const existingIds = new Set(existingItems.map((item) => item.id));
 				const hasNewItem = updates.items.some(
-					(item: Item) => !existingIds.has(item.id),
+					(item) => !existingIds.has(item.id),
 				);
 				if (hasNewItem) {
 					onPoolExpand();
 				}
 			}
 		},
-		[dispatch, getPoolGroupItems, onPoolExpand],
+		[dispatch, getPoolGroupItems, onPoolExpand, resolvePoolSpaceId],
 	);
 
 	const ensurePoolItems = useCallback(
 		(id: string, items: Item[], visible?: boolean) => {
 			const existing = getPoolGroupItems(id);
-			const map = new Map(existing.map((item: Item) => [item.id, item]));
+			const map = new Map<string, Item>(
+				existing.map((item) => [item.id, item] as const),
+			);
 			for (const item of items) {
 				map.set(item.id, item);
 			}
@@ -262,7 +372,7 @@ export const useTcpPhase = ({
 	const updateItemIfNeeded = useCallback(
 		(
 			item: SpaceItemLocation,
-			spaceId: string,
+			_spaceId: string,
 			updates: Record<string, unknown>,
 		) => {
 			const nextStatus =
@@ -277,11 +387,12 @@ export const useTcpPhase = ({
 			}
 			if (!needsUpdate) return;
 			dispatch({
-				type: "CONFIGURE_DEVICE",
+				type: "ENTITY_UPDATED",
 				payload: {
-					deviceId: item.id,
-					config: updates,
-					spaceId: spaceId,
+					entityId: item.id,
+					updates: {
+						data: updates,
+					},
 				},
 			});
 		},
@@ -291,11 +402,10 @@ export const useTcpPhase = ({
 	const removeItem = useCallback(
 		(item: SpaceItemLocation, spaceId: string) => {
 			dispatch({
-				type: "REMOVE_ITEM",
+				type: "ENTITY_REMOVED",
 				payload: {
+					entityId: item.id,
 					spaceId: spaceId,
-					blockX: item.blockX,
-					blockY: item.blockY,
 				},
 			});
 		},
@@ -310,15 +420,12 @@ export const useTcpPhase = ({
 			const target = findEmptyBlockLatest(targetSpace);
 			if (!target) return false;
 			dispatch({
-				type: "TRANSFER_ITEM",
+				type: "ENTITY_MOVED",
 				payload: {
-					itemId,
-					fromSpace: location.spaceId,
-					fromBlockX: location.item.blockX,
-					fromBlockY: location.item.blockY,
-					toSpace: targetSpace,
-					toBlockX: target.blockX,
-					toBlockY: target.blockY,
+					entityId: itemId,
+					fromSpaceId: location.spaceId,
+					toSpaceId: targetSpace,
+					toPosition: { row: target.blockY, col: target.blockX },
 				},
 			});
 			return true;

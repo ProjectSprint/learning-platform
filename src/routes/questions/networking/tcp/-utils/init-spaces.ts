@@ -5,11 +5,18 @@
 
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
 import {
+	createGridSpaceData,
+	createPoolSpaceData,
+} from "@/components/game/domain/space/space-fns";
+import {
 	FILE_INVENTORY_ITEMS,
+	INVENTORY_POOL_CONFIG,
 	MESSAGE_PACKET_ITEMS,
 	NOTES_FILE_ITEM,
 	NOTES_PACKET_ITEMS,
 	QUESTION_ID,
+	RECEIVED_POOL_CONFIG,
+	SPACE_CONFIGS,
 	SYSTEM_PACKET_ITEMS,
 	TCP_TOOL_ITEMS,
 } from "./constants";
@@ -36,9 +43,9 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		dispatch({
-			type: "ADD_ENTITY_TO_SPACE",
+			type: "ENTITY_ADDED",
 			payload: { entityId: entity.id, spaceId: "inventory" },
 		});
 	}
@@ -57,7 +64,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: item.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// System packets start in a hidden inventory group
 	}
 
@@ -75,7 +82,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: item.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// TCP tools start in a hidden inventory group
 	}
 
@@ -93,7 +100,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: item.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// Message packets start in a hidden inventory group
 	}
 
@@ -111,7 +118,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: NOTES_FILE_ITEM.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// Notes file starts in a hidden inventory group
 	}
 
@@ -129,7 +136,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: item.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// Notes packets start in a hidden inventory group
 	}
 };
@@ -155,6 +162,21 @@ export const initializeTcpQuestion = (dispatch: GameDispatch) => {
 	});
 
 	// Initialize spaces
+	for (const config of Object.values(SPACE_CONFIGS)) {
+		dispatch({
+			type: "SPACE_CREATED",
+			payload: { space: createGridSpaceData(config) },
+		});
+	}
+	dispatch({
+		type: "SPACE_CREATED",
+		payload: { space: createPoolSpaceData(INVENTORY_POOL_CONFIG) },
+	});
+	dispatch({
+		type: "SPACE_CREATED",
+		payload: { space: createPoolSpaceData(RECEIVED_POOL_CONFIG) },
+	});
+
 	// Initialize entities
 	initializeEntities(dispatch);
 };

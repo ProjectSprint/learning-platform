@@ -24,39 +24,23 @@ export {
 // Actions
 export type {
 	Action,
-	AddEntityToSpaceAction,
-	AddPoolGroupAction,
 	// Combined actions
 	ApplicationAction,
-	ConfigureDeviceAction,
-	// Entity actions
-	CreateEntityAction,
-	// Space actions
-	CreateSpaceAction,
-	DeleteEntitiesAction,
-	DeleteEntityAction,
+	EntitiesDeletedAction,
+	EntitiesSwappedAction,
 	EntityAction,
-	LegacyAction,
-	LegacyEntityAction,
-	LegacySpaceAction,
-	MoveEntityBetweenSpacesAction,
-	// Legacy aliases
-	PlaceItemAction,
-	PurgePoolItemsAction,
-	RemoveEntityFromSpaceAction,
-	RemoveItemAction,
-	RemovePoolGroupAction,
-	RemoveSpaceAction,
-	RepositionItemAction,
+	EntityAddedAction,
+	// Entity actions
+	EntityCreatedAction,
+	EntityMovedAction,
+	EntityPositionUpdatedAction,
+	EntityRemovedAction,
+	EntityStateUpdatedAction,
+	EntityUpdatedAction,
 	SpaceAction,
-	SwapEntitiesAction,
-	SwapItemsAction,
-	TransferItemAction,
-	UpdateEntityAction,
-	UpdateEntityPositionAction,
-	UpdateEntityStateAction,
-	UpdatePoolGroupAction,
-	UpdatePoolItemTooltipAction,
+	// Space actions
+	SpaceCreatedAction,
+	SpaceRemovedAction,
 } from "./state/actions";
 // Reducers
 export {

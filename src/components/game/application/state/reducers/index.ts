@@ -25,34 +25,20 @@ export const applicationReducer = (
 	// Route to appropriate reducer based on action type
 	switch (action.type) {
 		// Space actions
-		case "CREATE_SPACE":
-		case "REMOVE_SPACE":
-		case "ADD_ENTITY_TO_SPACE":
-		case "REMOVE_ENTITY_FROM_SPACE":
-		case "MOVE_ENTITY_BETWEEN_SPACES":
-		case "UPDATE_ENTITY_POSITION":
-		case "SWAP_ENTITIES":
-		// Legacy space actions
-		case "PLACE_ITEM":
-		case "REMOVE_ITEM":
-		case "REPOSITION_ITEM":
-		case "TRANSFER_ITEM":
-		case "SWAP_ITEMS":
+		case "SPACE_CREATED":
+		case "SPACE_REMOVED":
+		case "ENTITY_ADDED":
+		case "ENTITY_REMOVED":
+		case "ENTITY_MOVED":
+		case "ENTITY_POSITION_UPDATED":
+		case "ENTITIES_SWAPPED":
 			return spaceReducer(state, action);
 
 		// Entity actions
-		case "CREATE_ENTITY":
-		case "UPDATE_ENTITY":
-		case "UPDATE_ENTITY_STATE":
-		case "DELETE_ENTITY":
-		case "DELETE_ENTITIES":
-		// Legacy entity actions
-		case "ADD_POOL_GROUP":
-		case "UPDATE_POOL_GROUP":
-		case "UPDATE_POOL_ITEM_TOOLTIP":
-		case "REMOVE_POOL_GROUP":
-		case "PURGE_POOL_ITEMS":
-		case "CONFIGURE_DEVICE":
+		case "ENTITY_CREATED":
+		case "ENTITY_UPDATED":
+		case "ENTITY_STATE_UPDATED":
+		case "ENTITIES_DELETED":
 			return entityReducer(state, action);
 
 		// UI actions

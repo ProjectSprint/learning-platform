@@ -295,10 +295,12 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					const dnsServer = String(event.values.dnsServer ?? "");
 
 					dispatch({
-						type: "CONFIGURE_DEVICE",
+						type: "ENTITY_UPDATED",
 						payload: {
-							deviceId,
-							config: { dhcpEnabled, startIp, endIp, dnsServer },
+							entityId: deviceId,
+							updates: {
+								data: { dhcpEnabled, startIp, endIp, dnsServer },
+							},
 						},
 					});
 				}
@@ -307,10 +309,12 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					const deviceId = event.modalId.replace("router-nat-config-", "");
 					const natEnabled = !!event.values.natEnabled;
 					dispatch({
-						type: "CONFIGURE_DEVICE",
+						type: "ENTITY_UPDATED",
 						payload: {
-							deviceId,
-							config: { natEnabled },
+							entityId: deviceId,
+							updates: {
+								data: { natEnabled },
+							},
 						},
 					});
 				}
@@ -321,10 +325,12 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 					const password = String(event.values.password ?? "");
 
 					dispatch({
-						type: "CONFIGURE_DEVICE",
+						type: "ENTITY_UPDATED",
 						payload: {
-							deviceId,
-							config: { username, password },
+							entityId: deviceId,
+							updates: {
+								data: { username, password },
+							},
 						},
 					});
 				}
@@ -364,7 +370,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 
 			if (currentIp !== desiredIp) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.pc.id,
 						state: { ip: desiredIp },
@@ -380,7 +386,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const currentIp = entity?.state.ip ?? null;
 			if (currentIp !== null) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.pc.id,
 						state: { ip: null },
@@ -424,7 +430,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			}
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.pc.id,
 						state: { status: desiredStatus },
@@ -446,7 +452,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			}
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.routerLan.id,
 						state: { status: desiredStatus },
@@ -461,7 +467,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const desiredStatus = natEnabled ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.routerNat.id,
 						state: { status: desiredStatus },
@@ -481,7 +487,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			}
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.routerWan.id,
 						state: { status: desiredStatus },
@@ -496,7 +502,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.igw.id,
 						state: { status: desiredStatus },
@@ -511,7 +517,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			const desiredStatus = hasValidDnsServer ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.dns.id,
 						state: { status: desiredStatus },
@@ -533,7 +539,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 			}
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.google.id,
 						state: { status: desiredStatus },
@@ -550,7 +556,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.cable.id,
 						state: { status: desiredStatus },
@@ -567,7 +573,7 @@ export const useInternetState = ({ dragEngine }: UseInternetStateArgs) => {
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: {
 						entityId: networkSnapshot.fiber.id,
 						state: { status: desiredStatus },

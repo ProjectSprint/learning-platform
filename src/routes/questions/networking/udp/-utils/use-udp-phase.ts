@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createCompatState } from "@/components/game/application/compat/state-conversion";
-import type { Item, SpaceItemLocation } from "@/components/game/game-provider";
+import { findEntitySpace } from "@/components/game/domain/space/validation";
+import type { SpaceItemLocation } from "@/components/game/game-provider";
 import {
 	useAllSpaces,
 	useEngineEvents,
@@ -8,7 +8,7 @@ import {
 	useGameState,
 } from "@/components/game/game-provider";
 
-import { FRAME_ITEMS, POOL_GROUP_IDS, UDP_CLIENT_IDS } from "./constants";
+import { FRAME_ITEMS, UDP_CLIENT_IDS } from "./constants";
 import { FRAME_DESTINY, TOTAL_FRAMES } from "./frame-destiny";
 import { buildUdpSuccessModal } from "./modal-builders";
 import type { UdpPhase } from "./types";
@@ -28,7 +28,6 @@ export const useUdpPhase = ({
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const spaces = useAllSpaces();
-	const compat = useMemo(() => createCompatState(state), [state]);
 
 	const [phase, setPhase] = useState<UdpPhase>("intro");
 	const [lastSentFrame, setLastSentFrame] = useState(0);
@@ -107,41 +106,22 @@ export const useUdpPhase = ({
 		}, NOTICE_MS);
 	}, []);
 
-	const updatePoolGroup = useCallback(
-		(id: string, updates: { visible?: boolean }) => {
-			dispatch({
-				type: "UPDATE_POOL_GROUP",
-				payload: { id, ...updates },
-			});
-		},
-		[dispatch],
-	);
-
 	const removePoolItem = useCallback(
 		(itemId: string) => {
-			const existing =
-				compat.inventory.groups.find(
-					(group) => group.id === POOL_GROUP_IDS.frames,
-				)?.items ?? [];
+			const spaceId = findEntitySpace(state, itemId);
+			if (!spaceId) {
+				return;
+			}
 			dispatch({
-				type: "UPDATE_POOL_GROUP",
+				type: "ENTITY_REMOVED",
 				payload: {
-					id: POOL_GROUP_IDS.frames,
-					items: existing.filter((item: Item) => item.id !== itemId),
+					entityId: itemId,
+					spaceId,
 				},
 			});
 		},
-		[dispatch, compat.inventory.groups],
+		[dispatch, state],
 	);
-
-	useEffect(() => {
-		if (!active) return;
-		updatePoolGroup(POOL_GROUP_IDS.frames, { visible: true });
-		updatePoolGroup(POOL_GROUP_IDS.received, { visible: false });
-		updatePoolGroup(POOL_GROUP_IDS.incoming, { visible: false });
-		updatePoolGroup(POOL_GROUP_IDS.outgoing, { visible: false });
-		updatePoolGroup(POOL_GROUP_IDS.dataPackets, { visible: false });
-	}, [active, updatePoolGroup]);
 
 	useEffect(() => {
 		if (!active) return;
@@ -161,11 +141,12 @@ export const useUdpPhase = ({
 			const expectedFrame = lastSentFrameRef.current + 1;
 			if (frameNumber !== expectedFrame) {
 				dispatch({
-					type: "CONFIGURE_DEVICE",
+					type: "ENTITY_UPDATED",
 					payload: {
-						deviceId: item.id,
-						spaceId: "internet",
-						config: { status: "error", state: "rejected" },
+						entityId: item.id,
+						updates: {
+							data: { status: "error", state: "rejected" },
+						},
 					},
 				});
 				showNotice(`Send Frame ${expectedFrame} first.`, "error");
@@ -176,11 +157,10 @@ export const useUdpPhase = ({
 					);
 					if (!placed) return;
 					dispatch({
-						type: "REMOVE_ITEM",
+						type: "ENTITY_REMOVED",
 						payload: {
+							entityId: placed.id,
 							spaceId: "internet",
-							blockX: placed.blockX,
-							blockY: placed.blockY,
 						},
 					});
 				}, 400);
@@ -189,11 +169,12 @@ export const useUdpPhase = ({
 			}
 
 			dispatch({
-				type: "CONFIGURE_DEVICE",
+				type: "ENTITY_UPDATED",
 				payload: {
-					deviceId: item.id,
-					spaceId: "internet",
-					config: { status: "warning", state: "sending" },
+					entityId: item.id,
+					updates: {
+						data: { status: "warning", state: "sending" },
+					},
 				},
 			});
 			removePoolItem(item.id);
@@ -206,11 +187,10 @@ export const useUdpPhase = ({
 				);
 				if (placed) {
 					dispatch({
-						type: "REMOVE_ITEM",
+						type: "ENTITY_REMOVED",
 						payload: {
+							entityId: placed.id,
 							spaceId: "internet",
-							blockX: placed.blockX,
-							blockY: placed.blockY,
 						},
 					});
 				}

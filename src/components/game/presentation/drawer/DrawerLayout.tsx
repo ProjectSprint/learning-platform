@@ -74,8 +74,10 @@ export const DrawerLayout = ({
 		openEventSet,
 	]);
 
+	// Always render children so they can self-register (e.g., PoolSpace useLayoutEffect)
+	// DrawerPanel handles the visual drawer chrome; if no drawer, just render children directly
 	if (!drawer) {
-		return null;
+		return <>{children}</>;
 	}
 
 	return <DrawerPanel drawer={drawer}>{children}</DrawerPanel>;

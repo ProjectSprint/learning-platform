@@ -16,7 +16,7 @@ import {
 	poolAdd,
 	poolRemove,
 } from "../../../domain/space/space-fns";
-import type { LegacySpaceAction, SpaceAction } from "../actions/space";
+import type { SpaceAction } from "../actions/space";
 import type { GameEventInput } from "../events";
 import { appendEvents, getNextActionId } from "../events";
 import type { GameState } from "../types";
@@ -31,17 +31,17 @@ import type { GameState } from "../types";
  */
 export const spaceReducer = (
 	state: GameState,
-	action: SpaceAction | LegacySpaceAction,
+	action: SpaceAction,
 ): GameState => {
 	switch (action.type) {
-		case "CREATE_SPACE": {
+		case "SPACE_CREATED": {
 			return produce(state, (draft) => {
 				const { space } = action.payload;
 				draft.spaces[space.id] = space;
 			});
 		}
 
-		case "REMOVE_SPACE": {
+		case "SPACE_REMOVED": {
 			return produce(state, (draft) => {
 				const { spaceId } = action.payload;
 				const space = draft.spaces[spaceId];
@@ -54,7 +54,7 @@ export const spaceReducer = (
 			});
 		}
 
-		case "ADD_ENTITY_TO_SPACE": {
+		case "ENTITY_ADDED": {
 			return produce(state, (draft) => {
 				const { entityId, spaceId, position } = action.payload;
 
@@ -105,7 +105,7 @@ export const spaceReducer = (
 			});
 		}
 
-		case "REMOVE_ENTITY_FROM_SPACE": {
+		case "ENTITY_REMOVED": {
 			return produce(state, (draft) => {
 				const { entityId, spaceId } = action.payload;
 
@@ -149,7 +149,7 @@ export const spaceReducer = (
 			});
 		}
 
-		case "MOVE_ENTITY_BETWEEN_SPACES": {
+		case "ENTITY_MOVED": {
 			const { entityId, fromSpaceId, toSpaceId, toPosition } = action.payload;
 
 			return produce(state, (draft) => {
@@ -235,7 +235,7 @@ export const spaceReducer = (
 			});
 		}
 
-		case "UPDATE_ENTITY_POSITION": {
+		case "ENTITY_POSITION_UPDATED": {
 			return produce(state, (draft) => {
 				const { entityId, spaceId, position } = action.payload;
 
@@ -261,7 +261,7 @@ export const spaceReducer = (
 			});
 		}
 
-		case "SWAP_ENTITIES": {
+		case "ENTITIES_SWAPPED": {
 			return produce(state, (draft) => {
 				const { entity1Id, space1Id, entity2Id, space2Id } = action.payload;
 
@@ -337,146 +337,6 @@ export const spaceReducer = (
 						},
 					]);
 				}
-			});
-		}
-
-		// Legacy action handlers (for backward compatibility)
-
-		case "PLACE_ITEM": {
-			// Map to ADD_ENTITY_TO_SPACE
-			const {
-				itemId,
-				blockX,
-				blockY,
-				spaceId: payloadSpaceId,
-			} = action.payload;
-			const spaceId = payloadSpaceId ?? "space";
-			return spaceReducer(state, {
-				type: "ADD_ENTITY_TO_SPACE",
-				payload: {
-					entityId: itemId,
-					spaceId,
-					position: { row: blockY, col: blockX },
-				},
-			});
-		}
-
-		case "REMOVE_ITEM": {
-			// Map to REMOVE_ENTITY_FROM_SPACE
-			const { blockX, blockY, spaceId: payloadSpaceId } = action.payload;
-			const spaceId = payloadSpaceId ?? "space";
-
-			return produce(state, (draft) => {
-				const space = draft.spaces[spaceId];
-				if (!space || !isGridSpace(space)) {
-					return;
-				}
-
-				const events: GameEventInput[] = [];
-				const actionId = getNextActionId(draft.eventQueue);
-
-				// Find entity at this position in grid space
-				for (const [entityId, pos] of Object.entries(space.entityPositions)) {
-					if (pos.row === blockY && pos.col === blockX) {
-						const removed = gridRemove(space, entityId);
-						if (removed) {
-							events.push({
-								type: "ENTITY_LEFT_SPACE",
-								entityId,
-								spaceId,
-								position: pos,
-							});
-						}
-						break;
-					}
-				}
-
-				if (events.length > 0) {
-					draft.eventQueue = appendEvents(draft.eventQueue, actionId, events);
-				}
-			});
-		}
-
-		case "REPOSITION_ITEM": {
-			// Map to UPDATE_ENTITY_POSITION
-			const {
-				itemId,
-				toBlockX,
-				toBlockY,
-				spaceId: payloadSpaceId,
-			} = action.payload;
-			const spaceId = payloadSpaceId ?? "space";
-			return spaceReducer(state, {
-				type: "UPDATE_ENTITY_POSITION",
-				payload: {
-					entityId: itemId,
-					spaceId,
-					position: { row: toBlockY, col: toBlockX },
-				},
-			});
-		}
-
-		case "TRANSFER_ITEM": {
-			// Map to MOVE_ENTITY_BETWEEN_SPACES
-			const { itemId, fromSpace, toBlockX, toBlockY, toSpace } = action.payload;
-			return spaceReducer(state, {
-				type: "MOVE_ENTITY_BETWEEN_SPACES",
-				payload: {
-					entityId: itemId,
-					fromSpaceId: fromSpace,
-					toSpaceId: toSpace,
-					toPosition: { row: toBlockY, col: toBlockX },
-				},
-			});
-		}
-
-		case "SWAP_ITEMS": {
-			// Map to SWAP_ENTITIES
-			const { from, to } = action.payload;
-			const fromSpaceId = from.spaceId ?? "space";
-			const toSpaceId = to.spaceId ?? "space";
-
-			const fromSpace = state.spaces[fromSpaceId];
-			const toSpace = state.spaces[toSpaceId];
-
-			if (!fromSpace || !toSpace) {
-				return state;
-			}
-
-			// Find entities at positions
-			let entity1Id: string | undefined;
-			let entity2Id: string | undefined;
-
-			if (isGridSpace(fromSpace)) {
-				for (const [eid, pos] of Object.entries(fromSpace.entityPositions)) {
-					if (pos.row === from.blockY && pos.col === from.blockX) {
-						entity1Id = eid;
-						break;
-					}
-				}
-			}
-
-			if (isGridSpace(toSpace)) {
-				for (const [eid, pos] of Object.entries(toSpace.entityPositions)) {
-					if (pos.row === to.blockY && pos.col === to.blockX) {
-						entity2Id = eid;
-						break;
-					}
-				}
-			}
-
-			if (!entity1Id || !entity2Id) {
-				return state;
-			}
-
-			return spaceReducer(state, {
-				type: "SWAP_ENTITIES",
-				payload: {
-					entity1Id,
-					space1Id: fromSpaceId,
-					entity2Id,
-					space2Id: toSpaceId,
-				},
 			});
 		}
 

@@ -13,11 +13,11 @@ const resetEventQueue = <T extends { eventQueue: unknown }>(state: T) => {
 };
 
 describe("game events", () => {
-	it("emits a single ENTITY_MOVED event on MOVE_ENTITY_BETWEEN_SPACES", () => {
+	it("emits a single ENTITY_MOVED event on ENTITY_MOVED", () => {
 		let state = createDefaultState();
 
 		state = applicationReducer(state, {
-			type: "CREATE_SPACE",
+			type: "SPACE_CREATED",
 			payload: {
 				space: createGridSpaceData({
 					id: "from",
@@ -28,7 +28,7 @@ describe("game events", () => {
 			},
 		});
 		state = applicationReducer(state, {
-			type: "CREATE_SPACE",
+			type: "SPACE_CREATED",
 			payload: {
 				space: createGridSpaceData({
 					id: "to",
@@ -40,7 +40,7 @@ describe("game events", () => {
 		});
 
 		state = applicationReducer(state, {
-			type: "CREATE_ENTITY",
+			type: "ENTITY_CREATED",
 			payload: {
 				entity: createItemData({
 					id: "item-1",
@@ -51,7 +51,7 @@ describe("game events", () => {
 		});
 
 		state = applicationReducer(state, {
-			type: "ADD_ENTITY_TO_SPACE",
+			type: "ENTITY_ADDED",
 			payload: {
 				entityId: "item-1",
 				spaceId: "from",
@@ -62,7 +62,7 @@ describe("game events", () => {
 		state = resetEventQueue(state);
 
 		state = applicationReducer(state, {
-			type: "MOVE_ENTITY_BETWEEN_SPACES",
+			type: "ENTITY_MOVED",
 			payload: {
 				entityId: "item-1",
 				fromSpaceId: "from",

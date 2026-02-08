@@ -8,8 +8,8 @@ import type { SpaceData } from "../../../domain/space/space-data";
 /**
  * Action to create a new space.
  */
-export type CreateSpaceAction = {
-	type: "CREATE_SPACE";
+export type SpaceCreatedAction = {
+	type: "SPACE_CREATED";
 	payload: {
 		space: SpaceData;
 	};
@@ -18,8 +18,8 @@ export type CreateSpaceAction = {
 /**
  * Action to remove a space.
  */
-export type RemoveSpaceAction = {
-	type: "REMOVE_SPACE";
+export type SpaceRemovedAction = {
+	type: "SPACE_REMOVED";
 	payload: {
 		spaceId: string;
 	};
@@ -28,8 +28,8 @@ export type RemoveSpaceAction = {
 /**
  * Action to add an entity to a space.
  */
-export type AddEntityToSpaceAction = {
-	type: "ADD_ENTITY_TO_SPACE";
+export type EntityAddedAction = {
+	type: "ENTITY_ADDED";
 	payload: {
 		entityId: string;
 		spaceId: string;
@@ -40,8 +40,8 @@ export type AddEntityToSpaceAction = {
 /**
  * Action to remove an entity from a space.
  */
-export type RemoveEntityFromSpaceAction = {
-	type: "REMOVE_ENTITY_FROM_SPACE";
+export type EntityRemovedAction = {
+	type: "ENTITY_REMOVED";
 	payload: {
 		entityId: string;
 		spaceId: string;
@@ -51,8 +51,8 @@ export type RemoveEntityFromSpaceAction = {
 /**
  * Action to move an entity between spaces.
  */
-export type MoveEntityBetweenSpacesAction = {
-	type: "MOVE_ENTITY_BETWEEN_SPACES";
+export type EntityMovedAction = {
+	type: "ENTITY_MOVED";
 	payload: {
 		entityId: string;
 		fromSpaceId: string;
@@ -65,8 +65,8 @@ export type MoveEntityBetweenSpacesAction = {
 /**
  * Action to update an entity's position within a space.
  */
-export type UpdateEntityPositionAction = {
-	type: "UPDATE_ENTITY_POSITION";
+export type EntityPositionUpdatedAction = {
+	type: "ENTITY_POSITION_UPDATED";
 	payload: {
 		entityId: string;
 		spaceId: string;
@@ -78,8 +78,8 @@ export type UpdateEntityPositionAction = {
  * Action to swap two entities' positions.
  * If they're in different spaces, they will be transferred.
  */
-export type SwapEntitiesAction = {
-	type: "SWAP_ENTITIES";
+export type EntitiesSwappedAction = {
+	type: "ENTITIES_SWAPPED";
 	payload: {
 		entity1Id: string;
 		space1Id: string;
@@ -92,95 +92,10 @@ export type SwapEntitiesAction = {
  * Union type of all space-related actions.
  */
 export type SpaceAction =
-	| CreateSpaceAction
-	| RemoveSpaceAction
-	| AddEntityToSpaceAction
-	| RemoveEntityFromSpaceAction
-	| MoveEntityBetweenSpacesAction
-	| UpdateEntityPositionAction
-	| SwapEntitiesAction;
-
-// Legacy action type aliases for backward compatibility
-// These map old action names to new ones
-
-/**
- * Legacy alias for ADD_ENTITY_TO_SPACE.
- * @deprecated Use ADD_ENTITY_TO_SPACE instead
- */
-export type PlaceItemAction = {
-	type: "PLACE_ITEM";
-	payload: {
-		itemId: string;
-		blockX: number;
-		blockY: number;
-		spaceId?: string;
-	};
-};
-
-/**
- * Legacy alias for REMOVE_ENTITY_FROM_SPACE.
- * @deprecated Use REMOVE_ENTITY_FROM_SPACE instead
- */
-export type RemoveItemAction = {
-	type: "REMOVE_ITEM";
-	payload: {
-		blockX: number;
-		blockY: number;
-		spaceId?: string;
-	};
-};
-
-/**
- * Legacy alias for UPDATE_ENTITY_POSITION.
- * @deprecated Use UPDATE_ENTITY_POSITION instead
- */
-export type RepositionItemAction = {
-	type: "REPOSITION_ITEM";
-	payload: {
-		itemId: string;
-		fromBlockX: number;
-		fromBlockY: number;
-		toBlockX: number;
-		toBlockY: number;
-		spaceId?: string;
-	};
-};
-
-/**
- * Legacy alias for MOVE_ENTITY_BETWEEN_SPACES.
- * @deprecated Use MOVE_ENTITY_BETWEEN_SPACES instead
- */
-export type TransferItemAction = {
-	type: "TRANSFER_ITEM";
-	payload: {
-		itemId: string;
-		fromSpace: string;
-		fromBlockX: number;
-		fromBlockY: number;
-		toSpace: string;
-		toBlockX: number;
-		toBlockY: number;
-	};
-};
-
-/**
- * Legacy alias for SWAP_ENTITIES.
- * @deprecated Use SWAP_ENTITIES instead
- */
-export type SwapItemsAction = {
-	type: "SWAP_ITEMS";
-	payload: {
-		from: { spaceId?: string; blockX: number; blockY: number };
-		to: { spaceId?: string; blockX: number; blockY: number };
-	};
-};
-
-/**
- * Union type including legacy action aliases.
- */
-export type LegacySpaceAction =
-	| PlaceItemAction
-	| RemoveItemAction
-	| RepositionItemAction
-	| TransferItemAction
-	| SwapItemsAction;
+	| SpaceCreatedAction
+	| SpaceRemovedAction
+	| EntityAddedAction
+	| EntityRemovedAction
+	| EntityMovedAction
+	| EntityPositionUpdatedAction
+	| EntitiesSwappedAction;

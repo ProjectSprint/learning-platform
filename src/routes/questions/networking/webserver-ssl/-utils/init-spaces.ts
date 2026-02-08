@@ -5,10 +5,18 @@
 
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
 import {
+	createGridSpaceData,
+	createPoolSpaceData,
+} from "@/components/game/domain/space/space-fns";
+import {
 	BASIC_INVENTORY_ITEMS,
+	INVENTORY_POOL_CONFIG,
 	QUESTION_ID,
+	SPACE_CONFIGS,
 	SSL_ITEMS_INVENTORY,
+	SSL_ITEMS_POOL_CONFIG,
 	SSL_SETUP_INVENTORY_ITEMS,
+	SSL_SETUP_POOL_CONFIG,
 } from "./constants";
 
 // Use any for dispatch to work around Phase 5 integration issues
@@ -33,9 +41,9 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		dispatch({
-			type: "ADD_ENTITY_TO_SPACE",
+			type: "ENTITY_ADDED",
 			payload: { entityId: entity.id, spaceId: "inventory" },
 		});
 	}
@@ -54,7 +62,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// These start hidden, will be added to inventory later
 	}
 
@@ -72,7 +80,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// These start hidden, will be added to inventory later
 	}
 };
@@ -98,6 +106,25 @@ export const initializeSslQuestion = (dispatch: GameDispatch) => {
 	});
 
 	// Initialize spaces
+	for (const config of Object.values(SPACE_CONFIGS)) {
+		dispatch({
+			type: "SPACE_CREATED",
+			payload: { space: createGridSpaceData(config) },
+		});
+	}
+	dispatch({
+		type: "SPACE_CREATED",
+		payload: { space: createPoolSpaceData(INVENTORY_POOL_CONFIG) },
+	});
+	dispatch({
+		type: "SPACE_CREATED",
+		payload: { space: createPoolSpaceData(SSL_SETUP_POOL_CONFIG) },
+	});
+	dispatch({
+		type: "SPACE_CREATED",
+		payload: { space: createPoolSpaceData(SSL_ITEMS_POOL_CONFIG) },
+	});
+
 	// Initialize entities
 	initializeEntities(dispatch);
 };

@@ -245,13 +245,13 @@ export const useTcpState = (): TcpState => {
 			const { status, ...dataUpdates } = updates;
 			if (Object.keys(dataUpdates).length > 0) {
 				dispatch({
-					type: "UPDATE_ENTITY",
+					type: "ENTITY_UPDATED",
 					payload: { entityId, updates: { data: dataUpdates } },
 				});
 			}
 			if (status !== undefined) {
 				dispatch({
-					type: "UPDATE_ENTITY_STATE",
+					type: "ENTITY_STATE_UPDATED",
 					payload: { entityId, state: { status } },
 				});
 			}
@@ -262,7 +262,7 @@ export const useTcpState = (): TcpState => {
 	const setEntityDraggable = useCallback(
 		(entityId: string, draggable: boolean) => {
 			dispatch({
-				type: "UPDATE_ENTITY",
+				type: "ENTITY_UPDATED",
 				payload: { entityId, updates: { draggable } },
 			});
 		},
@@ -272,7 +272,7 @@ export const useTcpState = (): TcpState => {
 	const updatePacketDisplayName = useCallback(
 		(entityId: string, displayName: string) => {
 			dispatch({
-				type: "UPDATE_ENTITY",
+				type: "ENTITY_UPDATED",
 				payload: { entityId, updates: { name: displayName } },
 			});
 		},
@@ -282,7 +282,7 @@ export const useTcpState = (): TcpState => {
 	const removeEntityFromSpace = useCallback(
 		(entityId: string, spaceId: string) => {
 			dispatch({
-				type: "REMOVE_ENTITY_FROM_SPACE",
+				type: "ENTITY_REMOVED",
 				payload: { entityId, spaceId },
 			});
 		},
@@ -303,14 +303,14 @@ export const useTcpState = (): TcpState => {
 
 			if (!fromSpaceId) {
 				dispatch({
-					type: "ADD_ENTITY_TO_SPACE",
+					type: "ENTITY_ADDED",
 					payload: { entityId, spaceId, position },
 				});
 				return true;
 			}
 
 			dispatch({
-				type: "MOVE_ENTITY_BETWEEN_SPACES",
+				type: "ENTITY_MOVED",
 				payload: {
 					entityId,
 					fromSpaceId,

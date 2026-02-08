@@ -233,10 +233,12 @@ const NetworkingGame = ({
 				const endIp = String(event.values.endIp ?? "");
 
 				dispatch({
-					type: "CONFIGURE_DEVICE",
+					type: "ENTITY_UPDATED",
 					payload: {
-						deviceId,
-						config: { dhcpEnabled, startIp, endIp },
+						entityId: deviceId,
+						updates: {
+							data: { dhcpEnabled, startIp, endIp },
+						},
 					},
 				});
 

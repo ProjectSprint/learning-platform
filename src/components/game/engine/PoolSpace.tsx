@@ -5,14 +5,14 @@
  * from the inventory pool.
  */
 
-import { memo, useCallback, useLayoutEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import type { EntityData } from "../domain/entity/entity-data";
 import { isItemData } from "../domain/entity/entity-data";
 import type {
 	PoolSpaceConfig,
 	PoolSpaceData,
 } from "../domain/space/space-data";
-import { createPoolSpaceData, spaceContains } from "../domain/space/space-fns";
+import { spaceContains } from "../domain/space/space-fns";
 import type { GameContextValue } from "../game-provider";
 import { useGameDispatch, useGameState } from "../game-provider";
 import { useDragContext } from "../presentation/interaction/drag/DragContext";
@@ -57,17 +57,15 @@ export const PoolSpace = memo(({ id, ctx, config, title }: PoolSpaceProps) => {
 	const dispatch = ctx?.dispatch ?? contextDispatch;
 	const { setActiveDrag, setLastDropResult } = useDragContext();
 	const resolvedId = config?.id ?? id ?? "inventory";
-	const hasSpace = resolvedId ? Boolean(state.spaces[resolvedId]) : false;
-	const shouldRegister = Boolean(config) && Boolean(resolvedId);
 
-	useLayoutEffect(() => {
-		if (!shouldRegister || !resolvedId) return;
-		if (hasSpace) return;
-		dispatch({
-			type: "CREATE_SPACE",
-			payload: { space: createPoolSpaceData(config as PoolSpaceConfig) },
-		});
-	}, [config, dispatch, hasSpace, resolvedId, shouldRegister]);
+	useEffect(() => {
+		if (!resolvedId) return;
+		if (process.env.NODE_ENV === "development" && !state.spaces[resolvedId]) {
+			console.warn(
+				`[PoolSpace] Space "${resolvedId}" not found in state. Did you forget to create it in init-spaces?`,
+			);
+		}
+	}, [resolvedId, state.spaces]);
 
 	// Get pool space data
 	const pool = resolvedId
@@ -155,7 +153,7 @@ export const PoolSpace = memo(({ id, ctx, config, title }: PoolSpaceProps) => {
 
 			// Dispatch action to move entity back to pool
 			dispatch({
-				type: "MOVE_ENTITY_BETWEEN_SPACES",
+				type: "ENTITY_MOVED",
 				payload: {
 					entityId,
 					fromSpaceId: currentSpaceId,

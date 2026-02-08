@@ -21,6 +21,7 @@
 | [contracts/events.md](./contracts/events.md) | You need to react to state changes via events, or understand event ordering |
 | [contracts/functions.md](./contracts/functions.md) | You need a pure function for entity/space manipulation, validation, or geometry |
 | [contracts/validation.md](./contracts/validation.md) | You need to understand why a placement was rejected, or pre-validate before dispatch |
+| [contracts/architecture-spec.md](./contracts/architecture-spec.md) | You need the target architecture rules: fact-only actions, space-owned interaction, forbidden patterns |
 
 ## Guides (How-To)
 

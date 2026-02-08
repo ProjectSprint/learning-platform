@@ -5,11 +5,17 @@
 
 import { createItemData } from "@/components/game/domain/entity/entity-fns";
 import {
+	createGridSpaceData,
+	createPoolSpaceData,
+} from "@/components/game/domain/space/space-fns";
+import {
 	ACK_PACKETS,
 	DATA_PACKETS,
 	FRAME_ITEMS,
+	INVENTORY_POOL_CONFIG,
 	QUESTION_ID,
 	RECEIVED_SYN_PACKETS,
+	SPACE_CONFIGS,
 	SYN_ACK_PACKETS,
 	SYN_PACKETS,
 } from "./constants";
@@ -36,7 +42,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// Will be added to inventory group in initial state
 	}
 
@@ -54,7 +60,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// Will be added to inventory group in initial state
 	}
 
@@ -72,7 +78,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// Will be added to inventory group in initial state
 	}
 
@@ -90,7 +96,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// Will be added to inventory group in initial state
 	}
 
@@ -108,7 +114,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// Will be added to inventory group in initial state
 	}
 
@@ -126,7 +132,7 @@ export const initializeEntities = (dispatch: GameDispatch) => {
 			allowedPlaces: itemConfig.allowedPlaces,
 		});
 
-		dispatch({ type: "CREATE_ENTITY", payload: { entity } });
+		dispatch({ type: "ENTITY_CREATED", payload: { entity } });
 		// Will be added to inventory group in initial state
 	}
 };
@@ -152,6 +158,17 @@ export const initializeUdpQuestion = (dispatch: GameDispatch) => {
 	});
 
 	// Initialize spaces
+	for (const config of Object.values(SPACE_CONFIGS)) {
+		dispatch({
+			type: "SPACE_CREATED",
+			payload: { space: createGridSpaceData(config) },
+		});
+	}
+	dispatch({
+		type: "SPACE_CREATED",
+		payload: { space: createPoolSpaceData(INVENTORY_POOL_CONFIG) },
+	});
+
 	// Initialize entities
 	initializeEntities(dispatch);
 };

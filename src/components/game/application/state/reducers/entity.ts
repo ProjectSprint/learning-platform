@@ -6,7 +6,6 @@
 
 import { produce } from "immer";
 import { isItemData } from "../../../domain/entity/entity-data";
-import { createItemData } from "../../../domain/entity/entity-fns";
 import type { SpaceData } from "../../../domain/space/space-data";
 import {
 	gridContains,
@@ -14,7 +13,7 @@ import {
 	poolContains,
 	poolRemove,
 } from "../../../domain/space/space-fns";
-import type { EntityAction, LegacyEntityAction } from "../actions/entity";
+import type { EntityAction } from "../actions/entity";
 import type { GameEventInput } from "../events";
 import { appendEvents, getNextActionId } from "../events";
 import type { GameState } from "../types";
@@ -30,10 +29,10 @@ import type { EntityUpdatePayload } from "../types/events";
  */
 export const entityReducer = (
 	state: GameState,
-	action: EntityAction | LegacyEntityAction,
+	action: EntityAction,
 ): GameState => {
 	switch (action.type) {
-		case "CREATE_ENTITY": {
+		case "ENTITY_CREATED": {
 			return produce(state, (draft) => {
 				const { entity } = action.payload;
 
@@ -46,7 +45,7 @@ export const entityReducer = (
 			});
 		}
 
-		case "UPDATE_ENTITY": {
+		case "ENTITY_UPDATED": {
 			return produce(state, (draft) => {
 				const { entityId, updates } = action.payload;
 				const entity = draft.entities[entityId];
@@ -127,7 +126,7 @@ export const entityReducer = (
 			});
 		}
 
-		case "UPDATE_ENTITY_STATE": {
+		case "ENTITY_STATE_UPDATED": {
 			return produce(state, (draft) => {
 				const { entityId, state: stateUpdates } = action.payload;
 				const entity = draft.entities[entityId];
@@ -162,32 +161,7 @@ export const entityReducer = (
 			});
 		}
 
-		case "DELETE_ENTITY": {
-			return produce(state, (draft) => {
-				const { entityId } = action.payload;
-				const entity = draft.entities[entityId];
-
-				if (!entity) {
-					return;
-				}
-
-				// Remove entity from all spaces
-				for (const space of Object.values(draft.spaces)) {
-					if (spaceContains(space, entityId)) {
-						if (space.kind === "grid") {
-							gridRemove(space, entityId);
-						} else if (space.kind === "pool") {
-							poolRemove(space, entityId);
-						}
-					}
-				}
-
-				// Remove the entity
-				delete draft.entities[entityId];
-			});
-		}
-
-		case "DELETE_ENTITIES": {
+		case "ENTITIES_DELETED": {
 			return produce(state, (draft) => {
 				const { entityIds } = action.payload;
 
@@ -212,112 +186,6 @@ export const entityReducer = (
 				for (const id of entityIds) {
 					delete draft.entities[id];
 				}
-			});
-		}
-
-		// Legacy action handlers (for backward compatibility)
-
-		case "ADD_POOL_GROUP": {
-			// Create entities from inventory group items
-			return produce(state, (draft) => {
-				const { group } = action.payload;
-
-				for (const itemConfig of group.items) {
-					// Check for duplicates
-					if (itemConfig.id in draft.entities) {
-						continue;
-					}
-
-					// Create entity from item config using createItemData
-					const entity = createItemData({
-						id: itemConfig.id,
-						name: itemConfig.name,
-						icon: itemConfig.icon,
-						data: { ...itemConfig.data, type: itemConfig.type },
-						tooltip: itemConfig.tooltip,
-						allowedPlaces: itemConfig.allowedPlaces,
-					});
-
-					draft.entities[entity.id] = entity;
-				}
-			});
-		}
-
-		case "UPDATE_POOL_GROUP": {
-			// Update entities in the group
-			return produce(state, (draft) => {
-				const { items } = action.payload;
-
-				if (!items) {
-					return;
-				}
-
-				for (const itemConfig of items) {
-					const entity = draft.entities[itemConfig.id];
-					if (entity) {
-						// Update existing entity
-						if (itemConfig.data) {
-							Object.assign(entity.data, itemConfig.data);
-						}
-					} else {
-						// Create new entity
-						const newEntity = createItemData({
-							id: itemConfig.id,
-							name: itemConfig.name,
-							icon: itemConfig.icon,
-							data: { ...itemConfig.data, type: itemConfig.type },
-							tooltip: itemConfig.tooltip,
-							allowedPlaces: itemConfig.allowedPlaces,
-						});
-						draft.entities[newEntity.id] = newEntity;
-					}
-				}
-			});
-		}
-
-		case "UPDATE_POOL_ITEM_TOOLTIP": {
-			// Map to UPDATE_ENTITY
-			const { itemId, tooltip } = action.payload;
-			return entityReducer(state, {
-				type: "UPDATE_ENTITY",
-				payload: {
-					entityId: itemId,
-					updates: {
-						data: { tooltip },
-					},
-				},
-			});
-		}
-
-		case "REMOVE_POOL_GROUP": {
-			// This would need to identify which entities belong to the group
-			// For now, we'll just return the state as-is since we need more context
-			// about which entities belong to which group
-			return state;
-		}
-
-		case "PURGE_POOL_ITEMS": {
-			// Map to DELETE_ENTITIES
-			const { itemIds } = action.payload;
-			return entityReducer(state, {
-				type: "DELETE_ENTITIES",
-				payload: {
-					entityIds: itemIds,
-				},
-			});
-		}
-
-		case "CONFIGURE_DEVICE": {
-			// Map to UPDATE_ENTITY - update entity.data instead of entity.state
-			const { deviceId, config } = action.payload;
-			return entityReducer(state, {
-				type: "UPDATE_ENTITY",
-				payload: {
-					entityId: deviceId,
-					updates: {
-						data: config,
-					},
-				},
 			});
 		}
 

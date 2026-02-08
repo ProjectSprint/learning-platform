@@ -3,18 +3,13 @@
  * These actions handle operations on entities (creating, updating, deleting).
  */
 
-import type {
-	InventoryGroupConfig,
-	Item,
-	ItemTooltip,
-} from "../../../core/types";
 import type { EntityData } from "../../../domain/entity/entity-data";
 
 /**
  * Action to create a new entity.
  */
-export type CreateEntityAction = {
-	type: "CREATE_ENTITY";
+export type EntityCreatedAction = {
+	type: "ENTITY_CREATED";
 	payload: {
 		entity: EntityData;
 	};
@@ -23,8 +18,8 @@ export type CreateEntityAction = {
 /**
  * Action to update an entity's properties.
  */
-export type UpdateEntityAction = {
-	type: "UPDATE_ENTITY";
+export type EntityUpdatedAction = {
+	type: "ENTITY_UPDATED";
 	payload: {
 		entityId: string;
 		updates: {
@@ -40,8 +35,8 @@ export type UpdateEntityAction = {
 /**
  * Action to update an entity's state.
  */
-export type UpdateEntityStateAction = {
-	type: "UPDATE_ENTITY_STATE";
+export type EntityStateUpdatedAction = {
+	type: "ENTITY_STATE_UPDATED";
 	payload: {
 		entityId: string;
 		state: Record<string, unknown>;
@@ -49,20 +44,10 @@ export type UpdateEntityStateAction = {
 };
 
 /**
- * Action to delete an entity.
- */
-export type DeleteEntityAction = {
-	type: "DELETE_ENTITY";
-	payload: {
-		entityId: string;
-	};
-};
-
-/**
  * Action to delete multiple entities.
  */
-export type DeleteEntitiesAction = {
-	type: "DELETE_ENTITIES";
+export type EntitiesDeletedAction = {
+	type: "ENTITIES_DELETED";
 	payload: {
 		entityIds: string[];
 	};
@@ -72,94 +57,7 @@ export type DeleteEntitiesAction = {
  * Union type of all entity-related actions.
  */
 export type EntityAction =
-	| CreateEntityAction
-	| UpdateEntityAction
-	| UpdateEntityStateAction
-	| DeleteEntityAction
-	| DeleteEntitiesAction;
-
-// Legacy action type aliases for backward compatibility
-// These map old pool-group actions to new entity actions
-
-/**
- * Legacy alias for creating entities from pool group.
- * @deprecated Use CREATE_ENTITY for individual entities instead
- */
-export type AddPoolGroupAction = {
-	type: "ADD_POOL_GROUP";
-	payload: {
-		group: InventoryGroupConfig;
-	};
-};
-
-/**
- * Legacy alias for updating entities in a pool group.
- * @deprecated Use UPDATE_ENTITY instead
- */
-export type UpdatePoolGroupAction = {
-	type: "UPDATE_POOL_GROUP";
-	payload: {
-		id: string;
-		title?: string;
-		visible?: boolean;
-		items?: Item[];
-	};
-};
-
-/**
- * Legacy alias for updating entity tooltip.
- * @deprecated Use UPDATE_ENTITY instead
- */
-export type UpdatePoolItemTooltipAction = {
-	type: "UPDATE_POOL_ITEM_TOOLTIP";
-	payload: {
-		itemId: string;
-		tooltip?: ItemTooltip | null;
-	};
-};
-
-/**
- * Legacy alias for removing pool group.
- * @deprecated Use DELETE_ENTITIES instead
- */
-export type RemovePoolGroupAction = {
-	type: "REMOVE_POOL_GROUP";
-	payload: {
-		id: string;
-	};
-};
-
-/**
- * Legacy alias for DELETE_ENTITIES.
- * @deprecated Use DELETE_ENTITIES instead
- */
-export type PurgePoolItemsAction = {
-	type: "PURGE_POOL_ITEMS";
-	payload: {
-		itemIds: string[];
-	};
-};
-
-/**
- * Legacy alias for configuring device/entity.
- * @deprecated Use UPDATE_ENTITY_STATE instead
- */
-export type ConfigureDeviceAction = {
-	type: "CONFIGURE_DEVICE";
-	payload: {
-		deviceId: string;
-		config: Record<string, unknown>;
-		spaceId?: string;
-	};
-};
-
-/**
- * Union type including legacy action aliases.
- */
-export type LegacyEntityAction =
-	| AddPoolGroupAction
-	| UpdatePoolGroupAction
-	| UpdatePoolItemTooltipAction
-	| RemovePoolGroupAction
-	| PurgePoolItemsAction
-	| ConfigureDeviceAction;
+	| EntityCreatedAction
+	| EntityUpdatedAction
+	| EntityStateUpdatedAction
+	| EntitiesDeletedAction;

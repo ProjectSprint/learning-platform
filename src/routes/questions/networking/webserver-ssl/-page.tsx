@@ -201,21 +201,17 @@ const SslGame = ({
 
 				if (domain) {
 					dispatch({
-						type: "CONFIGURE_DEVICE",
+						type: "ENTITY_UPDATED",
 						payload: {
-							deviceId,
-							config: {
-								certificateIssued: true,
-								verified: true,
-								certificateDomain: domain,
+							entityId: deviceId,
+							updates: {
+								data: {
+									certificateIssued: true,
+									verified: true,
+									certificateDomain: domain,
+								},
 							},
-							spaceId: "letsencrypt",
 						},
-					});
-
-					dispatch({
-						type: "UPDATE_POOL_GROUP",
-						payload: { id: "ssl-items", visible: true },
 					});
 				}
 			}
@@ -386,7 +382,7 @@ const SslGame = ({
 			}
 
 			dispatch({
-				type: "ADD_ENTITY_TO_SPACE",
+				type: "ENTITY_ADDED",
 				payload: { entityId: item.id, spaceId: SSL_POOL_IDS.setup },
 			});
 		}
@@ -404,7 +400,7 @@ const SslGame = ({
 			}
 
 			dispatch({
-				type: "ADD_ENTITY_TO_SPACE",
+				type: "ENTITY_ADDED",
 				payload: { entityId: item.id, spaceId: SSL_POOL_IDS.certificates },
 			});
 		}
