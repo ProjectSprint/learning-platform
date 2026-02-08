@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createItemData } from "../../../../domain/entity/entity-fns";
-import { createGridSpaceData } from "../../../../domain/space/space-fns";
+import {
+	createGridSpaceData,
+	gridGetPosition,
+} from "../../../../domain/space/space-fns";
 import { applicationReducer, createDefaultState } from "../index";
 
 const metrics = { cellWidth: 1, cellHeight: 1 };
@@ -126,5 +129,167 @@ describe("game events", () => {
 		}
 		expect(state.eventQueue.lastActionId).toBe(1);
 		expect(state.eventQueue.lastEventId).toBe(2);
+	});
+
+	it("rolls back rejected ENTITY_MOVED without losing source placement", () => {
+		let state = createDefaultState();
+
+		state = applicationReducer(state, {
+			type: "SPACE_CREATED",
+			payload: {
+				space: createGridSpaceData({
+					id: "from",
+					rows: 1,
+					cols: 1,
+					metrics,
+				}),
+			},
+		});
+		state = applicationReducer(state, {
+			type: "SPACE_CREATED",
+			payload: {
+				space: createGridSpaceData({
+					id: "to",
+					rows: 1,
+					cols: 1,
+					metrics,
+				}),
+			},
+		});
+
+		state = applicationReducer(state, {
+			type: "ENTITY_CREATED",
+			payload: {
+				entity: createItemData({
+					id: "item-from",
+					name: "Item From",
+					allowedPlaces: ["from", "to"],
+				}),
+			},
+		});
+		state = applicationReducer(state, {
+			type: "ENTITY_CREATED",
+			payload: {
+				entity: createItemData({
+					id: "item-to",
+					name: "Item To",
+					allowedPlaces: ["to"],
+				}),
+			},
+		});
+
+		state = applicationReducer(state, {
+			type: "ENTITY_ADDED",
+			payload: {
+				entityId: "item-from",
+				spaceId: "from",
+				position: { row: 0, col: 0 },
+			},
+		});
+		state = applicationReducer(state, {
+			type: "ENTITY_ADDED",
+			payload: {
+				entityId: "item-to",
+				spaceId: "to",
+				position: { row: 0, col: 0 },
+			},
+		});
+
+		state = resetEventQueue(state);
+
+		state = applicationReducer(state, {
+			type: "ENTITY_MOVED",
+			payload: {
+				entityId: "item-from",
+				fromSpaceId: "from",
+				toSpaceId: "to",
+				toPosition: { row: 0, col: 0 },
+			},
+		});
+
+		const fromSpace = state.spaces.from;
+		const toSpace = state.spaces.to;
+		expect(fromSpace?.kind).toBe("grid");
+		expect(toSpace?.kind).toBe("grid");
+		if (fromSpace?.kind === "grid" && toSpace?.kind === "grid") {
+			expect(gridGetPosition(fromSpace, "item-from")).toEqual({
+				row: 0,
+				col: 0,
+			});
+			expect(gridGetPosition(toSpace, "item-from")).toBeUndefined();
+		}
+		expect(state.eventQueue.events).toHaveLength(0);
+	});
+
+	it("SET_QUESTION updates question metadata in core reducer", () => {
+		let state = createDefaultState();
+
+		state = applicationReducer(state, {
+			type: "SET_QUESTION",
+			payload: {
+				id: "udp-question",
+			},
+		});
+
+		expect(state.question.id).toBe("udp-question");
+		expect(state.question.status).toBe("in_progress");
+	});
+
+	it("ACK_EVENTS cursor is monotonic and clamped to lastEventId", () => {
+		let state = createDefaultState();
+
+		state = applicationReducer(state, {
+			type: "EMIT_EVENTS",
+			payload: {
+				events: [
+					{ type: "ENGINE_STARTED", engineId: "engine-1" },
+					{ type: "ENGINE_FINISHED", engineId: "engine-1" },
+				],
+			},
+		});
+
+		state = applicationReducer(state, {
+			type: "ACK_EVENTS",
+			payload: { engineId: "engine-1", cursor: 999 },
+		});
+		expect(state.eventCursors["engine-1"]).toBe(2);
+
+		state = applicationReducer(state, {
+			type: "ACK_EVENTS",
+			payload: { engineId: "engine-1", cursor: 1 },
+		});
+		expect(state.eventCursors["engine-1"]).toBe(2);
+	});
+
+	it("keeps modal intent channel functional", () => {
+		let state = createDefaultState();
+
+		state = applicationReducer(state, {
+			type: "OPEN_MODAL",
+			payload: {
+				id: "modal-intent",
+				content: [],
+				actions: [{ id: "ok", label: "OK" }],
+			},
+		});
+
+		state = applicationReducer(state, {
+			type: "MODAL_SUBMITTED",
+			payload: {
+				modalId: "modal-intent",
+				modalActionId: "ok",
+				values: {},
+			},
+		});
+
+		expect(state.overlay.modals["modal-intent"]?.visible).toBe(true);
+		expect(
+			state.eventQueue.events.some(
+				(event) =>
+					event.type === "MODAL_SUBMITTED" &&
+					event.modalId === "modal-intent" &&
+					event.modalActionId === "ok",
+			),
+		).toBe(true);
 	});
 });

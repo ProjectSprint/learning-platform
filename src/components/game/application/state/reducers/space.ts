@@ -204,12 +204,22 @@ export const spaceReducer = (
 				if (!added) {
 					// Rollback: add back to source
 					if (isGridSpace(fromSpace)) {
-						const pos = gridGetPosition(fromSpace, entityId);
-						if (pos) {
-							gridAdd(fromSpace, entityId, pos);
+						if (
+							fromPosition &&
+							typeof fromPosition === "object" &&
+							"row" in fromPosition &&
+							"col" in fromPosition
+						) {
+							gridAdd(fromSpace, entityId, fromPosition as GridPosition);
 						}
 					} else if (isPoolSpace(fromSpace)) {
-						poolAdd(fromSpace, entityId, 0); // Add at beginning
+						const fromIndex =
+							fromPosition &&
+							typeof fromPosition === "object" &&
+							"index" in fromPosition
+								? (fromPosition as { index: number }).index
+								: 0;
+						poolAdd(fromSpace, entityId, Math.max(0, fromIndex));
 					}
 					return;
 				}

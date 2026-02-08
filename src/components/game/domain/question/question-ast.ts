@@ -1,12 +1,13 @@
 import type { TerminalCommandHelpers } from "@/components/game/engines";
 import type {
-	GamePhase,
 	InventoryGroupConfig,
 	QuestionStatus,
 	SpaceConfig,
 	SpaceItemLocation,
 	TerminalState,
 } from "@/components/game/game-provider";
+
+type QuestionPhase = string;
 
 export type QuestionSpec<ConditionKey extends string = string> = {
 	meta: Meta;
@@ -31,12 +32,12 @@ export type MultiInitPayload = {
 	spaces: Record<string, SpaceConfig>;
 	inventoryGroups?: InventoryGroupConfig[];
 	terminal?: Partial<TerminalState>;
-	phase?: GamePhase;
+	phase?: QuestionPhase;
 	questionStatus?: QuestionStatus;
 };
 
 export type PhaseRule<ConditionKey extends string = string> =
-	| { kind: "set"; when: Condition<ConditionKey>; to: GamePhase }
+	| { kind: "set"; when: Condition<ConditionKey>; to: QuestionPhase }
 	| { kind: "retain"; when: Condition<ConditionKey> };
 
 export type InventoryRule<ConditionKey extends string = string> =
@@ -79,7 +80,7 @@ export type ConditionContext<ConditionKey extends string = string> = Record<
 >;
 
 export type PhaseResolution = {
-	nextPhase: GamePhase;
+	nextPhase: QuestionPhase;
 	shouldRetain: boolean;
 };
 
@@ -113,8 +114,8 @@ export const evaluateCondition = <ConditionKey extends string>(
 export const resolvePhase = <ConditionKey extends string>(
 	rules: PhaseRule<ConditionKey>[],
 	context: ConditionContext<ConditionKey>,
-	currentPhase: GamePhase,
-	fallbackPhase: GamePhase,
+	currentPhase: QuestionPhase,
+	fallbackPhase: QuestionPhase,
 ): PhaseResolution => {
 	let nextPhase = fallbackPhase;
 

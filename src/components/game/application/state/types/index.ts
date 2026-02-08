@@ -3,11 +3,7 @@
  * These types represent the new domain-driven state structure using plain data.
  */
 
-import type {
-	GamePhase,
-	OverlayState,
-	QuestionStatus,
-} from "../../../core/types";
+import type { OverlayState, QuestionStatus } from "../../../core/types";
 import type { EntityData } from "../../../domain/entity/entity-data";
 import type { SpaceData } from "../../../domain/space/space-data";
 import type { GameEventQueue } from "./events";
@@ -17,8 +13,8 @@ import type { GameEventQueue } from "./events";
  * Uses Record instead of Map for Immer compatibility.
  */
 export type GameState = {
-	/** Current phase of the game */
-	phase: GamePhase;
+	/** Current phase of the game (question-defined string) */
+	phase: string;
 
 	/** All spaces in the game, keyed by space ID */
 	spaces: Record<string, SpaceData>;

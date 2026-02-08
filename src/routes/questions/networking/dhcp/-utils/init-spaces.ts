@@ -8,6 +8,7 @@ import {
 	createGridSpaceData,
 	createPoolSpaceData,
 } from "@/components/game/domain/space/space-fns";
+import type { GameAction } from "@/components/game/game-provider";
 import {
 	INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
@@ -15,10 +16,7 @@ import {
 	SPACE_CONFIGS,
 } from "./constants";
 
-// Use any for dispatch to work around Phase 5 integration issues
-// The new actions exist but aren't in GameAction type yet
-// biome-ignore lint/suspicious/noExplicitAny: Phase 5 integration incomplete
-type GameDispatch = (action: any) => void;
+type GameDispatch = (action: GameAction) => void;
 
 /**
  * Initialize all entities (inventory items) for the DHCP question.

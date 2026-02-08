@@ -11,6 +11,21 @@ export const coreReducer = (
 	action: CoreAction,
 ): GameState => {
 	switch (action.type) {
+		case "SET_QUESTION":
+			if (
+				state.question.id === action.payload.id &&
+				(action.payload.status === undefined ||
+					state.question.status === action.payload.status)
+			) {
+				return state;
+			}
+			return {
+				...state,
+				question: {
+					id: action.payload.id,
+					status: action.payload.status ?? state.question.status,
+				},
+			};
 		case "SET_PHASE":
 			if (state.phase === action.payload.phase) {
 				return state;

@@ -48,6 +48,7 @@ export const applicationReducer = (
 			return uiReducer(state, action);
 
 		// Core actions
+		case "SET_QUESTION":
 		case "SET_PHASE":
 		case "COMPLETE_QUESTION":
 		case "ACK_EVENTS":

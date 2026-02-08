@@ -8,6 +8,7 @@ import {
 	createGridSpaceData,
 	createPoolSpaceData,
 } from "@/components/game/domain/space/space-fns";
+import type { GameAction } from "@/components/game/game-provider";
 import {
 	ACK_PACKETS,
 	DATA_PACKETS,
@@ -20,9 +21,7 @@ import {
 	SYN_PACKETS,
 } from "./constants";
 
-// Use any for dispatch to work around Phase 5 integration issues
-// biome-ignore lint/suspicious/noExplicitAny: Phase 5 integration incomplete
-type GameDispatch = (action: any) => void;
+type GameDispatch = (action: GameAction) => void;
 
 /**
  * Initialize all entities (inventory items) for the UDP question.

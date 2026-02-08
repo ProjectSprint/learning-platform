@@ -3,7 +3,7 @@
  * Events are emitted by reducers to provide deterministic transitions.
  */
 
-import type { GamePhase, ModalInstance } from "../../../core/types";
+import type { ModalInstance } from "../../../core/types";
 import type { EntityData } from "../../../domain/entity/entity-data";
 
 export type GameEventBase = {
@@ -97,8 +97,8 @@ export type EngineFinishedEvent = GameEventBase & {
 
 export type PhaseChangedEvent = GameEventBase & {
 	type: "PHASE_CHANGED";
-	from: GamePhase;
-	to: GamePhase;
+	from: string;
+	to: string;
 };
 
 export type GameEvent =
