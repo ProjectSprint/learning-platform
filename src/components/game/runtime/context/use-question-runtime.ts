@@ -19,6 +19,8 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "../../game-provider";
+import { useBehaviorReactor } from "../behavior/reactor";
+import type { BehaviorDefinition } from "../behavior/types";
 import { bootstrapQuestion } from "../bootstrap/bootstrap";
 import { createCommands } from "../commands/create-commands";
 import type { QuestionDefinition } from "../definition/types";
@@ -37,7 +39,7 @@ import {
 	type WorldApi,
 } from "../wrappers";
 
-export type QuestionRuntime = {
+export type QuestionRuntime<TContext = Record<string, never>> = {
 	/** World domain wrappers (spaces/entities). */
 	world: WorldApi;
 	/** Progress domain wrappers (question progression). */
@@ -58,6 +60,8 @@ export type QuestionRuntime = {
 	events: GameEvent[];
 	/** Acknowledge processed events */
 	ack: () => void;
+	/** Behavior context (populated when definition has behaviors) */
+	behaviorContext: TContext;
 };
 
 /**
@@ -66,10 +70,13 @@ export type QuestionRuntime = {
  * @param engineId — unique engine ID for event subscription (e.g. "dhcp-page")
  * @param definition — optional QuestionDefinition to bootstrap on mount
  */
-export function useQuestionRuntime(
+export function useQuestionRuntime<
+	CK extends string = string,
+	TContext extends Record<string, unknown> = Record<string, never>,
+>(
 	engineId: string,
-	definition?: QuestionDefinition,
-): QuestionRuntime {
+	definition?: QuestionDefinition<CK, TContext>,
+): QuestionRuntime<TContext> {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const { events, ack } = useEngineEvents(engineId);
@@ -163,6 +170,19 @@ export function useQuestionRuntime(
 		});
 	}
 
+	const behaviorResult = useBehaviorReactor<TContext>(
+		definition?.behaviors as BehaviorDefinition<TContext> | undefined,
+		{
+			state,
+			events,
+			ack,
+			world: worldRef.current,
+			interaction: interactionSessionRef.current,
+			flow: executionFlowRef.current,
+			progress: progressRef.current,
+		},
+	);
+
 	return {
 		world: worldRef.current,
 		progress: progressRef.current,
@@ -174,5 +194,6 @@ export function useQuestionRuntime(
 		isCompleted: state.question.status === "completed",
 		events,
 		ack,
+		behaviorContext: behaviorResult.context,
 	};
 }

@@ -101,6 +101,13 @@ export type PhaseChangedEvent = GameEventBase & {
 	to: string;
 };
 
+export type EntityClickedEvent = GameEventBase & {
+	type: "ENTITY_CLICKED";
+	entityId: string;
+	spaceId: string;
+	position?: Record<string, unknown>;
+};
+
 export type RuntimeWarningEvent = GameEventBase & {
 	type: "RUNTIME_WARNING";
 	message: string;
@@ -111,6 +118,7 @@ export type GameEvent =
 	| EntityLeftSpaceEvent
 	| EntityMovedEvent
 	| EntityUpdatedEvent
+	| EntityClickedEvent
 	| ModalOpenedEvent
 	| ModalSubmittedEvent
 	| ModalClosedEvent

@@ -26,8 +26,8 @@ type Dispatch = (action: Action) => void;
  * Must be called exactly once per question mount (guarded by a ref in
  * useQuestionRuntime).
  */
-export function bootstrapQuestion(
-	definition: QuestionDefinition,
+export function bootstrapQuestion<CK extends string = string, TC = unknown>(
+	definition: QuestionDefinition<CK, TC>,
 	dispatch: Dispatch,
 ): void {
 	// 1. Set question metadata

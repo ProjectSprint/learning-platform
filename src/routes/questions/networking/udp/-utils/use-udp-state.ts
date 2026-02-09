@@ -6,13 +6,26 @@
 import { useMemo } from "react";
 import { useGameState } from "@/components/game/game-provider";
 import { UDP_CLIENT_IDS } from "./constants";
+import { TOTAL_FRAMES } from "./frame-destiny";
 import type { UdpPhase } from "./types";
 
 export type UdpNotice = { message: string; tone: "error" | "info" } | null;
+type UdpClientProgress = {
+	clientId: (typeof UDP_CLIENT_IDS)[number];
+	frames: boolean[];
+	receivedCount: number;
+	percent: number;
+};
 
-const TOTAL_FRAMES = 6;
+export type UdpState = {
+	phase: UdpPhase;
+	lastSentFrame: number;
+	expectedFrame: number;
+	clientProgress: UdpClientProgress[];
+	notice: UdpNotice;
+};
 
-export const useUdpState = () => {
+export const useUdpState = (): UdpState => {
 	useGameState();
 
 	// For now, just provide minimal state

@@ -10,3 +10,38 @@ export const FRAME_DESTINY: Record<number, Record<UdpClientId, boolean>> = {
 };
 
 export const TOTAL_FRAMES = 6;
+
+export type DeliveryResult = "delivered" | "lost";
+
+export function getFrameDestiny(
+	frameNumber: number,
+	clientId: UdpClientId,
+): DeliveryResult {
+	const delivered = FRAME_DESTINY[frameNumber]?.[clientId] ?? false;
+	return delivered ? "delivered" : "lost";
+}
+
+export function getClientReceivedFrames(clientId: UdpClientId): number[] {
+	const received: number[] = [];
+	for (let frameNum = 1; frameNum <= TOTAL_FRAMES; frameNum++) {
+		if (FRAME_DESTINY[frameNum]?.[clientId]) {
+			received.push(frameNum);
+		}
+	}
+	return received;
+}
+
+export function getClientLostFrames(clientId: UdpClientId): number[] {
+	const lost: number[] = [];
+	for (let frameNum = 1; frameNum <= TOTAL_FRAMES; frameNum++) {
+		if (!FRAME_DESTINY[frameNum]?.[clientId]) {
+			lost.push(frameNum);
+		}
+	}
+	return lost;
+}
+
+export function getClientDeliveryPercentage(clientId: UdpClientId): number {
+	const received = getClientReceivedFrames(clientId).length;
+	return Math.round((received / TOTAL_FRAMES) * 100);
+}

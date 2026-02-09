@@ -14,6 +14,7 @@ import type {
 	GridPosition,
 	GridSpaceData,
 } from "../../domain/space/space-data";
+import { useGameDispatch } from "../../game-provider";
 import { type EntityStatus, PlacedEntity } from "../entity/PlacedEntity";
 import { useDragContext } from "../interaction/drag/DragContext";
 import { useBoardRegistry } from "./arrow";
@@ -110,6 +111,7 @@ export const GridSpaceView = ({
 	canPlaceAt,
 	onPlaceEntity,
 }: GridSpaceViewProps) => {
+	const dispatch = useGameDispatch();
 	const {
 		activeDrag,
 		setActiveDrag,
@@ -308,6 +310,20 @@ export const GridSpaceView = ({
 			// Pointer released without significant movement — treat as click
 			if (onEntityClick && isEntityClickable(pending.entity)) {
 				onEntityClick(pending.entity, pending.position);
+
+				dispatch({
+					type: "EMIT_EVENTS",
+					payload: {
+						events: [
+							{
+								type: "ENTITY_CLICKED",
+								entityId: pending.entity.id,
+								spaceId: space.id,
+								position: pending.position,
+							},
+						],
+					},
+				});
 			}
 		};
 
@@ -324,6 +340,7 @@ export const GridSpaceView = ({
 		setActiveDrag,
 		setLastDropResult,
 		space.id,
+		dispatch,
 	]);
 
 	// Handle drag over the board

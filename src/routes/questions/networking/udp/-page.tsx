@@ -22,6 +22,7 @@ import {
 import { useQuestionRuntime } from "@/components/game/runtime";
 import type { QuestionProps } from "@/components/module";
 
+import { ProgressBar } from "./-components/ProgressBar";
 import {
 	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
@@ -52,11 +53,11 @@ const UdpGame = ({
 	const { state, isCompleted } = useQuestionRuntime("udp-page", UDP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
+	const udpState = useUdpState();
 	const { terminal, openTerminal, closeTerminal, setPrompt } =
 		useTerminalStore();
 	const shouldShowTerminal = state.phase === "terminal";
 	useDragEngine();
-	useUdpState();
 	const { registerDrawer } = useDrawerManager();
 
 	useEffect(() => {
@@ -192,6 +193,44 @@ const UdpGame = ({
 							</GridItem>
 						) : null}
 					</Grid>
+
+					<Box
+						borderWidth="1px"
+						borderColor="gray.700"
+						borderRadius="md"
+						bg="gray.900"
+						p={3}
+					>
+						<Text fontSize="sm" color="gray.300" mb={2}>
+							Phase: {udpState.phase} · Next frame: #{udpState.expectedFrame}
+						</Text>
+						<Flex direction="column" gap={2}>
+							{udpState.clientProgress.map((progress) => (
+								<ProgressBar
+									key={progress.clientId}
+									clientId={progress.clientId}
+									frameStatuses={progress.frames.map((received, index) => {
+										if (index >= udpState.lastSentFrame) {
+											return "pending";
+										}
+										return received ? "delivered" : "lost";
+									})}
+									percentage={progress.percent}
+								/>
+							))}
+						</Flex>
+						{udpState.notice ? (
+							<Text
+								mt={2}
+								fontSize="sm"
+								color={
+									udpState.notice.tone === "error" ? "red.300" : "blue.300"
+								}
+							>
+								{udpState.notice.message}
+							</Text>
+						) : null}
+					</Box>
 
 					<ContextualHint />
 

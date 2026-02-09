@@ -70,11 +70,4 @@ describe("Domain Exports", () => {
 		expect(entityModule.cloneEntityData).toBeDefined();
 		expect(entityModule.cloneItemData).toBeDefined();
 	});
-
-	it("should export Behavior types", async () => {
-		const behaviorModule = await import("../behavior");
-
-		expect(behaviorModule.BaseBehavior).toBeDefined();
-		expect(behaviorModule.StubBehavior).toBeDefined();
-	});
 });

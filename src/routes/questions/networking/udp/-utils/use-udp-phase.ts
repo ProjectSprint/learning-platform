@@ -13,7 +13,7 @@ import type {
 } from "@/components/game/runtime";
 
 import { FRAME_ITEMS, UDP_CLIENT_IDS } from "./constants";
-import { FRAME_DESTINY, TOTAL_FRAMES } from "./frame-destiny";
+import { getFrameDestiny, TOTAL_FRAMES } from "./frame-destiny";
 import { buildUdpSuccessModal } from "./modal-builders";
 import type { UdpPhase } from "./types";
 
@@ -182,9 +182,9 @@ export const useUdpPhase = ({
 						b: [...prev.b],
 						c: [...prev.c],
 					};
-					const destiny = FRAME_DESTINY[frameNumber];
 					for (const clientId of UDP_CLIENT_IDS) {
-						next[clientId][frameNumber - 1] = destiny?.[clientId] ?? false;
+						next[clientId][frameNumber - 1] =
+							getFrameDestiny(frameNumber, clientId) === "delivered";
 					}
 					return next;
 				});

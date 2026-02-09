@@ -21,6 +21,7 @@ import type {
 	GridSpaceConfig,
 	PoolSpaceConfig,
 } from "../../domain/space/space-data";
+import type { BehaviorDefinition } from "../behavior/types";
 
 // Re-export condition types for convenience
 export type { Condition, InventoryRule, PhaseRule, SpaceRule };
@@ -57,8 +58,12 @@ export type QuestionMeta = {
  * Full declarative definition for a question.
  *
  * @template CK — string union of condition keys used in phase/inventory/space rules
+ * @template TContext — question-specific context type for behavior system
  */
-export type QuestionDefinition<CK extends string = string> = {
+export type QuestionDefinition<
+	CK extends string = string,
+	TContext = Record<string, never>,
+> = {
 	meta: QuestionMeta;
 	initialPhase: string;
 	spaces: SpaceDefinition[];
@@ -66,4 +71,5 @@ export type QuestionDefinition<CK extends string = string> = {
 	phaseRules: PhaseRule<CK>[];
 	inventoryRules?: InventoryRule<CK>[];
 	spaceRules?: SpaceRule<CK>[];
+	behaviors?: BehaviorDefinition<TContext>;
 };

@@ -20,7 +20,9 @@ export type ValidationError = {
  * - space IDs are unique
  * - entity initial spaces reference valid space IDs
  */
-export function validateDefinition(def: QuestionDefinition): ValidationError[] {
+export function validateDefinition<CK extends string = string, TC = unknown>(
+	def: QuestionDefinition<CK, TC>,
+): ValidationError[] {
 	const errors: ValidationError[] = [];
 
 	// meta.id must be non-empty

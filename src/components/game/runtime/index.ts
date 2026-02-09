@@ -5,6 +5,22 @@
  *   import { useQuestionRuntime, type QuestionDefinition } from "@/components/game/runtime";
  */
 
+export type {
+	BehaviorDefinition,
+	BehaviorRule,
+	EffectContext,
+	EventTrigger,
+	GuardContext,
+} from "./behavior";
+export {
+	entityClicked,
+	entityEnteredSpace,
+	entityMoved,
+	modalClosed,
+	modalSubmitted,
+	phaseChanged,
+	terminalInput,
+} from "./behavior";
 // Bootstrap
 export { bootstrapQuestion } from "./bootstrap/bootstrap";
 export type { CommandContext } from "./commands/create-commands";
