@@ -6,6 +6,7 @@
  */
 
 import type { QuestionDefinition } from "@/components/game/runtime";
+import { DHCP_BEHAVIORS, type DhcpBehaviorContext } from "./behaviors";
 import {
 	INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
@@ -17,7 +18,10 @@ import {
 
 export type DhcpConditionKey = "dragStatus" | "questionStatus";
 
-export const DHCP_DEFINITION: QuestionDefinition<DhcpConditionKey> = {
+export const DHCP_DEFINITION: QuestionDefinition<
+	DhcpConditionKey,
+	DhcpBehaviorContext
+> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -59,4 +63,5 @@ export const DHCP_DEFINITION: QuestionDefinition<DhcpConditionKey> = {
 			to: "playing",
 		},
 	],
+	behaviors: DHCP_BEHAVIORS,
 };

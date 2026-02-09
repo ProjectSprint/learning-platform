@@ -8,6 +8,7 @@
  */
 
 import type { QuestionDefinition } from "@/components/game/runtime";
+import { TCP_BEHAVIORS } from "./behaviors";
 import {
 	FILE_INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
@@ -23,7 +24,10 @@ import {
 	TCP_TOOL_ITEMS,
 } from "./constants";
 
-export const TCP_DEFINITION: QuestionDefinition = {
+export const TCP_DEFINITION: QuestionDefinition<
+	string,
+	Record<string, never>
+> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -109,4 +113,5 @@ export const TCP_DEFINITION: QuestionDefinition = {
 		})),
 	],
 	phaseRules: [], // TCP phases are managed imperatively by useTcpState
+	behaviors: TCP_BEHAVIORS,
 };

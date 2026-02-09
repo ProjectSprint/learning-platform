@@ -1,4 +1,5 @@
 import type { QuestionDefinition } from "@/components/game/runtime";
+import { SSL_BEHAVIORS, type SslBehaviorContext } from "./behaviors";
 import {
 	BASIC_INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
@@ -12,7 +13,7 @@ import {
 	SSL_SETUP_POOL_CONFIG,
 } from "./constants";
 
-export const SSL_DEFINITION: QuestionDefinition = {
+export const SSL_DEFINITION: QuestionDefinition<string, SslBehaviorContext> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -62,4 +63,5 @@ export const SSL_DEFINITION: QuestionDefinition = {
 		})),
 	],
 	phaseRules: [],
+	behaviors: SSL_BEHAVIORS,
 };

@@ -59,4 +59,52 @@ describe("networking runtime boundaries", () => {
 
 		expect(offenders).toEqual([]);
 	});
+
+	const DEFINITION_FILES = [
+		"dhcp/-utils/definition.ts",
+		"internet/-utils/definition.ts",
+		"webserver-ssl/-utils/definition.ts",
+		"tcp/-utils/definition.ts",
+		"udp/-utils/definition.ts",
+	];
+
+	it("all question definitions include behaviors field", () => {
+		const missing: string[] = [];
+
+		for (const relPath of DEFINITION_FILES) {
+			const fullPath = path.join(NETWORKING_ROOT, relPath);
+			const content = readFileSync(fullPath, "utf8");
+			if (!content.includes("behaviors")) {
+				missing.push(relPath);
+			}
+		}
+
+		expect(missing).toEqual([]);
+	});
+
+	it("migrated routes do not own config-save logic in page event loops", () => {
+		const offenders: string[] = [];
+
+		const dhcpPage = readFileSync(
+			path.join(NETWORKING_ROOT, "dhcp/-page.tsx"),
+			"utf8",
+		);
+		if (dhcpPage.includes("event.values.dhcpEnabled")) {
+			offenders.push(
+				"dhcp/-page.tsx (router config save should be in behaviors)",
+			);
+		}
+
+		const sslPage = readFileSync(
+			path.join(NETWORKING_ROOT, "webserver-ssl/-page.tsx"),
+			"utf8",
+		);
+		if (sslPage.includes("event.values.domain")) {
+			offenders.push(
+				"webserver-ssl/-page.tsx (certificate issue should be in behaviors)",
+			);
+		}
+
+		expect(offenders).toEqual([]);
+	});
 });

@@ -189,23 +189,6 @@ const NetworkingGame = ({
 
 			if (
 				event.type === "MODAL_SUBMITTED" &&
-				event.modalId.startsWith("router-config-") &&
-				event.modalActionId === "save"
-			) {
-				const deviceId = event.modalId.replace("router-config-", "");
-				const dhcpEnabled = !!event.values.dhcpEnabled;
-				const startIp = String(event.values.startIp ?? "");
-				const endIp = String(event.values.endIp ?? "");
-
-				world.updateEntity(deviceId, {
-					data: { dhcpEnabled, startIp, endIp },
-				});
-
-				shouldSync = true;
-			}
-
-			if (
-				event.type === "MODAL_SUBMITTED" &&
 				event.modalId === "success" &&
 				event.modalActionId === "primary"
 			) {
@@ -217,7 +200,7 @@ const NetworkingGame = ({
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, events, onQuestionComplete, world]);
+	}, [ack, events, onQuestionComplete]);
 
 	// Item click handlers
 	const entityClickHandlers = useMemo(

@@ -195,25 +195,6 @@ const SslGame = ({
 
 			if (
 				event.type === "MODAL_SUBMITTED" &&
-				event.modalId.startsWith("certificate-request-") &&
-				event.modalActionId === "issue"
-			) {
-				const deviceId = event.modalId.replace("certificate-request-", "");
-				const domain = String(event.values.domain ?? "").trim();
-
-				if (domain) {
-					world.updateEntity(deviceId, {
-						data: {
-							certificateIssued: true,
-							verified: true,
-							certificateDomain: domain,
-						},
-					});
-				}
-			}
-
-			if (
-				event.type === "MODAL_SUBMITTED" &&
 				event.modalId === "success" &&
 				event.modalActionId === "primary"
 			) {
@@ -225,7 +206,7 @@ const SslGame = ({
 			setEventTick((prev) => prev + 1);
 		}
 		ack();
-	}, [ack, events, world, _onQuestionComplete]);
+	}, [ack, events, _onQuestionComplete]);
 
 	const handleSslCommand = useSslTerminal({
 		interactionSession,

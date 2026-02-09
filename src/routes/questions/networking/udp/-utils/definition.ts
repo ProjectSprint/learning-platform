@@ -1,4 +1,5 @@
 import type { QuestionDefinition } from "@/components/game/runtime";
+import { UDP_BEHAVIORS } from "./behaviors";
 import {
 	ACK_PACKETS,
 	DATA_PACKETS,
@@ -13,7 +14,10 @@ import {
 	SYN_PACKETS,
 } from "./constants";
 
-export const UDP_DEFINITION: QuestionDefinition = {
+export const UDP_DEFINITION: QuestionDefinition<
+	string,
+	Record<string, never>
+> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -102,4 +106,5 @@ export const UDP_DEFINITION: QuestionDefinition = {
 		})),
 	],
 	phaseRules: [],
+	behaviors: UDP_BEHAVIORS,
 };

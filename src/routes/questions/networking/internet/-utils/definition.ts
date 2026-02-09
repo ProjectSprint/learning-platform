@@ -1,4 +1,5 @@
 import type { QuestionDefinition } from "@/components/game/runtime";
+import { INTERNET_BEHAVIORS } from "./behaviors";
 import {
 	INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
@@ -13,7 +14,10 @@ export type InternetConditionKey =
 	| "dragStatus"
 	| "allDevicesPlaced";
 
-export const INTERNET_DEFINITION: QuestionDefinition<InternetConditionKey> = {
+export const INTERNET_DEFINITION: QuestionDefinition<
+	InternetConditionKey,
+	Record<string, never>
+> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -60,4 +64,5 @@ export const INTERNET_DEFINITION: QuestionDefinition<InternetConditionKey> = {
 			to: "completed",
 		},
 	],
+	behaviors: INTERNET_BEHAVIORS,
 };
