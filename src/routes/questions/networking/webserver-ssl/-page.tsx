@@ -94,8 +94,7 @@ const SslGame = ({
 		progress,
 		interactionSession,
 		state,
-		events,
-		ack,
+		behaviorContext,
 		isCompleted,
 	} = useQuestionRuntime("webserver-ssl-page", SSL_DEFINITION);
 	const gameCtx = useGameCtx();
@@ -130,7 +129,6 @@ const SslGame = ({
 	} = useSslState();
 	const [showSslSpaces, setShowSslSpaces] = useState(false);
 	const [showSslItems, setShowSslItems] = useState(false);
-	const [eventTick, setEventTick] = useState(0);
 	useDragEngine();
 	const { registerDrawer, updateDrawerConfig, openDrawer } = useDrawerManager();
 	const lastSslSpacesRef = useRef(showSslSpaces);
@@ -175,38 +173,12 @@ const SslGame = ({
 		lastSslItemsRef.current = showSslItems;
 	}, [openDrawer, showSslItems, showSslSpaces, updateDrawerConfig]);
 
+	// Navigate away when behavior signals completion
 	useEffect(() => {
-		if (events.length === 0) {
-			return;
+		if (behaviorContext.navigateAway) {
+			_onQuestionComplete();
 		}
-
-		let shouldSync = false;
-
-		for (const event of events) {
-			if (
-				event.type === "ENTITY_ENTERED_SPACE" ||
-				event.type === "ENTITY_LEFT_SPACE" ||
-				event.type === "ENTITY_MOVED" ||
-				event.type === "ENTITY_UPDATED" ||
-				event.type === "PHASE_CHANGED"
-			) {
-				shouldSync = true;
-			}
-
-			if (
-				event.type === "MODAL_SUBMITTED" &&
-				event.modalId === "success" &&
-				event.modalActionId === "primary"
-			) {
-				_onQuestionComplete();
-			}
-		}
-
-		if (shouldSync) {
-			setEventTick((prev) => prev + 1);
-		}
-		ack();
-	}, [ack, events, _onQuestionComplete]);
+	}, [behaviorContext.navigateAway, _onQuestionComplete]);
 
 	const handleSslCommand = useSslTerminal({
 		interactionSession,
@@ -223,28 +195,25 @@ const SslGame = ({
 	});
 
 	useEffect(() => {
-		void eventTick;
 		if (httpReady) {
 			setShowSslSpaces(true);
 		}
-	}, [eventTick, httpReady]);
+	}, [httpReady]);
 
 	useEffect(() => {
-		void eventTick;
 		if (certificateIssued) {
 			setShowSslItems(true);
 		}
-	}, [certificateIssued, eventTick]);
+	}, [certificateIssued]);
 
 	useEffect(() => {
-		void eventTick;
 		if (httpsReady && hasRedirect && state.phase !== "terminal") {
 			interactionSession.requestPhaseTransition(
 				"terminal",
 				"webserver_ssl.rules",
 			);
 		}
-	}, [eventTick, hasRedirect, httpsReady, interactionSession, state.phase]);
+	}, [hasRedirect, httpsReady, interactionSession, state.phase]);
 
 	useEffect(() => {
 		setPrompt(TERMINAL_PROMPT);

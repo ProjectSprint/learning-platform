@@ -82,6 +82,50 @@ describe("networking runtime boundaries", () => {
 		expect(missing).toEqual([]);
 	});
 
+	it("page files do not contain event loop patterns (for...of events)", () => {
+		const pageFiles = [
+			"dhcp/-page.tsx",
+			"internet/-page.tsx",
+			"webserver-ssl/-page.tsx",
+			"tcp/-page.tsx",
+			"udp/-page.tsx",
+		];
+		const offenders: string[] = [];
+
+		for (const relPath of pageFiles) {
+			const fullPath = path.join(NETWORKING_ROOT, relPath);
+			const content = readFileSync(fullPath, "utf8");
+			if (/for\s*\(\s*const\s+event\s+of\s+events\s*\)/.test(content)) {
+				offenders.push(`${relPath} (event loop should be in behavior reactor)`);
+			}
+		}
+
+		expect(offenders).toEqual([]);
+	});
+
+	it("page files do not use eventTick state pattern", () => {
+		const pageFiles = [
+			"dhcp/-page.tsx",
+			"internet/-page.tsx",
+			"webserver-ssl/-page.tsx",
+			"tcp/-page.tsx",
+			"udp/-page.tsx",
+		];
+		const offenders: string[] = [];
+
+		for (const relPath of pageFiles) {
+			const fullPath = path.join(NETWORKING_ROOT, relPath);
+			const content = readFileSync(fullPath, "utf8");
+			if (content.includes("eventTick")) {
+				offenders.push(
+					`${relPath} (eventTick should be replaced with reactive deps)`,
+				);
+			}
+		}
+
+		expect(offenders).toEqual([]);
+	});
+
 	it("migrated routes do not own config-save logic in page event loops", () => {
 		const offenders: string[] = [];
 

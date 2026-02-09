@@ -1,6 +1,6 @@
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import type { TerminalCommandHelpers } from "@/components/game/engines";
-import { useEngineEvents, useGameState } from "@/components/game/game-provider";
+import { useGameState } from "@/components/game/game-provider";
 import type {
 	InteractionSessionApi,
 	ProgressApi,
@@ -15,10 +15,9 @@ interface UseInternetTerminalArgs {
 	dnsConfigured: boolean;
 	natEnabled: boolean;
 	wanConnected: boolean;
-	onQuestionComplete: () => void;
 }
 
-const SUCCESS_TITLE = "🎉 Connected to the Internet!";
+const SUCCESS_TITLE = "Connected to the Internet!";
 const SUCCESS_MESSAGE = `Congratulations! You've successfully connected your home network to the internet.
 
 You learned how:
@@ -36,28 +35,8 @@ export const useInternetTerminal = ({
 	dnsConfigured,
 	natEnabled,
 	wanConnected,
-	onQuestionComplete,
 }: UseInternetTerminalArgs) => {
 	const state = useGameState();
-	const { events, ack } = useEngineEvents("internet-terminal");
-
-	useEffect(() => {
-		if (events.length === 0) {
-			return;
-		}
-
-		for (const event of events) {
-			if (
-				event.type === "MODAL_SUBMITTED" &&
-				event.modalId === "success" &&
-				event.modalActionId === "primary"
-			) {
-				onQuestionComplete();
-			}
-		}
-
-		ack();
-	}, [ack, events, onQuestionComplete]);
 
 	const handleCommand = useCallback(
 		(input: string, helpers: TerminalCommandHelpers) => {

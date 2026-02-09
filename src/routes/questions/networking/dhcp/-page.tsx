@@ -5,7 +5,6 @@ import {
 	useLayoutEffect,
 	useMemo,
 	useRef,
-	useState,
 } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import {
@@ -53,10 +52,6 @@ import {
 	getNetworkingItemLabel,
 	getNetworkingStatusMessage,
 } from "./-utils/item-notification";
-import {
-	buildPcConfigModal,
-	buildRouterConfigModal,
-} from "./-utils/modal-builders";
 import { useNetworkState } from "./-utils/use-network-state";
 import { useNetworkingTerminal } from "./-utils/use-networking-terminal";
 
@@ -81,8 +76,7 @@ const NetworkingGame = ({
 		progress,
 		interactionSession,
 		state,
-		events,
-		ack,
+		behaviorContext,
 		isCompleted,
 	} = useQuestionRuntime("dhcp-page", DHCP_DEFINITION);
 	const gameCtx = useGameCtx();
@@ -98,8 +92,7 @@ const NetworkingGame = ({
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
-	const [eventTick, setEventTick] = useState(0);
-	const networkState = useNetworkState({ dragEngine, eventTick, world });
+	const networkState = useNetworkState({ dragEngine, world });
 	const { registerDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
 	const pc1Id = DHCP_SPACE_IDS.pc1;
@@ -169,57 +162,12 @@ const NetworkingGame = ({
 		});
 	}, [registerDrawer]);
 
+	// Navigate away when behavior signals completion
 	useEffect(() => {
-		if (events.length === 0) {
-			return;
+		if (behaviorContext.navigateAway) {
+			onQuestionComplete();
 		}
-
-		let shouldSync = false;
-
-		for (const event of events) {
-			if (
-				event.type === "ENTITY_ENTERED_SPACE" ||
-				event.type === "ENTITY_LEFT_SPACE" ||
-				event.type === "ENTITY_MOVED" ||
-				event.type === "ENTITY_UPDATED" ||
-				event.type === "PHASE_CHANGED"
-			) {
-				shouldSync = true;
-			}
-
-			if (
-				event.type === "MODAL_SUBMITTED" &&
-				event.modalId === "success" &&
-				event.modalActionId === "primary"
-			) {
-				onQuestionComplete();
-			}
-		}
-
-		if (shouldSync) {
-			setEventTick((prev) => prev + 1);
-		}
-		ack();
-	}, [ack, events, onQuestionComplete]);
-
-	// Item click handlers
-	const entityClickHandlers = useMemo(
-		() => ({
-			router: (entity: EntityData) => {
-				const currentConfig = entity.data ?? {};
-				interactionSession.openModal(
-					buildRouterConfigModal(entity.id, currentConfig),
-				);
-			},
-			pc: (entity: EntityData) => {
-				const currentConfig = entity.data ?? {};
-				interactionSession.openModal(
-					buildPcConfigModal(entity.id, currentConfig),
-				);
-			},
-		}),
-		[interactionSession],
-	);
+	}, [behaviorContext.navigateAway, onQuestionComplete]);
 
 	const isItemClickableByType: Record<string, boolean> = useMemo(
 		() => ({ router: true, pc: true }),
@@ -448,17 +396,6 @@ const NetworkingGame = ({
 	);
 	useContextualHint(contextualHint);
 
-	const handleEntityClick = useCallback(
-		(entity: EntityData) => {
-			const handler =
-				entityClickHandlers[entity.type as keyof typeof entityClickHandlers];
-			if (handler) {
-				handler(entity);
-			}
-		},
-		[entityClickHandlers],
-	);
-
 	const isEntityClickable = useCallback(
 		(entity: EntityData) => isItemClickableByType[entity.type] === true,
 		[isItemClickableByType],
@@ -513,7 +450,6 @@ const NetworkingGame = ({
 								<GridSpace
 									ctx={gameCtx}
 									config={pc1Config}
-									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={getEntityStatus}
@@ -525,7 +461,6 @@ const NetworkingGame = ({
 								<GridSpace
 									ctx={gameCtx}
 									config={conn1Config}
-									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={getEntityStatus}
@@ -537,7 +472,6 @@ const NetworkingGame = ({
 								<GridSpace
 									ctx={gameCtx}
 									config={routerConfig}
-									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={getEntityStatus}
@@ -549,7 +483,6 @@ const NetworkingGame = ({
 								<GridSpace
 									ctx={gameCtx}
 									config={conn2Config}
-									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={getEntityStatus}
@@ -561,7 +494,6 @@ const NetworkingGame = ({
 								<GridSpace
 									ctx={gameCtx}
 									config={pc2Config}
-									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={getEntityStatus}

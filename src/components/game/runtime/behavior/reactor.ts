@@ -32,6 +32,11 @@ import type {
 	GuardContext,
 } from "./types";
 
+export type TerminalBridge = {
+	writeOutput: (content: string, type?: "output" | "error") => void;
+	clearHistory: () => void;
+};
+
 export type BehaviorReactorDeps = {
 	state: GameState;
 	events: GameEvent[];
@@ -40,6 +45,7 @@ export type BehaviorReactorDeps = {
 	interaction: InteractionSessionApi;
 	flow: ExecutionFlowApi;
 	progress: ProgressApi;
+	terminal?: TerminalBridge;
 };
 
 export type BehaviorReactorResult<TContext> = {
@@ -257,6 +263,14 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 			if (onceKeys.has(key)) return;
 			onceKeys.add(key);
 			fn();
+		},
+		terminal: {
+			writeOutput: (content, type = "output") => {
+				deps.terminal?.writeOutput(content, type);
+			},
+			clearHistory: () => {
+				deps.terminal?.clearHistory();
+			},
 		},
 		setPhase: (phase, source) => {
 			deps.interaction.requestPhaseTransition(phase, source ?? "behavior");

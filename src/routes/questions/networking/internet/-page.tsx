@@ -56,15 +56,6 @@ import {
 	getInternetItemLabel,
 	getInternetStatusMessage,
 } from "./-utils/item-notification";
-import {
-	buildDnsStatusModal,
-	buildGoogleStatusModal,
-	buildIgwStatusModal,
-	buildPcStatusModal,
-	buildRouterLanConfigModal,
-	buildRouterNatConfigModal,
-	buildRouterWanConfigModal,
-} from "./-utils/modal-builders";
 import { useInternetState } from "./-utils/use-internet-state";
 import { useInternetTerminal } from "./-utils/use-internet-terminal";
 
@@ -83,8 +74,14 @@ const InternetGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { world, progress, interactionSession, state, isCompleted } =
-		useQuestionRuntime("internet-page", INTERNET_DEFINITION);
+	const {
+		world,
+		progress,
+		interactionSession,
+		state,
+		isCompleted,
+		behaviorContext,
+	} = useQuestionRuntime("internet-page", INTERNET_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
 	const {
@@ -102,90 +99,12 @@ const InternetGame = ({
 	const { registerDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
 
-	// Entity click handlers - adapted for entities
-	const entityClickHandlers = useMemo(
-		() => ({
-			"router-lan": (entity: EntityData) => {
-				const currentConfig = entity.data ?? {};
-				interactionSession.openModal(
-					buildRouterLanConfigModal(entity.id, currentConfig),
-				);
-			},
-			"router-nat": (entity: EntityData) => {
-				const currentConfig = entity.data ?? {};
-				interactionSession.openModal(
-					buildRouterNatConfigModal(entity.id, currentConfig),
-				);
-			},
-			"router-wan": (entity: EntityData) => {
-				const currentConfig = entity.data ?? {};
-				interactionSession.openModal(
-					buildRouterWanConfigModal(entity.id, currentConfig),
-				);
-			},
-			pc: (entity: EntityData) => {
-				const currentConfig = entity.data ?? {};
-				interactionSession.openModal(
-					buildPcStatusModal(entity.id, {
-						ip:
-							typeof currentConfig.ip === "string"
-								? currentConfig.ip
-								: undefined,
-						status: internetState.googleReachable
-							? "Connected to internet"
-							: "Waiting for connection",
-					}),
-				);
-			},
-			igw: (entity: EntityData) => {
-				interactionSession.openModal(
-					buildIgwStatusModal(entity.id, {
-						status: internetState.hasValidPppoeCredentials
-							? "Authenticated"
-							: "Waiting for authentication",
-					}),
-				);
-			},
-			dns: (entity: EntityData) => {
-				interactionSession.openModal(
-					buildDnsStatusModal(entity.id, {
-						ip: internetState.dnsServer ?? undefined,
-						status: internetState.hasValidDnsServer ? "Active" : "Unreachable",
-					}),
-				);
-			},
-			google: (entity: EntityData) => {
-				let reason: string | undefined;
-				if (!internetState.hasValidDnsServer) {
-					reason = "DNS not configured";
-				} else if (!internetState.natEnabled) {
-					reason = "NAT disabled";
-				} else if (!internetState.hasValidPppoeCredentials) {
-					reason = "WAN not connected";
-				}
-
-				interactionSession.openModal(
-					buildGoogleStatusModal(entity.id, {
-						domain: "google.com",
-						ip: internetState.googleReachable
-							? internetState.googleIp
-							: undefined,
-						status: internetState.googleReachable ? "Reachable" : "Unreachable",
-						reason,
-					}),
-				);
-			},
-		}),
-		[
-			interactionSession,
-			internetState.dnsServer,
-			internetState.googleIp,
-			internetState.googleReachable,
-			internetState.hasValidDnsServer,
-			internetState.hasValidPppoeCredentials,
-			internetState.natEnabled,
-		],
-	);
+	// Navigate away when behavior signals completion
+	useEffect(() => {
+		if (behaviorContext.navigateAway) {
+			onQuestionComplete();
+		}
+	}, [behaviorContext.navigateAway, onQuestionComplete]);
 
 	const handleInternetCommand = useInternetTerminal({
 		interactionSession,
@@ -194,7 +113,6 @@ const InternetGame = ({
 		dnsConfigured: internetState.hasValidDnsServer,
 		natEnabled: internetState.natEnabled,
 		wanConnected: internetState.hasValidPppoeCredentials,
-		onQuestionComplete,
 	});
 
 	useTerminalEngine({
@@ -498,17 +416,6 @@ const InternetGame = ({
 		};
 	}, [boardArrows, clearArrows, isCompleted, setArrows]);
 
-	const handleEntityClick = useCallback(
-		(entity: EntityData) => {
-			const handler =
-				entityClickHandlers[entity.type as keyof typeof entityClickHandlers];
-			if (handler) {
-				handler(entity);
-			}
-		},
-		[entityClickHandlers],
-	);
-
 	const isEntityClickable = useCallback(
 		(entity: EntityData) => isItemClickableByType[entity.type] === true,
 		[isItemClickableByType],
@@ -533,7 +440,6 @@ const InternetGame = ({
 					<GridSpace
 						ctx={gameCtx}
 						config={config}
-						onEntityClick={handleEntityClick}
 						isEntityClickable={isEntityClickable}
 						getEntityLabel={(entity) => getInternetItemLabel(entity.type)}
 						getEntityStatus={(entity) => {
@@ -559,7 +465,7 @@ const InternetGame = ({
 				</Box>
 			);
 		},
-		[gameCtx, handleEntityClick, isEntityClickable],
+		[gameCtx, isEntityClickable],
 	);
 
 	return (

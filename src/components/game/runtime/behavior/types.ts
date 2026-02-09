@@ -62,6 +62,12 @@ export type EffectContext<TContext> = {
 	delay: (ms: number) => Promise<void>;
 	once: (key: string, fn: () => void) => void;
 
+	// Terminal helpers (available when terminal is active)
+	terminal: {
+		writeOutput: (content: string, type?: "output" | "error") => void;
+		clearHistory: () => void;
+	};
+
 	// Convenience shortcuts
 	setPhase: (phase: string, source?: string) => void;
 	moveToInventory: (entityId: string) => void;

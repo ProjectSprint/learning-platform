@@ -4,8 +4,9 @@ import type {
 } from "@/components/game/runtime";
 import { modalSubmitted } from "@/components/game/runtime";
 
-type SslBehaviorContext = {
+export type SslBehaviorContext = {
 	certificateDomain: string | null;
+	navigateAway: boolean;
 };
 
 const rules: BehaviorRule<SslBehaviorContext>[] = [
@@ -35,11 +36,18 @@ const rules: BehaviorRule<SslBehaviorContext>[] = [
 			}
 		},
 	},
+	{
+		id: "ssl.success-modal-navigate",
+		on: modalSubmitted("success", "primary"),
+		handler: ({ updateContext }) => {
+			updateContext((ctx) => {
+				ctx.navigateAway = true;
+			});
+		},
+	},
 ];
 
-export type { SslBehaviorContext };
-
 export const SSL_BEHAVIORS: BehaviorDefinition<SslBehaviorContext> = {
-	initialContext: { certificateDomain: null },
+	initialContext: { certificateDomain: null, navigateAway: false },
 	rules,
 };

@@ -8,7 +8,7 @@
  */
 
 import type { QuestionDefinition } from "@/components/game/runtime";
-import { TCP_BEHAVIORS } from "./behaviors";
+import { TCP_BEHAVIORS, type TcpBehaviorContext } from "./behaviors";
 import {
 	FILE_INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
@@ -24,10 +24,7 @@ import {
 	TCP_TOOL_ITEMS,
 } from "./constants";
 
-export const TCP_DEFINITION: QuestionDefinition<
-	string,
-	Record<string, never>
-> = {
+export const TCP_DEFINITION: QuestionDefinition<string, TcpBehaviorContext> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,

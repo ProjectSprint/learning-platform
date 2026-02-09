@@ -69,8 +69,7 @@ const TcpGame = ({
 		interactionSession,
 		executionFlow,
 		state,
-		events,
-		ack,
+		behaviorContext,
 		isCompleted,
 	} = useQuestionRuntime("tcp-page", TCP_DEFINITION);
 	const gameCtx = useGameCtx();
@@ -158,23 +157,12 @@ const TcpGame = ({
 		progress.completeQuestion();
 	}, [interactionSession, isCompleted, progress, state.phase]);
 
+	// Navigate away when behavior signals completion
 	useEffect(() => {
-		if (events.length === 0) {
-			return;
+		if (behaviorContext.navigateAway) {
+			onQuestionComplete();
 		}
-
-		for (const event of events) {
-			if (
-				event.type === "MODAL_SUBMITTED" &&
-				event.modalId === "tcp-success" &&
-				event.modalActionId === "primary"
-			) {
-				onQuestionComplete();
-			}
-		}
-
-		ack();
-	}, [ack, events, onQuestionComplete]);
+	}, [behaviorContext.navigateAway, onQuestionComplete]);
 
 	// Arrows between internet and server
 	const boardArrows = useMemo<Arrow[]>(() => {

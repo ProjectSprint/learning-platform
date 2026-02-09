@@ -1,9 +1,9 @@
 /**
  * Internet state hook adapted for new Space/Entity model.
- * Provides the same interface as the original useInternetState but works with the new state format.
+ * Pure derivation + side effects for entity status updates and drag engine management.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import { gridGetPosition } from "@/components/game/domain/space/space-fns";
@@ -12,7 +12,7 @@ import type {
 	BoardItemStatus,
 	SpaceItemLocation,
 } from "@/components/game/game-provider";
-import { useEngineEvents, useGameState } from "@/components/game/game-provider";
+import { useGameState } from "@/components/game/game-provider";
 import type { WorldApi } from "@/components/game/runtime";
 import {
 	GOOGLE_IP,
@@ -67,15 +67,12 @@ const entityToBoardItem = (
 
 /**
  * Hook to manage network state for Internet question using new Space/Entity model.
- * Maintains the same interface as the original for compatibility.
  */
 export const useInternetState = ({
 	dragEngine,
 	world,
 }: UseInternetStateArgs) => {
 	const state = useGameState();
-	const { events, ack } = useEngineEvents("internet-state");
-	const [eventTick, setEventTick] = useState(0);
 	const stateRef = useRef(state);
 	stateRef.current = state;
 
@@ -105,7 +102,7 @@ export const useInternetState = ({
 		for (const spaceId of SPACE_IDS) {
 			const space = spaces[spaceId];
 			if (!space) {
-				offsetX += 1; // Still increment even if space not found
+				offsetX += 1;
 				continue;
 			}
 
@@ -113,13 +110,11 @@ export const useInternetState = ({
 				if (entity.id in space.entityPositions) {
 					const boardItem = entityToBoardItem(entity, space);
 					if (boardItem) {
-						// Adjust X coordinate based on space offset
 						items.push({ ...boardItem, blockX: boardItem.blockX + offsetX });
 					}
 				}
 			}
 
-			// Increment offset by space width
 			offsetX += space.cols;
 		}
 
@@ -163,11 +158,6 @@ export const useInternetState = ({
 		typeof routerWanConfig.password === "string"
 			? routerWanConfig.password
 			: null;
-	const hasPppoeCredentials =
-		typeof username === "string" &&
-		typeof password === "string" &&
-		username.trim().length > 0 &&
-		password.trim().length > 0;
 	const publicIp =
 		typeof routerWanConfig.publicIp === "string"
 			? routerWanConfig.publicIp
@@ -235,160 +225,54 @@ export const useInternetState = ({
 			entry.visible && entry.instance.id?.startsWith("router-wan-config"),
 	);
 
-	const derivedRef = useRef({
-		network,
-		routerLanConfigured,
-		startIp,
-		dhcpEnabled,
-		hasValidIpRange,
-		hasValidDnsServer,
-		natEnabled,
-		hasValidPppoeCredentials,
-		hasPppoeCredentials,
-		routerNatConfigured,
-		googleReachable,
-		allDevicesPlaced,
-		allRoutersConfigured,
-		questionStatus: state.question.status,
-	});
-	derivedRef.current = {
-		network,
-		routerLanConfigured,
-		startIp,
-		dhcpEnabled,
-		hasValidIpRange,
-		hasValidDnsServer,
-		natEnabled,
-		hasValidPppoeCredentials,
-		hasPppoeCredentials,
-		routerNatConfigured,
-		googleReachable,
-		allDevicesPlaced,
-		allRoutersConfigured,
-		questionStatus: state.question.status,
-	};
-
-	useEffect(() => {
-		if (events.length === 0) {
-			return;
-		}
-
-		let shouldSync = false;
-
-		for (const event of events) {
-			if (
-				event.type === "ENTITY_ENTERED_SPACE" ||
-				event.type === "ENTITY_LEFT_SPACE" ||
-				event.type === "ENTITY_MOVED" ||
-				event.type === "ENTITY_UPDATED" ||
-				event.type === "PHASE_CHANGED"
-			) {
-				shouldSync = true;
-			}
-
-			if (event.type === "MODAL_SUBMITTED" && event.modalActionId === "save") {
-				if (event.modalId.startsWith("router-lan-config-")) {
-					const deviceId = event.modalId.replace("router-lan-config-", "");
-					const dhcpEnabled = !!event.values.dhcpEnabled;
-					const startIp = String(event.values.startIp ?? "");
-					const endIp = String(event.values.endIp ?? "");
-					const dnsServer = String(event.values.dnsServer ?? "");
-
-					world.updateEntity(deviceId, {
-						data: { dhcpEnabled, startIp, endIp, dnsServer },
-					});
-				}
-
-				if (event.modalId.startsWith("router-nat-config-")) {
-					const deviceId = event.modalId.replace("router-nat-config-", "");
-					const natEnabled = !!event.values.natEnabled;
-					world.updateEntity(deviceId, {
-						data: { natEnabled },
-					});
-				}
-
-				if (event.modalId.startsWith("router-wan-config-")) {
-					const deviceId = event.modalId.replace("router-wan-config-", "");
-					const username = String(event.values.username ?? "");
-					const password = String(event.values.password ?? "");
-
-					world.updateEntity(deviceId, {
-						data: { username, password },
-					});
-				}
-			}
-		}
-
-		if (shouldSync) {
-			setEventTick((prev) => prev + 1);
-		}
-		ack();
-	}, [ack, world, events]);
+	const questionStatus = state.question.status;
 
 	// Auto-assign IP to PC when routerLan is configured and PC is connected via cable
 	useEffect(() => {
-		const snapshot = derivedRef.current;
-		void eventTick;
-		if (snapshot.questionStatus === "completed") {
-			return;
-		}
+		if (questionStatus === "completed") return;
 
-		const { network: networkSnapshot, routerLanConfigured, startIp } = snapshot;
-
-		// Auto-assign IP to PC when router LAN is configured and PC is connected to it
 		if (
-			networkSnapshot.pc &&
+			network.pc &&
 			routerLanConfigured &&
 			startIp &&
-			networkSnapshot.pcConnectedToRouterLan
+			network.pcConnectedToRouterLan
 		) {
 			const startOctets = startIp.split(".").map((s) => Number.parseInt(s, 10));
 			const baseOctets = startOctets.slice(0, 3);
 			const startLastOctet = startOctets[3];
 			const desiredIp = `${baseOctets.join(".")}.${startLastOctet}`;
 
-			const entity = stateRef.current.entities[networkSnapshot.pc.id];
+			const entity = stateRef.current.entities[network.pc.id];
 			const currentIp = entity?.state.ip ?? null;
 
 			if (currentIp !== desiredIp) {
-				world.updateEntityState(networkSnapshot.pc.id, { ip: desiredIp });
+				world.updateEntityState(network.pc.id, { ip: desiredIp });
 			}
 		} else if (
-			networkSnapshot.pc &&
-			(!routerLanConfigured || !networkSnapshot.pcConnectedToRouterLan)
+			network.pc &&
+			(!routerLanConfigured || !network.pcConnectedToRouterLan)
 		) {
-			// Remove IP if router LAN not configured or PC not connected
-			const entity = stateRef.current.entities[networkSnapshot.pc.id];
+			const entity = stateRef.current.entities[network.pc.id];
 			const currentIp = entity?.state.ip ?? null;
 			if (currentIp !== null) {
-				world.updateEntityState(networkSnapshot.pc.id, { ip: null });
+				world.updateEntityState(network.pc.id, { ip: null });
 			}
 		}
-	}, [world, eventTick]);
+	}, [questionStatus, network, routerLanConfigured, startIp, world]);
 
 	// Update device statuses based on network state
 	useEffect(() => {
-		const snapshot = derivedRef.current;
-		void eventTick;
-		if (snapshot.questionStatus === "completed") {
-			return;
-		}
+		if (questionStatus === "completed") return;
 
-		const {
-			network: networkSnapshot,
-			dhcpEnabled,
-			hasValidIpRange,
-			hasValidDnsServer,
-			natEnabled,
-			hasValidPppoeCredentials,
-			hasPppoeCredentials,
-			routerNatConfigured,
-			googleReachable,
-		} = snapshot;
+		const hasPppoeCredentials =
+			typeof username === "string" &&
+			typeof password === "string" &&
+			username.trim().length > 0 &&
+			password.trim().length > 0;
 
-		// PC status: error → warning → success based on IP and internet access
-		if (networkSnapshot.pc) {
-			const entity = stateRef.current.entities[networkSnapshot.pc.id];
+		// PC status
+		if (network.pc) {
+			const entity = stateRef.current.entities[network.pc.id];
 			const hasPcIp = typeof entity?.state.ip === "string";
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasPcIp) {
@@ -399,15 +283,13 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(networkSnapshot.pc.id, {
-					status: desiredStatus,
-				});
+				world.updateEntityState(network.pc.id, { status: desiredStatus });
 			}
 		}
 
-		// Router LAN status: error → warning → success based on config
-		if (networkSnapshot.routerLan) {
-			const entity = stateRef.current.entities[networkSnapshot.routerLan.id];
+		// Router LAN status
+		if (network.routerLan) {
+			const entity = stateRef.current.entities[network.routerLan.id];
 			let desiredStatus: "error" | "warning" | "success";
 			if (!dhcpEnabled || !hasValidIpRange) {
 				desiredStatus = "error";
@@ -417,26 +299,26 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(networkSnapshot.routerLan.id, {
+				world.updateEntityState(network.routerLan.id, {
 					status: desiredStatus,
 				});
 			}
 		}
 
-		// Router NAT status: error → success based on natEnabled
-		if (networkSnapshot.routerNat) {
-			const entity = stateRef.current.entities[networkSnapshot.routerNat.id];
+		// Router NAT status
+		if (network.routerNat) {
+			const entity = stateRef.current.entities[network.routerNat.id];
 			const desiredStatus = natEnabled ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(networkSnapshot.routerNat.id, {
+				world.updateEntityState(network.routerNat.id, {
 					status: desiredStatus,
 				});
 			}
 		}
 
-		// Router WAN status: error → warning → success based on PPPoE config AND connection to fiber/IGW/internet
-		if (networkSnapshot.routerWan) {
-			const entity = stateRef.current.entities[networkSnapshot.routerWan.id];
+		// Router WAN status
+		if (network.routerWan) {
+			const entity = stateRef.current.entities[network.routerWan.id];
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasPppoeCredentials || !hasValidPppoeCredentials) {
 				desiredStatus = "error";
@@ -444,37 +326,33 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(networkSnapshot.routerWan.id, {
+				world.updateEntityState(network.routerWan.id, {
 					status: desiredStatus,
 				});
 			}
 		}
 
-		// IGW status: warning → success based on WAN connection
-		if (networkSnapshot.igw) {
-			const entity = stateRef.current.entities[networkSnapshot.igw.id];
+		// IGW status
+		if (network.igw) {
+			const entity = stateRef.current.entities[network.igw.id];
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(networkSnapshot.igw.id, {
-					status: desiredStatus,
-				});
+				world.updateEntityState(network.igw.id, { status: desiredStatus });
 			}
 		}
 
-		// DNS status: error → success based on router LAN DNS config
-		if (networkSnapshot.dns) {
-			const entity = stateRef.current.entities[networkSnapshot.dns.id];
+		// DNS status
+		if (network.dns) {
+			const entity = stateRef.current.entities[network.dns.id];
 			const desiredStatus = hasValidDnsServer ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(networkSnapshot.dns.id, {
-					status: desiredStatus,
-				});
+				world.updateEntityState(network.dns.id, { status: desiredStatus });
 			}
 		}
 
-		// Google status: error → warning → success based on full connectivity
-		if (networkSnapshot.google) {
-			const entity = stateRef.current.entities[networkSnapshot.google.id];
+		// Google status
+		if (network.google) {
+			const entity = stateRef.current.entities[network.google.id];
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasValidDnsServer) {
 				desiredStatus = "error";
@@ -484,64 +362,72 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(networkSnapshot.google.id, {
-					status: desiredStatus,
-				});
+				world.updateEntityState(network.google.id, { status: desiredStatus });
 			}
 		}
 
-		// Cable status - success when connecting PC to Router LAN
-		if (networkSnapshot.cable) {
-			const entity = stateRef.current.entities[networkSnapshot.cable.id];
-			const desiredStatus = networkSnapshot.pcConnectedToRouterLan
+		// Cable status
+		if (network.cable) {
+			const entity = stateRef.current.entities[network.cable.id];
+			const desiredStatus = network.pcConnectedToRouterLan
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(networkSnapshot.cable.id, {
-					status: desiredStatus,
-				});
+				world.updateEntityState(network.cable.id, { status: desiredStatus });
 			}
 		}
 
-		// Fiber status - success when connecting Router WAN to IGW
-		if (networkSnapshot.fiber) {
-			const entity = stateRef.current.entities[networkSnapshot.fiber.id];
-			const desiredStatus = networkSnapshot.routerWanConnectedToIgw
+		// Fiber status
+		if (network.fiber) {
+			const entity = stateRef.current.entities[network.fiber.id];
+			const desiredStatus = network.routerWanConnectedToIgw
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(networkSnapshot.fiber.id, {
-					status: desiredStatus,
-				});
+				world.updateEntityState(network.fiber.id, { status: desiredStatus });
 			}
 		}
-	}, [world, eventTick]);
+	}, [
+		questionStatus,
+		network,
+		dhcpEnabled,
+		hasValidIpRange,
+		hasValidDnsServer,
+		natEnabled,
+		hasValidPppoeCredentials,
+		routerNatConfigured,
+		googleReachable,
+		username,
+		password,
+		world,
+	]);
 
-	// Phase transitions
+	// Drag engine progress management
 	useEffect(() => {
 		if (!dragEngine) return;
-		void eventTick;
-		const snapshot = derivedRef.current;
-		if (snapshot.questionStatus === "completed") return;
+		if (questionStatus === "completed") return;
 
-		// pending → start when all devices placed
-		if (dragEngine.progress.status === "pending" && snapshot.allDevicesPlaced) {
+		if (dragEngine.progress.status === "pending" && allDevicesPlaced) {
 			dragEngine.start();
 		}
 
-		// playing → finish when all configured and googleReachable
 		if (
 			dragEngine.progress.status !== "finished" &&
-			snapshot.allRoutersConfigured &&
-			snapshot.googleReachable
+			allRoutersConfigured &&
+			googleReachable
 		) {
 			dragEngine.finish();
 		}
-	}, [dragEngine, eventTick]);
+	}, [
+		dragEngine,
+		questionStatus,
+		allDevicesPlaced,
+		allRoutersConfigured,
+		googleReachable,
+	]);
 
 	return {
 		network,
-		// Router LAN config
 		routerLanConfig,
 		dhcpEnabled,
 		startIp,
@@ -550,33 +436,25 @@ export const useInternetState = ({
 		hasValidIpRange,
 		hasValidDnsServer,
 		routerLanConfigured,
-		// Router NAT config
 		routerNatConfig,
 		natEnabled,
 		routerNatConfigured,
-		// Router WAN config
 		routerWanConfig,
 		connectionType,
 		username,
 		password,
 		publicIp,
 		hasValidPppoeCredentials,
-		// Combined state
 		allRoutersConfigured,
-		// PC state
 		pcHasIp,
 		pcIp,
-		// Connectivity
 		googleReachable,
 		allDevicesPlaced,
-		// Modal states
 		routerLanSettingsOpen,
 		routerNatSettingsOpen,
 		routerWanSettingsOpen,
-		// Game state
 		placedItems,
 		dragProgress: dragEngine?.progress ?? { status: "pending" as const },
-		// Constants for external use
 		googleIp: GOOGLE_IP,
 	};
 };

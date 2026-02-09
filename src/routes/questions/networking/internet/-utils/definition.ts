@@ -1,5 +1,5 @@
 import type { QuestionDefinition } from "@/components/game/runtime";
-import { INTERNET_BEHAVIORS } from "./behaviors";
+import { INTERNET_BEHAVIORS, type InternetBehaviorContext } from "./behaviors";
 import {
 	INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
@@ -16,7 +16,7 @@ export type InternetConditionKey =
 
 export const INTERNET_DEFINITION: QuestionDefinition<
 	InternetConditionKey,
-	Record<string, never>
+	InternetBehaviorContext
 > = {
 	meta: {
 		id: QUESTION_ID,

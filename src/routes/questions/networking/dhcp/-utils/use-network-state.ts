@@ -26,7 +26,6 @@ import {
 
 interface UseNetworkStateArgs {
 	dragEngine: DragEngine | null;
-	eventTick: number;
 	world: WorldApi;
 }
 
@@ -57,11 +56,7 @@ const entityToBoardItem = (
  * Hook to manage network state for DHCP question using new Space/Entity model.
  * Maintains the same interface as the original for compatibility.
  */
-export const useNetworkState = ({
-	dragEngine,
-	eventTick,
-	world,
-}: UseNetworkStateArgs) => {
+export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 	const state = useGameState();
 	const stateRef = useRef(state);
 	stateRef.current = state;
@@ -156,37 +151,17 @@ export const useNetworkState = ({
 		(entry) => entry.visible && entry.instance.id?.startsWith("router-config"),
 	);
 
-	const derivedRef = useRef({
-		network,
-		routerConfigured,
-		startIp,
-		pc1HasIp,
-		pc2HasIp,
-		pc2Ip,
-		questionStatus: state.question.status,
-	});
-	derivedRef.current = {
-		network,
-		routerConfigured,
-		startIp,
-		pc1HasIp,
-		pc2HasIp,
-		pc2Ip,
-		questionStatus: state.question.status,
-	};
+	const questionStatus = state.question.status;
 
 	// Update device statuses based on network state
 	useEffect(() => {
-		const snapshot = derivedRef.current;
-		void eventTick;
-		if (snapshot.questionStatus === "completed") {
+		if (questionStatus === "completed") {
 			return;
 		}
 
-		const { network: networkSnapshot, routerConfigured, startIp } = snapshot;
-		const connectedPcs = [networkSnapshot.pc1, networkSnapshot.pc2].filter(
+		const connectedPcs = [network.pc1, network.pc2].filter(
 			(pc): pc is SpaceItemLocation =>
-				Boolean(pc && networkSnapshot.connectedPcIds.has(pc.id)),
+				Boolean(pc && network.connectedPcIds.has(pc.id)),
 		);
 		const desiredIps = new Map<string, string>();
 
@@ -205,19 +180,19 @@ export const useNetworkState = ({
 		}
 
 		// Update router status
-		if (networkSnapshot.router) {
+		if (network.router) {
 			const desiredRouterStatus = routerConfigured ? "success" : "error";
-			const entity = stateRef.current.entities[networkSnapshot.router.id];
+			const entity = stateRef.current.entities[network.router.id];
 			if (entity && entity.state.status !== desiredRouterStatus) {
-				world.updateEntityState(networkSnapshot.router.id, {
+				world.updateEntityState(network.router.id, {
 					status: desiredRouterStatus,
 				});
 			}
 		}
 
 		// Update cable statuses
-		networkSnapshot.cables.forEach((cable) => {
-			const isConnected = networkSnapshot.connectedCableIds.has(cable.id);
+		for (const cable of network.cables) {
+			const isConnected = network.connectedCableIds.has(cable.id);
 			const desiredStatus = isConnected ? "success" : "warning";
 			const entity = stateRef.current.entities[cable.id];
 			if (entity && entity.state.status !== desiredStatus) {
@@ -225,19 +200,17 @@ export const useNetworkState = ({
 					status: desiredStatus,
 				});
 			}
-		});
+		}
 
 		// Update PC statuses and IPs
-		[networkSnapshot.pc1, networkSnapshot.pc2].forEach((pc) => {
-			if (!pc) {
-				return;
-			}
+		for (const pc of [network.pc1, network.pc2]) {
+			if (!pc) continue;
 
 			const entity = stateRef.current.entities[pc.id];
-			if (!entity) return;
+			if (!entity) continue;
 
 			const shouldHaveIp =
-				routerConfigured && networkSnapshot.connectedPcIds.has(pc.id);
+				routerConfigured && network.connectedPcIds.has(pc.id);
 			const desiredIp = shouldHaveIp ? (desiredIps.get(pc.id) ?? null) : null;
 			const currentIp = entity.state.ip ?? null;
 			const desiredStatus = desiredIp ? "success" : "warning";
@@ -249,34 +222,31 @@ export const useNetworkState = ({
 					status: desiredStatus,
 				});
 			}
-		});
-	}, [eventTick, world]);
+		}
+	}, [questionStatus, network, routerConfigured, startIp, world]);
 
 	// Manage drag engine progress
 	useEffect(() => {
 		if (!dragEngine) return;
-		void eventTick;
-		const snapshot = derivedRef.current;
-		if (snapshot.questionStatus === "completed") return;
+		if (questionStatus === "completed") return;
 
-		const { network: networkSnapshot } = snapshot;
 		if (
 			dragEngine.progress.status === "pending" &&
-			networkSnapshot.router &&
-			networkSnapshot.connectedPcIds.size > 0
+			network.router &&
+			network.connectedPcIds.size > 0
 		) {
 			dragEngine.start();
 		}
 
 		if (
 			dragEngine.progress.status !== "finished" &&
-			networkSnapshot.router &&
-			snapshot.pc1HasIp &&
-			snapshot.pc2HasIp
+			network.router &&
+			pc1HasIp &&
+			pc2HasIp
 		) {
 			dragEngine.finish();
 		}
-	}, [dragEngine, eventTick]);
+	}, [dragEngine, questionStatus, network, pc1HasIp, pc2HasIp]);
 
 	return {
 		network,

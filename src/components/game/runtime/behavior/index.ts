@@ -1,4 +1,8 @@
-export type { BehaviorReactorDeps, BehaviorReactorResult } from "./reactor";
+export type {
+	BehaviorReactorDeps,
+	BehaviorReactorResult,
+	TerminalBridge,
+} from "./reactor";
 export { useBehaviorReactor } from "./reactor";
 export {
 	entityClicked,

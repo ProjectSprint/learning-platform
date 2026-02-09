@@ -19,6 +19,8 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "../../game-provider";
+import { useTerminalStore } from "../../presentation/terminal";
+import type { TerminalBridge } from "../behavior/reactor";
 import { useBehaviorReactor } from "../behavior/reactor";
 import type { BehaviorDefinition } from "../behavior/types";
 import { bootstrapQuestion } from "../bootstrap/bootstrap";
@@ -170,6 +172,20 @@ export function useQuestionRuntime<
 		});
 	}
 
+	const { addOutput, clearHistory } = useTerminalStore();
+	const addOutputRef = useRef(addOutput);
+	addOutputRef.current = addOutput;
+	const clearHistoryRef = useRef(clearHistory);
+	clearHistoryRef.current = clearHistory;
+	const terminalBridgeRef = useRef<TerminalBridge | null>(null);
+	if (!terminalBridgeRef.current) {
+		terminalBridgeRef.current = {
+			writeOutput: (content, type = "output") =>
+				addOutputRef.current(content, type),
+			clearHistory: () => clearHistoryRef.current(),
+		};
+	}
+
 	const behaviorResult = useBehaviorReactor<TContext>(
 		definition?.behaviors as BehaviorDefinition<TContext> | undefined,
 		{
@@ -180,6 +196,7 @@ export function useQuestionRuntime<
 			interaction: interactionSessionRef.current,
 			flow: executionFlowRef.current,
 			progress: progressRef.current,
+			terminal: terminalBridgeRef.current,
 		},
 	);
 
