@@ -53,7 +53,6 @@ import {
 	getNetworkingStatusMessage,
 } from "./-utils/item-notification";
 import { useNetworkState } from "./-utils/use-network-state";
-import { useNetworkingTerminal } from "./-utils/use-networking-terminal";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
 
@@ -73,11 +72,11 @@ const NetworkingGame = ({
 	// Single runtime hook replaces useGameDispatch + useGameState + useEngineEvents + init useEffect
 	const {
 		world,
-		progress,
 		interactionSession,
 		state,
 		behaviorContext,
 		isCompleted,
+		registerTerminalFinish,
 	} = useQuestionRuntime("dhcp-page", DHCP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
@@ -136,15 +135,8 @@ const NetworkingGame = ({
 		};
 	}, []);
 
-	const handleNetworkingCommand = useNetworkingTerminal({
-		pc2Ip: networkState.pc2Ip,
-		interactionSession,
-		progress,
-	});
-
-	useTerminalEngine({
-		onCommand: handleNetworkingCommand,
-	});
+	const terminalEngine = useTerminalEngine({});
+	registerTerminalFinish.current = terminalEngine.finish;
 
 	useLayoutEffect(() => {
 		registerDrawer({

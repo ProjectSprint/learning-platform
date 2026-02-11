@@ -57,7 +57,6 @@ import {
 	getInternetStatusMessage,
 } from "./-utils/item-notification";
 import { useInternetState } from "./-utils/use-internet-state";
-import { useInternetTerminal } from "./-utils/use-internet-terminal";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
 
@@ -76,11 +75,11 @@ const InternetGame = ({
 }) => {
 	const {
 		world,
-		progress,
 		interactionSession,
 		state,
 		isCompleted,
 		behaviorContext,
+		registerTerminalFinish,
 	} = useQuestionRuntime("internet-page", INTERNET_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
@@ -106,18 +105,8 @@ const InternetGame = ({
 		}
 	}, [behaviorContext.navigateAway, onQuestionComplete]);
 
-	const handleInternetCommand = useInternetTerminal({
-		interactionSession,
-		progress,
-		pcIp: internetState.pcIp,
-		dnsConfigured: internetState.hasValidDnsServer,
-		natEnabled: internetState.natEnabled,
-		wanConnected: internetState.hasValidPppoeCredentials,
-	});
-
-	useTerminalEngine({
-		onCommand: handleInternetCommand,
-	});
+	const terminalEngine = useTerminalEngine({});
+	registerTerminalFinish.current = terminalEngine.finish;
 
 	useLayoutEffect(() => {
 		registerDrawer({

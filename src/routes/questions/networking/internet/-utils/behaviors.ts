@@ -1,9 +1,14 @@
 import type { GameState } from "@/components/game/application/state/types";
+import type { TerminalInputEvent } from "@/components/game/application/state/types/events";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
 } from "@/components/game/runtime";
-import { entityClicked, modalSubmitted } from "@/components/game/runtime";
+import {
+	entityClicked,
+	modalSubmitted,
+	terminalInput,
+} from "@/components/game/runtime";
 import {
 	GOOGLE_IP,
 	PUBLIC_DNS_SERVERS,
@@ -17,6 +22,7 @@ import {
 	buildRouterLanConfigModal,
 	buildRouterNatConfigModal,
 	buildRouterWanConfigModal,
+	buildSuccessModal,
 } from "./modal-builders";
 import { isPrivateIp, isPublicIp, isValidIp } from "./network-utils";
 
@@ -70,11 +76,16 @@ function deriveStatus(state: GameState) {
 		natEnabled &&
 		hasValidPppoeCredentials;
 
+	const pc = entities.find((e) => e.type === "pc");
+	const pcIp = typeof pc?.data?.ip === "string" ? pc.data.ip : null;
+
 	return {
+		pcIp,
 		dnsServer,
 		hasValidDnsServer,
 		natEnabled,
 		hasValidPppoeCredentials,
+		wanConnected: hasValidPppoeCredentials,
 		googleReachable,
 		googleIp: GOOGLE_IP,
 	};
@@ -242,6 +253,159 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
 			});
+		},
+	},
+
+	// --- Terminal commands ---
+	{
+		id: "internet.terminal-command",
+		on: terminalInput(),
+		guard: ({ phase, state }) =>
+			phase === "terminal" && state.question.status !== "completed",
+		handler: ({ event, state, terminal, interaction, progress }) => {
+			const rawInput = (event as TerminalInputEvent).input.trim();
+			if (!rawInput) return;
+
+			const parts = rawInput.split(/\s+/);
+			const command = parts[0]?.toLowerCase();
+			const status = deriveStatus(state);
+
+			if (command === "help") {
+				const lines = [
+					"Terminal - Network diagnostic and testing utility",
+					"",
+					"----",
+					"",
+					"SYNOPSIS",
+					"ifconfig",
+					"nslookup [domain]",
+					"curl [destination]",
+					"help",
+					"",
+					"----",
+					"",
+					"COMMANDS",
+					"ifconfig                    Display network interface configuration",
+					"nslookup [domain]           Query DNS to resolve domain names",
+					"curl [hostname or IP]       Make HTTP request to test connectivity",
+					"help                        Display this help message",
+					"",
+					"----",
+					"",
+					"EXAMPLES",
+					"ifconfig",
+					"nslookup google.com",
+					"curl google.com",
+					`curl ${GOOGLE_IP}`,
+					"",
+				];
+				for (const line of lines) {
+					terminal.writeOutput(line);
+				}
+				return;
+			}
+
+			if (command === "ifconfig") {
+				terminal.writeOutput(
+					status.pcIp ? `eth0: ${status.pcIp}` : "eth0: No IP assigned",
+				);
+				return;
+			}
+
+			if (command === "nslookup") {
+				if (parts.length < 2) {
+					terminal.writeOutput(
+						"Error: Missing domain. Usage: nslookup <domain>",
+						"error",
+					);
+					return;
+				}
+				const domain = parts[1].toLowerCase();
+				if (!status.hasValidDnsServer) {
+					terminal.writeOutput(
+						"Error: Could not resolve hostname. DNS server not configured.",
+						"error",
+					);
+					return;
+				}
+				if (domain === "google.com") {
+					terminal.writeOutput(`google.com → ${GOOGLE_IP}`);
+				} else {
+					terminal.writeOutput(`Error: Unknown host "${parts[1]}".`, "error");
+				}
+				return;
+			}
+
+			if (command === "curl") {
+				if (parts.length < 2) {
+					terminal.writeOutput(
+						"Error: Missing target. Usage: curl <hostname or IP>",
+						"error",
+					);
+					return;
+				}
+				const target = parts[1].toLowerCase();
+				const isDomainTarget = target === "google.com";
+				const isIpTarget = target === GOOGLE_IP.toLowerCase();
+
+				if (!isDomainTarget && !isIpTarget) {
+					terminal.writeOutput(`Error: Unknown host "${parts[1]}".`, "error");
+					return;
+				}
+				if (!status.wanConnected) {
+					terminal.writeOutput(
+						"Error: Network unreachable. No internet connection.",
+						"error",
+					);
+					return;
+				}
+				if (!status.natEnabled) {
+					terminal.writeOutput(
+						"Error: Network unreachable. Check NAT configuration.",
+						"error",
+					);
+					return;
+				}
+				if (isDomainTarget && !status.hasValidDnsServer) {
+					terminal.writeOutput(
+						"Error: Could not resolve hostname. DNS server not configured.",
+						"error",
+					);
+					return;
+				}
+
+				if (isDomainTarget) {
+					terminal.writeOutput(
+						`Resolving google.com... ${GOOGLE_IP}\nHTTP/1.1 200 OK\n\n<html>...google homepage...</html>`,
+					);
+				} else {
+					terminal.writeOutput(
+						"HTTP/1.1 200 OK\n\n<html>...google homepage...</html>",
+					);
+				}
+
+				const successTitle = "Connected to the Internet!";
+				const successMessage = `Congratulations! You've successfully connected your home network to the internet.\n\nYou learned how:\n- **Router LAN + DHCP** assigns private IPs to your devices\n- **Router WAN + PPPoE** authenticates with your ISP to get a public IP\n- **Router NAT** translates your private IP to the public IP\n- **DNS** resolves domain names (google.com) to IP addresses (${GOOGLE_IP})\n\nYour request traveled: PC → Router LAN → Router NAT → Router WAN → IGW → Internet → Google!`;
+				interaction.openModal(
+					buildSuccessModal(successTitle, successMessage, "Next question"),
+				);
+				terminal.finishEngine();
+				progress.completeQuestion();
+				return;
+			}
+
+			terminal.writeOutput(
+				'Error: Unknown command. Type "help" for available commands.',
+				"error",
+			);
+		},
+	},
+	{
+		id: "internet.terminal-not-ready",
+		on: terminalInput(),
+		guard: ({ phase }) => phase !== "terminal",
+		handler: ({ terminal }) => {
+			terminal.writeOutput("Error: Terminal is not ready yet.", "error");
 		},
 	},
 ];

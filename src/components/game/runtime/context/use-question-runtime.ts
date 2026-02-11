@@ -12,7 +12,7 @@
  *      = useQuestionRuntime("...", DEFINITION);
  */
 
-import { useEffect, useRef, useState } from "react";
+import { type MutableRefObject, useEffect, useRef, useState } from "react";
 import type { GameEvent } from "../../application/state/types";
 import {
 	useEngineEvents,
@@ -64,6 +64,8 @@ export type QuestionRuntime<TContext = Record<string, never>> = {
 	ack: () => void;
 	/** Behavior context (populated when definition has behaviors) */
 	behaviorContext: TContext;
+	/** Ref to register the terminal engine's finish callback for behavior access */
+	registerTerminalFinish: MutableRefObject<(() => void) | null>;
 };
 
 /**
@@ -177,12 +179,14 @@ export function useQuestionRuntime<
 	addOutputRef.current = addOutput;
 	const clearHistoryRef = useRef(clearHistory);
 	clearHistoryRef.current = clearHistory;
+	const finishEngineRef = useRef<(() => void) | null>(null);
 	const terminalBridgeRef = useRef<TerminalBridge | null>(null);
 	if (!terminalBridgeRef.current) {
 		terminalBridgeRef.current = {
 			writeOutput: (content, type = "output") =>
 				addOutputRef.current(content, type),
 			clearHistory: () => clearHistoryRef.current(),
+			finishEngine: () => finishEngineRef.current?.(),
 		};
 	}
 
@@ -212,5 +216,6 @@ export function useQuestionRuntime<
 		events,
 		ack,
 		behaviorContext: behaviorResult.context,
+		registerTerminalFinish: finishEngineRef,
 	};
 }

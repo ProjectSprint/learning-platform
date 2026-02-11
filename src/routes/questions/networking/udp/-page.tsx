@@ -1,5 +1,5 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import { useCallback, useEffect, useLayoutEffect, useMemo } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine } from "@/components/game/engines";
@@ -9,7 +9,10 @@ import {
 	useGameCtx,
 } from "@/components/game/game-provider";
 import { DrawerLayout } from "@/components/game/presentation/drawer";
-import { ContextualHint } from "@/components/game/presentation/hint";
+import {
+	ContextualHint,
+	useContextualHint,
+} from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
 import {
@@ -32,7 +35,10 @@ import {
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { UDP_DEFINITION } from "./-utils/definition";
-import { useUdpState } from "./-utils/use-udp-state";
+import { getContextualHint } from "./-utils/get-contextual-hint";
+import type { ActiveMode } from "./-utils/types";
+import { useTcpPhase } from "./-utils/use-tcp-phase";
+import { useUdpPhase } from "./-utils/use-udp-phase";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
 const UDP_SPACE_ID_INTERNET = "internet";
@@ -46,19 +52,49 @@ export const UdpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 };
 
 const UdpGame = ({
-	onQuestionComplete: _onQuestionComplete,
+	onQuestionComplete,
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { state, isCompleted } = useQuestionRuntime("udp-page", UDP_DEFINITION);
+	const { state, isCompleted, world, interactionSession, progress } =
+		useQuestionRuntime("udp-page", UDP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
-	const udpState = useUdpState();
 	const { terminal, openTerminal, closeTerminal, setPrompt } =
 		useTerminalStore();
 	const shouldShowTerminal = state.phase === "terminal";
 	useDragEngine();
 	const { registerDrawer } = useDrawerManager();
+
+	const [mode, setMode] = useState<ActiveMode>("tcp");
+
+	const handleTransitionToUdp = useCallback(() => {
+		setMode("udp");
+	}, []);
+
+	const tcpPhase = useTcpPhase({
+		active: mode === "tcp",
+		world,
+		interactionSession,
+		onTransitionToUdp: handleTransitionToUdp,
+	});
+
+	const udpPhase = useUdpPhase({
+		active: mode === "udp",
+		world,
+		interactionSession,
+		progress,
+		onQuestionComplete,
+	});
+
+	const contextualHint = getContextualHint({
+		mode,
+		tcpPhase: tcpPhase.phase,
+		udpPhase: udpPhase.phase,
+		expectedFrame: udpPhase.expectedFrame,
+		packetsSent: tcpPhase.packetsSent,
+	});
+	useContextualHint(contextualHint ?? "");
 
 	useEffect(() => {
 		setPrompt(TERMINAL_PROMPT);
@@ -93,23 +129,13 @@ const UdpGame = ({
 		}
 	}, [closeTerminal, openTerminal, shouldShowTerminal, terminal.visible]);
 
-	const spaceAreas = useMemo(
-		() =>
-			({
-				"client-a-inbox": "client-a-inbox",
-				"client-b-inbox": "client-b-inbox",
-				"client-c-inbox": "client-c-inbox",
-				"client-d-inbox": "client-d-inbox",
-				internet: "internet",
-			}) as Record<string, string>,
-		[],
-	);
-
 	const handleEntityClick = useCallback((_entity: EntityData) => {
 		// UDP doesn't have clickable entities for now
 	}, []);
 
 	const isEntityClickable = useCallback((_entity: EntityData) => false, []);
+
+	const activeNotice = mode === "tcp" ? tcpPhase.notice : udpPhase.notice;
 
 	return (
 		<Box
@@ -140,97 +166,32 @@ const UdpGame = ({
 				</Box>
 
 				<GameBoard>
-					<Grid
-						templateAreas={{
-							base: `"client-a-inbox" "client-b-inbox" "client-c-inbox" "internet"`,
-							md: `"client-a-inbox client-b-inbox client-c-inbox" "internet internet internet"`,
-						}}
-						templateColumns={{
-							base: "1fr",
-							md: "repeat(3, minmax(0, 1fr))",
-						}}
-						gap={{ base: 2, md: 4 }}
-						alignItems="stretch"
-					>
-						{SPACE_CONFIGS[TCP_INBOX_IDS.a] ? (
-							<GridItem area={spaceAreas[TCP_INBOX_IDS.a]} minW={0}>
-								<GridSpace
-									ctx={gameCtx}
-									config={SPACE_CONFIGS[TCP_INBOX_IDS.a]}
-									onEntityClick={handleEntityClick}
-									isEntityClickable={isEntityClickable}
-								/>
-							</GridItem>
-						) : null}
-						{SPACE_CONFIGS[TCP_INBOX_IDS.b] ? (
-							<GridItem area={spaceAreas[TCP_INBOX_IDS.b]} minW={0}>
-								<GridSpace
-									ctx={gameCtx}
-									config={SPACE_CONFIGS[TCP_INBOX_IDS.b]}
-									onEntityClick={handleEntityClick}
-									isEntityClickable={isEntityClickable}
-								/>
-							</GridItem>
-						) : null}
-						{SPACE_CONFIGS[TCP_INBOX_IDS.c] ? (
-							<GridItem area={spaceAreas[TCP_INBOX_IDS.c]} minW={0}>
-								<GridSpace
-									ctx={gameCtx}
-									config={SPACE_CONFIGS[TCP_INBOX_IDS.c]}
-									onEntityClick={handleEntityClick}
-									isEntityClickable={isEntityClickable}
-								/>
-							</GridItem>
-						) : null}
-						{SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
-							<GridItem area={spaceAreas.internet} minW={0}>
-								<GridSpace
-									ctx={gameCtx}
-									config={SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
-									onEntityClick={handleEntityClick}
-									isEntityClickable={isEntityClickable}
-								/>
-							</GridItem>
-						) : null}
-					</Grid>
+					{mode === "tcp" ? (
+						<TcpView
+							gameCtx={gameCtx}
+							showClientD={tcpPhase.showClientD}
+							clientStatus={tcpPhase.clientStatus}
+							onEntityClick={handleEntityClick}
+							isEntityClickable={isEntityClickable}
+						/>
+					) : (
+						<UdpView
+							gameCtx={gameCtx}
+							udpPhase={udpPhase}
+							onEntityClick={handleEntityClick}
+							isEntityClickable={isEntityClickable}
+						/>
+					)}
 
-					<Box
-						borderWidth="1px"
-						borderColor="gray.700"
-						borderRadius="md"
-						bg="gray.900"
-						p={3}
-					>
-						<Text fontSize="sm" color="gray.300" mb={2}>
-							Phase: {udpState.phase} · Next frame: #{udpState.expectedFrame}
+					{activeNotice ? (
+						<Text
+							mt={2}
+							fontSize="sm"
+							color={activeNotice.tone === "error" ? "red.300" : "blue.300"}
+						>
+							{activeNotice.message}
 						</Text>
-						<Flex direction="column" gap={2}>
-							{udpState.clientProgress.map((progress) => (
-								<ProgressBar
-									key={progress.clientId}
-									clientId={progress.clientId}
-									frameStatuses={progress.frames.map((received, index) => {
-										if (index >= udpState.lastSentFrame) {
-											return "pending";
-										}
-										return received ? "delivered" : "lost";
-									})}
-									percentage={progress.percent}
-								/>
-							))}
-						</Flex>
-						{udpState.notice ? (
-							<Text
-								mt={2}
-								fontSize="sm"
-								color={
-									udpState.notice.tone === "error" ? "red.300" : "blue.300"
-								}
-							>
-								{udpState.notice.message}
-							</Text>
-						) : null}
-					</Box>
+					) : null}
 
 					<ContextualHint />
 
@@ -266,5 +227,156 @@ const UdpGame = ({
 			</Flex>
 			<Modal />
 		</Box>
+	);
+};
+
+const TcpView = ({
+	gameCtx,
+	showClientD,
+	clientStatus,
+	onEntityClick,
+	isEntityClickable,
+}: {
+	gameCtx: ReturnType<typeof useGameCtx>;
+	showClientD: boolean;
+	clientStatus: Record<string, string>;
+	onEntityClick: (entity: EntityData) => void;
+	isEntityClickable: (entity: EntityData) => boolean;
+}) => {
+	const showD = showClientD && SPACE_CONFIGS[TCP_INBOX_IDS.d];
+	const colCount = showD ? 4 : 3;
+
+	return (
+		<Grid
+			templateAreas={{
+				base: showD
+					? `"client-a-inbox" "client-b-inbox" "client-c-inbox" "client-d-inbox" "internet"`
+					: `"client-a-inbox" "client-b-inbox" "client-c-inbox" "internet"`,
+				md: showD
+					? `"client-a-inbox client-b-inbox client-c-inbox client-d-inbox" "internet internet internet internet"`
+					: `"client-a-inbox client-b-inbox client-c-inbox" "internet internet internet"`,
+			}}
+			templateColumns={{
+				base: "1fr",
+				md: `repeat(${colCount}, minmax(0, 1fr))`,
+			}}
+			gap={{ base: 2, md: 4 }}
+			alignItems="stretch"
+		>
+			{SPACE_CONFIGS[TCP_INBOX_IDS.a] ? (
+				<GridItem area={TCP_INBOX_IDS.a} minW={0}>
+					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
+						{clientStatus.a}
+					</Text>
+					<GridSpace
+						ctx={gameCtx}
+						config={SPACE_CONFIGS[TCP_INBOX_IDS.a]}
+						onEntityClick={onEntityClick}
+						isEntityClickable={isEntityClickable}
+					/>
+				</GridItem>
+			) : null}
+			{SPACE_CONFIGS[TCP_INBOX_IDS.b] ? (
+				<GridItem area={TCP_INBOX_IDS.b} minW={0}>
+					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
+						{clientStatus.b}
+					</Text>
+					<GridSpace
+						ctx={gameCtx}
+						config={SPACE_CONFIGS[TCP_INBOX_IDS.b]}
+						onEntityClick={onEntityClick}
+						isEntityClickable={isEntityClickable}
+					/>
+				</GridItem>
+			) : null}
+			{SPACE_CONFIGS[TCP_INBOX_IDS.c] ? (
+				<GridItem area={TCP_INBOX_IDS.c} minW={0}>
+					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
+						{clientStatus.c}
+					</Text>
+					<GridSpace
+						ctx={gameCtx}
+						config={SPACE_CONFIGS[TCP_INBOX_IDS.c]}
+						onEntityClick={onEntityClick}
+						isEntityClickable={isEntityClickable}
+					/>
+				</GridItem>
+			) : null}
+			{showD ? (
+				<GridItem area={TCP_INBOX_IDS.d} minW={0}>
+					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
+						{clientStatus.d}
+					</Text>
+					<GridSpace
+						ctx={gameCtx}
+						config={SPACE_CONFIGS[TCP_INBOX_IDS.d]}
+						onEntityClick={onEntityClick}
+						isEntityClickable={isEntityClickable}
+					/>
+				</GridItem>
+			) : null}
+			{SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
+				<GridItem area="internet" minW={0}>
+					<GridSpace
+						ctx={gameCtx}
+						config={SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
+						onEntityClick={onEntityClick}
+						isEntityClickable={isEntityClickable}
+					/>
+				</GridItem>
+			) : null}
+		</Grid>
+	);
+};
+
+const UdpView = ({
+	gameCtx,
+	udpPhase,
+	onEntityClick,
+	isEntityClickable,
+}: {
+	gameCtx: ReturnType<typeof useGameCtx>;
+	udpPhase: ReturnType<typeof useUdpPhase>;
+	onEntityClick: (entity: EntityData) => void;
+	isEntityClickable: (entity: EntityData) => boolean;
+}) => {
+	return (
+		<Flex direction="column" gap={4}>
+			{SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
+				<GridSpace
+					ctx={gameCtx}
+					config={SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
+					onEntityClick={onEntityClick}
+					isEntityClickable={isEntityClickable}
+				/>
+			) : null}
+
+			<Box
+				borderWidth="1px"
+				borderColor="gray.700"
+				borderRadius="md"
+				bg="gray.900"
+				p={3}
+			>
+				<Text fontSize="sm" color="gray.300" mb={2}>
+					UDP Streaming · Next frame: #{udpPhase.expectedFrame}
+				</Text>
+				<Flex direction="column" gap={2}>
+					{udpPhase.clientProgress.map((cp) => (
+						<ProgressBar
+							key={cp.clientId}
+							clientId={cp.clientId}
+							frameStatuses={cp.frames.map((received, index) => {
+								if (index >= udpPhase.lastSentFrame) {
+									return "pending";
+								}
+								return received ? "delivered" : "lost";
+							})}
+							percentage={cp.percent}
+						/>
+					))}
+				</Flex>
+			</Box>
+		</Flex>
 	);
 };

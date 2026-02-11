@@ -66,7 +66,6 @@ import {
 	buildWebserver443StatusModal,
 } from "./-utils/modal-builders";
 import { useSslState } from "./-utils/use-ssl-state";
-import { useSslTerminal } from "./-utils/use-ssl-terminal";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
 const WEB_SSL_SPACE_IDS = {
@@ -91,11 +90,11 @@ const SslGame = ({
 }) => {
 	const {
 		world,
-		progress,
 		interactionSession,
 		state,
 		behaviorContext,
 		isCompleted,
+		registerTerminalFinish,
 	} = useQuestionRuntime("webserver-ssl-page", SSL_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalOpenedRef = useRef(false);
@@ -180,19 +179,8 @@ const SslGame = ({
 		}
 	}, [behaviorContext.navigateAway, _onQuestionComplete]);
 
-	const handleSslCommand = useSslTerminal({
-		interactionSession,
-		progress,
-		httpReady,
-		httpsReady,
-		hasRedirect,
-		port80Domain,
-		certificateDomain,
-	});
-
-	useTerminalEngine({
-		onCommand: handleSslCommand,
-	});
+	const terminalEngine = useTerminalEngine({});
+	registerTerminalFinish.current = terminalEngine.finish;
 
 	useEffect(() => {
 		if (httpReady) {

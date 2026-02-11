@@ -35,6 +35,7 @@ import type {
 export type TerminalBridge = {
 	writeOutput: (content: string, type?: "output" | "error") => void;
 	clearHistory: () => void;
+	finishEngine: () => void;
 };
 
 export type BehaviorReactorDeps = {
@@ -270,6 +271,9 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 			},
 			clearHistory: () => {
 				deps.terminal?.clearHistory();
+			},
+			finishEngine: () => {
+				deps.terminal?.finishEngine();
 			},
 		},
 		setPhase: (phase, source) => {

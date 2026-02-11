@@ -66,6 +66,7 @@ export type EffectContext<TContext> = {
 	terminal: {
 		writeOutput: (content: string, type?: "output" | "error") => void;
 		clearHistory: () => void;
+		finishEngine: () => void;
 	};
 
 	// Convenience shortcuts
