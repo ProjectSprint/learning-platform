@@ -51,11 +51,9 @@ import {
 	INTERNET_DEFINITION,
 	type InternetConditionKey,
 } from "./-utils/definition";
+import { getInternetStatusMessage } from "./-utils/entity-badge";
+import { getInternetItemLabel } from "./-utils/entity-label";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import {
-	getInternetItemLabel,
-	getInternetStatusMessage,
-} from "./-utils/item-notification";
 import { useInternetState } from "./-utils/use-internet-state";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";

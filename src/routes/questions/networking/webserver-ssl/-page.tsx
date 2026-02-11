@@ -50,11 +50,9 @@ import {
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { SSL_DEFINITION } from "./-utils/definition";
+import { getSslStatusMessage } from "./-utils/entity-badge";
+import { getSslItemLabel } from "./-utils/entity-label";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import {
-	getSslItemLabel,
-	getSslStatusMessage,
-} from "./-utils/item-notification";
 import {
 	buildBrowserStatusModal,
 	buildCertificateInfoModal,

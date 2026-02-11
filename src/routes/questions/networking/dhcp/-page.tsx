@@ -47,11 +47,9 @@ import {
 	TERMINAL_PROMPT,
 } from "./-utils/constants";
 import { DHCP_DEFINITION, type DhcpConditionKey } from "./-utils/definition";
+import { getNetworkingStatusMessage } from "./-utils/entity-badge";
+import { getNetworkingItemLabel } from "./-utils/entity-label";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import {
-	getNetworkingItemLabel,
-	getNetworkingStatusMessage,
-} from "./-utils/item-notification";
 import { useNetworkState } from "./-utils/use-network-state";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";

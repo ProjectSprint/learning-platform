@@ -35,11 +35,9 @@ import {
 	SPACE_CONFIGS,
 } from "./-utils/constants";
 import { TCP_DEFINITION } from "./-utils/definition";
+import { getTcpStatusMessage } from "./-utils/entity-badge";
+import { getTcpItemLabel } from "./-utils/entity-label";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import {
-	getTcpItemLabel,
-	getTcpStatusMessage,
-} from "./-utils/item-notification";
 import { buildSuccessModal } from "./-utils/modal-builders";
 import { useTcpState } from "./-utils/use-tcp-state";
 

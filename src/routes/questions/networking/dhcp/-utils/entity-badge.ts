@@ -1,23 +1,4 @@
-// Item label and status notifications for the networking question
-// These are question-specific helpers passed to PlayCanvas
-
 import type { SpaceItemLocation } from "@/components/game/game-provider";
-
-/**
- * Get the display label for a networking item type
- */
-export const getNetworkingItemLabel = (itemType: string): string => {
-	switch (itemType) {
-		case "pc":
-			return "PC";
-		case "router":
-			return "Router";
-		case "cable":
-			return "Cable";
-		default:
-			return itemType.charAt(0).toUpperCase() + itemType.slice(1);
-	}
-};
 
 /**
  * Get the status message for a networking item based on its state
