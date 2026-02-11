@@ -1,924 +1,375 @@
-# UDP Video Streaming Question
+# UDP Video Streaming Blueprint
 
-> **Question ID**: `udp-video-streaming`
-> **Implementation Status**: 📋 Blueprint
-> **Location**: `src/routes/questions/networking/udp/`
-> **Last Updated**: 2026-01-29
+Reference implementation for an imperative event-driven networking question with a dual-phase architecture (TCP then UDP), multi-client TCP handshake with chaos scenarios, connectionless UDP frame broadcasting with predetermined delivery destiny, and progress bar visualization.
 
----
-
-## Overview
-
-An interactive learning experience teaching UDP protocol fundamentals through video streaming simulation. Students first experience the pain of TCP connection management at scale, then discover how UDP's stateless, fire-and-forget approach solves real-time streaming challenges.
-
-### Story & Narrative
-
-**Question Title**: "📺 Stream movie.mp4 to 3 viewers"
-
-**Question Description**: "Your viewers are waiting! Establish connections and deliver the video stream to all clients."
-
-**Initial Terminal Prompt**: N/A (no terminal in this question)
+Technical documentation: `src/components/game/doc/`
 
 ---
 
-## Learning Objectives
+## Question Overview
 
-Students will understand:
-
-1. **TCP Connection Overhead** — Each client requires a full handshake (SYN → SYN-ACK → ACK)
-2. **TCP State Management** — Server must track connection state per client
-3. **TCP Scalability Problems** — New clients cause chaos, connections timeout
-4. **UDP Statelessness** — Server doesn't track connections or client state
-5. **Fire-and-Forget Model** — Send once, don't wait for acknowledgment
-6. **UDP Packet Loss** — Some packets don't arrive, and that's acceptable
-7. **Real-Time Streaming Trade-offs** — Speed over reliability for live content
+- Question ID: `udp-video-streaming`
+- Title: `Stream movie.mp4 to 3 viewers`
+- Description: `Your viewers are waiting! Establish connections and deliver the video stream to all clients.`
+- Learning Objective: Contrast TCP's connection-oriented approach with UDP's connectionless approach for video streaming. Demonstrate why TCP's per-client handshake and per-packet acknowledgment become impractical at scale, and why UDP's fire-and-forget model is better suited for real-time streaming despite packet loss.
 
 ---
 
-## Question Flow
+## Architecture Pattern
 
-### High-Level Progression
+This question uses the imperative event-driven architecture with two separate phase hooks:
+
+- `QuestionDefinition` with spaces and entities, but empty `phaseRules` array and empty behaviors (no rules at all).
+- `useQuestionRuntime` for bootstrap only. No behavior reactor is active.
+- Two independent imperative hooks manage the two halves of the question:
+  - `useTcpPhase` (~1093 lines) — Manages the TCP portion: multi-client handshake, data delivery, chaos scenarios (new client, timeout, reconnection), and transition to UDP.
+  - `useUdpPhase` (~262 lines) — Manages the UDP portion: frame broadcasting with predetermined delivery destiny, progress bars, and question completion.
+- A `mode` state (`"tcp"` or `"udp"`) in the page component controls which phase hook is active and which view is rendered.
+- Event processing uses `useEngineEvents` in both hooks to handle modal submissions.
+- Entity placement detection uses `useEffect` watching space state changes (comparing previous vs current entity IDs in spaces) rather than `useEngineEvents` for space entry.
+- No entity click handlers. Entities are not clickable.
+- No behavior rules. Success navigation is handled directly by `useUdpPhase` calling `onQuestionComplete()` on modal submission.
+
+---
+
+## File Structure
+
+All files live under `src/routes/questions/networking/udp/`:
+
+- `index.tsx` — Route definition.
+- `-page.tsx` — Main page component. Contains mode switching, TcpView and UdpView subcomponents, drawer, terminal (unused in practice), contextual hints, and notice display.
+- `-components/ProgressBar.tsx` — UDP progress bar component showing per-client frame delivery status.
+- `-utils/constants.ts` — Static configuration: question metadata, 8 grid space configs (internet, 4 client inboxes, 3 UDP client spaces), 1 pool config, entity builder functions (SYN, SYN-ACK, ACK, data, frame packets), inventory groups (5 groups with visibility control).
+- `-utils/definition.ts` — `UDP_DEFINITION`: QuestionDefinition with `initialPhase: "setup"`, empty phaseRules, empty behaviors.
+- `-utils/behaviors.ts` — `UDP_BEHAVIORS`: Empty rules array, context type `Record<string, never>`.
+- `-utils/types.ts` — Type definitions: `ActiveMode`, `TcpPhase` (9 phases), `UdpPhase` (3 phases), `PacketReceiptStatus`.
+- `-utils/use-tcp-phase.ts` — `useTcpPhase`: Imperative hook for TCP phase (~1093 lines).
+- `-utils/use-udp-phase.ts` — `useUdpPhase`: Imperative hook for UDP phase (~262 lines).
+- `-utils/frame-destiny.ts` — `FRAME_DESTINY`: Predetermined map of which frames reach which clients.
+- `-utils/modal-builders.ts` — 5 modal builder functions.
+- `-utils/get-contextual-hint.ts` — `getContextualHint(state)`.
+
+---
+
+## Question Definition
+
+### Spaces
+
+8 grid spaces plus 1 pool space:
+
+Grid spaces:
+1. `internet` (Internet) — 1x3, maxCapacity 3. Shared transit zone for both TCP and UDP phases. Packets and frames are dragged here to send them.
+2. `client-a-inbox` (Client A) — 2x2, maxCapacity 4. TCP phase: receives SYN-ACK packets from server and accepts data packets for client A.
+3. `client-b-inbox` (Client B) — 2x2, maxCapacity 4. Same as above for client B.
+4. `client-c-inbox` (Client C) — 2x2, maxCapacity 4. Same as above for client C.
+5. `client-d-inbox` (Client D) — 2x2, maxCapacity 4. Hidden initially. Appears when the chaos "new client" scenario triggers.
+6. `client-a` (Client A) — 1x1, maxCapacity 0. UDP phase: display-only space for client A.
+7. `client-b` (Client B) — 1x1, maxCapacity 0. UDP phase: display-only space for client B.
+8. `client-c` (Client C) — 1x1, maxCapacity 0. UDP phase: display-only space for client C.
+
+Pool spaces:
+1. `inventory` (Inventory) — Main inventory pool. Holds all draggable items. Managed via 5 inventory groups with dynamic visibility.
+
+### Entities
+
+Entities are created from multiple builder functions. All entities are created but NOT placed in any space initially. The inventory groups manage which entities appear in the pool:
+
+TCP handshake entities:
+- `syn-packet-a`, `syn-packet-b`, `syn-packet-c` (type: `syn-packet`) — SYN packets from initial clients. Created but not placed initially (SYN reception is assumed at start).
+- `syn-ack-packet-a` through `syn-ack-packet-d` (type: `syn-ack-packet`) — SYN-ACK packets the server sends. Placed in "Server Response" inventory group.
+- `ack-packet-a` through `ack-packet-d` (type: `ack-packet`) — ACK packets from clients. Not placed initially.
+- Received SYN packets (`syn-packet-a`, `syn-packet-b`, `syn-packet-c` — non-draggable versions) — Placed in "Received" inventory group to show SYNs have arrived.
+
+TCP data entities:
+- `data-packet-{clientId}-{seq}` (type: `data-packet`) for clients a, b, c and sequences 1-6 — 18 total data packets. Hidden initially, shown when handshake completes. Each labeled "Packet N -> Client X".
+
+UDP frame entities:
+- `udp-frame-1` through `udp-frame-6` (type: `frame`) — 6 UDP frames labeled "Frame 1" through "Frame 6". Hidden initially, shown when transitioning to UDP.
+
+### Inventory Groups
+
+5 inventory groups manage entity visibility in the pool:
+
+1. `incoming` (Incoming Packets) — Initially hidden, empty. Used for incoming packet display.
+2. `outgoing` (Server Response) — Initially visible. Contains SYN-ACK packets for clients A, B, C.
+3. `data-packets` (Video Packets) — Initially hidden. Contains all 18 data packets. Becomes visible when TCP handshake completes.
+4. `received` (Received) — Initially visible. Contains non-draggable received SYN packets.
+5. `frames` (Video Frames) — Initially hidden. Contains 6 UDP frames. Becomes visible when transitioning to UDP.
+
+### Phase Rules and Behaviors
+
+Both arrays are EMPTY. All logic is imperative.
+
+---
+
+## Dual-Phase Architecture
+
+### Mode State
+
+The page component maintains a `mode` state of type `ActiveMode = "tcp" | "udp"`.
+
+- When `mode === "tcp"`: `TcpView` is rendered (client inboxes + internet), `useTcpPhase` is active.
+- When `mode === "udp"`: `UdpView` is rendered (internet + progress bars), `useUdpPhase` is active.
+- Transition from TCP to UDP is triggered by `useTcpPhase` calling the `onTransitionToUdp` callback.
+
+### TCP Phase Hook
+
+`useTcpPhase` manages the TCP portion through 9 sub-phases:
+
+TCP phases (type `TcpPhase`):
+1. `handshake-syn` — Waiting for SYN packets to be placed (skipped in practice since SYNs are pre-received).
+2. `handshake-synack` — Initial phase. User drags SYN-ACK packets from inventory to internet. They auto-travel to the correct client inbox.
+3. `handshake-ack` — Waiting for ACK packets. ACK packets appear in client inboxes after SYN-ACK arrives.
+4. `connected` — All 3 initial clients connected. TCP Connected modal shown. Data packets become visible.
+5. `data-transfer` — User drags data packets to internet, targeted at specific clients. Each packet auto-travels to its client inbox.
+6. `chaos-new-client` — After 7 data packets sent, Client D appears. New Client modal. User must handle D's connection (SYN-ACK + ACK).
+7. `chaos-timeout` — When Client D connects, original clients A/B/C time out. Timeout modal. User must reconnect them.
+8. `chaos-redo` — User re-does the SYN-ACK handshake for A/B/C. After sending the first packet in redo phase, breaking point triggers.
+9. `breaking-point` — Exhaustion modal. "You've done 20+ actions just managing connections. What if the server didn't need to track connections at all?" User clicks "Discover UDP" to transition.
+
+### UDP Phase Hook
+
+`useUdpPhase` manages the UDP portion through 3 sub-phases:
+
+UDP phases (type `UdpPhase`):
+1. `intro` — Brief 200ms delay, then auto-transitions to streaming.
+2. `streaming` — User drags frames to internet space in order (Frame 1, then 2, etc.). Each frame is broadcast to all 3 clients simultaneously. Delivery is predetermined by `FRAME_DESTINY`. Progress bars update.
+3. `complete` — All 6 frames sent. Success modal opens. Question completes.
+
+---
+
+## TCP Phase Mechanics
+
+### SYN-ACK Delivery
+
+At start, the question assumes SYNs have been received from clients A, B, C (shown as non-draggable items in the "Received" group). SYN-ACK packets for each client are in the "Server Response" group.
+
+When user drags a SYN-ACK to the internet space:
+1. Packet marked as in-transit (warning status).
+2. Removed from outgoing pool group.
+3. After `INTERNET_TRAVEL_MS` (1500ms), auto-transferred to the correct client inbox based on the packet's `clientId`.
+4. On inbox arrival: marked as delivered (success), client status updated to "Connected", ACK packet for that client added to received pool.
+5. When all 3 initial clients are connected, `handleHandshakeComplete` fires.
+
+### Client Mismatch Validation
+
+If a packet is placed in the wrong client's inbox (e.g., SYN-ACK for Client A dropped in Client B's inbox), the packet is rejected with error status and a notice message ("This packet is for Client A."). The packet is auto-removed after 400ms.
+
+### Data Packet Delivery
+
+After handshake completes, data packets become visible. Each packet is labeled with its target client and sequence number.
+
+When user drags a data packet to internet:
+1. If the target client is not connected: rejected with error, notice "Client X is not connected."
+2. If the target client is "locked" (previous packet still being processed): rejected.
+3. Otherwise: client locked, packet marked in-transit, removed from data-packets pool group.
+4. After `INTERNET_TRAVEL_MS`, transferred to target client inbox.
+5. On inbox arrival: marked as delivered, sequence tracked in `clientPackets`. After `DATA_ACK_MS` (500ms), packet removed, client unlocked, packet counter incremented.
+
+### Chaos Scenario: New Client
+
+After 7 data packets are sent (`packetsSent === 7`), `triggerNewClient` fires:
+1. Phase becomes `chaos-new-client`.
+2. Client D inbox space becomes visible.
+3. Client D's SYN is marked as received.
+4. SYN-ACK for Client D added to outgoing pool.
+5. New Client modal opens: "Client D wants to watch your stream."
+
+### Chaos Scenario: Timeout
+
+When Client D's connection is established (SYN-ACK delivered to D's inbox):
+1. `triggerTimeout` fires.
+2. Phase becomes `chaos-timeout`.
+3. Timeout modal: "While you were busy with Client D, Clients A, B, and C got impatient. Their connections timed out."
+4. User clicks "Reconnect Clients".
+
+### Chaos Scenario: Reconnect
+
+On reconnect modal action:
+1. `startReconnect` fires. Phase becomes `chaos-redo`.
+2. Clients A, B, C reset to "SYN received" state.
+3. All TCP spaces cleared.
+4. Inventory groups reset: SYN-ACK packets for A, B, C restored.
+5. User must redo the SYN-ACK handshake for all 3 clients.
+6. On the very first data packet sent after reconnect, `triggerBreakingPoint` fires.
+
+### Breaking Point
+
+1. Phase becomes `breaking-point`.
+2. Exhaustion modal: "You've done 20+ actions just managing connections. And you've barely sent any actual video data! What if the server didn't need to track connections at all?"
+3. User clicks "Discover UDP".
+4. `transitionToUdp` is called: all TCP pool groups hidden, frames pool group made visible, TCP spaces cleared, `onTransitionToUdp` callback invoked.
+5. Page mode switches to `"udp"`.
+
+---
+
+## UDP Phase Mechanics
+
+### Frame Broadcasting
+
+The UDP phase renders a single internet space and a progress display (no client inboxes — UDP doesn't use them).
+
+When user drags a frame to the internet space:
+1. Frame order validation: must match `expectedFrame` (sequential: 1, 2, 3...). Wrong order shows error notice "Send Frame N first." and returns the frame after 400ms.
+2. If correct order: frame marked as "sending" (warning status), removed from pool.
+3. After `FRAME_SEND_MS` (1500ms): frame removed from internet space. `lastSentFrame` updated. Client delivery results applied based on `FRAME_DESTINY`.
+4. When `frameNumber >= TOTAL_FRAMES` (6): phase becomes `complete`.
+
+### Frame Destiny
+
+`FRAME_DESTINY` is a hardcoded map defining which clients receive each frame:
 
 ```
-TCP PHASE (The Pain)
-    ↓
-Initial Handshakes (3 clients × 3 steps = 9 actions)
-    ↓
-Data Transfer Begins (packets with ACK waiting)
-    ↓
-~7 packets sent successfully
-    ↓
-CHAOS: Client D arrives!
-    ↓
-Handle Client D handshake
-    ↓
-Original clients A/B/C timeout
-    ↓
-Redo handshakes for A/B/C
-    ↓
-Send 1 more packet
-    ↓
-BREAKING POINT: "This is exhausting..." modal
-    ↓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    ↓
-UDP PHASE (The Liberation)
-    ↓
-Clear board, introduce UDP concept
-    ↓
-Video splits into 6 frames
-    ↓
-User drops frames into Outbox (sequential)
-    ↓
-Each frame broadcasts to all 3 clients (1.5s delay)
-    ↓
-Deterministic packet loss creates progress bar gaps
-    ↓
-All frames sent → Success modal with comparison
+Frame 1: A=delivered, B=delivered, C=delivered
+Frame 2: A=delivered, B=delivered, C=lost
+Frame 3: A=delivered, B=delivered, C=delivered
+Frame 4: A=lost,      B=delivered, C=delivered
+Frame 5: A=delivered,  B=lost,      C=delivered
+Frame 6: A=delivered, B=delivered, C=delivered
 ```
 
----
+This means:
+- Client A receives 5/6 frames (83%) — loses frame 4
+- Client B receives 5/6 frames (83%) — loses frame 5
+- Client C receives 5/6 frames (83%) — loses frame 2
 
-## Game Configuration
+Each client loses a different frame, demonstrating that UDP packet loss is unpredictable but acceptable for streaming.
 
-### TCP Phase Configuration
+### Progress Bars
 
-#### GridSpace Setup (TCP)
+The `UdpView` renders a progress display showing:
+- Next expected frame number.
+- Per-client progress bars showing frame delivery status:
+  - `"pending"` — Frame not yet sent.
+  - `"delivered"` — Frame reached this client.
+  - `"lost"` — Frame did not reach this client.
+  - Percentage of frames received.
 
-| GridSpace ID | Title | Dimensions | Max Items | Purpose |
-|-----------|-------|------------|-----------|---------|
-| `internet` | Internet | 4×1 | 4 | Packet transit zone |
-| `client-a-inbox` | Client A | 2×2 | 4 | Client A connection inbox |
-| `client-b-inbox` | Client B | 2×2 | 4 | Client B connection inbox |
-| `client-c-inbox` | Client C | 2×2 | 4 | Client C connection inbox |
-| `client-d-inbox` | Client D | 2×2 | 4 | Client D (appears mid-phase) |
+### Question Completion
 
-**GridSpace Visibility Rules**:
-- `client-d-inbox`: Hidden initially, revealed when Client D joins
-
-#### PoolSpace Groups (TCP)
-
-| Group ID | Title | Initial Visibility | Purpose |
-|----------|-------|-------------------|---------|
-| `incoming` | Incoming Packets | Visible | SYN/ACK packets from clients |
-| `outgoing` | Server Response | Hidden | SYN-ACK packets to send |
-| `data-packets` | Video Packets | Hidden | Data packets after handshake |
-
-#### Item Types (TCP)
-
-| Type | Icon | Color | Draggable | Purpose |
-|------|------|-------|-----------|---------|
-| `syn-packet` | mdi:handshake-outline | #FBBF24 (yellow) | ✅ | Client connection request |
-| `syn-ack-packet` | mdi:handshake | #F59E0B (amber) | ✅ | Server handshake response |
-| `ack-packet` | mdi:check-circle-outline | #10B981 (green) | ✅ | Client handshake completion |
-| `data-packet` | mdi:filmstrip | #60A5FA (blue) | ✅ | Video data packet |
-| `ack-data` | mdi:check | #10B981 (green) | ❌ | Data acknowledgment (auto) |
-
-**Item Data Schema (TCP)**:
-
-```typescript
-// Connection packets (SYN, SYN-ACK, ACK)
-{
-  clientId: "a" | "b" | "c" | "d",
-  tcpState: "pending" | "in-transit" | "delivered"
-}
-
-// Data packets
-{
-  clientId: "a" | "b" | "c" | "d",
-  seq: number,
-  tcpState: "pending" | "in-transit" | "delivered" | "acked"
-}
-```
+When all 6 frames are sent:
+1. Phase becomes `complete`.
+2. Success modal opens: "All clients received enough frames to watch the video. UDP sends data without connections or acknowledgments. Some packets get lost — and that's okay for streaming."
+3. `progress.completeQuestion()` is called.
+4. On modal submission ("Complete" button), `useUdpPhase` calls `onQuestionComplete()` directly (no behavior rule needed).
 
 ---
 
-### UDP Phase Configuration
+## Modals
 
-#### GridSpace Setup (UDP)
+5 modals defined in `modal-builders.ts`:
 
-| GridSpace ID | Title | Dimensions | Max Items | Purpose |
-|-----------|-------|------------|-----------|---------|
-| `outbox` | Outbox | 1×1 | 1 | Fire-and-forget send zone |
-| `client-a` | Client A | 1×1 | 0 | Display only (progress bar) |
-| `client-b` | Client B | 1×1 | 0 | Display only (progress bar) |
-| `client-c` | Client C | 1×1 | 0 | Display only (progress bar) |
+### TCP Connected Modal
+- ID: `tcp-connected`
+- Title: "All Clients Connected!"
+- Content: 3 TCP connections established. Took 9 actions just for setup. Now send actual video data.
+- Actions: "Continue" (primary, closesModal)
 
-**Note**: Client spaces in UDP phase are display-only, showing progress bars. They don't accept item drops.
+### New Client Modal
+- ID: `tcp-new-client`
+- Title: "New Viewer Joined!"
+- Content: Client D wants to watch the stream. Handle their connection request.
+- Actions: "Handle Connection" (primary, closesModal)
 
-#### PoolSpace Groups (UDP)
+### Timeout Modal
+- ID: `tcp-timeout`
+- Title: "Connection Timeout!"
+- Content: While busy with Client D, Clients A/B/C timed out. TCP requires constant state management.
+- Actions: "Reconnect Clients" (primary, closesModal, action ID: `reconnect`)
 
-| Group ID | Title | Initial Visibility | Purpose |
-|----------|-------|-------------------|---------|
-| `frames` | Video Frames | Visible | F1-F6 frames to send |
+### Breaking Point Modal
+- ID: `tcp-exhaustion`
+- Title: "This is exhausting..."
+- Content: 20+ actions managing connections, barely any video data sent. What if the server didn't need to track connections?
+- Blocking: `true` (cannot dismiss by clicking backdrop)
+- Actions: "Discover UDP" (primary, closesModal, action ID: `continue`)
 
-#### Item Types (UDP)
-
-| Type | Icon | Color | Draggable | Purpose |
-|------|------|-------|-----------|---------|
-| `frame` | mdi:filmstrip-box | #8B5CF6 (purple) | ✅ | Video frame to broadcast |
-
-**Item Data Schema (UDP)**:
-
-```typescript
-{
-  frameNumber: 1 | 2 | 3 | 4 | 5 | 6,
-  state: "ready" | "sending" | "sent"
-}
-```
-
----
-
-## Phase State Machine
-
-### TCP Phases
-
-```typescript
-type TcpPhase =
-  | "handshake-syn"      // Initial: 3 SYN packets in internet
-  | "handshake-synack"   // Server must send SYN-ACKs
-  | "handshake-ack"      // Clients send final ACKs
-  | "connected"          // All 3 clients connected
-  | "data-transfer"      // Sending video packets
-  | "chaos-new-client"   // Client D arrives
-  | "chaos-timeout"      // Original clients timed out
-  | "chaos-redo"         // Redoing handshakes
-  | "breaking-point"     // Show exhaustion modal
-```
-
-### UDP Phases
-
-```typescript
-type UdpPhase =
-  | "intro"              // UDP introduction, clear board
-  | "streaming"          // Active frame sending
-  | "complete"           // All frames sent
-```
+### UDP Success Modal
+- ID: `udp-success`
+- Title: "Stream Delivered!"
+- Content: All clients received enough frames. UDP sends data without connections or acknowledgments. Some packets get lost — okay for streaming.
+- Actions: "Complete" (primary, closesModal, action ID: `complete`)
 
 ---
 
-## Detailed Phase Transitions
+## Event Processing
 
-### TCP Phase Details
+### TCP Phase Events
 
-#### 1. handshake-syn (Initial State)
+`useTcpPhase` uses `useEngineEvents("udp-tcp-phase")` for modal submissions only:
+- `tcp-timeout` modal with `reconnect` action: calls `startReconnect()`.
+- `tcp-exhaustion` modal with `continue` action: calls `transitionToUdp()`.
 
-**Initial Setup**:
-- 3 SYN packets appear in `internet` space (from Client A, B, C)
-- Each labeled: "SYN from Client A", "SYN from Client B", "SYN from Client C"
+Entity placement is detected via `useEffect` watching space state changes, not via `useEngineEvents`. Two effects track internet space and inbox spaces respectively, comparing previous entity IDs against current ones to find newly placed items.
 
-**User Action**: Drag each SYN to correct client inbox
+### UDP Phase Events
 
-**Validation**:
-- SYN packet with `clientId: "a"` must go to `client-a-inbox`
-- Wrong placement → rejected with notification: "This packet is for Client A"
+`useUdpPhase` uses `useEngineEvents("udp-phase")` for modal submissions only:
+- `udp-success` modal with `complete` action: calls `onQuestionComplete()`.
 
-**Transition**: When all 3 SYN packets delivered → `handshake-synack`
-
-**Side Effects**:
-- Each successful SYN placement shows client status: "🟡 SYN received"
-- Generate SYN-ACK in `outgoing` pool for that client
+Frame placement detection uses `useEffect` watching `spaces.internet` changes.
 
 ---
 
-#### 2. handshake-synack
+## Page Layout
 
-**State**: 3 SYN-ACK packets in `outgoing` pool
+The page renders:
 
-**User Action**: Drag each SYN-ACK through `internet` to destination client
+1. Title and description header.
+2. GameBoard with mode-dependent content:
+   - TCP mode (`TcpView`): Grid of 3-4 client inbox spaces (A, B, C, optionally D) above an internet transit space. Client status text displayed above each inbox.
+   - UDP mode (`UdpView`): Internet space above a progress display box showing per-client frame delivery bars.
+3. Active notice display (error or info messages that auto-dismiss after 2 seconds).
+4. ContextualHint component.
+5. DragOverlay for drag preview.
+6. DrawerLayout with inventory pool.
+7. TerminalLayout (present but closed; not used in gameplay).
+8. Modal component.
 
-**Mechanic**:
-1. User drags SYN-ACK to `internet` space
-2. After 1s delay, packet "arrives" (auto-moves to client inbox)
-3. Client status updates: "🟡 SYN-ACK sent, waiting for ACK..."
+### TCP Layout
 
-**Transition**: When all 3 SYN-ACK delivered → `handshake-ack`
+Grid template:
+- Mobile: single column, all spaces stacked vertically.
+- Desktop: client inboxes in a row, internet space spanning full width below.
+- When Client D appears, the grid expands from 3 to 4 columns.
 
-**Side Effects**:
-- Generate ACK packet in `incoming` for each client
+### UDP Layout
 
----
-
-#### 3. handshake-ack
-
-**State**: 3 ACK packets in `incoming` pool (labeled by client)
-
-**User Action**: Drag each ACK to correct client inbox
-
-**Transition**: When all 3 ACK delivered → `connected`
-
-**Side Effects**:
-- Each client status: "🟢 Connected"
-- Show brief modal: "All clients connected! Now send the video data."
-- Reveal `data-packets` pool with video packets
+Flex column layout:
+- Internet space at top.
+- Progress panel below with "UDP Streaming" header, expected frame indicator, and per-client progress bars.
 
 ---
 
-#### 4. connected → data-transfer
+## Game Flow
 
-**State**: Video packets available in pool
-
-**Mechanic**:
-- Packets labeled: "Packet 1 → Client A", "Packet 1 → Client B", etc.
-- User must send packets through internet
-- Each packet requires waiting for ACK before next packet to same client
-
-**Packet Flow**:
-1. User drags packet to `internet`
-2. 1s delay → packet arrives at client
-3. 0.5s delay → ACK appears in `incoming`
-4. User must route ACK to server (or auto-handled for simplicity)
-
-**Counter**: Track packets sent (display: "Packets sent: 7/18")
-
-**Transition**: After 7 packets successfully sent → `chaos-new-client`
+1. Initial state: TCP mode. Internet space and 3 client inboxes visible. "Received" pool shows SYNs from A/B/C. "Server Response" pool has SYN-ACK packets.
+2. Complete handshake: Drag SYN-ACK packets to internet. They auto-travel to correct client. ACKs appear. All 3 clients connected. Connected modal.
+3. Send data: Data packets appear. Drag them to internet targeted at specific clients.
+4. Chaos — new client: After 7 packets, Client D appears. New viewer modal. Handle D's SYN-ACK.
+5. Chaos — timeout: A/B/C time out. Timeout modal. User clicks "Reconnect Clients".
+6. Chaos — redo: Re-handshake A/B/C. On first packet, breaking point triggers.
+7. Breaking point: Exhaustion modal. User clicks "Discover UDP". Mode switches.
+8. UDP streaming: 6 frames in inventory. Drag in order to internet. Each broadcasts to all clients. Predetermined delivery destiny determines losses. Progress bars update in real-time.
+9. Completion: All 6 frames sent. Success modal. "Complete" navigates away.
 
 ---
 
-#### 5. chaos-new-client
-
-**Trigger**: 7th packet ACK received
-
-**Actions**:
-1. Show modal:
-   > **"📱 New Viewer Joined!"**
-   >
-   > Client D wants to watch too!
-   > Handle their connection request.
-
-2. Reveal `client-d-inbox` space
-3. Add SYN packet from Client D to `internet`
-
-**User Action**: Complete full handshake for Client D (SYN → SYN-ACK → ACK)
-
-**Transition**: When Client D handshake complete → `chaos-timeout`
-
----
-
-#### 6. chaos-timeout
-
-**Trigger**: Client D connection established
-
-**Actions**:
-1. Show modal:
-   > **"⚠️ Connection Timeout!"**
-   >
-   > While you were busy with Client D, Clients A, B, and C got impatient.
-   >
-   > Their connections timed out. You need to reconnect them.
-   >
-   > **TCP requires constant state management.**
-
-2. Reset Client A, B, C status to: "🔴 Disconnected (timeout)"
-3. Generate new SYN packets from A, B, C in `internet`
-
-**Transition**: Immediate → `chaos-redo`
-
----
-
-#### 7. chaos-redo
-
-**State**: Must redo handshakes for 3 original clients
-
-**User Action**: Complete handshakes for A, B, C again
-
-**Transition**: When all reconnected + 1 data packet sent → `breaking-point`
-
----
-
-#### 8. breaking-point
-
-**Trigger**: 1 data packet sent after reconnection
-
-**Actions**:
-1. Show modal:
-   > **"😤 This is exhausting..."**
-   >
-   > You've done **20+ actions** just managing connections.
-   >
-   > And you've barely sent any actual video data!
-   >
-   > Every client needs:
-   > - 3-step handshake to connect
-   > - Acknowledgment for every packet
-   > - Timeout tracking and reconnection
-   >
-   > **What if the server didn't have to care about any of this?**
-   >
-   > [Continue to UDP →]
-
-2. On modal dismiss → Clear board, transition to UDP phase
-
----
-
-### UDP Phase Details
-
-#### 9. intro
-
-**Actions**:
-1. Clear all TCP spaces and pools
-2. Show new layout:
-   - `outbox` space (center)
-   - 3 client displays with empty progress bars
-   - `frames` pool with F1-F6
-
-3. Show intro text (inline, not modal):
-   > **UDP: Fire and Forget**
-   >
-   > Drop frames into the Outbox. They'll be sent to ALL clients automatically.
-   >
-   > No handshakes. No acknowledgments. No waiting.
-
-**Transition**: Immediate → `streaming`
-
----
-
-#### 10. streaming
-
-**State**: 6 frames in pool, outbox ready
-
-**Mechanic**:
-1. User drags frame to `outbox`
-2. Validation: Must be next sequential frame
-   - If F3 dropped before F2 sent → reject with notification: "Send Frame 2 first"
-3. Item state changes to `"sending"`
-4. Item notification shows: "Sending..."
-5. After 1.5s delay:
-   - Frame consumed (removed from outbox)
-   - Each client's progress bar updates based on destiny table
-   - Lost frames show as gap (unfilled segment)
-
-**Order Enforcement**:
-```typescript
-const expectedFrame = lastSentFrame + 1; // starts at 0, so first expected is 1
-if (droppedFrame.frameNumber !== expectedFrame) {
-  rejectItem("Send Frame " + expectedFrame + " first");
-}
-```
-
-**Progress Bar Updates** (per frame):
-
-| Frame | Client A | Client B | Client C |
-|-------|----------|----------|----------|
-| F1    | ✅ fills | ✅ fills | ✅ fills |
-| F2    | ✅ fills | ✅ fills | ❌ gap   |
-| F3    | ✅ fills | ✅ fills | ✅ fills |
-| F4    | ❌ gap   | ✅ fills | ✅ fills |
-| F5    | ✅ fills | ❌ gap   | ✅ fills |
-| F6    | ✅ fills | ✅ fills | ✅ fills |
-
-**Client Display During Streaming**:
-```
-Client A: [■■■□■■] 83%
-          "83% received — good enough for streaming"
-
-Client B: [■■■■□■] 83%
-          "83% received — good enough for streaming"
-
-Client C: [■□■■■■] 83%
-          "83% received — good enough for streaming"
-```
-
-**Transition**: When F6 consumed → `complete`
-
----
-
-#### 11. complete
-
-**Trigger**: F6 consumed by outbox
-
-**Actions**:
-1. Show success modal:
-   > **"🎉 Stream Delivered!"**
-   >
-   > All clients received enough frames to watch the video.
-   >
-   > ---
-   >
-   > **What you learned:**
-   >
-   > • **UDP sends data without connections or handshakes**
-   > • **Server doesn't track what each client received**
-   > • **Some packets get lost — and that's okay for streaming**
-   > • **No ACKs, no waiting, no state — just fire and forget**
-   >
-   > ---
-   >
-   > **Comparison:**
-   >
-   > | | TCP Phase | UDP Phase |
-   > |---|-----------|-----------|
-   > | Actions | 20+ | 6 |
-   > | Connections | Stateful | Stateless |
-   > | Packet loss | Retransmit | Accept gaps |
-   > | Use case | File downloads | Live streaming |
-   >
-   > ---
-   >
-   > **When to use UDP:**
-   > - Live video/audio streaming
-   > - Online gaming
-   > - DNS queries
-   > - VoIP calls
-   >
-   > Real-time matters more than perfection.
-
-2. Call `onQuestionComplete()` callback
-3. Mark question as complete
-
----
-
-## Packet Destiny Table (Deterministic)
-
-This table defines which frames successfully reach which clients:
-
-```typescript
-const FRAME_DESTINY: Record<number, Record<string, boolean>> = {
-  1: { a: true,  b: true,  c: true  },
-  2: { a: true,  b: true,  c: false }, // Client C loses F2
-  3: { a: true,  b: true,  c: true  },
-  4: { a: false, b: true,  c: true  }, // Client A loses F4
-  5: { a: true,  b: false, c: true  }, // Client B loses F5
-  6: { a: true,  b: true,  c: true  },
-};
-```
-
-**Result**:
-- Client A: 5/6 received (83%) — missing F4
-- Client B: 5/6 received (83%) — missing F5
-- Client C: 5/6 received (83%) — missing F2
-
----
-
-## UI Components
-
-### TCP Phase Layout
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  INCOMING PACKETS                                           │
-│  [SYN-A] [SYN-B] [SYN-C]                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│                    ┌─────────────┐                          │
-│                    │  INTERNET   │                          │
-│                    │  [ ][ ][ ][ ]│                          │
-│                    └─────────────┘                          │
-│                                                             │
-│  ┌──────────┐   ┌──────────┐   ┌──────────┐                │
-│  │ CLIENT A │   │ CLIENT B │   │ CLIENT C │                │
-│  │  [ ][ ]  │   │  [ ][ ]  │   │  [ ][ ]  │                │
-│  │  [ ][ ]  │   │  [ ][ ]  │   │  [ ][ ]  │                │
-│  │ 🔴 Disconn│   │ 🔴 Disconn│   │ 🔴 Disconn│                │
-│  └──────────┘   └──────────┘   └──────────┘                │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│  SERVER RESPONSE                                            │
-│  (empty until SYN-ACK generated)                           │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### UDP Phase Layout
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  VIDEO FRAMES                                               │
-│  [F1] [F2] [F3] [F4] [F5] [F6]                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│                    ┌─────────────┐                          │
-│                    │   OUTBOX    │                          │
-│                    │             │                          │
-│                    │    [ ]      │                          │
-│                    │             │                          │
-│                    │ Drop frame  │                          │
-│                    │   here      │                          │
-│                    └─────────────┘                          │
-│                          │                                  │
-│            ┌─────────────┼─────────────┐                    │
-│            ▼             ▼             ▼                    │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐        │
-│  │   CLIENT A   │ │   CLIENT B   │ │   CLIENT C   │        │
-│  │ [■■■□■■] 83% │ │ [■■■■□■] 83% │ │ [■□■■■■] 83% │        │
-│  │ good enough  │ │ good enough  │ │ good enough  │        │
-│  └──────────────┘ └──────────────┘ └──────────────┘        │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Progress Bar Component
-
-**Visual Representation**:
-- 6 segments (one per frame)
-- Filled segment (■): Frame received
-- Empty segment (□): Frame lost/not yet sent
-- Color: Filled = green (#10B981), Empty = gray (#D1D5DB)
-
-**Text Below Bar**:
-- During streaming: "Waiting for frames..." or "X% received"
-- After completion: "83% received — good enough for streaming"
-
----
-
-## Modal Content
-
-### Modal 1: All Clients Connected (TCP)
-
-**ID**: `tcp-connected`
-
-**Trigger**: All 3 initial handshakes complete
-
-**Content**:
-> **"🟢 All Clients Connected!"**
->
-> Great! You've established TCP connections with all 3 viewers.
->
-> That took **9 actions** just to set up connections.
->
-> Now let's send the actual video data...
-
-**Actions**: [Continue]
-
----
-
-### Modal 2: New Client Joined (TCP)
-
-**ID**: `tcp-new-client`
-
-**Trigger**: 7 data packets sent
-
-**Content**:
-> **"📱 New Viewer Joined!"**
->
-> Client D wants to watch your stream!
->
-> You'll need to handle their connection request before they can receive video.
-
-**Actions**: [Handle Connection]
-
----
-
-### Modal 3: Connection Timeout (TCP)
-
-**ID**: `tcp-timeout`
-
-**Trigger**: Client D handshake complete
-
-**Content**:
-> **"⚠️ Connection Timeout!"**
->
-> While you were busy with Client D, Clients A, B, and C got impatient.
->
-> Their connections **timed out**. You need to reconnect them.
->
-> This is the reality of TCP:
-> - Every connection requires **active state management**
-> - Idle connections **expire**
-> - Server must track **every client individually**
-
-**Actions**: [Reconnect Clients]
-
----
-
-### Modal 4: Breaking Point (TCP → UDP Transition)
-
-**ID**: `tcp-exhaustion`
-
-**Trigger**: 1 data packet sent after reconnection
-
-**Content**:
-> **"😤 This is exhausting..."**
->
-> You've done **20+ actions** and barely sent any video!
->
-> TCP requires the server to:
-> - Complete a **3-step handshake** per client
-> - **Track connection state** for every client
-> - **Wait for ACKs** before sending more data
-> - Handle **timeouts and reconnections**
->
-> For live streaming to thousands of viewers, this doesn't scale.
->
-> ---
->
-> **What if the server didn't need to track connections at all?**
->
-> What if it could just... send data and move on?
-
-**Actions**: [Discover UDP →]
-
----
-
-### Modal 5: Success (UDP Complete)
-
-**ID**: `udp-success`
-
-**Trigger**: F6 consumed
-
-**Content**:
-> **"🎉 Stream Delivered!"**
->
-> All clients received enough frames to enjoy the video.
->
-> ---
->
-> **What you learned:**
->
-> **UDP (User Datagram Protocol)**
-> - No connection setup — just send
-> - No acknowledgments — fire and forget
-> - No state tracking — server doesn't remember clients
-> - Packets may be lost — acceptable for real-time content
->
-> ---
->
-> **TCP vs UDP**
->
-> | Aspect | TCP | UDP |
-> |--------|-----|-----|
-> | Connection | Required (3-way handshake) | None |
-> | Reliability | Guaranteed delivery | Best effort |
-> | Ordering | Guaranteed order | No guarantee |
-> | Speed | Slower (waits for ACKs) | Faster (no waiting) |
-> | Server state | Per-client tracking | Stateless |
-> | Use case | File downloads, web pages | Streaming, gaming, VoIP |
->
-> ---
->
-> **Real-world UDP uses:**
-> - 🎬 Netflix, YouTube (video streaming)
-> - 🎮 Online games (real-time updates)
-> - 📞 Zoom, Discord (voice/video calls)
-> - 🌐 DNS (quick lookups)
->
-> When **speed matters more than perfection**, UDP wins.
-
-**Actions**: [Complete ✓]
-
----
-
-## Contextual Hints
-
-Phase-based hints shown below the main UI:
-
-| Phase | Hint Text |
-|-------|-----------|
-| `handshake-syn` | "Drag each SYN packet to the correct client inbox" |
-| `handshake-synack` | "Send SYN-ACK responses back through the internet" |
-| `handshake-ack` | "Route the final ACK packets to complete connections" |
-| `connected` | "Connections established! Now send video packets" |
-| `data-transfer` | "Send packets and wait for acknowledgments" |
-| `chaos-new-client` | "A new client! Complete their handshake" |
-| `chaos-timeout` | "Connections timed out! Reconnect the clients" |
-| `chaos-redo` | "Redo the handshakes for disconnected clients" |
-| `udp-intro` | "Drop frames into the Outbox — they'll reach all clients" |
-| `udp-streaming` | "Send frames in order: F1, F2, F3..." |
-| `udp-complete` | "Stream complete!" |
-
----
-
-## Item Notifications
-
-### TCP Phase Notifications
-
-| Item State | Notification |
-|------------|--------------|
-| SYN in internet | "Waiting to be routed..." |
-| SYN in wrong inbox | "❌ Wrong client!" |
-| SYN in correct inbox | "✓ SYN delivered" |
-| SYN-ACK sending | "Sending..." |
-| Data packet waiting for ACK | "Waiting for ACK..." |
-| Data packet ACKed | "✓ Acknowledged" |
-
-### UDP Phase Notifications
-
-| Item State | Notification |
-|------------|--------------|
-| Frame ready | "Ready to send" |
-| Frame in outbox (sending) | "Sending..." |
-| Frame wrong order | "❌ Send Frame X first" |
-
----
-
-## Client Status Display
-
-### TCP Phase Status
-
-| State | Display |
-|-------|---------|
-| Disconnected | "🔴 Disconnected" |
-| SYN received | "🟡 SYN received" |
-| SYN-ACK sent | "🟡 SYN-ACK sent, waiting..." |
-| Connected | "🟢 Connected" |
-| Timed out | "🔴 Disconnected (timeout)" |
-
-### UDP Phase Status
-
-| State | Display |
-|-------|---------|
-| Waiting | "[□□□□□□] 0% — Waiting for frames..." |
-| Partial | "[■■□■□□] 50% — Receiving..." |
-| Complete | "[■■■□■■] 83% — good enough for streaming" |
-
----
-
-## Success Criteria
-
-Question completion requires:
-
-1. ✅ **TCP Handshake Experience** — Completed initial 3 client handshakes
-2. ✅ **TCP Data Transfer** — Sent at least 7 packets with ACK waiting
-3. ✅ **Chaos Experienced** — Handled Client D, experienced timeouts
-4. ✅ **Reconnection Pain** — Redid handshakes after timeout
-5. ✅ **UDP Transition** — Saw exhaustion modal, transitioned to UDP
-6. ✅ **UDP Streaming** — Sent all 6 frames via outbox
-7. ✅ **Packet Loss Understanding** — Observed gaps in progress bars
-8. ✅ **Completion** — All frames consumed, success modal shown
-
-**Completion Trigger**: F6 consumed by outbox in UDP phase
-
----
-
-## Implementation Reference
-
-### File Structure
-
-```
-src/routes/questions/networking/udp/
-├── index.tsx                      # Route definition
-├── -page.tsx                      # Main component
-│                                  # - Phase management (TCP vs UDP)
-│                                  # - GridSpace rendering
-│                                  # - Progress bar display
-│                                  # - Modal triggers
-└── -utils/
-    ├── constants.ts               # GridSpace configs, item definitions
-    ├── use-tcp-phase.ts           # TCP phase state machine
-    ├── use-udp-phase.ts           # UDP phase state machine
-    ├── frame-destiny.ts           # Deterministic packet loss table
-    ├── modal-builders.ts          # Modal factory functions
-    ├── get-contextual-hint.ts     # Phase-based hints
-    └── progress-bar.tsx           # Client progress bar component
-```
-
-### Key State Variables
-
-```typescript
-// Global
-interface QuestionState {
-  currentPhase: "tcp" | "udp";
-  tcpPhase: TcpPhase;
-  udpPhase: UdpPhase;
-  
-  // TCP tracking
-  tcpActionsCount: number;
-  packetsAcked: number;
-  clientsConnected: Set<string>;
-  
-  // UDP tracking
-  lastFrameSent: number; // 0-6
-  clientProgress: {
-    a: boolean[]; // [true, true, true, false, true, true]
-    b: boolean[];
-    c: boolean[];
-  };
-}
-```
-
-### Outbox Processing Logic
-
-```typescript
-function processOutbox(frame: FrameItem) {
-  // Validate order
-  if (frame.frameNumber !== state.lastFrameSent + 1) {
-    rejectItem(frame, `Send Frame ${state.lastFrameSent + 1} first`);
-    return;
-  }
-  
-  // Set sending state
-  updateItemState(frame, "sending");
-  
-  // Process after delay
-  setTimeout(() => {
-    // Remove from outbox
-    consumeItem(frame);
-    
-    // Update each client based on destiny
-    const destiny = FRAME_DESTINY[frame.frameNumber];
-    for (const client of ["a", "b", "c"]) {
-      if (destiny[client]) {
-        state.clientProgress[client][frame.frameNumber - 1] = true;
-      }
-      // If false, leave as gap (already false)
-    }
-    
-    // Update last sent
-    state.lastFrameSent = frame.frameNumber;
-    
-    // Check completion
-    if (frame.frameNumber === 6) {
-      transitionTo("complete");
-      showModal("udp-success");
-    }
-  }, 1500);
-}
-```
-
----
-
-## Testing Scenarios
-
-### Happy Path
-
-1. Route 3 SYN packets to correct inboxes
-2. Send 3 SYN-ACKs through internet
-3. Route 3 ACKs to correct inboxes
-4. Send 7 data packets (with ACK handling)
-5. Client D joins → complete handshake
-6. Original clients timeout → reconnect all
-7. Send 1 more packet → exhaustion modal
-8. Transition to UDP
-9. Send F1 through F6 sequentially
-10. Observe progress bars with gaps
-11. Success modal appears
-
-### Edge Case 1: Wrong Client Routing (TCP)
-
-1. Drag SYN from Client A to Client B inbox
-2. **Expected**: Rejected with notification "This packet is for Client A"
-
-### Edge Case 2: Wrong Frame Order (UDP)
-
-1. In UDP phase, drag F3 before sending F1 and F2
-2. **Expected**: Rejected with notification "Send Frame 1 first"
-
-### Edge Case 3: Rapid Frame Sending (UDP)
-
-1. Drop F1, immediately try to drop F2 while F1 still "sending"
-2. **Expected**: F2 queued or rejected until F1 consumed (implementation choice)
-
----
-
-## Accessibility Considerations
-
-1. **Progress bars**: Include aria-label with percentage and status
-2. **Color coding**: Don't rely solely on color — use icons (■/□) and text
-3. **Status changes**: Announce via aria-live regions
-4. **Keyboard navigation**: All drag targets keyboard-accessible
-
----
-
-## Performance Notes
-
-1. **Timer cleanup**: Clear all timers on phase transition
-2. **State batching**: Batch progress bar updates to avoid excessive re-renders
-3. **Space clearing**: Properly dispose TCP spaces before UDP phase
-
----
-
-## End of Blueprint
-
-This blueprint represents the complete specification for the UDP Video Streaming question. It teaches UDP through contrast with TCP, using the problem-first methodology of experiencing TCP's connection management pain before discovering UDP's stateless simplicity.
-
-**Blueprint Version**: 1.0
-**Last Updated**: 2026-01-29
+## Educational Content
+
+Concepts taught through TCP phase:
+- TCP Three-Way Handshake: Per-client SYN, SYN-ACK, ACK connection setup
+- Connection State Management: Each client has independent connection state
+- Per-Packet Acknowledgment: Data packets must be individually acknowledged
+- TCP Overhead: Connection setup + acknowledgment makes TCP expensive for multi-client streaming
+- Scalability Problem: Adding clients multiplies the handshake and acknowledgment burden
+- Connection Timeout: Idle connections expire, requiring reconnection
+
+Concepts taught through UDP phase:
+- Connectionless Protocol: UDP sends data without establishing connections
+- Broadcasting: One frame is sent to all clients simultaneously
+- Fire-and-Forget: No acknowledgments, no retransmission
+- Acceptable Loss: Some frames are lost but streaming continues smoothly
+- Streaming Use Case: Real-time media tolerates loss better than delay
+
+The progression from TCP frustration to UDP simplicity is the core pedagogical arc: the user experiences firsthand why TCP's reliability guarantees become a liability for real-time streaming.
