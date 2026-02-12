@@ -256,6 +256,42 @@ The behavior reactor (`useBehaviorReactor`) has these side effects:
 4. **Processing guard** — A `processingRef` prevents concurrent processing if
    a new render occurs while handlers are still executing.
 
+## Behavior-Driven Flow (Recommended Architecture)
+
+Use this execution model as your default:
+
+1. UI emits a domain event (`ENTITY_MOVED`, `MODAL_SUBMITTED`, `TERMINAL_INPUT`).
+2. Reactor scans rules top-to-bottom.
+3. First matching trigger + passing guard executes.
+4. Handler mutates through runtime APIs (`world`, `interaction`, `progress`).
+5. Runtime emits resulting events and updates state.
+6. Reactor calls `ack()` after the batch finishes.
+
+Why this matters:
+- Rule ordering is part of behavior design, not an implementation detail.
+- "First match wins" means broad fallback rules should be placed last.
+- Mutations in page-level `useEffect` and behavior handlers can conflict; keep
+  rule decisions in behaviors whenever possible.
+
+### Page vs Behavior Responsibilities
+
+Prefer this split:
+
+- **Page (`-page.tsx`)**
+  - Render UI
+  - Register drawers/arrows
+  - Show/hide terminal
+  - Resolve declarative phase rules
+  - React to behavior context flags (for example, navigate on completion)
+- **Behavior rules**
+  - Validate moves/commands
+  - Open/close modals
+  - Update entity/space state
+  - Progress/transition decisions tied to gameplay events
+
+Imperative hooks are still valid for orchestration, but avoid giving them
+independent gameplay rule branches that duplicate behavior handlers.
+
 ## Complete Example
 
 ```typescript

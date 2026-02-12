@@ -629,6 +629,23 @@ Mount
 
 ---
 
+## Bootstrap-Safe + Behavior-First Checklist
+
+Before finalizing a question, validate these two architectural constraints:
+
+1. **Bootstrap-safe rendering**
+   - Space-dependent UI does not assume spaces exist on the first render.
+   - Complex board sections are gated by a minimal readiness condition
+     (`state.spaces.<id>` checks) when needed.
+2. **Behavior-first gameplay logic**
+   - Rule decisions and state mutations live in behavior handlers.
+   - Page-level effects focus on orchestration, not domain rule branching.
+
+This keeps flow deterministic and avoids split-brain logic between `useEffect`
+and behavior rules.
+
+---
+
 ## Checklist for New Questions
 
 - [ ] `constants.ts` — Space IDs, configs, inventory items, terminal config
@@ -643,6 +660,8 @@ Mount
 - [ ] Entity `allowedPlaces` includes "inventory" and target space
 - [ ] Entity `data.type` is set for behavior trigger matching
 - [ ] Phase rules ordered: completed > terminal > playing (most specific first)
+- [ ] Bootstrap-safe render guard applied if board contains dynamic custom/grid spaces
+- [ ] Gameplay rule mutations are behavior-driven (page effects are orchestration-only)
 - [ ] `registerTerminalFinish.current = terminalEngine.finish` wired
 - [ ] `behaviorContext.navigateAway` watched in useEffect
 - [ ] `<Modal />` rendered (outside GameBoard is fine)

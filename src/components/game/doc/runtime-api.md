@@ -62,6 +62,49 @@ type QuestionRuntime<TContext> = {
    functions (writeOutput, clearHistory) so behavior handlers can access
    terminal without stale closures.
 
+### Bootstrap Lifecycle Details
+
+Bootstrap is deterministic and one-time per mounted page instance:
+
+1. Definition validation runs.
+2. Question metadata/phase are initialized.
+3. Spaces are created from `definition.spaces`.
+4. Entities are created from `definition.entities`.
+5. Entities with `initialSpace` are placed into spaces.
+
+Practical timing note:
+- Your page component may render once before all bootstrap actions are reflected
+  in `state`.
+- Space-dependent UI (`GridSpace`, `PoolSpace`, `CustomSpace`) should tolerate
+  "space not ready yet" on initial render.
+
+Recommended pattern:
+
+```typescript
+const boardReady = Boolean(
+  state.spaces.internet &&
+  state.spaces["client-a"]?.kind === "custom" &&
+  state.spaces["client-b"]?.kind === "custom",
+);
+
+return boardReady ? <GameBoard>{/* board content */}</GameBoard> : null;
+```
+
+Use whatever readiness condition matches your question; the key is to avoid
+assuming every space exists on render zero.
+
+### Behavior-First Runtime Flow
+
+Treat `useQuestionRuntime()` as the boundary between orchestration and rules:
+
+- **Page layer**: wires UI and lifecycle concerns (drawer, hints, terminal
+  visibility, navigation callback, phase-rule resolution).
+- **Behavior layer**: owns game rule mutations and decision logic using
+  `world`, `interaction`, and `progress`.
+
+This split prevents duplicate logic between `useEffect` handlers and behavior
+rules, and makes event processing easier to reason about.
+
 ### Usage Pattern
 
 ```typescript

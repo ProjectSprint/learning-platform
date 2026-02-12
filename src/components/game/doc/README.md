@@ -120,6 +120,49 @@ Question Page
                         └── Modal (data-driven modal renderer)
 ```
 
+## Bootstrap Lifecycle (Practical Timeline)
+
+Use this mental model when wiring a question page:
+
+1. React renders the page component.
+2. `useQuestionRuntime()` validates the `QuestionDefinition`.
+3. Runtime bootstrap dispatches initialization actions once:
+   `SET_QUESTION`, `SET_PHASE`, `SPACE_CREATED` (per space),
+   `ENTITY_CREATED` + `ENTITY_ADDED` (per entity with `initialSpace`).
+4. A subsequent render sees the created spaces/entities in `state`.
+5. Engine components (`GridSpace`, `PoolSpace`, `CustomSpace`) can now
+   resolve those spaces normally.
+6. User interactions emit events (`ENTITY_MOVED`, `MODAL_SUBMITTED`, etc.).
+7. Behavior reactor matches and executes the first applicable rule.
+8. `ack()` advances the event cursor after processing.
+
+Important implication:
+- The first render can happen before required spaces are present in state.
+- If you render `CustomSpace`/`GridSpace` immediately, dev warnings may appear.
+- Prefer a small readiness guard (for example, check `state.spaces.<id>` exists)
+  before rendering complex board sections.
+
+## Behavior-Driven Flow (End-to-End Loop)
+
+High-level loop:
+
+```
+User action
+  -> domain event
+  -> trigger match
+  -> guard pass
+  -> handler effect (world/interaction/progress/context)
+  -> new state + follow-up events
+  -> ack
+```
+
+Practical guidance:
+- Keep game rules in behavior handlers.
+- Keep page `useEffect` logic for orchestration concerns only
+  (drawer registration, terminal visibility, phase-rule resolution, navigation).
+- When you must do imperative logic, treat it as a thin shell around the
+  behavior system, not a second source of truth for rules.
+
 ## Design Principles
 
 1. **Declarative definitions over imperative init.** Questions describe WHAT
