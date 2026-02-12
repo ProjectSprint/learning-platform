@@ -150,6 +150,17 @@ const UdpGame = ({
 	const isEntityClickable = useCallback((_entity: EntityData) => false, []);
 
 	const activeNotice = mode === "tcp" ? tcpPhase.notice : udpPhase.notice;
+	const boardReady = useMemo(() => {
+		const internetSpace = state.spaces.internet;
+		if (!internetSpace || internetSpace.kind !== "grid") {
+			return false;
+		}
+
+		return Object.values(UDP_CLIENT_SPACE_IDS).every((spaceId) => {
+			const space = state.spaces[spaceId];
+			return space?.kind === "custom";
+		});
+	}, [state.spaces]);
 
 	return (
 		<Box
@@ -180,23 +191,25 @@ const UdpGame = ({
 				</Box>
 
 				<GameBoard>
-					{mode === "tcp" ? (
-						<TcpView
-							gameCtx={gameCtx}
-							showClientD={tcpPhase.showClientD}
-							clientStatus={tcpPhase.clientStatus}
-							tcpPhase={tcpPhase}
-							onEntityClick={handleEntityClick}
-							isEntityClickable={isEntityClickable}
-						/>
-					) : (
-						<UdpView
-							gameCtx={gameCtx}
-							udpPhase={udpPhase}
-							onEntityClick={handleEntityClick}
-							isEntityClickable={isEntityClickable}
-						/>
-					)}
+					{boardReady ? (
+						mode === "tcp" ? (
+							<TcpView
+								gameCtx={gameCtx}
+								showClientD={tcpPhase.showClientD}
+								clientStatus={tcpPhase.clientStatus}
+								tcpPhase={tcpPhase}
+								onEntityClick={handleEntityClick}
+								isEntityClickable={isEntityClickable}
+							/>
+						) : (
+							<UdpView
+								gameCtx={gameCtx}
+								udpPhase={udpPhase}
+								onEntityClick={handleEntityClick}
+								isEntityClickable={isEntityClickable}
+							/>
+						)
+					) : null}
 
 					{activeNotice ? (
 						<Text
