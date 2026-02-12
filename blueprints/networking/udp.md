@@ -1,232 +1,203 @@
 # UDP Video Streaming Blueprint
 
-Reference implementation for a dual-stage networking question that starts with TCP-style connection/state overhead, then transitions to UDP frame streaming.
+Blueprint for a dual-stage networking question. This document is a
+starting specification for authoring and updating the question, with
+declarations first and logic second.
 
-Technical documentation: `src/components/game/doc/`
+Canonical docs for engine contracts:
+- `src/components/game/doc/README.md`
+- `src/components/game/doc/question-definition.md`
+- `src/components/game/doc/runtime-api.md`
+- `src/components/game/doc/behavior-system.md`
+- `src/components/game/doc/components.md`
 
 ---
 
-## Question Overview
+## 1) Question Declaration
+
+### 1.1 Meta
 
 - Question ID: `udp-video-streaming`
 - Title: `📺 Stream movie.mp4 to 3 viewers`
 - Description: `Your viewers are waiting! Establish connections and deliver the video stream to all clients.`
 - Learning objective:
-  - Show TCP connection/state management cost across multiple clients.
-  - Contrast with UDP-style fire-and-forget frame delivery and tolerated loss.
+  - Demonstrate TCP connection/state overhead across multiple clients.
+  - Contrast that with UDP fire-and-forget streaming and tolerated loss.
 
----
+### 1.2 Core Terms
 
-## Implementation Snapshot
+- `Mode`: top-level stage, either `tcp` or `udp`.
+- `Phase`: sub-stage inside a mode.
+- `Internet`: transit grid where packets/frames are dropped and visibly processed.
+- `Inventory`: sendable item pool.
+- `Received`: inbound/ack display pool.
+- `Client panel`: custom display space for per-client connection/progress.
+- `Sending`: transient status badge for in-flight success path.
+- `Rejected`: transient status badge for invalid action path.
 
-Current route implementation lives in:
+### 1.3 Space Declaration
 
-- `src/routes/questions/networking/udp/-page.tsx`
-- `src/routes/questions/networking/udp/-utils/constants.ts`
-- `src/routes/questions/networking/udp/-utils/definition.ts`
-- `src/routes/questions/networking/udp/-utils/use-tcp-phase.ts`
-- `src/routes/questions/networking/udp/-utils/use-udp-phase.ts`
+| Space ID | Kind | Purpose | Key Contract |
+|---|---|---|---|
+| `internet` | `grid` | Transit surface for packet/frame send flow | Single logical route where in-flight visibility is shown |
+| `client-a` | `custom` | TCP/UDP status panel for client A | Display-only; no drag/drop storage |
+| `client-b` | `custom` | TCP/UDP status panel for client B | Display-only; no drag/drop storage |
+| `client-c` | `custom` | TCP/UDP status panel for client C | Display-only; no drag/drop storage |
+| `client-d` | `custom` | Dynamic TCP status panel for late client | Display-only; shown only when enabled |
+| `inventory` | `pool` | Outgoing items user can send | Hosts SYN-ACK/data/frames depending on stage |
+| `received` | `pool` | Inbound acknowledgements/receive artifacts | Visual feedback for receive side |
 
-This blueprint reflects the **current code behavior**, including recent updates:
+### 1.4 Entity Declaration
 
-- Client D appears after **4** sent data packets.
-- Reconnect only resets A/B/C packet paths and preserves D-related inventory state.
-- UDP frame dropped into internet stays visible with `Sending` status until travel delay ends.
-- TCP/UDP client panels are rendered only when board spaces are bootstrapped (`boardReady` guard).
+| Family | Count | Primary Meaning | Placement Pattern |
+|---|---|---|---|
+| `syn-ack-packet` | 4 (A/B/C/D variants) | TCP handshake starter for each client | A/B/C start in `inventory`; D is enabled later |
+| `data-packet` | 24 (A/B/C/D × seq 1..6) | TCP transfer load per client | Added/available as connection progresses |
+| `frame` | 6 (seq 1..6) | UDP stream units | Injected into `inventory` during UDP transition |
 
----
+Entity declaration requirements:
+- Each entity has a stable `id`.
+- `allowedPlaces` must include valid target spaces for intended flow.
+- Sequence-bearing entities (`data`, `frame`) must carry order metadata (`seq`).
+- Client-bound entities must carry client identity (`clientId`).
 
-## AI Lite Contract (Operate Safely)
+### 1.5 Pool and Group Semantics
 
-Use this section as a quick operating contract for AI edits.
+- `inventory` is the mutable send queue shown to user.
+- `received` is the receive-feedback queue.
+- Pool updates must be incremental and scoped.
+- Reconnect flows must mutate only affected client subsets.
+- Existing unaffected pool items must stay intact.
+- Avoid full inventory rewrites unless the game intentionally resets all clients.
 
-### What You Can Do
+### 1.6 Mode and Phase Declaration
 
-- Use this blueprint to understand the end-to-end gameplay flow and invariants.
-- Make targeted updates that preserve existing runtime contracts (timers, phase progression, modal actions).
-- Refactor internals toward small pure helpers, with side effects only at hook/runtime boundaries.
-- Add docs/tests/checklist updates when behavior changes.
+Mode declaration:
+- `tcp`: connection and reliable transfer pressure.
+- `udp`: sequential streaming with loss tolerance.
 
-### What You Cannot Assume
-
-- You cannot assume this blueprint alone is enough for non-trivial code changes.
-- You cannot rewrite inventory/pool state wholesale during reconnect flows.
-- You cannot render client `CustomSpace` panels before runtime spaces are bootstrapped.
-- You cannot bypass runtime APIs with ad-hoc raw state mutation patterns.
-
-### Required Context Order
-
-1. Blueprint: `blueprints/networking/udp.md` (intent + current flow map).
-2. Engine contracts: `src/components/game/doc/README.md`, `src/components/game/doc/runtime-api.md`, `src/components/game/doc/behavior-system.md`.
-3. Source of truth: `src/routes/questions/networking/udp/-page.tsx`, `src/routes/questions/networking/udp/-utils/use-tcp-phase.ts`, `src/routes/questions/networking/udp/-utils/use-udp-phase.ts`.
-
-For behavioral ambiguity, prefer the implementation over the blueprint and update the blueprint afterward.
-
-### Declarative/FP Implementation Style (Project Fit)
-
-- Model transitions as `current state + event -> next state` (prefer pure derivation helpers).
-- Keep mutation scope minimal and explicit; patch affected client subsets only.
-- Keep side effects at boundaries: event handlers, timers, modal callbacks, runtime API calls.
-- Preserve idempotency and cleanup discipline for timers/refs to avoid race conditions.
-- Treat hooks as orchestration shells and helper functions as deterministic logic units.
-
-### Hard Invariants (Must Hold)
-
-- UDP correct-order frame send remains visible in `internet` with `Sending` until `FRAME_SEND_MS` completes.
-- Client D availability triggers after `NEW_CLIENT_TRIGGER_PACKET_COUNT = 4`.
-- Reconnect during chaos resets A/B/C only and preserves D-related packet availability/inventory.
-- Existing packets for unaffected clients must remain visible (no full inventory rewrite).
-- Board sections relying on custom spaces must wait for `boardReady`/space existence.
-
----
-
-## Architecture Pattern
-
-This question uses an imperative hook-driven flow (not behavior-rule gameplay logic):
-
-- `QuestionDefinition` has empty `phaseRules` and empty `behaviors.rules`.
-- `useQuestionRuntime` is used for bootstrap/runtime APIs.
-- Gameplay logic is split into two hooks:
-  - `useTcpPhase` for TCP stage.
-  - `useUdpPhase` for UDP stage.
-- `mode: "tcp" | "udp"` in `-page.tsx` selects the active stage.
-- Modal submit events are consumed via `useEngineEvents` in each hook.
-- Space entry handling is done by watching `spaces.internet` diffs (new item detection).
-
-Notes:
-
-- `TcpPhase` type still includes `handshake-syn` and `handshake-ack`, but current flow starts at `handshake-synack` and does not actively use those phases.
-- Terminal UI is present in page shell, but this question does not drive a terminal gameplay phase.
-
----
-
-## Spaces and UI Layout
-
-Defined in `UDP_DEFINITION`:
-
-- Grid spaces:
-  - `internet` (1x3) transit/send surface.
-- Custom spaces:
-  - `client-a`, `client-b`, `client-c`, `client-d`.
-  - Used as status/progress panels, not packet inbox grids.
-- Pool spaces:
-  - `inventory`
-  - `received`
-
-Page rendering:
-
-- TCP mode:
-  - Top row: client status panels (`CustomSpace`) for A/B/C, plus D when enabled.
-  - Bottom row: `internet` `GridSpace` with packet badges (`Sending`/`Rejected`).
-- UDP mode:
-  - Top row: A/B/C progress panels.
-  - Bottom row: `internet` `GridSpace` with frame badges (`Sending`/`Wrong order`).
-
-Bootstrap guard:
-
-- `boardReady` check in `-page.tsx` ensures internet + custom spaces exist before rendering panel/grid composition.
-
----
-
-## Entities and Initial Placement
-
-`UDP_DEFINITION` creates entities from:
-
-- `SYN_ACK_PACKETS` (A/B/C/D), with A/B/C initially placed in `inventory`.
-- `DATA_PACKETS` (clients A/B/C/D, seq 1..6 each = 24 packets), no initial placement.
-- `FRAME_ITEMS` (UDP frames 1..6), no initial placement.
-
-Important behavior:
-
-- Received SYN/ACK display items are created/managed imperatively via pool update helpers in `useTcpPhase`.
-- Inventory grouping is logically represented via `POOL_GROUP_IDS` and helper functions; runtime pool operations are merged/reconciled into available pool spaces (`inventory`/`received`).
-
----
-
-## TCP Stage (`useTcpPhase`)
-
-### Key constants
-
-- `INTERNET_TRAVEL_MS = 1500`
-- `ACK_TRAVEL_MS = 1000`
-- `DATA_ACK_MS = 500`
-- `NOTICE_MS = 2000`
-- `NEW_CLIENT_TRIGGER_PACKET_COUNT = 4`
-
-### Active phase progression
-
-Typical path in current implementation:
-
+TCP phase declaration:
 1. `handshake-synack`
 2. `connected`
 3. `data-transfer`
 4. `chaos-new-client`
 5. `chaos-timeout`
 6. `chaos-redo`
-7. `breaking-point` (then transition to UDP mode)
+7. `breaking-point`
 
-### Handshake and sending behavior
-
-- User drops `syn-ack-packet` into `internet`.
-- Packet is marked in-transit and removed from outgoing pool.
-- After travel delay, client is marked `SYN-ACK sent`.
-- After ACK delay, client becomes connected and received ACK item is shown.
-- Remaining data packets for that client are ensured in pool.
-
-Data packet handling:
-
-- Drop data packet to `internet`.
-- Reject if client disconnected or client lock active.
-- Otherwise mark in-transit, lock client, then complete send after travel + ack cycle.
-- On completion: clear lock, increment packet count.
-
-### Chaos transitions
-
-- At 4 sent packets: open new-client modal and enable Client D path.
-- When D finishes handshake in `chaos-new-client`: trigger timeout modal.
-- Reconnect action (`tcp-timeout` / `reconnect`) enters `chaos-redo`:
-  - Resets only A/B/C connection state.
-  - Clears A/B/C in-flight internet items.
-  - Removes A/B/C-scoped packet items from pool groups.
-  - Re-injects A/B/C received SYN and SYN-ACK items.
-  - Preserves D-related packet availability.
-- First packet sent during `chaos-redo` triggers breaking-point modal.
-- `tcp-exhaustion` / `continue` transitions to UDP mode:
-  - Received list cleared.
-  - UDP frames injected into pool.
-  - Internet transit cleared.
-
----
-
-## UDP Stage (`useUdpPhase`)
-
-### Key constants
-
-- `FRAME_SEND_MS = 1500`
-- `NOTICE_MS = 2000`
-- Intro delay before streaming: `200ms`
-
-### Phase progression
-
+UDP phase declaration:
 1. `intro`
 2. `streaming`
 3. `complete`
 
-### Streaming rules
+### 1.7 Modal Declaration
 
-- Frames must be sent strictly in order (`expectedFrame = lastSent + 1`).
-- Wrong-order frame:
-  - Mark `rejected`.
-  - Show notice.
-  - Remove from internet after short delay.
-- Correct frame:
-  - Mark `sending`.
-  - Keep visible in internet while timer runs.
-  - Remove after `FRAME_SEND_MS`.
-  - Apply per-client delivery destiny for that frame.
+| Modal ID | Trigger Context | Action ID | Expected Effect |
+|---|---|---|---|
+| `tcp-connected` | First stable connected point | implicit close/continue | Player understands early success before chaos |
+| `tcp-new-client` | Packet threshold reached in TCP | implicit close/continue | Introduce client D pressure |
+| `tcp-timeout` | D handshake contributes to contention | `reconnect` | Start scoped reconnect for A/B/C |
+| `tcp-exhaustion` | Redo pressure reaches failure point | `continue` | Transition from TCP to UDP stage |
+| `udp-success` | All UDP frames processed | `complete` | Mark complete and exit question |
 
-Delivery map (`frame-destiny.ts`):
+### 1.8 Arrow and Component Contracts
 
+This question can use these runtime/presentation components as declarative primitives.
+
+| Component/Hook | Key Properties | Behavior and Usage Contract |
+|---|---|---|
+| `GameProvider` | `children`, optional `initialState` | Required top-level provider for all game hooks/components |
+| `GameBoard` | children tree | Provides board registry and arrow drawing surface |
+| `GridSpace` | `id/config`, `ctx`, `title`, `responsiveSize`, `onEntityClick`, `isEntityClickable`, `getEntityLabel`, `getEntityStatus` | Renders grid space and handles drop/click integration |
+| `PoolSpace` | `id/config`, `ctx`, `title` | Renders pool inventory and starts drags for pool items |
+| `CustomSpace` | `id`, `children` | Display-only container; no entity storage; can be arrow target |
+| `Modal` | no required props | Renders modal stack and emits submit/close events |
+| `ContextualHint` + `useContextualHint` | hint string/derivation | Displays phase-sensitive guidance text |
+| `useBoardArrows` | `setArrows`, `clearArrows` with arrow `{ id, from, to, style }` | Draws directional overlays between `spaceId` anchors |
+| `DragOverlay` | `getEntityLabel` | Visual drag preview while dragging |
+| `DrawerLayout` | `drawerId`, `children` | Responsive drawer shell for pools or supporting panels |
+
+Contract notes:
+- `GridSpace`, `PoolSpace`, and `CustomSpace` do not create spaces.
+- Spaces are created by runtime bootstrap from `QuestionDefinition.spaces`.
+- Render a board readiness guard before custom/grid composition to avoid bootstrap race warnings.
+
+### 1.9 AI Authoring Contract
+
+What AI can do:
+- Use this blueprint as the creation baseline for structure and flow.
+- Apply declarative and functional decomposition while preserving invariants.
+- Introduce helper-level refactors that reduce mutation scope and side effects.
+
+What AI cannot assume:
+- Blueprint-only context is insufficient for runtime API details.
+- Reconnect is not a global reset.
+- Full pool rewrite is not an acceptable default mutation strategy.
+
+Required context order:
+1. This blueprint.
+2. Game docs listed at the top (`question-definition`, `runtime-api`, `behavior-system`, `components`).
+3. Existing accepted behavior and checks in repository workflows.
+
+Declarative/FP style rules:
+- Prefer pure derivation helpers for state decisions.
+- Keep side effects at boundaries (event handlers, timers, modal callbacks, runtime API wrappers).
+- Express transitions as `state + event -> next state`.
+- Keep mutations local to affected clients/entities.
+
+---
+
+## 2) Logic and Lifecycle
+
+### 2.1 Runtime Lifecycle
+
+1. Runtime validates question definition.
+2. Runtime bootstraps spaces/entities from declaration.
+3. UI renders only after required spaces exist (`boardReady` style guard).
+4. User actions produce events and timer-driven transitions.
+5. Modal actions gate major phase changes.
+
+### 2.2 TCP Logic
+
+Key timings:
+- `INTERNET_TRAVEL_MS = 1500`
+- `ACK_TRAVEL_MS = 1000`
+- `DATA_ACK_MS = 500`
+- `NOTICE_MS = 2000`
+- `NEW_CLIENT_TRIGGER_PACKET_COUNT = 4`
+
+Handshake/send logic:
+- SYN-ACK dropped into `internet` becomes in-flight.
+- After transit, client marks SYN-ACK sent.
+- After ACK delay, client becomes connected and receives ACK artifact.
+- Connected clients unlock their data packet progression.
+
+Data transfer logic:
+- Data packet dropped into `internet` is rejected if disconnected or client-locked.
+- Valid packet enters `sending`, then clears after send+ack cycle.
+- Successful send increments packet count.
+
+Chaos logic:
+- After 4 sent packets, client D path appears.
+- D handshake progression leads to timeout pressure.
+- Reconnect action enters `chaos-redo` and resets only A/B/C paths.
+- D-related items and progress remain preserved.
+- Breaking point opens TCP exhaustion modal and offers UDP transition.
+
+### 2.3 UDP Logic
+
+Key timings:
+- `FRAME_SEND_MS = 1500`
+- `NOTICE_MS = 2000`
+- Intro delay: `200ms`
+
+Streaming logic:
+- Frames are strict-order (`expectedFrame = lastSent + 1`).
+- Wrong-order frame is rejected, briefly shown, then removed.
+- Correct frame is marked `sending` and stays visible in `internet` until timer finishes.
+- After send completes, frame leaves `internet` and delivery map is applied.
+
+Delivery outcome map:
 - Frame 1: A/B/C delivered
 - Frame 2: C lost
 - Frame 3: A/B/C delivered
@@ -234,57 +205,44 @@ Delivery map (`frame-destiny.ts`):
 - Frame 5: B lost
 - Frame 6: A/B/C delivered
 
-On completion:
+Completion logic:
+- After last frame resolution, open `udp-success`.
+- Completion action marks question complete and exits.
 
-- Open `udp-success` modal.
-- Mark question complete via `progress.completeQuestion()`.
-- On modal submit (`complete`), call `onQuestionComplete()`.
+### 2.4 Hint and Progress Logic
 
----
-
-## Modal Contracts
-
-Modal builders in `-utils/modal-builders.ts`:
-
-- `tcp-connected`
-- `tcp-new-client`
-- `tcp-timeout` (`reconnect` action)
-- `tcp-exhaustion` (`continue` action, blocking)
-- `udp-success` (`complete` action)
-
-Event handling:
-
-- TCP hook (`useEngineEvents("udp-tcp-phase")`): handles reconnect/continue modal actions.
-- UDP hook (`useEngineEvents("udp-phase")`): handles final completion modal action.
+- Contextual hint depends on mode, phase, expected frame, and packets sent.
+- TCP client progress supports `received`, `out-of-order`, `missing`.
+- UDP client progress supports `pending`, `delivered`, `lost`.
 
 ---
 
-## Contextual Hints and Progress
+## 3) Hard Invariants
 
-- `getContextualHint()` derives hint text from `mode`, current sub-phase, `expectedFrame`, and `packetsSent`.
-- TCP client progress bars show packet receipt ordering status:
-  - `received`, `out-of-order`, `missing`.
-- UDP progress bars show frame status:
-  - `pending`, `delivered`, `lost`.
-
----
-
-## Known Implementation Caveats
-
-1. `TcpPhase` includes values not actively used in the main flow (`handshake-syn`, `handshake-ack`).
-2. `INVENTORY_GROUPS` is exported in constants but not consumed directly by this route's runtime bootstrap.
-3. Gameplay logic is intentionally imperative; behavior rules are empty.
-4. The question relies on timer-based sequencing, so race prevention refs (`activeRef`, lock refs, timer cleanup) are part of core correctness.
+- Correct-order UDP frame must remain visible in `internet` with `Sending` until `FRAME_SEND_MS` completes.
+- Client D appearance threshold is exactly `NEW_CLIENT_TRIGGER_PACKET_COUNT = 4`.
+- Reconnect during chaos only resets A/B/C and preserves D packet inventory/progress.
+- Existing packets for unaffected clients must remain visible.
+- Custom/grid space render must wait for bootstrap readiness.
 
 ---
 
-## Verification Checklist (When Updating This Question)
+## 4) Known Caveats
 
-- Ensure blueprint and route stay aligned on:
-  - Client D trigger threshold.
-  - Reconnect scope (A/B/C-only reset behavior).
-  - UDP frame visibility while sending.
-  - Space layout model (`internet` grid + client custom spaces).
-- Validate with:
+1. Some historical TCP phase labels can exist for completeness even if not all are actively traversed.
+2. This question intentionally uses hook orchestration for flow control rather than behavior-rule-first orchestration.
+3. Timer cleanup and lock management are correctness-critical for race prevention.
+
+---
+
+## 5) Verification Checklist
+
+- Validate declaration and logic consistency:
+  - Space kinds and IDs match intended rendering roles.
+  - Entity family counts and sequence semantics remain valid.
+  - Modal IDs/actions still match transition contracts.
+  - D trigger and reconnect scope invariants are unchanged.
+  - UDP sending visibility invariant is preserved.
+- Run quality gates when behavior/code changes:
   - `pnpm check:biome`
   - `pnpm check:tsc`
