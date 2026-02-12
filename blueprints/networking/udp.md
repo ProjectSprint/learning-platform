@@ -36,6 +36,50 @@ This blueprint reflects the **current code behavior**, including recent updates:
 
 ---
 
+## AI Lite Contract (Operate Safely)
+
+Use this section as a quick operating contract for AI edits.
+
+### What You Can Do
+
+- Use this blueprint to understand the end-to-end gameplay flow and invariants.
+- Make targeted updates that preserve existing runtime contracts (timers, phase progression, modal actions).
+- Refactor internals toward small pure helpers, with side effects only at hook/runtime boundaries.
+- Add docs/tests/checklist updates when behavior changes.
+
+### What You Cannot Assume
+
+- You cannot assume this blueprint alone is enough for non-trivial code changes.
+- You cannot rewrite inventory/pool state wholesale during reconnect flows.
+- You cannot render client `CustomSpace` panels before runtime spaces are bootstrapped.
+- You cannot bypass runtime APIs with ad-hoc raw state mutation patterns.
+
+### Required Context Order
+
+1. Blueprint: `blueprints/networking/udp.md` (intent + current flow map).
+2. Engine contracts: `src/components/game/doc/README.md`, `src/components/game/doc/runtime-api.md`, `src/components/game/doc/behavior-system.md`.
+3. Source of truth: `src/routes/questions/networking/udp/-page.tsx`, `src/routes/questions/networking/udp/-utils/use-tcp-phase.ts`, `src/routes/questions/networking/udp/-utils/use-udp-phase.ts`.
+
+For behavioral ambiguity, prefer the implementation over the blueprint and update the blueprint afterward.
+
+### Declarative/FP Implementation Style (Project Fit)
+
+- Model transitions as `current state + event -> next state` (prefer pure derivation helpers).
+- Keep mutation scope minimal and explicit; patch affected client subsets only.
+- Keep side effects at boundaries: event handlers, timers, modal callbacks, runtime API calls.
+- Preserve idempotency and cleanup discipline for timers/refs to avoid race conditions.
+- Treat hooks as orchestration shells and helper functions as deterministic logic units.
+
+### Hard Invariants (Must Hold)
+
+- UDP correct-order frame send remains visible in `internet` with `Sending` until `FRAME_SEND_MS` completes.
+- Client D availability triggers after `NEW_CLIENT_TRIGGER_PACKET_COUNT = 4`.
+- Reconnect during chaos resets A/B/C only and preserves D-related packet availability/inventory.
+- Existing packets for unaffected clients must remain visible (no full inventory rewrite).
+- Board sections relying on custom spaces must wait for `boardReady`/space existence.
+
+---
+
 ## Architecture Pattern
 
 This question uses an imperative hook-driven flow (not behavior-rule gameplay logic):
