@@ -28,6 +28,8 @@ export const PaperclipCharacter = ({ pose }: PaperclipCharacterProps) => {
 	const containerRef = useRef<SVGSVGElement>(null);
 
 	// Mount: draw-in + idle loop
+	// Uses gsap.context() so revert() properly clears inline styles on
+	// React strict-mode double-mount (prevents drawSVG stuck at 0%).
 	useEffect(() => {
 		ensureSvgPlugins();
 
@@ -36,57 +38,56 @@ export const PaperclipCharacter = ({ pose }: PaperclipCharacterProps) => {
 		const container = containerRef.current;
 		if (!wire || !eyes || !container) return;
 
-		// Entrance: wire draws itself in, then eyes fade in
-		const entrance = gsap.timeline();
-		entrance
-			.set(eyes, { opacity: 0 })
-			.from(wire, {
-				drawSVG: "0%",
-				duration: 1.2,
-				ease: "power2.inOut",
-			})
-			.to(eyes, { opacity: 1, duration: 0.3, ease: "power2.out" });
+		const ctx = gsap.context(() => {
+			// Entrance: wire draws itself in, then eyes fade in
+			const entrance = gsap.timeline();
+			entrance
+				.set(eyes, { opacity: 0 })
+				.fromTo(
+					wire,
+					{ drawSVG: "0%" },
+					{ drawSVG: "100%", duration: 1.2, ease: "power2.inOut" },
+				)
+				.to(eyes, { opacity: 1, duration: 0.3, ease: "power2.out" });
 
-		// Idle loop: wobble + periodic blink
-		const idle = gsap.timeline({ repeat: -1, delay: 1.5 });
-		idle
-			// Gentle wobble
-			.to(container, {
-				rotation: -3,
-				y: -1,
-				duration: 1.5,
-				ease: "sine.inOut",
-				transformOrigin: "50% 50%",
-			})
-			.to(container, {
-				rotation: 3,
-				y: 1,
-				duration: 1.5,
-				ease: "sine.inOut",
-			})
-			.to(container, {
-				rotation: 0,
-				y: 0,
-				duration: 1,
-				ease: "sine.inOut",
-			})
-			// Blink
-			.to(
-				eyes,
-				{
-					scaleY: 0.1,
-					duration: 0.08,
+			// Idle loop: wobble + periodic blink
+			gsap
+				.timeline({ repeat: -1, delay: 1.5 })
+				// Gentle wobble
+				.to(container, {
+					rotation: -3,
+					y: -1,
+					duration: 1.5,
+					ease: "sine.inOut",
 					transformOrigin: "50% 50%",
-					yoyo: true,
-					repeat: 1,
-				},
-				">-0.5",
-			);
+				})
+				.to(container, {
+					rotation: 3,
+					y: 1,
+					duration: 1.5,
+					ease: "sine.inOut",
+				})
+				.to(container, {
+					rotation: 0,
+					y: 0,
+					duration: 1,
+					ease: "sine.inOut",
+				})
+				// Blink
+				.to(
+					eyes,
+					{
+						scaleY: 0.1,
+						duration: 0.08,
+						transformOrigin: "50% 50%",
+						yoyo: true,
+						repeat: 1,
+					},
+					">-0.5",
+				);
+		});
 
-		return () => {
-			entrance.kill();
-			idle.kill();
-		};
+		return () => ctx.revert();
 	}, []);
 
 	// Pose change: morph wire + adjust eyes
