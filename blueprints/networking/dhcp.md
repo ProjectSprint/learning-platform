@@ -1,357 +1,314 @@
-# DHCP Blueprint
+# DHCP Home Networking Blueprint
 
-Reference implementation for a behavior-driven networking question. This is the simplest networking question and serves as the canonical example when building new questions.
+Declaration-first blueprint for `networking` (DHCP question).
+This document is the starting specification for authoring and maintaining this question.
 
-Technical documentation: `src/components/game/doc/`
-
----
-
-## Question Overview
-
-- Question ID: `networking`
-- Title: `Setup your home connection!`
-- Description: `Try to connect two of this PC using Router!`
-- Learning Objective: Understand how DHCP assigns IP addresses, how routers connect devices, and how to verify connectivity with ping.
+Canonical engine references:
+- `src/components/game/doc/README.md`
+- `src/components/game/doc/question-definition.md`
+- `src/components/game/doc/runtime-api.md`
+- `src/components/game/doc/behavior-system.md`
+- `src/components/game/doc/components.md`
 
 ---
 
-## Architecture Pattern
+## 0) Reading Protocol
 
-This question uses the full behavior-driven architecture:
+### 0.1 Purpose
 
-- `QuestionDefinition` with `phaseRules` for declarative phase transitions
-- `BehaviorDefinition` with rules for entity clicks, modal submissions, and terminal commands
-- A custom `useNetworkState` hook that computes derived network topology from entity positions and updates entity statuses reactively
-- The page component (`-page.tsx`) wires runtime, engines, arrows, terminal, drawer, and hints together
+Use this blueprint as the canonical source of truth for DHCP question behavior.
+Use game docs for runtime API details.
 
-File structure:
+### 0.2 Mandatory Reading Order
 
-- `index.tsx` — Route entry. Wraps `DhcpQuestion` in question navigation logic.
-- `-page.tsx` — Main game component. Renders board, drawer, terminal, modal, arrows, hints.
-- `-utils/definition.ts` — `DHCP_DEFINITION: QuestionDefinition`. Spaces, entities, phase rules, behaviors reference.
-- `-utils/behaviors.ts` — `DHCP_BEHAVIORS: BehaviorDefinition`. Seven rules handling clicks, modals, terminal.
-- `-utils/constants.ts` — Static config. Space configs, inventory items, question metadata, terminal prompt.
-- `-utils/modal-builders.ts` — Factory functions that build `ModalInstance` objects for router config, PC status, success.
-- `-utils/network-utils.ts` — IP validation, range calculation, network topology snapshot builder.
-- `-utils/use-network-state.ts` — Reactive hook. Converts entity positions to network topology, updates device statuses via `world.updateEntityState`, manages drag engine lifecycle.
-- `-utils/entity-label.ts` — `getNetworkingItemLabel(type)` returns display name for drag overlay.
-- `-utils/entity-badge.ts` — `getNetworkingStatusMessage(placedItem)` returns status badge text for grid entities.
-- `-utils/get-contextual-hint.ts` — `getContextualHint(state)` returns progressive hint string.
+1. Section `1) Canonical Term Dictionary`
+2. Section `2) Declarative Specification`
+3. Section `3) Lifecycle and Logic Specification`
+4. Section `4) Transition Matrices`
+5. Section `5) Term-to-Logic Link Index`
+6. Section `6) Hard Invariants`
+7. Section `7) Non-Goals`
+8. Section `8) Authoring and Verification Protocol`
 
----
+### 0.3 No-Synonym Rule
 
-## Question Definition
-
-Source: `-utils/definition.ts`
-
-### Spaces
-
-Five grid spaces arranged horizontally to represent a simple LAN topology, plus one pool space for the inventory.
-
-Grid spaces, each 1x1 with maxCapacity 1:
-
-- `pc-1-board` — title "PC-1". Holds one PC entity.
-- `connector-left` — title "Connector". Holds one cable entity. Connects PC-1 to router.
-- `router-board` — title "Router". Holds one router entity.
-- `connector-right` — title "Connector". Holds one cable entity. Connects router to PC-2.
-- `pc-2-board` — title "PC-2". Holds one PC entity.
-
-Pool space:
-
-- `inventory` — title "Items". Contains all five entities at start.
-
-All grid spaces use `metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 }`.
-
-### Entities
-
-Five entities, all starting in the `inventory` pool:
-
-| ID | Type | Name | Allowed Places | Icon | Tooltip |
-|---|---|---|---|---|---|
-| `pc-1` | `pc` | PC-1 | inventory, pc-1-board | twemoji:laptop-computer | none |
-| `pc-2` | `pc` | PC-2 | inventory, pc-2-board | twemoji:laptop-computer | none |
-| `router-1` | `router` | Router | inventory, router-board | streamline-flex-color:router-wifi-network | "A router connects multiple devices..." with link |
-| `cable-1` | `cable` | Cable | inventory, connector-left, connector-right | mdi:ethernet-cable (color #2596be) | "Ethernet cables connect devices..." with link |
-| `cable-2` | `cable` | Cable | inventory, connector-left, connector-right | mdi:ethernet-cable (color #2596be) | "Ethernet cables connect devices..." with link |
-
-Entity data: The entity `type` field is stored in `entity.data.type` at bootstrap (convention: `data: { ...item.data, type: item.type }`). This is how behavior rules and display functions distinguish entity types.
-
-The `allowedPlaces` array controls which spaces accept each entity. The engine validates placement against this list. For example, `pc-1` can only go in `inventory` or `pc-1-board`, preventing players from putting both PCs on the same board.
-
-### Phase Rules
-
-Phase rules are evaluated in order. First matching rule wins. Condition keys are `dragStatus` and `questionStatus`.
-
-1. When `questionStatus` equals `"completed"` → set phase to `"completed"`
-2. When `dragStatus` equals `"finished"` → set phase to `"terminal"`
-3. When `dragStatus` equals `"started"` → set phase to `"playing"`
-
-Initial phase: `"setup"`
-
-Phase progression: `setup` → `playing` (when first entity placed and connected) → `terminal` (when both PCs have IPs) → `completed` (when question marked complete)
-
-The `dragStatus` value comes from `useDragEngine()`. The `useNetworkState` hook controls when `dragEngine.start()` and `dragEngine.finish()` are called:
-
-- `dragEngine.start()` — Called when the router is placed and at least one PC is connected via cable.
-- `dragEngine.finish()` — Called when both PCs have been assigned IP addresses (router configured with valid DHCP range).
-
-### Behaviors
-
-Source: `-utils/behaviors.ts`
-
-Context type: `{ lastConfiguredDeviceId: string | null; navigateAway: boolean }`
-
-Initial context: `{ lastConfiguredDeviceId: null, navigateAway: false }`
+- Logic must use exact term IDs from Section 1.
+- Add new terms before logic references.
 
 ---
 
-## Behavior Rules
+## 1) Canonical Term Dictionary
 
-Seven rules, evaluated in order (first match wins per event):
+### 1.1 Question Identity Terms
 
-### Rule 1: `dhcp.router-click`
+| Term ID | Exact Value |
+|---|---|
+| `QUESTION_ID` | `networking` |
+| `QUESTION_TITLE` | `🏡 Setup your home connection!` |
+| `QUESTION_DESCRIPTION` | `Try to connect two of this PC using Router!` |
 
-- Trigger: `entityClicked("router")` — fires when a router entity is clicked on a grid space.
-- Guard: none
-- Handler: Opens the router config modal. Calls `interaction.openModal(buildRouterConfigModal(entity.id, entity.data))`.
-- Purpose: Lets the player configure DHCP settings on the router.
+### 1.2 Architecture Terms
 
-### Rule 2: `dhcp.pc-click`
+| Term ID | Value | Meaning |
+|---|---|---|
+| `STYLE_DECLARATIVE_BEHAVIOR_DRIVEN` | `true` | Uses definition + behaviors + derived state hook |
+| `HAS_PHASE_RULES` | `true` | Phase resolved from condition context |
+| `PHASE_RULE_EVAL_MODE` | `last-match-wins` | Later matching rules override earlier rules |
 
-- Trigger: `entityClicked("pc")` — fires when a PC entity is clicked.
-- Guard: none
-- Handler: Opens the PC config modal (read-only IP display). Reads the IP from `state.entities[entity.id].state.ip` (set by useNetworkState), falling back to `entity.data.ip`.
-- Purpose: Shows the player what IP address the PC has been assigned.
+### 1.3 Space Terms
 
-### Rule 3: `dhcp.router-config-save`
+| Term ID | Space ID | Kind |
+|---|---|---|
+| `SPACE_PC_1` | `pc-1-board` | `grid` |
+| `SPACE_CONN_LEFT` | `connector-left` | `grid` |
+| `SPACE_ROUTER` | `router-board` | `grid` |
+| `SPACE_CONN_RIGHT` | `connector-right` | `grid` |
+| `SPACE_PC_2` | `pc-2-board` | `grid` |
+| `SPACE_INVENTORY` | `inventory` | `pool` |
 
-- Trigger: `modalSubmitted(undefined, "save")` — fires when any modal's "save" action is clicked.
-- Guard: `event.modalId.startsWith("router-config-")` — only matches router config modals.
-- Handler: Extracts `dhcpEnabled`, `startIp`, `endIp` from `event.values`. Calls `world.updateEntity(deviceId, { data: { dhcpEnabled, startIp, endIp } })`. Also updates behavior context: `ctx.lastConfiguredDeviceId = deviceId`.
-- Purpose: Persists router configuration into entity data. The `useNetworkState` hook reacts to these changes and auto-assigns IPs to connected PCs.
+### 1.4 Entity Terms
 
-### Rule 4: `dhcp.success-modal-navigate`
+| Term ID | Entity ID | Type |
+|---|---|---|
+| `ENTITY_PC_1` | `pc-1` | `pc` |
+| `ENTITY_PC_2` | `pc-2` | `pc` |
+| `ENTITY_ROUTER` | `router-1` | `router` |
+| `ENTITY_CABLE_1` | `cable-1` | `cable` |
+| `ENTITY_CABLE_2` | `cable-2` | `cable` |
 
-- Trigger: `modalSubmitted("success", "primary")` — fires when the success modal's primary button is clicked.
-- Guard: none
-- Handler: Sets `ctx.navigateAway = true`. The page watches `behaviorContext.navigateAway` via useEffect and calls `onQuestionComplete()`.
-- Purpose: Navigates to the next question after the player acknowledges success.
+### 1.5 Phase Terms
 
-### Rule 5: `dhcp.terminal-command`
+| Term ID | Phase Value |
+|---|---|
+| `PHASE_SETUP` | `setup` |
+| `PHASE_PLAYING` | `playing` |
+| `PHASE_TERMINAL` | `terminal` |
+| `PHASE_COMPLETED` | `completed` |
 
-- Trigger: `terminalInput()` — fires on any terminal input.
-- Guard: `phase === "terminal" && state.question.status !== "completed"` — only active during terminal phase, before question is completed.
-- Handler: Parses the input string. Supports two commands:
-  - `help` — Writes a help page to the terminal showing available commands (ping, help) with examples.
-  - `ping <ip>` — Checks if the target IP matches PC-2's assigned IP. If yes: writes success reply, opens success modal, calls `terminal.finishEngine()` and `progress.completeQuestion()`. If no: writes error.
-  - Any other command: writes "Unknown command" error.
-- Purpose: Terminal verification phase. Player must ping PC-2's IP to prove connectivity.
+### 1.6 Condition Context Terms
 
-### Rule 6: `dhcp.terminal-not-ready`
+| Term ID | Meaning |
+|---|---|
+| `CTX_DRAG_STATUS` | `dragEngine.progress.status` |
+| `CTX_QUESTION_STATUS` | `state.question.status` |
 
-- Trigger: `terminalInput()` — fires on any terminal input.
-- Guard: `phase !== "terminal"` — only matches when NOT in terminal phase.
-- Handler: Writes "Terminal is not ready yet" error.
-- Purpose: Catch-all for terminal input outside the terminal phase.
+### 1.7 Behavior Rule Terms
 
-Note: Rules 5 and 6 together cover all terminal input. Rule 5 catches input during terminal phase, rule 6 catches everything else. Since rule 5 is listed first and has the terminal phase guard, it takes priority during terminal phase.
+| Term ID | Behavior Rule ID |
+|---|---|
+| `RULE_ROUTER_CLICK` | `dhcp.router-click` |
+| `RULE_PC_CLICK` | `dhcp.pc-click` |
+| `RULE_ROUTER_SAVE` | `dhcp.router-config-save` |
+| `RULE_SUCCESS_NAV` | `dhcp.success-modal-navigate` |
+| `RULE_TERMINAL_COMMAND` | `dhcp.terminal-command` |
+| `RULE_TERMINAL_NOT_READY` | `dhcp.terminal-not-ready` |
 
----
+### 1.8 Modal Terms
 
-## Modals
+| Term ID | Modal ID Pattern | Actions |
+|---|---|---|
+| `MODAL_ROUTER_CONFIG` | `router-config-{deviceId}` | `cancel`, `save` |
+| `MODAL_PC_CONFIG` | `pc-config-{deviceId}` | `close` |
+| `MODAL_SUCCESS` | `success` | `primary` |
 
-Source: `-utils/modal-builders.ts`
+### 1.9 Validation Terms
 
-### Router Config Modal
+| Term ID | Meaning |
+|---|---|
+| `VALID_PRIVATE_IP_RANGE` | Start/end must be valid private IPv4 addresses |
+| `VALID_RANGE_MIN_SIZE` | End IP must be greater than start IP and provide at least 2 addresses |
 
-- ID: `router-config-{deviceId}` (e.g. `router-config-router-1`)
-- Title: "Router configuration"
-- Content: Three fields:
-  1. `dhcpEnabled` — checkbox, label "Enable DHCP", default from current entity data. Has helpLink "What is DHCP?" pointing to Google search.
-  2. `startIp` — text input, label "Start IP", placeholder "192.168.1.100", default from current entity data. Validated: must be valid IPv4, each octet 0-255, must be in private IP range (10.x, 172.16-31.x, 192.168.x).
-  3. `endIp` — text input, label "End IP", placeholder "192.168.1.200", default from current entity data. Validated: same as startIp plus must be greater than startIp and range must have at least 2 addresses.
-- Actions:
-  - `cancel` — label "Cancel", variant "ghost", closesModal true, validate false
-  - `save` — label "Save", variant "primary" (default validate true, modal stays open for behavior rule to process)
+### 1.10 Terminal Terms
 
-When the "save" action is clicked, the modal system emits a `MODAL_SUBMITTED` event with `modalId`, `modalActionId: "save"`, and `values: { dhcpEnabled, startIp, endIp }`. The `dhcp.router-config-save` behavior rule picks this up.
-
-### PC Config Modal
-
-- ID: `pc-config-{deviceId}` (e.g. `pc-config-pc-1`)
-- Title: "PC configuration"
-- Content: One readonly field:
-  1. `ip` — readonly, label "IP Address", value is the current IP or "Not assigned"
-- Actions:
-  - `close` — label "Close", variant "primary", closesModal true, validate false
-
-### Success Modal
-
-- ID: `success`
-- Title: "Question complete" (passed as argument)
-- Content: One text block: "You connected two computers and verified their connection using ping."
-- Actions:
-  - `primary` — label "Next question", variant "primary", closesModal true, validate false
-
----
-
-## Entity Display
-
-### Entity Labels
-
-Source: `-utils/entity-label.ts`
-
-Used by `DragOverlay` to show the entity name during drag. Mapping:
-
-- `pc` → "PC"
-- `router` → "Router"
-- `cable` → "Cable"
-- Default → Capitalize first letter of type
-
-### Entity Status Badges
-
-Source: `-utils/entity-badge.ts`
-
-Used by `GridSpace` via `getEntityStatus` prop to show status messages under entities. The function receives a `SpaceItemLocation` (entity data with placement info) and returns `string | null`.
-
-- Router: `"needs configuration"` when status is warning or error; `"configured"` when status is success; null otherwise.
-- PC: Shows the IP address string when available; `"no ip"` when status is warning; null otherwise.
-- Cable: Always null (no status messages).
-
-The `status` field on entities is set by the `useNetworkState` hook, not by behavior rules.
+| Term ID | Value |
+|---|---|
+| `TERMINAL_COMMAND_HELP` | `help` |
+| `TERMINAL_COMMAND_PING` | `ping <ip>` |
+| `TERMINAL_SUCCESS_TARGET` | `pc-2` assigned IP |
 
 ---
 
-## Contextual Hints
+## 2) Declarative Specification
 
-Source: `-utils/get-contextual-hint.ts`
+### 2.1 Meta Declaration
 
-The hint function receives the full network state and returns a string. Hints are progressive and include both guidance and error correction.
+- Meta fields must match Section 1.1.
+- Initial phase must be `PHASE_SETUP`.
 
-Error hints (checked first, take priority):
+### 2.2 Space and Entity Declaration
 
-- More than 2 PCs placed → "Only 2 PCs needed - remove the extra one"
-- More than 1 router placed → "Only 1 router needed - remove the extra one"
-- PC-to-PC cable connection → "PCs can't connect directly - connect them to the router instead"
-- Router-to-router cable → "Both cable ends are on the router - connect one end to a PC"
-- Duplicate cable on one PC → "This PC already has a cable - connect the other PC instead"
-- Invalid IP in router settings (when modal open) → specific IP validation errors
+- Declare all spaces in Section 1.3.
+- All entities in Section 1.4 start in `SPACE_INVENTORY`.
+- Allowed-place constraints remain fixed to prevent invalid placements.
 
-Progress hints (in order of game progression):
+### 2.3 Phase Rule Declaration
 
-1. Nothing placed → "Drag a PC from inventory to any slot to start"
-2. 1 PC, no router → "Add the second PC to another slot"
-3. 2 PCs, no router → "Place the router in the middle slot to connect both PCs"
-4. Router + 2 PCs, no cables → "Connect PC-1 to the router using a cable"
-5. 1 cable connected → "Connect [other PC] to the router with the second cable"
-6. 2 cables connected, router not configured → "Physically connected but not working! Click the router to configure DHCP"
-7. Router settings open, DHCP not enabled → "Enable DHCP so the router can assign IP addresses"
-8. DHCP enabled, no start IP → "Set the start IP address (e.g., 192.168.1.100)"
-9. Start IP set, no end IP → "Set the end IP address (e.g., 192.168.1.200)"
-10. Both IPs set, not saved → "Click 'Save' to activate DHCP"
-11. Both PCs have IPs → "Network configured! Both PCs can now communicate"
+Phase rules (declared order):
+1. `questionStatus == completed` -> `PHASE_COMPLETED`
+2. `dragStatus == finished` -> `PHASE_TERMINAL`
+3. `dragStatus == started` -> `PHASE_PLAYING`
 
----
+Because evaluation is `last-match-wins`, later matches override earlier matches.
 
-## State Management
+### 2.4 Derived State Declaration
 
-Source: `-utils/use-network-state.ts`
+- Router config is read from `ENTITY_ROUTER.data`.
+- Router is considered configured when DHCP is enabled and IP range passes validation terms.
+- Connected PCs receive sequential IPs starting from configured start IP.
+- Entity status is derived and written by the state hook:
+  - router: `success` or `error`
+  - cables: `success` or `warning`
+  - PCs: `success` when IP assigned, else `warning`
 
-This hook is the brain of the DHCP question. It runs as a React hook inside the page component and provides derived network state.
+### 2.5 Drag Engine Declaration
 
-What it does:
+- Start drag progress when router exists and at least one PC is connected.
+- Finish drag progress when router exists and both PCs have IP addresses.
 
-1. Reads all grid spaces from `state.spaces` and converts entities into a `BoardPlacements` map (spaceId → array of SpaceItemLocation).
-2. Builds a `NetworkSnapshot` by analyzing which entities are placed where, identifying the router, PCs, cables, and deriving cable connections (a cable in connector-left with a PC in pc-1-board means PC-1 is connected to the router).
-3. Computes derived state: `routerConfigured`, `pc1Connected`, `pc2Connected`, `pc1HasIp`, `pc2HasIp`, etc.
-4. In a useEffect, updates entity statuses reactively:
-   - Router: `"success"` when configured, `"error"` otherwise.
-   - Cables: `"success"` when properly connecting a PC to router, `"warning"` otherwise.
-   - PCs: Assigns IP addresses based on DHCP range when connected to a configured router. Sets `"success"` status when IP assigned, `"warning"` otherwise.
-5. In another useEffect, manages drag engine lifecycle:
-   - `dragEngine.start()` when router is placed and at least one PC is connected.
-   - `dragEngine.finish()` when both PCs have IPs.
+### 2.6 Behavior Declaration
 
-Important: The state updates here use `world.updateEntityState()` which emits events. These events are processed by the behavior reactor in the next render cycle, but since no behavior rules match `ENTITY_UPDATED` events in this question, they just flow through harmlessly.
+- Router click opens DHCP config modal.
+- PC click opens read-only IP modal.
+- Router save persists DHCP settings.
+- Terminal command rule is active only in `PHASE_TERMINAL` and before completion.
+- Success modal submit sets navigation context.
 
----
+### 2.7 AI Authoring Contract
 
-## Terminal Commands
-
-Available during the `terminal` phase only (after both PCs have IPs).
-
-Terminal prompt: "How can you check that PC-1 is connected to PC-2?"
-
-Intro entries shown when terminal opens:
-- "Available commands:"
-- "- ping <pc-2-ip>"
-
-Commands:
-
-- `help` — Displays formatted help page with synopsis, commands, description, and examples. The example ping target uses the actual PC-2 IP from game state.
-- `ping <ip>` — If `<ip>` matches PC-2's assigned IP: prints success reply, opens success modal, finishes terminal engine, completes question. If IP doesn't match: prints "Unknown target" error. If no target given: prints "Missing target" error.
-- Anything else → "Unknown command" error.
-
-Completion trigger: `ping <correct-pc-2-ip>` succeeds.
+- You may change text copy and educational hints.
+- You must not rename canonical IDs, modal patterns, or command names.
+- You must preserve declarative phase-resolution and behavior-driven flow.
 
 ---
 
-## Page Layout
+## 3) Lifecycle and Logic Specification
 
-Source: `-page.tsx`
+### 3.1 Runtime Lifecycle Sequence
 
-The page component structure:
+1. Bootstrap board and inventory.
+2. User places PCs, router, and cables.
+3. Derived hook computes topology connectivity.
+4. User configures router DHCP settings.
+5. Hook validates range and auto-assigns IPs.
+6. Terminal phase opens when both PCs have IPs.
+7. User runs ping check; success modal completes question.
 
-1. `GameProvider` wraps everything.
-2. Inside: `NetworkingGame` component with:
-   - `useQuestionRuntime("dhcp-page", DHCP_DEFINITION)` — bootstraps game state, activates behavior reactor.
-   - `useGameCtx()` — gets game context for GridSpace/PoolSpace.
-   - `useDragEngine()` — tracks drag progress for phase rules.
-   - `useTerminalEngine({})` — provides terminal engine lifecycle. `registerTerminalFinish.current = terminalEngine.finish` wires it to the behavior system.
-   - `useNetworkState({ dragEngine, world })` — computes derived network state and auto-updates entity statuses.
-   - `useDrawerManager()` — registers inventory drawer.
+### 3.2 Connectivity Logic
 
-Layout:
+- Two cables are required to connect both PCs to router.
+- Direct PC-to-PC does not satisfy topology.
+- Cable statuses are warning until properly connected.
 
-- Title and description text at top.
-- `GameBoard` containing:
-  - Five `GridSpace` components in a horizontal `Flex` with arrows between them.
-  - `ContextualHint` component.
-  - `DragOverlay` with `getEntityLabel={getNetworkingItemLabel}`.
-  - `DrawerLayout` with `PoolSpace` for inventory.
-- `TerminalLayout` below the board (visible only during terminal phase).
-- `Modal` component at the end.
+### 3.3 DHCP Configuration Logic
 
-Arrows: Five arrows connecting adjacent spaces (pc-1 → connector-left → router → connector-right → pc-2), with responsive anchors.
+- `dhcpEnabled` must be true.
+- `startIp` and `endIp` must satisfy `VALID_PRIVATE_IP_RANGE` and `VALID_RANGE_MIN_SIZE`.
+- Once valid and connected, IP addresses are assigned to connected PCs in sorted entity order.
 
-Phase transitions are handled by a useEffect that calls `resolvePhase(DHCP_DEFINITION.phaseRules, context, state.phase, "setup")` and requests phase transitions via `interactionSession.requestPhaseTransition()`.
+### 3.4 Terminal Logic
 
-Navigation: The page watches `behaviorContext.navigateAway` and calls `onQuestionComplete()` when it becomes true.
+- `help`: prints ping/manual help text.
+- `ping <ip>`:
+  - success only when target equals current PC-2 assigned IP.
+  - on success: open success modal, finish terminal engine, complete question.
+  - otherwise: error unknown target.
+- Any other command: unknown command error.
 
----
+### 3.5 Terminal Not-Ready Logic
 
-## Game Flow
-
-Step-by-step player experience:
-
-1. Player sees 5 empty grid spaces and an inventory drawer with 5 items (PC-1, PC-2, Router, 2 Cables).
-2. Player drags PC-1 to pc-1-board, PC-2 to pc-2-board, Router to router-board.
-3. Player drags cables to connector-left and connector-right. The `useNetworkState` hook detects connections and updates cable/router statuses.
-4. Hint says "Click the router to configure DHCP". Player clicks router → router config modal opens.
-5. Player enables DHCP, enters start IP (e.g. 192.168.1.100) and end IP (e.g. 192.168.1.200). Clicks Save.
-6. Behavior rule `dhcp.router-config-save` updates router entity data. `useNetworkState` reacts: assigns IPs to both PCs, updates all statuses to success.
-7. `dragEngine.finish()` is called → phase transitions to `terminal`.
-8. Terminal appears. Player types `ping 192.168.1.100` (PC-2's IP).
-9. Behavior rule `dhcp.terminal-command` validates the ping target, prints success reply, opens success modal, completes question.
-10. Player clicks "Next question" in success modal → `dhcp.success-modal-navigate` sets `navigateAway = true` → page calls `onQuestionComplete()`.
+- Any terminal input outside `PHASE_TERMINAL` returns `Error: Terminal is not ready yet.`
 
 ---
 
-## Educational Content
+## 4) Transition Matrices
 
-This question teaches:
-- Physical network topology: PCs connect to routers via cables
-- DHCP: Routers assign IP addresses automatically within a configured range
-- Private IP addresses: Must use private ranges (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-- Connectivity verification: Using ping to test network connectivity
-- IP addressing: Each device needs a unique IP to communicate
+### 4.1 Phase Transition Matrix
+
+| Rule Order | Condition | Target Phase |
+|---|---|---|
+| 1 | `questionStatus == completed` | `completed` |
+| 2 | `dragStatus == finished` | `terminal` |
+| 3 | `dragStatus == started` | `playing` |
+
+Evaluation mode: `last-match-wins`.
+
+### 4.2 Modal Submission Matrix
+
+| Modal Pattern | Action | Side Effect |
+|---|---|---|
+| `router-config-*` | `save` | persist `dhcpEnabled/startIp/endIp` |
+| `success` | `primary` | set navigate-away context |
+
+### 4.3 Terminal Command Matrix
+
+| Command | Preconditions | Success | Failure |
+|---|---|---|---|
+| `help` | terminal phase active | manual text | n/a |
+| `ping <ip>` | terminal phase active | completes question when target equals PC-2 IP | unknown target/missing arg |
+
+---
+
+## 5) Term-to-Logic Link Index
+
+### 5.1 Space Terms -> Logic
+
+| Term | Logic Usage |
+|---|---|
+| `SPACE_CONN_LEFT` | PC-1 cable bridge |
+| `SPACE_CONN_RIGHT` | PC-2 cable bridge |
+| `SPACE_ROUTER` | DHCP configuration anchor |
+
+### 5.2 Rule Terms -> Logic
+
+| Term | Logic Usage |
+|---|---|
+| `RULE_ROUTER_SAVE` | persist router DHCP settings |
+| `RULE_TERMINAL_COMMAND` | ping verification and success gate |
+| `RULE_TERMINAL_NOT_READY` | guards pre-terminal input |
+
+### 5.3 Validation Terms -> Logic
+
+| Term | Logic Usage |
+|---|---|
+| `VALID_PRIVATE_IP_RANGE` | router config validation |
+| `VALID_RANGE_MIN_SIZE` | prevents invalid DHCP pool size |
+
+---
+
+## 6) Hard Invariants
+
+- Router remains the only configurable network core.
+- Success remains tied to pinging current PC-2 assigned IP.
+- Modal ID patterns remain stable.
+- All entities remain single-instance with fixed IDs.
+
+---
+
+## 7) Non-Goals
+
+- Not DHCP lease time or renewal simulation.
+- Not subnet mask/gateway/DNS per-host simulation.
+- Not multi-router or VLAN topology.
+
+---
+
+## 8) Authoring and Verification Protocol
+
+### 8.1 Authoring Steps
+
+1. Update Section 1 terms first.
+2. Update declaration constraints in Section 2.
+3. Update lifecycle and matrices.
+4. Re-check term-link consistency.
+
+### 8.2 Consistency Checks
+
+- Phase rules documented as `last-match-wins`.
+- Every modal used in logic appears in Section 1.8.
+- Terminal behavior text matches command outcomes.
+- No undeclared synonyms appear in Sections 2-5.
+
+### 8.3 Quality Gates
+
+- `pnpm check:biome`
+- `pnpm check:tsc`
