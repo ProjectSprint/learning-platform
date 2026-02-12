@@ -39,6 +39,7 @@ const INTERNET_TRAVEL_MS = 1500;
 const ACK_TRAVEL_MS = 1000;
 const DATA_ACK_MS = 500;
 const NOTICE_MS = 2000;
+const NEW_CLIENT_TRIGGER_PACKET_COUNT = 4;
 
 const INITIAL_STATUS = "🔴 Disconnected";
 
@@ -625,7 +626,7 @@ export const useTcpPhase = ({
 	const incrementPacketCount = useCallback(() => {
 		packetsSentRef.current += 1;
 		setPacketsSent(packetsSentRef.current);
-		if (packetsSentRef.current === 7) {
+		if (packetsSentRef.current === NEW_CLIENT_TRIGGER_PACKET_COUNT) {
 			triggerNewClient();
 		}
 		if (phase === "chaos-redo" && !redoPacketSentRef.current) {
