@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { findEntitySpace } from "@/components/game/domain/space/validation";
 import type { SpaceItemLocation } from "@/components/game/game-provider";
 import {
 	useAllSpaces,
@@ -115,17 +114,6 @@ export const useUdpPhase = ({
 		}, NOTICE_MS);
 	}, []);
 
-	const removePoolItem = useCallback(
-		(itemId: string) => {
-			const spaceId = findEntitySpace(state, itemId);
-			if (!spaceId) {
-				return;
-			}
-			world.removeFromSpace(itemId, spaceId);
-		},
-		[state, world],
-	);
-
 	useEffect(() => {
 		if (!active) return;
 		if (phase === "intro") {
@@ -162,7 +150,6 @@ export const useUdpPhase = ({
 			world.updateEntity(item.id, {
 				data: { status: "warning", state: "sending" },
 			});
-			removePoolItem(item.id);
 
 			const timer = setTimeout(() => {
 				if (!activeRef.current) return;
@@ -195,7 +182,7 @@ export const useUdpPhase = ({
 			}, FRAME_SEND_MS);
 			registerTimer(timer);
 		},
-		[registerTimer, removePoolItem, showNotice, world],
+		[registerTimer, showNotice, world],
 	);
 
 	const prevOutboxIdsRef = useRef<Set<string>>(new Set());
