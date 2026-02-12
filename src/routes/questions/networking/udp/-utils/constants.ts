@@ -249,7 +249,7 @@ export const ACK_PACKETS: Item[] = TCP_CLIENT_IDS.map((clientId) =>
 );
 
 export const DATA_PACKET_COUNT = 6;
-export const DATA_PACKETS: Item[] = INITIAL_TCP_CLIENT_IDS.flatMap((clientId) =>
+export const DATA_PACKETS: Item[] = TCP_CLIENT_IDS.flatMap((clientId) =>
 	Array.from({ length: DATA_PACKET_COUNT }, (_, index) =>
 		buildDataPacket(clientId, index + 1),
 	),
