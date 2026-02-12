@@ -40,10 +40,11 @@ import type { QuestionProps } from "@/components/module";
 import { ProgressBar } from "./-components/ProgressBar";
 import {
 	GRID_SPACE_CONFIGS,
+	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	TCP_INBOX_IDS,
+	RECEIVED_POOL_CONFIG,
 	TERMINAL_PROMPT,
 	UDP_CLIENT_IDS,
 	UDP_CLIENT_SPACE_IDS,
@@ -55,7 +56,6 @@ import { useTcpPhase } from "./-utils/use-tcp-phase";
 import { useUdpPhase } from "./-utils/use-udp-phase";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
-const UDP_SPACE_ID_INTERNET = "internet";
 
 export const UdpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -120,7 +120,7 @@ const UdpGame = ({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: "inventory",
-			spaceIds: ["inventory"],
+			spaceIds: ["inventory", "received"],
 			title: "Inventory",
 			position: "bottom",
 			initialState: "expanded",
@@ -213,6 +213,7 @@ const UdpGame = ({
 					<DragOverlay getEntityLabel={(type) => type} />
 					<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
 						<Flex direction="column" gap={3}>
+							<PoolSpace ctx={gameCtx} config={RECEIVED_POOL_CONFIG} />
 							<PoolSpace ctx={gameCtx} config={INVENTORY_POOL_CONFIG} />
 						</Flex>
 					</DrawerLayout>
@@ -260,24 +261,16 @@ const TcpView = ({
 	onEntityClick: (entity: EntityData) => void;
 	isEntityClickable: (entity: EntityData) => boolean;
 }) => {
-	const showD = showClientD && GRID_SPACE_CONFIGS[TCP_INBOX_IDS.d];
-	const colCount = showD ? 4 : 3;
-	const showProgress =
-		tcpPhase.phase === "data-transfer" ||
-		tcpPhase.phase === "chaos-new-client" ||
-		tcpPhase.phase === "chaos-timeout" ||
-		tcpPhase.phase === "chaos-redo" ||
-		tcpPhase.phase === "breaking-point";
+	const visibleClients = showClientD
+		? [...INITIAL_TCP_CLIENT_IDS, "d" as const]
+		: [...INITIAL_TCP_CLIENT_IDS];
+	const colCount = visibleClients.length;
 
 	return (
 		<Grid
 			templateAreas={{
-				base: showD
-					? `"client-a-inbox" "client-b-inbox" "client-c-inbox" "client-d-inbox" "internet"`
-					: `"client-a-inbox" "client-b-inbox" "client-c-inbox" "internet"`,
-				md: showD
-					? `"client-a-inbox client-b-inbox client-c-inbox client-d-inbox" "internet internet internet internet"`
-					: `"client-a-inbox client-b-inbox client-c-inbox" "internet internet internet"`,
+				base: `${visibleClients.map((id) => `"client-${id}"`).join(" ")} "internet"`,
+				md: `"${visibleClients.map((id) => `client-${id}`).join(" ")}" "${visibleClients.map(() => "internet").join(" ")}"`,
 			}}
 			templateColumns={{
 				base: "1fr",
@@ -286,95 +279,44 @@ const TcpView = ({
 			gap={{ base: 2, md: 4 }}
 			alignItems="stretch"
 		>
-			{GRID_SPACE_CONFIGS[TCP_INBOX_IDS.a] ? (
-				<GridItem area={TCP_INBOX_IDS.a} minW={0}>
-					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
-						{clientStatus.a}
-					</Text>
-					<GridSpace
-						ctx={gameCtx}
-						config={GRID_SPACE_CONFIGS[TCP_INBOX_IDS.a]}
-						onEntityClick={onEntityClick}
-						isEntityClickable={isEntityClickable}
-					/>
-					{showProgress ? (
-						<Box mt={2}>
-							<CustomSpace id={UDP_CLIENT_SPACE_IDS.a}>
-								<TcpProgressBar
-									clientId="a"
-									statuses={tcpPhase.clientPacketStatus.a}
-								/>
-							</CustomSpace>
+			{visibleClients.map((clientId) => (
+				<GridItem key={clientId} area={`client-${clientId}`} minW={0}>
+					<CustomSpace id={UDP_CLIENT_SPACE_IDS[clientId]}>
+						<Box
+							bg="gray.900"
+							borderRadius="md"
+							border="1px solid"
+							borderColor="gray.800"
+							p={3}
+						>
+							<Text fontSize="xs" color="gray.400" mb={2} textAlign="center">
+								{clientStatus[clientId]}
+							</Text>
+							<TcpProgressBar
+								clientId={clientId}
+								statuses={tcpPhase.clientPacketStatus[clientId]}
+							/>
 						</Box>
-					) : null}
+					</CustomSpace>
 				</GridItem>
-			) : null}
-			{GRID_SPACE_CONFIGS[TCP_INBOX_IDS.b] ? (
-				<GridItem area={TCP_INBOX_IDS.b} minW={0}>
-					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
-						{clientStatus.b}
-					</Text>
-					<GridSpace
-						ctx={gameCtx}
-						config={GRID_SPACE_CONFIGS[TCP_INBOX_IDS.b]}
-						onEntityClick={onEntityClick}
-						isEntityClickable={isEntityClickable}
-					/>
-					{showProgress ? (
-						<Box mt={2}>
-							<CustomSpace id={UDP_CLIENT_SPACE_IDS.b}>
-								<TcpProgressBar
-									clientId="b"
-									statuses={tcpPhase.clientPacketStatus.b}
-								/>
-							</CustomSpace>
-						</Box>
-					) : null}
-				</GridItem>
-			) : null}
-			{GRID_SPACE_CONFIGS[TCP_INBOX_IDS.c] ? (
-				<GridItem area={TCP_INBOX_IDS.c} minW={0}>
-					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
-						{clientStatus.c}
-					</Text>
-					<GridSpace
-						ctx={gameCtx}
-						config={GRID_SPACE_CONFIGS[TCP_INBOX_IDS.c]}
-						onEntityClick={onEntityClick}
-						isEntityClickable={isEntityClickable}
-					/>
-					{showProgress ? (
-						<Box mt={2}>
-							<CustomSpace id={UDP_CLIENT_SPACE_IDS.c}>
-								<TcpProgressBar
-									clientId="c"
-									statuses={tcpPhase.clientPacketStatus.c}
-								/>
-							</CustomSpace>
-						</Box>
-					) : null}
-				</GridItem>
-			) : null}
-			{showD ? (
-				<GridItem area={TCP_INBOX_IDS.d} minW={0}>
-					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
-						{clientStatus.d}
-					</Text>
-					<GridSpace
-						ctx={gameCtx}
-						config={GRID_SPACE_CONFIGS[TCP_INBOX_IDS.d]}
-						onEntityClick={onEntityClick}
-						isEntityClickable={isEntityClickable}
-					/>
-				</GridItem>
-			) : null}
-			{GRID_SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
+			))}
+			{GRID_SPACE_CONFIGS.internet ? (
 				<GridItem area="internet" minW={0}>
 					<GridSpace
 						ctx={gameCtx}
-						config={GRID_SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
+						config={GRID_SPACE_CONFIGS.internet}
 						onEntityClick={onEntityClick}
 						isEntityClickable={isEntityClickable}
+						getEntityStatus={(entity) => {
+							const tcpState = entity.data?.tcpState as string | undefined;
+							if (tcpState === "in-transit" || tcpState === "waiting") {
+								return { status: "warning", message: "Sending" };
+							}
+							if (tcpState === "rejected") {
+								return { status: "error", message: "Rejected" };
+							}
+							return {};
+						}}
 					/>
 				</GridItem>
 			) : null}
@@ -433,37 +375,72 @@ const UdpView = ({
 		return clearArrows;
 	}, [arrows, setArrows, clearArrows]);
 
+	const colCount = UDP_CLIENT_IDS.length;
+
 	return (
-		<Flex direction="column" gap={4}>
-			{GRID_SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
+		<Grid
+			templateAreas={{
+				base: `${UDP_CLIENT_IDS.map((id) => `"client-${id}"`).join(" ")} "internet"`,
+				md: `"${UDP_CLIENT_IDS.map((id) => `client-${id}`).join(" ")}" "${UDP_CLIENT_IDS.map(() => "internet").join(" ")}"`,
+			}}
+			templateColumns={{
+				base: "1fr",
+				md: `repeat(${colCount}, minmax(0, 1fr))`,
+			}}
+			gap={{ base: 2, md: 4 }}
+			alignItems="stretch"
+		>
+			{UDP_CLIENT_IDS.map((clientId) => {
+				const cp = udpPhase.clientProgress.find((c) => c.clientId === clientId);
+				return (
+					<GridItem key={clientId} area={`client-${clientId}`} minW={0}>
+						<CustomSpace id={UDP_CLIENT_SPACE_IDS[clientId]}>
+							<Box
+								bg="gray.900"
+								borderRadius="md"
+								border="1px solid"
+								borderColor="gray.800"
+								p={3}
+							>
+								<Text fontSize="xs" color="gray.400" mb={2} textAlign="center">
+									UDP Streaming · Next frame: #{udpPhase.expectedFrame}
+								</Text>
+								{cp ? (
+									<ProgressBar
+										clientId={cp.clientId}
+										frameStatuses={cp.frames.map((received, index) => {
+											if (index >= udpPhase.lastSentFrame) {
+												return "pending";
+											}
+											return received ? "delivered" : "lost";
+										})}
+										percentage={cp.percent}
+									/>
+								) : null}
+							</Box>
+						</CustomSpace>
+					</GridItem>
+				);
+			})}
+			<GridItem area="internet" minW={0}>
 				<GridSpace
 					ctx={gameCtx}
-					config={GRID_SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
+					config={GRID_SPACE_CONFIGS.internet}
+					responsiveSize={{ base: [1, 1] }}
 					onEntityClick={onEntityClick}
 					isEntityClickable={isEntityClickable}
+					getEntityStatus={(entity) => {
+						const frameState = entity.data?.state as string | undefined;
+						if (frameState === "sending") {
+							return { status: "warning", message: "Sending" };
+						}
+						if (frameState === "rejected") {
+							return { status: "error", message: "Wrong order" };
+						}
+						return {};
+					}}
 				/>
-			) : null}
-
-			<Text fontSize="sm" color="gray.300">
-				UDP Streaming · Next frame: #{udpPhase.expectedFrame}
-			</Text>
-
-			<Flex direction="column" gap={3}>
-				{udpPhase.clientProgress.map((cp) => (
-					<CustomSpace key={cp.clientId} id={`client-${cp.clientId}`}>
-						<ProgressBar
-							clientId={cp.clientId}
-							frameStatuses={cp.frames.map((received, index) => {
-								if (index >= udpPhase.lastSentFrame) {
-									return "pending";
-								}
-								return received ? "delivered" : "lost";
-							})}
-							percentage={cp.percent}
-						/>
-					</CustomSpace>
-				))}
-			</Flex>
-		</Flex>
+			</GridItem>
+		</Grid>
 	);
 };

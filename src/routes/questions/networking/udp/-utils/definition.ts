@@ -1,19 +1,22 @@
 import type { QuestionDefinition } from "@/components/game/runtime";
 import { UDP_BEHAVIORS } from "./behaviors";
 import {
-	ACK_PACKETS,
 	CUSTOM_SPACE_CONFIGS,
 	DATA_PACKETS,
 	FRAME_ITEMS,
 	GRID_SPACE_CONFIGS,
+	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
-	RECEIVED_SYN_PACKETS,
+	RECEIVED_POOL_CONFIG,
 	SYN_ACK_PACKETS,
-	SYN_PACKETS,
 } from "./constants";
+
+const INITIAL_SYN_ACK_IDS = new Set(
+	INITIAL_TCP_CLIENT_IDS.map((id) => `syn-ack-packet-${id}`),
+);
 
 export const UDP_DEFINITION: QuestionDefinition<
 	string,
@@ -35,20 +38,9 @@ export const UDP_DEFINITION: QuestionDefinition<
 			config,
 		})),
 		{ kind: "pool" as const, config: INVENTORY_POOL_CONFIG },
+		{ kind: "pool" as const, config: RECEIVED_POOL_CONFIG },
 	],
 	entities: [
-		...SYN_PACKETS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-				draggable: item.draggable,
-				category: item.category,
-			},
-		})),
 		...SYN_ACK_PACKETS.map((item) => ({
 			config: {
 				id: item.id,
@@ -60,32 +52,9 @@ export const UDP_DEFINITION: QuestionDefinition<
 				draggable: item.draggable,
 				category: item.category,
 			},
-		})),
-		...ACK_PACKETS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-				draggable: item.draggable,
-				category: item.category,
-			},
+			initialSpace: INITIAL_SYN_ACK_IDS.has(item.id) ? "inventory" : undefined,
 		})),
 		...DATA_PACKETS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-				draggable: item.draggable,
-				category: item.category,
-			},
-		})),
-		...RECEIVED_SYN_PACKETS.map((item) => ({
 			config: {
 				id: item.id,
 				name: item.name,

@@ -19,12 +19,13 @@ import {
 	buildSynAckPacket,
 	DATA_PACKET_COUNT,
 	DATA_PACKETS,
+	FRAME_ITEMS,
 	INITIAL_TCP_CLIENT_IDS,
 	POOL_GROUP_IDS,
 	RECEIVED_SYN_PACKETS,
 	SYN_ACK_PACKETS,
 	TCP_CLIENT_IDS,
-	TCP_INBOX_IDS,
+	type TcpClientId,
 } from "./constants";
 import {
 	buildBreakingPointModal,
@@ -35,6 +36,7 @@ import {
 import type { PacketReceiptStatus, TcpPhase } from "./types";
 
 const INTERNET_TRAVEL_MS = 1500;
+const ACK_TRAVEL_MS = 1000;
 const DATA_ACK_MS = 500;
 const NOTICE_MS = 2000;
 
@@ -114,6 +116,7 @@ export const useTcpPhase = ({
 	const udpTransitionRef = useRef(false);
 	const initRef = useRef(false);
 	const redoPacketSentRef = useRef(false);
+	const clientPacketsRef = useRef(clientPackets);
 
 	const resetClientPackets = useCallback((clientId?: string) => {
 		if (!clientId) {
@@ -148,6 +151,10 @@ export const useTcpPhase = ({
 	useEffect(() => {
 		spacesRef.current = spaces;
 	}, [spaces]);
+
+	useEffect(() => {
+		clientPacketsRef.current = clientPackets;
+	}, [clientPackets]);
 
 	useEffect(() => {
 		activeRef.current = active;
@@ -331,6 +338,23 @@ export const useTcpPhase = ({
 		[getPoolGroupItems, updatePoolGroup],
 	);
 
+	const removeClientItemsFromPool = useCallback(
+		(id: string, clientIds: readonly string[]) => {
+			const clientSet = new Set(clientIds);
+			const existing = getPoolGroupItems(id);
+			const nextItems = existing.filter((item: Item) => {
+				const clientId = item.data?.clientId;
+				return !(typeof clientId === "string" && clientSet.has(clientId));
+			});
+			updatePoolGroup(id, {
+				items: nextItems,
+				visible:
+					id === POOL_GROUP_IDS.outgoing ? nextItems.length > 0 : undefined,
+			});
+		},
+		[getPoolGroupItems, updatePoolGroup],
+	);
+
 	const findItemLocationLatest = useCallback((itemId: string) => {
 		for (const [spaceId, space] of Object.entries(spacesRef.current)) {
 			const item = space.placedItems.find(
@@ -338,19 +362,6 @@ export const useTcpPhase = ({
 			);
 			if (item) {
 				return { item, spaceId };
-			}
-		}
-		return null;
-	}, []);
-
-	const findEmptyBlockLatest = useCallback((spaceId: string) => {
-		const space = spacesRef.current[spaceId];
-		if (!space) return null;
-		for (const row of space.blocks) {
-			for (const block of row) {
-				if (block.status === "empty") {
-					return { blockX: block.x, blockY: block.y };
-				}
 			}
 		}
 		return null;
@@ -387,22 +398,6 @@ export const useTcpPhase = ({
 		[world],
 	);
 
-	const transferItemToSpace = useCallback(
-		(itemId: string, targetSpace: string) => {
-			const location = findItemLocationLatest(itemId);
-			if (!location) return false;
-			if (location.spaceId === targetSpace) return true;
-			const target = findEmptyBlockLatest(targetSpace);
-			if (!target) return false;
-			world.moveEntity(itemId, targetSpace, {
-				row: target.blockY,
-				col: target.blockX,
-			});
-			return true;
-		},
-		[world, findEmptyBlockLatest, findItemLocationLatest],
-	);
-
 	const resetClientState = useCallback((clientId: string) => {
 		clientLocksRef.current[clientId] = false;
 		clientStateRef.current[clientId] = {
@@ -433,8 +428,9 @@ export const useTcpPhase = ({
 		}
 	}, [resetClientState]);
 
+	const spacesReady = Boolean(state.spaces.inventory && state.spaces.received);
 	useEffect(() => {
-		if (!active || initRef.current) return;
+		if (!active || !spacesReady || initRef.current) return;
 		initRef.current = true;
 		setPhase("handshake-synack");
 		setPacketsSent(0);
@@ -462,7 +458,6 @@ export const useTcpPhase = ({
 		});
 		updatePoolGroup(POOL_GROUP_IDS.incoming, {
 			visible: false,
-			items: [],
 		});
 		updatePoolGroup(POOL_GROUP_IDS.outgoing, {
 			visible: true,
@@ -475,6 +470,7 @@ export const useTcpPhase = ({
 		});
 	}, [
 		active,
+		spacesReady,
 		resetClientPackets,
 		resetClientState,
 		setClientStatusFor,
@@ -487,39 +483,35 @@ export const useTcpPhase = ({
 		[],
 	);
 
-	const areSynsReceived = useCallback(
-		(ids: readonly string[]) =>
-			ids.every((id) => clientStateRef.current[id]?.synReceived),
-		[],
-	);
-
 	const clearTcpSpaces = useCallback(() => {
-		const keys = [
-			"internet",
-			"client-a-inbox",
-			"client-b-inbox",
-			"client-c-inbox",
-			"client-d-inbox",
-		];
-		for (const key of keys) {
-			const space = spacesRef.current[key];
-			if (!space) continue;
-			for (const item of space.placedItems) {
-				removeItem(item, key);
-			}
+		const space = spacesRef.current.internet;
+		if (!space) return;
+		for (const item of space.placedItems) {
+			removeItem(item, "internet");
 		}
 	}, [removeItem]);
+
+	const clearInternetItemsForClients = useCallback(
+		(clientIds: readonly string[]) => {
+			const space = spacesRef.current.internet;
+			if (!space) return;
+			const clientSet = new Set(clientIds);
+			for (const item of space.placedItems) {
+				const clientId = item.data?.clientId;
+				if (typeof clientId === "string" && clientSet.has(clientId)) {
+					removeItem(item, "internet");
+				}
+			}
+		},
+		[removeItem],
+	);
 
 	const handleHandshakeComplete = useCallback(() => {
 		if (modalShownRef.current.connected) return;
 		modalShownRef.current.connected = true;
 		setPhase("connected");
-		updatePoolGroup(POOL_GROUP_IDS.dataPackets, {
-			visible: true,
-			items: DATA_PACKETS,
-		});
 		interactionSession.openModal(buildTcpConnectedModal());
-	}, [interactionSession, updatePoolGroup]);
+	}, [interactionSession]);
 
 	const triggerNewClient = useCallback(() => {
 		if (modalShownRef.current.newClient) return;
@@ -550,27 +542,28 @@ export const useTcpPhase = ({
 			clientStateRef.current[clientId].synReceived = true;
 			setClientStatusFor(clientId, "🟡 SYN received");
 		}
-		for (const clientId of INITIAL_TCP_CLIENT_IDS) {
-			resetClientPackets(clientId);
-		}
-		clearTcpSpaces();
-		updatePoolGroup(POOL_GROUP_IDS.received, {
-			visible: true,
-			items: RECEIVED_SYN_PACKETS,
-		});
+		clearInternetItemsForClients(INITIAL_TCP_CLIENT_IDS);
+		removeClientItemsFromPool(POOL_GROUP_IDS.received, INITIAL_TCP_CLIENT_IDS);
+		removeClientItemsFromPool(POOL_GROUP_IDS.outgoing, INITIAL_TCP_CLIENT_IDS);
+		removeClientItemsFromPool(
+			POOL_GROUP_IDS.dataPackets,
+			INITIAL_TCP_CLIENT_IDS,
+		);
+		ensurePoolItems(POOL_GROUP_IDS.received, RECEIVED_SYN_PACKETS, true);
 		updatePoolGroup(POOL_GROUP_IDS.incoming, {
 			visible: false,
-			items: [],
 		});
-		updatePoolGroup(POOL_GROUP_IDS.outgoing, {
-			visible: true,
-			items: SYN_ACK_PACKETS.filter((packet) =>
+		ensurePoolItems(
+			POOL_GROUP_IDS.outgoing,
+			SYN_ACK_PACKETS.filter((packet) =>
 				isInitialClientId(packet.data?.clientId),
 			),
-		});
+			true,
+		);
 	}, [
-		clearTcpSpaces,
-		resetClientPackets,
+		clearInternetItemsForClients,
+		ensurePoolItems,
+		removeClientItemsFromPool,
 		resetClientState,
 		setClientStatusFor,
 		updatePoolGroup,
@@ -587,11 +580,8 @@ export const useTcpPhase = ({
 		if (udpTransitionRef.current) return;
 		udpTransitionRef.current = true;
 		setPhase("breaking-point");
-		updatePoolGroup(POOL_GROUP_IDS.received, { visible: false });
-		updatePoolGroup(POOL_GROUP_IDS.incoming, { visible: false });
-		updatePoolGroup(POOL_GROUP_IDS.outgoing, { visible: false });
-		updatePoolGroup(POOL_GROUP_IDS.dataPackets, { visible: false });
-		updatePoolGroup(POOL_GROUP_IDS.frames, { visible: true });
+		updatePoolGroup(POOL_GROUP_IDS.received, { items: [] });
+		updatePoolGroup(POOL_GROUP_IDS.frames, { items: FRAME_ITEMS });
 		clearTcpSpaces();
 		onTransitionToUdp();
 	}, [clearTcpSpaces, onTransitionToUdp, updatePoolGroup]);
@@ -644,215 +634,66 @@ export const useTcpPhase = ({
 		}
 	}, [phase, triggerBreakingPoint, triggerNewClient]);
 
-	const handleSynPlacement = useCallback(
-		(item: SpaceItemLocation, inboxId: string, clientId: string) => {
-			const packetClient = item.data?.clientId;
-			if (packetClient !== clientId) {
-				updateItemIfNeeded(item, inboxId, {
-					status: "error",
-					tcpState: "rejected",
-				});
-				showNotice(
-					`This packet is for Client ${
-						CLIENT_LABELS[packetClient as string] ?? "?"
-					}.`,
-					"error",
-				);
-				const timer = setTimeout(() => {
-					const location = findItemLocationLatest(item.id);
-					if (location) {
-						removeItem(location.item, location.spaceId);
-					}
-				}, 400);
-				registerTimer(timer);
-				return;
-			}
-
-			updateItemIfNeeded(item, inboxId, {
-				status: "success",
-				tcpState: "delivered",
-			});
-			ensureClientState(clientId);
-			clientStateRef.current[clientId].synReceived = true;
-			setClientStatusFor(clientId, "🟡 SYN received");
-			ensurePoolItems(
-				POOL_GROUP_IDS.outgoing,
-				SYN_ACK_PACKETS.filter((packet) => packet.data?.clientId === clientId),
-				true,
-			);
-
-			if (areSynsReceived(INITIAL_TCP_CLIENT_IDS)) {
-				setPhase("handshake-synack");
-			}
-
-			const timer = setTimeout(() => {
-				const location = findItemLocationLatest(item.id);
-				if (location) {
-					removeItem(location.item, location.spaceId);
-				}
-			}, 400);
-			registerTimer(timer);
-		},
-		[
-			areSynsReceived,
-			ensurePoolItems,
-			ensureClientState,
-			findItemLocationLatest,
-			registerTimer,
-			removeItem,
-			setClientStatusFor,
-			showNotice,
-			updateItemIfNeeded,
-		],
-	);
-
 	const handleSynAckArrival = useCallback(
-		(item: SpaceItemLocation, inboxId: string, clientId: string) => {
-			if (!(clientId in TCP_INBOX_IDS)) {
-				return;
-			}
-			updateItemIfNeeded(item, inboxId, {
-				status: "success",
-				tcpState: "delivered",
-			});
-			const typedClientId = clientId as keyof typeof TCP_INBOX_IDS;
-			ensureClientState(typedClientId);
-			clientStateRef.current[typedClientId].synAckSent = true;
-			setClientStatusFor(typedClientId, "🟢 Connected");
-			clientStateRef.current[typedClientId].connected = true;
-			ensurePoolItems(
-				POOL_GROUP_IDS.received,
-				[buildReceivedAckPacket(typedClientId)],
-				true,
-			);
+		(item: SpaceItemLocation, clientId: string) => {
+			removeItem(item, "internet");
+			ensureClientState(clientId);
+			clientStateRef.current[clientId].synAckSent = true;
+			setClientStatusFor(clientId, "🟠 SYN-ACK sent");
 			removePoolItem(POOL_GROUP_IDS.outgoing, item.id);
 
-			if (areClientsConnected(INITIAL_TCP_CLIENT_IDS)) {
-				handleHandshakeComplete();
-			}
-			if (typedClientId === "d" && phase === "chaos-new-client") {
-				triggerTimeout();
-			}
+			const ackTimer = setTimeout(() => {
+				if (!activeRef.current) return;
+				clientStateRef.current[clientId].connected = true;
+				setClientStatusFor(clientId, "🟢 Connected");
+				ensurePoolItems(
+					POOL_GROUP_IDS.received,
+					[buildReceivedAckPacket(clientId as TcpClientId)],
+					true,
+				);
 
-			const timer = setTimeout(() => {
-				const location = findItemLocationLatest(item.id);
-				if (location) {
-					removeItem(location.item, location.spaceId);
+				const received =
+					clientPacketsRef.current[clientId] ??
+					Array.from({ length: DATA_PACKET_COUNT }, () => false);
+				const clientDataPackets = DATA_PACKETS.filter((pkt) => {
+					if (pkt.data?.clientId !== clientId) return false;
+					const seq = pkt.data?.seq as number;
+					return !received[seq - 1];
+				});
+				ensurePoolItems(POOL_GROUP_IDS.dataPackets, clientDataPackets, true);
+
+				if (areClientsConnected(INITIAL_TCP_CLIENT_IDS)) {
+					handleHandshakeComplete();
 				}
-			}, 400);
-			registerTimer(timer);
+				if (clientId === "d" && phase === "chaos-new-client") {
+					triggerTimeout();
+				}
+			}, ACK_TRAVEL_MS);
+			registerTimer(ackTimer);
 		},
 		[
 			areClientsConnected,
 			ensurePoolItems,
 			ensureClientState,
-			findItemLocationLatest,
 			handleHandshakeComplete,
+			phase,
+			registerTimer,
 			removePoolItem,
-			registerTimer,
 			removeItem,
 			setClientStatusFor,
 			triggerTimeout,
-			updateItemIfNeeded,
-			phase,
-		],
-	);
-
-	const handleAckPlacement = useCallback(
-		(item: SpaceItemLocation, inboxId: string, clientId: string) => {
-			const packetClient = item.data?.clientId;
-			if (packetClient !== clientId) {
-				updateItemIfNeeded(item, inboxId, {
-					status: "error",
-					tcpState: "rejected",
-				});
-				showNotice(
-					`This ACK is for Client ${
-						CLIENT_LABELS[packetClient as string] ?? "?"
-					}.`,
-					"error",
-				);
-				const timer = setTimeout(() => {
-					const location = findItemLocationLatest(item.id);
-					if (location) {
-						removeItem(location.item, location.spaceId);
-					}
-				}, 400);
-				registerTimer(timer);
-				return;
-			}
-
-			updateItemIfNeeded(item, inboxId, {
-				status: "success",
-				tcpState: "delivered",
-			});
-			ensureClientState(clientId);
-			clientStateRef.current[clientId].connected = true;
-			setClientStatusFor(clientId, "🟢 Connected");
-
-			if (clientId === "d" && phase === "chaos-new-client") {
-				triggerTimeout();
-			}
-
-			if (areClientsConnected(INITIAL_TCP_CLIENT_IDS)) {
-				handleHandshakeComplete();
-			}
-
-			const timer = setTimeout(() => {
-				const location = findItemLocationLatest(item.id);
-				if (location) {
-					removeItem(location.item, location.spaceId);
-				}
-			}, 400);
-			registerTimer(timer);
-		},
-		[
-			areClientsConnected,
-			ensureClientState,
-			findItemLocationLatest,
-			handleHandshakeComplete,
-			phase,
-			registerTimer,
-			removeItem,
-			setClientStatusFor,
-			showNotice,
-			triggerTimeout,
-			updateItemIfNeeded,
 		],
 	);
 
 	const handleDataArrival = useCallback(
-		(item: SpaceItemLocation, inboxId: string, clientId: string) => {
+		(item: SpaceItemLocation, clientId: string) => {
 			removePoolItem(POOL_GROUP_IDS.dataPackets, item.id);
-			if (item.data?.clientId !== clientId) {
-				updateItemIfNeeded(item, inboxId, {
-					status: "error",
-					tcpState: "rejected",
-				});
-				const timer = setTimeout(() => {
-					const location = findItemLocationLatest(item.id);
-					if (location) {
-						removeItem(location.item, location.spaceId);
-					}
-				}, 400);
-				registerTimer(timer);
-				return;
-			}
-
-			updateItemIfNeeded(item, inboxId, {
-				status: "success",
-				tcpState: "delivered",
-			});
 			if (typeof item.data?.seq === "number") {
 				markPacketReceived(clientId, item.data.seq);
 			}
 			const ackTimer = setTimeout(() => {
 				const location = findItemLocationLatest(item.id);
 				if (location) {
-					updateItemIfNeeded(location.item, location.spaceId, {
-						status: "success",
-						tcpState: "acked",
-					});
 					removeItem(location.item, location.spaceId);
 				}
 				clientLocksRef.current[clientId] = false;
@@ -867,7 +708,6 @@ export const useTcpPhase = ({
 			registerTimer,
 			removeItem,
 			removePoolItem,
-			updateItemIfNeeded,
 		],
 	);
 
@@ -888,13 +728,12 @@ export const useTcpPhase = ({
 				});
 				removePoolItem(POOL_GROUP_IDS.outgoing, item.id);
 				const clientId = item.data?.clientId as string | undefined;
-				const targetInbox = clientId
-					? TCP_INBOX_IDS[clientId as keyof typeof TCP_INBOX_IDS]
-					: null;
 				const timer = setTimeout(() => {
 					if (!activeRef.current) return;
-					if (!targetInbox) return;
-					transferItemToSpace(item.id, targetInbox);
+					if (!clientId) return;
+					const location = findItemLocationLatest(item.id);
+					if (location) removeItem(location.item, location.spaceId);
+					handleSynAckArrival(item, clientId);
 				}, INTERNET_TRAVEL_MS);
 				registerTimer(timer);
 				return;
@@ -945,54 +784,25 @@ export const useTcpPhase = ({
 				if (phase === "connected") {
 					setPhase("data-transfer");
 				}
-				const targetInbox =
-					TCP_INBOX_IDS[clientId as keyof typeof TCP_INBOX_IDS];
 				const timer = setTimeout(() => {
 					if (!activeRef.current) return;
-					transferItemToSpace(item.id, targetInbox);
+					const location = findItemLocationLatest(item.id);
+					if (location) removeItem(location.item, location.spaceId);
+					handleDataArrival(item, clientId);
 				}, INTERNET_TRAVEL_MS);
 				registerTimer(timer);
 			}
 		},
 		[
 			findItemLocationLatest,
+			handleDataArrival,
+			handleSynAckArrival,
 			phase,
 			registerTimer,
 			removeItem,
 			removePoolItem,
 			showNotice,
-			transferItemToSpace,
 			updateItemIfNeeded,
-		],
-	);
-
-	const handleInboxItem = useCallback(
-		(item: SpaceItemLocation, inboxId: string) => {
-			const clientId = inboxId.replace("client-", "").replace("-inbox", "");
-			if (!clientId) return;
-
-			switch (item.type) {
-				case "syn-packet":
-					handleSynPlacement(item, inboxId, clientId);
-					return;
-				case "syn-ack-packet":
-					handleSynAckArrival(item, inboxId, clientId);
-					return;
-				case "ack-packet":
-					handleAckPlacement(item, inboxId, clientId);
-					return;
-				case "data-packet":
-					handleDataArrival(item, inboxId, clientId);
-					return;
-				default:
-					return;
-			}
-		},
-		[
-			handleAckPlacement,
-			handleDataArrival,
-			handleSynAckArrival,
-			handleSynPlacement,
 		],
 	);
 
@@ -1014,38 +824,6 @@ export const useTcpPhase = ({
 
 		prevInternetIdsRef.current = currentIds;
 	}, [active, spaces.internet, handleInternetItem]);
-
-	const prevInboxIdsRef = useRef<Record<string, Set<string>>>({});
-	useEffect(() => {
-		if (!active) return;
-		const inboxes = [
-			"client-a-inbox",
-			"client-b-inbox",
-			"client-c-inbox",
-			"client-d-inbox",
-		];
-
-		for (const inboxId of inboxes) {
-			if (inboxId === "client-d-inbox" && !showClientD) {
-				continue;
-			}
-			const inboxSpace = spaces[inboxId];
-			if (!inboxSpace) continue;
-			const currentIds = new Set(
-				inboxSpace.placedItems.map((item: SpaceItemLocation) => item.id),
-			);
-			const prevIds = prevInboxIdsRef.current[inboxId] ?? new Set();
-			const newItems = inboxSpace.placedItems.filter(
-				(item: SpaceItemLocation) => !prevIds.has(item.id),
-			);
-
-			for (const item of newItems) {
-				handleInboxItem(item, inboxId);
-			}
-
-			prevInboxIdsRef.current[inboxId] = currentIds;
-		}
-	}, [active, spaces, handleInboxItem, showClientD]);
 
 	const dataSentCount = useMemo(() => packetsSent, [packetsSent]);
 

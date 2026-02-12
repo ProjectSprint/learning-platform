@@ -50,26 +50,15 @@ export const UDP_CLIENT_IDS = ["a", "b", "c"] as const;
 export type TcpClientId = (typeof TCP_CLIENT_IDS)[number];
 export type UdpClientId = (typeof UDP_CLIENT_IDS)[number];
 
-export type GridSpaceKey =
-	| "internet"
-	| "client-a-inbox"
-	| "client-b-inbox"
-	| "client-c-inbox"
-	| "client-d-inbox";
+export type GridSpaceKey = "internet";
 
-export type CustomSpaceKey = "client-a" | "client-b" | "client-c";
-
-export const TCP_INBOX_IDS = {
-	a: "client-a-inbox",
-	b: "client-b-inbox",
-	c: "client-c-inbox",
-	d: "client-d-inbox",
-} as const;
+export type CustomSpaceKey = "client-a" | "client-b" | "client-c" | "client-d";
 
 export const UDP_CLIENT_SPACE_IDS = {
 	a: "client-a",
 	b: "client-b",
 	c: "client-c",
+	d: "client-d",
 } as const;
 
 export const GRID_SPACE_CONFIGS: Record<GridSpaceKey, GridSpaceConfig> = {
@@ -81,49 +70,24 @@ export const GRID_SPACE_CONFIGS: Record<GridSpaceKey, GridSpaceConfig> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 3,
 	},
-	"client-a-inbox": {
-		id: "client-a-inbox",
-		name: "Client A",
-		rows: 2,
-		cols: 2,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 4,
-	},
-	"client-b-inbox": {
-		id: "client-b-inbox",
-		name: "Client B",
-		rows: 2,
-		cols: 2,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 4,
-	},
-	"client-c-inbox": {
-		id: "client-c-inbox",
-		name: "Client C",
-		rows: 2,
-		cols: 2,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 4,
-	},
-	"client-d-inbox": {
-		id: "client-d-inbox",
-		name: "Client D",
-		rows: 2,
-		cols: 2,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 4,
-	},
 };
 
 export const CUSTOM_SPACE_CONFIGS: Record<CustomSpaceKey, CustomSpaceConfig> = {
 	"client-a": { id: "client-a", name: "Client A" },
 	"client-b": { id: "client-b", name: "Client B" },
 	"client-c": { id: "client-c", name: "Client C" },
+	"client-d": { id: "client-d", name: "Client D" },
 };
 
 export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
 	id: "inventory",
 	name: "Inventory",
+	metadata: { visible: true },
+};
+
+export const RECEIVED_POOL_CONFIG: PoolSpaceConfig = {
+	id: "received",
+	name: "Received",
 	metadata: { visible: true },
 };
 
@@ -146,14 +110,7 @@ export const buildSynPacket = (clientId: TcpClientId): Item => ({
 	id: `syn-packet-${clientId}`,
 	type: "syn-packet",
 	name: `SYN from Client ${clientId.toUpperCase()}`,
-	allowedPlaces: [
-		"inventory",
-		"internet",
-		"client-a-inbox",
-		"client-b-inbox",
-		"client-c-inbox",
-		"client-d-inbox",
-	],
+	allowedPlaces: ["inventory", "internet"],
 	icon: { icon: "mdi:handshake-outline", color: "#FBBF24" },
 	data: { clientId, tcpState: "pending" },
 	tooltip: TOOLTIP_SYN,
@@ -161,14 +118,14 @@ export const buildSynPacket = (clientId: TcpClientId): Item => ({
 
 export const buildReceivedSynPacket = (clientId: TcpClientId): Item => ({
 	...buildSynPacket(clientId),
-	allowedPlaces: ["inventory"],
+	allowedPlaces: ["received"],
 	draggable: false,
 	data: { clientId, tcpState: "delivered" },
 });
 
 export const buildReceivedAckPacket = (clientId: TcpClientId): Item => ({
 	...buildAckPacket(clientId),
-	allowedPlaces: ["inventory"],
+	allowedPlaces: ["received"],
 	draggable: false,
 	data: { clientId, tcpState: "delivered" },
 });
@@ -177,14 +134,7 @@ export const buildSynAckPacket = (clientId: TcpClientId): Item => ({
 	id: `syn-ack-packet-${clientId}`,
 	type: "syn-ack-packet",
 	name: `SYN-ACK to Client ${clientId.toUpperCase()}`,
-	allowedPlaces: [
-		"inventory",
-		"internet",
-		"client-a-inbox",
-		"client-b-inbox",
-		"client-c-inbox",
-		"client-d-inbox",
-	],
+	allowedPlaces: ["inventory", "internet"],
 	icon: { icon: "mdi:handshake", color: "#F59E0B" },
 	data: { clientId, tcpState: "pending" },
 	tooltip: TOOLTIP_SYN_ACK,
@@ -194,13 +144,7 @@ export const buildAckPacket = (clientId: TcpClientId): Item => ({
 	id: `ack-packet-${clientId}`,
 	type: "ack-packet",
 	name: `ACK from Client ${clientId.toUpperCase()}`,
-	allowedPlaces: [
-		"inventory",
-		"client-a-inbox",
-		"client-b-inbox",
-		"client-c-inbox",
-		"client-d-inbox",
-	],
+	allowedPlaces: ["inventory", "internet"],
 	icon: { icon: "mdi:check-circle-outline", color: "#10B981" },
 	data: { clientId, tcpState: "pending" },
 	tooltip: TOOLTIP_ACK,
@@ -210,14 +154,7 @@ export const buildDataPacket = (clientId: TcpClientId, seq: number): Item => ({
 	id: `data-packet-${clientId}-${seq}`,
 	type: "data-packet",
 	name: `Packet ${seq} -> Client ${clientId.toUpperCase()}`,
-	allowedPlaces: [
-		"inventory",
-		"internet",
-		"client-a-inbox",
-		"client-b-inbox",
-		"client-c-inbox",
-		"client-d-inbox",
-	],
+	allowedPlaces: ["inventory", "internet"],
 	icon: { icon: "mdi:filmstrip", color: "#60A5FA" },
 	data: { clientId, seq, tcpState: "pending" },
 	tooltip: TOOLTIP_DATA,
