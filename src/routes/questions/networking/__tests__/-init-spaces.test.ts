@@ -18,8 +18,9 @@ import {
 } from "../tcp/-utils/constants";
 import { TCP_DEFINITION } from "../tcp/-utils/definition";
 import {
+	CUSTOM_SPACE_CONFIGS as UDP_CUSTOM_SPACE_CONFIGS,
+	GRID_SPACE_CONFIGS as UDP_GRID_SPACE_CONFIGS,
 	INVENTORY_POOL_CONFIG as UDP_INVENTORY_POOL_CONFIG,
-	SPACE_CONFIGS as UDP_SPACE_CONFIGS,
 } from "../udp/-utils/constants";
 import { UDP_DEFINITION } from "../udp/-utils/definition";
 import {
@@ -112,7 +113,8 @@ describe("networking init-spaces", () => {
 		});
 		assertBootOrder(actions);
 		assertSpaceCoverage(actions, [
-			...Object.keys(UDP_SPACE_CONFIGS),
+			...Object.keys(UDP_GRID_SPACE_CONFIGS),
+			...Object.keys(UDP_CUSTOM_SPACE_CONFIGS),
 			UDP_INVENTORY_POOL_CONFIG.id,
 		]);
 	});

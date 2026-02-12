@@ -1,7 +1,18 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useState,
+} from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
+import {
+	CustomSpace,
+	GameBoard,
+	GridSpace,
+	PoolSpace,
+} from "@/components/game/engine";
 import { useDragEngine } from "@/components/game/engines";
 import {
 	GameProvider,
@@ -15,6 +26,7 @@ import {
 } from "@/components/game/presentation/hint";
 import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
 import { Modal } from "@/components/game/presentation/modal";
+import { useBoardArrows } from "@/components/game/presentation/space/arrow";
 import {
 	TerminalInput,
 	TerminalLayout,
@@ -27,12 +39,14 @@ import type { QuestionProps } from "@/components/module";
 
 import { ProgressBar } from "./-components/ProgressBar";
 import {
+	GRID_SPACE_CONFIGS,
 	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
-	SPACE_CONFIGS,
 	TCP_INBOX_IDS,
 	TERMINAL_PROMPT,
+	UDP_CLIENT_IDS,
+	UDP_CLIENT_SPACE_IDS,
 } from "./-utils/constants";
 import { UDP_DEFINITION } from "./-utils/definition";
 import { getContextualHint } from "./-utils/get-contextual-hint";
@@ -171,6 +185,7 @@ const UdpGame = ({
 							gameCtx={gameCtx}
 							showClientD={tcpPhase.showClientD}
 							clientStatus={tcpPhase.clientStatus}
+							tcpPhase={tcpPhase}
 							onEntityClick={handleEntityClick}
 							isEntityClickable={isEntityClickable}
 						/>
@@ -234,17 +249,25 @@ const TcpView = ({
 	gameCtx,
 	showClientD,
 	clientStatus,
+	tcpPhase,
 	onEntityClick,
 	isEntityClickable,
 }: {
 	gameCtx: ReturnType<typeof useGameCtx>;
 	showClientD: boolean;
 	clientStatus: Record<string, string>;
+	tcpPhase: ReturnType<typeof useTcpPhase>;
 	onEntityClick: (entity: EntityData) => void;
 	isEntityClickable: (entity: EntityData) => boolean;
 }) => {
-	const showD = showClientD && SPACE_CONFIGS[TCP_INBOX_IDS.d];
+	const showD = showClientD && GRID_SPACE_CONFIGS[TCP_INBOX_IDS.d];
 	const colCount = showD ? 4 : 3;
+	const showProgress =
+		tcpPhase.phase === "data-transfer" ||
+		tcpPhase.phase === "chaos-new-client" ||
+		tcpPhase.phase === "chaos-timeout" ||
+		tcpPhase.phase === "chaos-redo" ||
+		tcpPhase.phase === "breaking-point";
 
 	return (
 		<Grid
@@ -263,43 +286,73 @@ const TcpView = ({
 			gap={{ base: 2, md: 4 }}
 			alignItems="stretch"
 		>
-			{SPACE_CONFIGS[TCP_INBOX_IDS.a] ? (
+			{GRID_SPACE_CONFIGS[TCP_INBOX_IDS.a] ? (
 				<GridItem area={TCP_INBOX_IDS.a} minW={0}>
 					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
 						{clientStatus.a}
 					</Text>
 					<GridSpace
 						ctx={gameCtx}
-						config={SPACE_CONFIGS[TCP_INBOX_IDS.a]}
+						config={GRID_SPACE_CONFIGS[TCP_INBOX_IDS.a]}
 						onEntityClick={onEntityClick}
 						isEntityClickable={isEntityClickable}
 					/>
+					{showProgress ? (
+						<Box mt={2}>
+							<CustomSpace id={UDP_CLIENT_SPACE_IDS.a}>
+								<TcpProgressBar
+									clientId="a"
+									statuses={tcpPhase.clientPacketStatus.a}
+								/>
+							</CustomSpace>
+						</Box>
+					) : null}
 				</GridItem>
 			) : null}
-			{SPACE_CONFIGS[TCP_INBOX_IDS.b] ? (
+			{GRID_SPACE_CONFIGS[TCP_INBOX_IDS.b] ? (
 				<GridItem area={TCP_INBOX_IDS.b} minW={0}>
 					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
 						{clientStatus.b}
 					</Text>
 					<GridSpace
 						ctx={gameCtx}
-						config={SPACE_CONFIGS[TCP_INBOX_IDS.b]}
+						config={GRID_SPACE_CONFIGS[TCP_INBOX_IDS.b]}
 						onEntityClick={onEntityClick}
 						isEntityClickable={isEntityClickable}
 					/>
+					{showProgress ? (
+						<Box mt={2}>
+							<CustomSpace id={UDP_CLIENT_SPACE_IDS.b}>
+								<TcpProgressBar
+									clientId="b"
+									statuses={tcpPhase.clientPacketStatus.b}
+								/>
+							</CustomSpace>
+						</Box>
+					) : null}
 				</GridItem>
 			) : null}
-			{SPACE_CONFIGS[TCP_INBOX_IDS.c] ? (
+			{GRID_SPACE_CONFIGS[TCP_INBOX_IDS.c] ? (
 				<GridItem area={TCP_INBOX_IDS.c} minW={0}>
 					<Text fontSize="xs" color="gray.400" mb={1} textAlign="center">
 						{clientStatus.c}
 					</Text>
 					<GridSpace
 						ctx={gameCtx}
-						config={SPACE_CONFIGS[TCP_INBOX_IDS.c]}
+						config={GRID_SPACE_CONFIGS[TCP_INBOX_IDS.c]}
 						onEntityClick={onEntityClick}
 						isEntityClickable={isEntityClickable}
 					/>
+					{showProgress ? (
+						<Box mt={2}>
+							<CustomSpace id={UDP_CLIENT_SPACE_IDS.c}>
+								<TcpProgressBar
+									clientId="c"
+									statuses={tcpPhase.clientPacketStatus.c}
+								/>
+							</CustomSpace>
+						</Box>
+					) : null}
 				</GridItem>
 			) : null}
 			{showD ? (
@@ -309,23 +362,42 @@ const TcpView = ({
 					</Text>
 					<GridSpace
 						ctx={gameCtx}
-						config={SPACE_CONFIGS[TCP_INBOX_IDS.d]}
+						config={GRID_SPACE_CONFIGS[TCP_INBOX_IDS.d]}
 						onEntityClick={onEntityClick}
 						isEntityClickable={isEntityClickable}
 					/>
 				</GridItem>
 			) : null}
-			{SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
+			{GRID_SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
 				<GridItem area="internet" minW={0}>
 					<GridSpace
 						ctx={gameCtx}
-						config={SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
+						config={GRID_SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
 						onEntityClick={onEntityClick}
 						isEntityClickable={isEntityClickable}
 					/>
 				</GridItem>
 			) : null}
 		</Grid>
+	);
+};
+
+const TcpProgressBar = ({
+	clientId,
+	statuses,
+}: {
+	clientId: string;
+	statuses: import("./-utils/types").PacketReceiptStatus[] | undefined;
+}) => {
+	if (!statuses) return null;
+	const receivedCount = statuses.filter((s) => s === "received").length;
+	const percentage = Math.round((receivedCount / statuses.length) * 100);
+	return (
+		<ProgressBar
+			clientId={clientId}
+			frameStatuses={statuses}
+			percentage={percentage}
+		/>
 	);
 };
 
@@ -340,31 +412,46 @@ const UdpView = ({
 	onEntityClick: (entity: EntityData) => void;
 	isEntityClickable: (entity: EntityData) => boolean;
 }) => {
+	const { setArrows, clearArrows } = useBoardArrows();
+
+	const arrows = useMemo(
+		() =>
+			UDP_CLIENT_IDS.map((clientId) => ({
+				id: `internet-to-client-${clientId}`,
+				from: { spaceId: "internet", anchor: "bl" as const },
+				to: {
+					spaceId: UDP_CLIENT_SPACE_IDS[clientId],
+					anchor: "tr" as const,
+				},
+				style: { stroke: "#8B5CF6", dashed: true, opacity: 0.6 },
+			})),
+		[],
+	);
+
+	useEffect(() => {
+		setArrows(arrows);
+		return clearArrows;
+	}, [arrows, setArrows, clearArrows]);
+
 	return (
 		<Flex direction="column" gap={4}>
-			{SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
+			{GRID_SPACE_CONFIGS[UDP_SPACE_ID_INTERNET] ? (
 				<GridSpace
 					ctx={gameCtx}
-					config={SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
+					config={GRID_SPACE_CONFIGS[UDP_SPACE_ID_INTERNET]}
 					onEntityClick={onEntityClick}
 					isEntityClickable={isEntityClickable}
 				/>
 			) : null}
 
-			<Box
-				borderWidth="1px"
-				borderColor="gray.700"
-				borderRadius="md"
-				bg="gray.900"
-				p={3}
-			>
-				<Text fontSize="sm" color="gray.300" mb={2}>
-					UDP Streaming · Next frame: #{udpPhase.expectedFrame}
-				</Text>
-				<Flex direction="column" gap={2}>
-					{udpPhase.clientProgress.map((cp) => (
+			<Text fontSize="sm" color="gray.300">
+				UDP Streaming · Next frame: #{udpPhase.expectedFrame}
+			</Text>
+
+			<Flex direction="column" gap={3}>
+				{udpPhase.clientProgress.map((cp) => (
+					<CustomSpace key={cp.clientId} id={`client-${cp.clientId}`}>
 						<ProgressBar
-							key={cp.clientId}
 							clientId={cp.clientId}
 							frameStatuses={cp.frames.map((received, index) => {
 								if (index >= udpPhase.lastSentFrame) {
@@ -374,9 +461,9 @@ const UdpView = ({
 							})}
 							percentage={cp.percent}
 						/>
-					))}
-				</Flex>
-			</Box>
+					</CustomSpace>
+				))}
+			</Flex>
 		</Flex>
 	);
 };

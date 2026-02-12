@@ -5,6 +5,8 @@
 
 // Types
 export type {
+	CustomSpaceConfig,
+	CustomSpaceData,
 	GridPosition,
 	GridSpaceConfig,
 	GridSpaceData,

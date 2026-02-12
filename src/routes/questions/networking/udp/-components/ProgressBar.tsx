@@ -1,6 +1,12 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 
-export type FrameStatus = "pending" | "delivered" | "lost";
+export type FrameStatus =
+	| "pending"
+	| "delivered"
+	| "lost"
+	| "received"
+	| "out-of-order"
+	| "missing";
 
 export type ProgressBarProps = {
 	clientId: string;
@@ -19,10 +25,14 @@ export function ProgressBar({
 	const getStatusColor = (status: FrameStatus) => {
 		switch (status) {
 			case "delivered":
+			case "received":
 				return "green.500";
 			case "lost":
 				return "red.500";
+			case "out-of-order":
+				return "yellow.500";
 			case "pending":
+			case "missing":
 				return "gray.700";
 		}
 	};
@@ -30,10 +40,14 @@ export function ProgressBar({
 	const getStatusLabel = (status: FrameStatus) => {
 		switch (status) {
 			case "delivered":
+			case "received":
 				return "✓";
 			case "lost":
 				return "✗";
+			case "out-of-order":
+				return "~";
 			case "pending":
+			case "missing":
 				return "";
 		}
 	};

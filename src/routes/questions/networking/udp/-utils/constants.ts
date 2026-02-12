@@ -1,4 +1,5 @@
 import type {
+	CustomSpaceConfig,
 	GridSpaceConfig,
 	PoolSpaceConfig,
 } from "@/components/game/domain/space";
@@ -49,15 +50,14 @@ export const UDP_CLIENT_IDS = ["a", "b", "c"] as const;
 export type TcpClientId = (typeof TCP_CLIENT_IDS)[number];
 export type UdpClientId = (typeof UDP_CLIENT_IDS)[number];
 
-export type UdpSpaceKey =
+export type GridSpaceKey =
 	| "internet"
 	| "client-a-inbox"
 	| "client-b-inbox"
 	| "client-c-inbox"
-	| "client-d-inbox"
-	| "client-a"
-	| "client-b"
-	| "client-c";
+	| "client-d-inbox";
+
+export type CustomSpaceKey = "client-a" | "client-b" | "client-c";
 
 export const TCP_INBOX_IDS = {
 	a: "client-a-inbox",
@@ -72,7 +72,7 @@ export const UDP_CLIENT_SPACE_IDS = {
 	c: "client-c",
 } as const;
 
-export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceConfig> = {
+export const GRID_SPACE_CONFIGS: Record<GridSpaceKey, GridSpaceConfig> = {
 	internet: {
 		id: "internet",
 		name: "Internet",
@@ -113,30 +113,12 @@ export const SPACE_CONFIGS: Record<UdpSpaceKey, GridSpaceConfig> = {
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 4,
 	},
-	"client-a": {
-		id: "client-a",
-		name: "Client A",
-		rows: 1,
-		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 0,
-	},
-	"client-b": {
-		id: "client-b",
-		name: "Client B",
-		rows: 1,
-		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 0,
-	},
-	"client-c": {
-		id: "client-c",
-		name: "Client C",
-		rows: 1,
-		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 0,
-	},
+};
+
+export const CUSTOM_SPACE_CONFIGS: Record<CustomSpaceKey, CustomSpaceConfig> = {
+	"client-a": { id: "client-a", name: "Client A" },
+	"client-b": { id: "client-b", name: "Client B" },
+	"client-c": { id: "client-c", name: "Client C" },
 };
 
 export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
