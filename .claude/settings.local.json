@@ -74,7 +74,8 @@
       "Bash(bd stats:*)",
       "Bash(pnpm exec vitest:*)",
       "Bash(bd dep remove:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(pnpm vitest run:*)"
     ]
   }
 }

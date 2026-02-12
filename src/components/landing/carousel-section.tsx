@@ -16,7 +16,7 @@ const topics = [
 		title: "Operating Systems",
 		description: "Processes, memory, file systems",
 		color: "#8B5CF6",
-		route: "/questions/networking",
+		route: "/questions/software",
 	},
 	{
 		id: "database",
