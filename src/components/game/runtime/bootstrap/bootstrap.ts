@@ -13,6 +13,7 @@
 import type { Action } from "../../application/state/actions";
 import { createItemData } from "../../domain/entity/entity-fns";
 import {
+	createCustomSpaceData,
 	createGridSpaceData,
 	createPoolSpaceData,
 } from "../../domain/space/space-fns";
@@ -50,7 +51,9 @@ export function bootstrapQuestion<CK extends string = string, TC = unknown>(
 		const space =
 			spaceDef.kind === "grid"
 				? createGridSpaceData(spaceDef.config)
-				: createPoolSpaceData(spaceDef.config);
+				: spaceDef.kind === "pool"
+					? createPoolSpaceData(spaceDef.config)
+					: createCustomSpaceData(spaceDef.config);
 
 		dispatch({
 			type: "SPACE_CREATED",

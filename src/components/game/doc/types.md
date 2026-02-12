@@ -87,10 +87,10 @@ Type guard: `isItemData(entity)` returns true if entity has `allowedPlaces` and
 
 ## SpaceData
 
-A space where entities live. Discriminated union of GridSpaceData and PoolSpaceData.
+A space where entities live. Discriminated union of GridSpaceData, PoolSpaceData, and CustomSpaceData.
 
 ```typescript
-type SpaceData = GridSpaceData | PoolSpaceData;
+type SpaceData = GridSpaceData | PoolSpaceData | CustomSpaceData;
 ```
 
 ### GridSpaceData
@@ -133,6 +133,20 @@ type PoolSpaceData = {
 };
 ```
 
+### CustomSpaceData
+
+A display-only container for custom question-specific UI. Does not store entities.
+
+```typescript
+type CustomSpaceData = {
+  kind: "custom";
+  id: string;
+  name?: string;
+  maxCapacity?: number;
+  metadata: Record<string, unknown>;
+};
+```
+
 ### Config Types (for QuestionDefinition)
 
 ```typescript
@@ -154,6 +168,13 @@ type PoolSpaceConfig = {
   columns?: number;
   maxCapacity?: number;
   allowReorder?: boolean;
+  metadata?: Record<string, unknown>;
+};
+
+type CustomSpaceConfig = {
+  id: string;
+  name?: string;
+  maxCapacity?: number;
   metadata?: Record<string, unknown>;
 };
 ```

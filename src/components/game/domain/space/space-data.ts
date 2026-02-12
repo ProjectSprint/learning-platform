@@ -105,9 +105,25 @@ export type PoolSpaceData = SpaceBase & {
 };
 
 /**
+ * Custom space configuration.
+ */
+export type CustomSpaceConfig = SpaceBaseConfig & {
+	// No additional fields — custom spaces are display-only containers
+};
+
+/**
+ * Plain data type for a custom display-only space.
+ * Does not store entities — rendering is fully controlled by the question page.
+ */
+export type CustomSpaceData = SpaceBase & {
+	/** Discriminator: this is a custom space */
+	kind: "custom";
+};
+
+/**
  * Discriminated union of all space types.
  */
-export type SpaceData = GridSpaceData | PoolSpaceData;
+export type SpaceData = GridSpaceData | PoolSpaceData | CustomSpaceData;
 
 // ============================================================================
 // Type Guards
@@ -129,6 +145,15 @@ export const isGridSpace = (space: SpaceData): space is GridSpaceData => {
  */
 export const isPoolSpace = (space: SpaceData): space is PoolSpaceData => {
 	return space.kind === "pool";
+};
+
+/**
+ * Type guard to check if a space data is a CustomSpaceData.
+ * @param space The space data to check
+ * @returns True if the space is a custom space
+ */
+export const isCustomSpace = (space: SpaceData): space is CustomSpaceData => {
+	return space.kind === "custom";
 };
 
 /**

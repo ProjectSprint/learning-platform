@@ -71,7 +71,10 @@
       "Bash(test:*)",
       "Bash(grep:*)",
       "Bash(sort:*)",
-      "Bash(bd stats:*)"
+      "Bash(bd stats:*)",
+      "Bash(pnpm exec vitest:*)",
+      "Bash(bd dep remove:*)",
+      "Bash(git status:*)"
     ]
   }
 }

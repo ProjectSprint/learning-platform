@@ -55,7 +55,8 @@ dispatched actions. Order does not matter.
 ```typescript
 type SpaceDefinition =
   | { kind: "grid"; config: GridSpaceConfig }
-  | { kind: "pool"; config: PoolSpaceConfig };
+  | { kind: "pool"; config: PoolSpaceConfig }
+  | { kind: "custom"; config: CustomSpaceConfig };
 ```
 
 **GridSpaceConfig:**
@@ -82,6 +83,15 @@ type SpaceDefinition =
   columns?: number;
   maxCapacity?: number;
   allowReorder?: boolean;
+}
+```
+
+**CustomSpaceConfig:**
+
+```typescript
+{
+  id: string;       // Unique space ID. Used for arrow targeting.
+  name?: string;    // Optional display name
 }
 ```
 
@@ -194,6 +204,7 @@ export const DHCP_DEFINITION: QuestionDefinition<DhcpConditionKey, DhcpBehaviorC
     { kind: "grid", config: { id: "router-board", name: "Router", rows: 1, cols: 1, metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 }, maxCapacity: 1 } },
     { kind: "grid", config: { id: "pc-2-board", name: "PC-2", rows: 1, cols: 1, metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 }, maxCapacity: 1 } },
     { kind: "pool", config: { id: "inventory", name: "Items" } },
+    // Custom spaces: { kind: "custom", config: { id: "status-panel", name: "Status" } },
   ],
   entities: [
     { config: { id: "pc-1", name: "PC-1", allowedPlaces: ["inventory", "pc-1-board"], icon: { icon: "twemoji:laptop-computer" }, data: { type: "pc" } }, initialSpace: "inventory" },

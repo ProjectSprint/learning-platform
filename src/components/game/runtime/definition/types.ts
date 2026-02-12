@@ -17,6 +17,7 @@ import type {
 	SpaceRule,
 } from "../../domain/question/question-ast";
 import type {
+	CustomSpaceConfig,
 	GridPosition,
 	GridSpaceConfig,
 	PoolSpaceConfig,
@@ -31,7 +32,8 @@ export type { Condition, InventoryRule, PhaseRule, SpaceRule };
  */
 export type SpaceDefinition =
 	| { kind: "grid"; config: GridSpaceConfig }
-	| { kind: "pool"; config: PoolSpaceConfig };
+	| { kind: "pool"; config: PoolSpaceConfig }
+	| { kind: "custom"; config: CustomSpaceConfig };
 
 /**
  * Declarative description of an entity to create during bootstrap.

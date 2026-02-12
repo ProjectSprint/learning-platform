@@ -160,7 +160,9 @@ export function entitiesToInventory(
 		const entityIdsInSpace: string[] =
 			space.kind === "pool"
 				? space.entityIds
-				: Object.keys(space.entityPositions ?? {});
+				: space.kind === "grid"
+					? Object.keys(space.entityPositions ?? {})
+					: [];
 
 		// Convert to legacy inventory items
 		const items: LegacyItem[] = [];

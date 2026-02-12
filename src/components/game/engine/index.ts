@@ -3,6 +3,8 @@
  * Provides declarative components for building game questions.
  */
 
+export type { CustomSpaceProps } from "./CustomSpace";
+export { CustomSpace } from "./CustomSpace";
 export type { GameBoardProps } from "./GameBoard";
 export { GameBoard } from "./GameBoard";
 export type { GridSpaceProps, ResponsiveSize } from "./GridSpace";

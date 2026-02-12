@@ -7,6 +7,8 @@
 
 import { isInBounds } from "../../infrastructure/geometry/coordinates";
 import type {
+	CustomSpaceConfig,
+	CustomSpaceData,
 	GridPosition,
 	GridSpaceConfig,
 	GridSpaceData,
@@ -55,6 +57,23 @@ export const createPoolSpaceData = (config: PoolSpaceConfig): PoolSpaceData => {
 		columns: config.columns,
 		allowReorder: config.allowReorder ?? true,
 		entityIds: [],
+	};
+};
+
+/**
+ * Creates a new CustomSpaceData object.
+ * @param config Custom space configuration
+ * @returns A new custom space data object
+ */
+export const createCustomSpaceData = (
+	config: CustomSpaceConfig,
+): CustomSpaceData => {
+	return {
+		id: config.id,
+		name: config.name,
+		maxCapacity: config.maxCapacity,
+		metadata: config.metadata ?? {},
+		kind: "custom",
 	};
 };
 
@@ -414,7 +433,10 @@ export const spaceContains = (space: SpaceData, entityId: string): boolean => {
 	if (space.kind === "grid") {
 		return gridContains(space, entityId);
 	}
-	return poolContains(space, entityId);
+	if (space.kind === "pool") {
+		return poolContains(space, entityId);
+	}
+	return false;
 };
 
 /**
@@ -428,7 +450,10 @@ export const spaceRemove = (space: SpaceData, entityId: string): boolean => {
 	if (space.kind === "grid") {
 		return gridRemove(space, entityId);
 	}
-	return poolRemove(space, entityId);
+	if (space.kind === "pool") {
+		return poolRemove(space, entityId);
+	}
+	return false;
 };
 
 /**
@@ -440,7 +465,10 @@ export const spaceGetEntityCount = (space: SpaceData): number => {
 	if (space.kind === "grid") {
 		return gridGetEntityCount(space);
 	}
-	return poolGetEntityCount(space);
+	if (space.kind === "pool") {
+		return poolGetEntityCount(space);
+	}
+	return 0;
 };
 
 /**
@@ -452,7 +480,10 @@ export const spaceIsFull = (space: SpaceData): boolean => {
 	if (space.kind === "grid") {
 		return gridIsFull(space);
 	}
-	return poolIsFull(space);
+	if (space.kind === "pool") {
+		return poolIsFull(space);
+	}
+	return false;
 };
 
 /**
@@ -464,5 +495,8 @@ export const spaceIsEmpty = (space: SpaceData): boolean => {
 	if (space.kind === "grid") {
 		return gridIsEmpty(space);
 	}
-	return poolIsEmpty(space);
+	if (space.kind === "pool") {
+		return poolIsEmpty(space);
+	}
+	return true;
 };

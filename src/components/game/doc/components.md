@@ -157,6 +157,50 @@ shown dimmed and cannot be dragged from pool.
 
 ---
 
+## CustomSpace
+
+Display-only container for question-specific custom UI. Supports arrow targeting.
+
+```typescript
+import { CustomSpace } from "@/components/game/engine";
+```
+
+```tsx
+<CustomSpace id="progress-widget">
+  <ProgressBar value={behaviorContext.progress} max={5} />
+</CustomSpace>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `id` | `string` | Space ID (must match a custom space in QuestionDefinition) |
+| `children` | `ReactNode` | Custom content to render |
+
+**Side effects:**
+- Reads space data from GameState to verify existence.
+- Registers DOM element with BoardRegistry for arrow targeting.
+- Renders null with dev warning if space not found.
+
+**Does NOT:**
+- Store or manage entities
+- Participate in drag-and-drop
+- Apply any styling — the question controls all visual aspects
+
+**Arrow targeting:** CustomSpace registers with BoardRegistry, so arrows can
+reference it by spaceId:
+
+```typescript
+setArrows([{
+  id: "server-to-widget",
+  from: { spaceId: "server", anchor: "br" },
+  to: { spaceId: "progress-widget", anchor: "bl" },
+}]);
+```
+
+---
+
 ## DragOverlay
 
 Floating drag preview that follows the pointer during drag.
