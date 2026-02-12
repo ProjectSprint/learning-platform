@@ -20,12 +20,12 @@ export const SoftwareModulePage = () => {
 			color="gray.100"
 		>
 			<Flex flex="1" align="center" justify="center">
-				<Box textAlign="center" maxWidth="560px" px={4}>
+				<Box textAlign="center" maxWidth="480px" px={4}>
 					<Text fontSize="3xl" fontWeight="bold" mb={4}>
 						Welcome to Software Fundamentals
 					</Text>
 					<Text fontSize="md" color="gray.400" mb={2}>
-						In this module, you will learn how software uses CPU cores:
+						In this module, you will learn how to:
 					</Text>
 					<Box as="ul" textAlign="left" color="gray.300" mb={8} pl={6}>
 						<Text as="li" mb={1}>
