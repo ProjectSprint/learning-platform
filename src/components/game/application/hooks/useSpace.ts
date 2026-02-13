@@ -4,7 +4,11 @@
  */
 
 import type { GridPosition, SpaceData } from "../../domain/space/space-data";
-import { isGridSpace, isPoolSpace } from "../../domain/space/space-data";
+import {
+	isGridSpace,
+	isPathSpace,
+	isPoolSpace,
+} from "../../domain/space/space-data";
 import {
 	gridGetPosition,
 	spaceGetEntityCount,
@@ -73,6 +77,8 @@ export const useSpaceEntities = (spaceId: string): string[] => {
 		return Object.keys(space.entityPositions);
 	} else if (isPoolSpace(space)) {
 		// Pool space: return entityIds array
+		return space.entityIds;
+	} else if (isPathSpace(space)) {
 		return space.entityIds;
 	}
 

@@ -6,7 +6,9 @@
 import { describe, expect, it } from "vitest";
 import type { SpaceData } from "../space-data";
 import {
+	createCustomSpaceData,
 	createGridSpaceData,
+	createPathSpaceData,
 	createPoolSpaceData,
 	gridAdd,
 	gridCanAccept,
@@ -20,6 +22,12 @@ import {
 	gridIsFull,
 	gridIsOccupied,
 	gridRemove,
+	pathAdd,
+	pathContains,
+	pathGetEntityCount,
+	pathIsEmpty,
+	pathIsFull,
+	pathRemove,
 	poolAdd,
 	poolContains,
 	poolGetEntityCount,
@@ -107,6 +115,31 @@ describe("Factory Functions", () => {
 		expect(space.allowReorder).toBe(false);
 		expect(space.maxCapacity).toBe(10);
 		expect(space.metadata).toEqual({ category: "items" });
+	});
+
+	it("creates a path space with minimal config", () => {
+		const space = createPathSpaceData({
+			id: "path-1",
+			path: "M 10 50 L 300 50",
+		});
+
+		expect(space.id).toBe("path-1");
+		expect(space.kind).toBe("path");
+		expect(space.path).toBe("M 10 50 L 300 50");
+		expect(space.viewBox).toBe("0 0 320 120");
+		expect(space.duration).toBe(1.5);
+		expect(space.speedMultiplier).toBe(1);
+		expect(space.entityIds).toEqual([]);
+	});
+
+	it("creates a custom space", () => {
+		const space = createCustomSpaceData({
+			id: "custom-1",
+			name: "Custom",
+		});
+
+		expect(space.id).toBe("custom-1");
+		expect(space.kind).toBe("custom");
 	});
 
 	it("createSpaceData returns grid space for grid config", () => {
@@ -585,6 +618,35 @@ describe("Pool Space - Query Operations", () => {
 		poolAdd(space, "ent-3");
 
 		expect(poolIsFull(space)).toBe(false);
+	});
+});
+
+describe("Path Space Operations", () => {
+	it("adds and removes entities in path space", () => {
+		const space = createPathSpaceData({
+			id: "path-1",
+			path: "M 10 50 L 300 50",
+		});
+
+		expect(pathAdd(space, "ent-1")).toBe(true);
+		expect(pathContains(space, "ent-1")).toBe(true);
+		expect(pathGetEntityCount(space)).toBe(1);
+		expect(pathIsEmpty(space)).toBe(false);
+		expect(pathRemove(space, "ent-1")).toBe(true);
+		expect(pathContains(space, "ent-1")).toBe(false);
+		expect(pathIsEmpty(space)).toBe(true);
+	});
+
+	it("respects max capacity", () => {
+		const space = createPathSpaceData({
+			id: "path-1",
+			path: "M 10 50 L 300 50",
+			maxCapacity: 1,
+		});
+
+		expect(pathAdd(space, "ent-1")).toBe(true);
+		expect(pathIsFull(space)).toBe(true);
+		expect(pathAdd(space, "ent-2")).toBe(false);
 	});
 });
 

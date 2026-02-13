@@ -87,10 +87,10 @@ Type guard: `isItemData(entity)` returns true if entity has `allowedPlaces` and
 
 ## SpaceData
 
-A space where entities live. Discriminated union of GridSpaceData, PoolSpaceData, and CustomSpaceData.
+A space where entities live. Discriminated union of GridSpaceData, PoolSpaceData, PathSpaceData, and CustomSpaceData.
 
 ```typescript
-type SpaceData = GridSpaceData | PoolSpaceData | CustomSpaceData;
+type SpaceData = GridSpaceData | PoolSpaceData | PathSpaceData | CustomSpaceData;
 ```
 
 ### GridSpaceData
@@ -147,6 +147,25 @@ type CustomSpaceData = {
 };
 ```
 
+### PathSpaceData
+
+A path-driven transport lane. Entities are accepted, animated along an SVG path, then removed.
+
+```typescript
+type PathSpaceData = {
+  kind: "path";
+  id: string;
+  name?: string;
+  path: string;              // SVG path "d"
+  viewBox: string;           // SVG viewBox string
+  duration: number;          // Base animation duration in seconds
+  speedMultiplier: number;   // Runtime speed multiplier
+  entityIds: string[];       // Entities currently in transit
+  maxCapacity?: number;
+  metadata: Record<string, unknown>;
+};
+```
+
 ### Config Types (for QuestionDefinition)
 
 ```typescript
@@ -168,6 +187,17 @@ type PoolSpaceConfig = {
   columns?: number;
   maxCapacity?: number;
   allowReorder?: boolean;
+  metadata?: Record<string, unknown>;
+};
+
+type PathSpaceConfig = {
+  id: string;
+  name?: string;
+  path: string;
+  viewBox?: string;
+  duration?: number;
+  speedMultiplier?: number;
+  maxCapacity?: number;
   metadata?: Record<string, unknown>;
 };
 

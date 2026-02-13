@@ -21,4 +21,11 @@ describe("engine space contract", () => {
 		expect(source).not.toContain('type: "SPACE_CREATED"');
 		expect(source).toContain(missingSpaceWarningSuffix);
 	});
+
+	it("PathSpace has no implicit space-creation dispatch path", () => {
+		const source = readSource("src/components/game/engine/PathSpace.tsx");
+		expect(source).not.toContain("CREATE_SPACE");
+		expect(source).not.toContain('type: "SPACE_CREATED"');
+		expect(source).toContain(missingSpaceWarningSuffix);
+	});
 });

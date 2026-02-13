@@ -49,6 +49,19 @@ data PoolSpaceData = PoolSpaceData
   }
   deriving (Eq, Show)
 
+data PathSpaceData = PathSpaceData
+  { pathSpaceId :: SpaceId,
+    pathSpaceName :: Maybe Text,
+    pathSvgPath :: Text,
+    pathViewBox :: Text,
+    pathDurationSeconds :: Double,
+    pathSpeedMultiplier :: Double,
+    pathEntityIds :: [EntityId],
+    pathMaxCapacity :: Maybe Int,
+    pathMetadata :: Map Text Value
+  }
+  deriving (Eq, Show)
+
 data CustomSpaceData = CustomSpaceData
   { customSpaceId :: SpaceId,
     customSpaceName :: Maybe Text,
@@ -60,6 +73,7 @@ data CustomSpaceData = CustomSpaceData
 data SpaceData
   = GridSpace GridSpaceData
   | PoolSpace PoolSpaceData
+  | PathSpace PathSpaceData
   | CustomSpace CustomSpaceData
   deriving (Eq, Show)
 
@@ -86,6 +100,18 @@ data PoolSpaceConfig = PoolSpaceConfig
   }
   deriving (Eq, Show)
 
+data PathSpaceConfig = PathSpaceConfig
+  { configPathId :: SpaceId,
+    configPathName :: Maybe Text,
+    configPathSvgPath :: Text,
+    configPathViewBox :: Text,
+    configPathDurationSeconds :: Double,
+    configPathSpeedMultiplier :: Double,
+    configPathMaxCapacity :: Maybe Int,
+    configPathMetadata :: Map Text Value
+  }
+  deriving (Eq, Show)
+
 data CustomSpaceConfig = CustomSpaceConfig
   { configCustomId :: SpaceId,
     configCustomName :: Maybe Text,
@@ -97,6 +123,7 @@ data CustomSpaceConfig = CustomSpaceConfig
 data SpaceDefinition
   = DefineGridSpace GridSpaceConfig
   | DefinePoolSpace PoolSpaceConfig
+  | DefinePathSpace PathSpaceConfig
   | DefineCustomSpace CustomSpaceConfig
   deriving (Eq, Show)
 
@@ -104,6 +131,7 @@ spaceIdOf :: SpaceData -> SpaceId
 spaceIdOf = \case
   GridSpace s -> gridSpaceId s
   PoolSpace s -> poolSpaceId s
+  PathSpace s -> pathSpaceId s
   CustomSpace s -> customSpaceId s
 
 spaceContains :: SpaceData -> EntityId -> Bool
@@ -111,6 +139,7 @@ spaceContains space entityId =
   case space of
     GridSpace GridSpaceData {gridEntityPositions} -> Map.member entityId gridEntityPositions
     PoolSpace PoolSpaceData {poolEntityIds} -> entityId `elem` poolEntityIds
+    PathSpace PathSpaceData {pathEntityIds} -> entityId `elem` pathEntityIds
     CustomSpace _ -> False
 
 isInBounds :: GridSpaceData -> GridPosition -> Bool
@@ -170,4 +199,23 @@ poolRemove :: PoolSpaceData -> EntityId -> Maybe PoolSpaceData
 poolRemove pool entityId
   | entityId `elem` poolEntityIds pool =
       Just pool {poolEntityIds = filter (/= entityId) (poolEntityIds pool)}
+  | otherwise = Nothing
+
+pathAdd :: PathSpaceData -> EntityId -> Maybe PathSpaceData
+pathAdd pathSpace entityId
+  | not capacityOk = Nothing
+  | otherwise =
+      let without = filter (/= entityId) (pathEntityIds pathSpace)
+       in Just pathSpace {pathEntityIds = without ++ [entityId]}
+  where
+    currentCount = length (pathEntityIds pathSpace)
+    alreadyThere = entityId `elem` pathEntityIds pathSpace
+    capacityOk = case pathMaxCapacity pathSpace of
+      Nothing -> True
+      Just cap -> alreadyThere || currentCount < cap
+
+pathRemove :: PathSpaceData -> EntityId -> Maybe PathSpaceData
+pathRemove pathSpace entityId
+  | entityId `elem` pathEntityIds pathSpace =
+      Just pathSpace {pathEntityIds = filter (/= entityId) (pathEntityIds pathSpace)}
   | otherwise = Nothing

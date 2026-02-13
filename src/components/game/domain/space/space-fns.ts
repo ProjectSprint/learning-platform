@@ -12,6 +12,8 @@ import type {
 	GridPosition,
 	GridSpaceConfig,
 	GridSpaceData,
+	PathSpaceConfig,
+	PathSpaceData,
 	PoolSpaceConfig,
 	PoolSpaceData,
 	SpaceData,
@@ -56,6 +58,26 @@ export const createPoolSpaceData = (config: PoolSpaceConfig): PoolSpaceData => {
 		layout: config.layout ?? "grid",
 		columns: config.columns,
 		allowReorder: config.allowReorder ?? true,
+		entityIds: [],
+	};
+};
+
+/**
+ * Creates a new PathSpaceData object.
+ * @param config Path space configuration
+ * @returns A new path space data object
+ */
+export const createPathSpaceData = (config: PathSpaceConfig): PathSpaceData => {
+	return {
+		id: config.id,
+		name: config.name,
+		maxCapacity: config.maxCapacity,
+		metadata: config.metadata ?? {},
+		kind: "path",
+		path: config.path,
+		viewBox: config.viewBox ?? "0 0 320 120",
+		duration: config.duration ?? 1.5,
+		speedMultiplier: config.speedMultiplier ?? 1,
 		entityIds: [],
 	};
 };
@@ -420,6 +442,96 @@ export const poolIsEmpty = (space: PoolSpaceData): boolean => {
 };
 
 // ============================================================================
+// Path Space Functions
+// ============================================================================
+
+/**
+ * Adds an entity to a path space.
+ * Mutates the path space in-place (for use with Immer produce()).
+ * @param space The path space data to mutate
+ * @param entityId The ID of the entity to add
+ * @returns True if the entity was successfully added, false otherwise
+ */
+export const pathAdd = (space: PathSpaceData, entityId: string): boolean => {
+	if (space.maxCapacity !== undefined) {
+		const currentCount = space.entityIds.length;
+		if (
+			!space.entityIds.includes(entityId) &&
+			currentCount >= space.maxCapacity
+		) {
+			return false;
+		}
+	}
+
+	const existingIndex = space.entityIds.indexOf(entityId);
+	if (existingIndex !== -1) {
+		space.entityIds.splice(existingIndex, 1);
+	}
+
+	space.entityIds.push(entityId);
+	return true;
+};
+
+/**
+ * Removes an entity from a path space.
+ * @param space The path space data to mutate
+ * @param entityId The ID of the entity to remove
+ * @returns True if the entity was successfully removed, false otherwise
+ */
+export const pathRemove = (space: PathSpaceData, entityId: string): boolean => {
+	const index = space.entityIds.indexOf(entityId);
+	if (index === -1) {
+		return false;
+	}
+
+	space.entityIds.splice(index, 1);
+	return true;
+};
+
+/**
+ * Checks if a path space contains an entity.
+ * @param space The path space data
+ * @param entityId The ID of the entity to check for
+ * @returns True if the entity is in the space
+ */
+export const pathContains = (
+	space: PathSpaceData,
+	entityId: string,
+): boolean => {
+	return space.entityIds.includes(entityId);
+};
+
+/**
+ * Gets the number of entities in a path space.
+ * @param space The path space data
+ * @returns The entity count
+ */
+export const pathGetEntityCount = (space: PathSpaceData): number => {
+	return space.entityIds.length;
+};
+
+/**
+ * Checks if a path space is at maximum capacity.
+ * @param space The path space data
+ * @returns True if the space is full
+ */
+export const pathIsFull = (space: PathSpaceData): boolean => {
+	if (space.maxCapacity === undefined) {
+		return false;
+	}
+	return pathGetEntityCount(space) >= space.maxCapacity;
+};
+
+/**
+ * Checks if a path space is empty.
+ * @param space The path space data
+ * @returns True if the space contains no entities
+ */
+export const pathIsEmpty = (space: PathSpaceData): boolean => {
+	return pathGetEntityCount(space) === 0;
+};
+
+// ============================================================================
 // Polymorphic Space Functions
 // ============================================================================
 
@@ -435,6 +547,9 @@ export const spaceContains = (space: SpaceData, entityId: string): boolean => {
 	}
 	if (space.kind === "pool") {
 		return poolContains(space, entityId);
+	}
+	if (space.kind === "path") {
+		return pathContains(space, entityId);
 	}
 	return false;
 };
@@ -453,6 +568,9 @@ export const spaceRemove = (space: SpaceData, entityId: string): boolean => {
 	if (space.kind === "pool") {
 		return poolRemove(space, entityId);
 	}
+	if (space.kind === "path") {
+		return pathRemove(space, entityId);
+	}
 	return false;
 };
 
@@ -467,6 +585,9 @@ export const spaceGetEntityCount = (space: SpaceData): number => {
 	}
 	if (space.kind === "pool") {
 		return poolGetEntityCount(space);
+	}
+	if (space.kind === "path") {
+		return pathGetEntityCount(space);
 	}
 	return 0;
 };
@@ -483,6 +604,9 @@ export const spaceIsFull = (space: SpaceData): boolean => {
 	if (space.kind === "pool") {
 		return poolIsFull(space);
 	}
+	if (space.kind === "path") {
+		return pathIsFull(space);
+	}
 	return false;
 };
 
@@ -497,6 +621,9 @@ export const spaceIsEmpty = (space: SpaceData): boolean => {
 	}
 	if (space.kind === "pool") {
 		return poolIsEmpty(space);
+	}
+	if (space.kind === "path") {
+		return pathIsEmpty(space);
 	}
 	return true;
 };

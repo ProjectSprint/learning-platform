@@ -189,13 +189,21 @@ world.updateEntityState("pc-1", { ip: "192.168.1.10", status: "success" });
 **deleteEntities(entityIds)** — Remove entities from state entirely.
 
 **addToSpace(entityId, spaceId, position?)** — Add entity to a space. For grid
-spaces, position is required. Emits ENTITY_ENTERED_SPACE event.
+spaces, position is required. Pool/Path spaces ignore position. Emits
+ENTITY_ENTERED_SPACE event.
 
 **removeFromSpace(entityId, spaceId)** — Remove entity from a space. Emits
 ENTITY_LEFT_SPACE event.
 
 **moveEntity(entityId, toSpaceId, position?)** — Move entity from its current
 space to a new space. Emits ENTITY_MOVED event.
+
+PathSpace note:
+- Moving into a path space emits `ENTITY_MOVED` (to path space).
+- PathSpace engine removes entity when transit completes, which emits
+  `ENTITY_LEFT_SPACE`.
+- Behavior rules should listen to `ENTITY_LEFT_SPACE` with `space` filter set
+  to the path space ID for post-path routing.
 
 **moveEntityToGrid(entityId, spaceId)** — Move entity to the first available
 cell in a grid space. Returns error if grid is full.

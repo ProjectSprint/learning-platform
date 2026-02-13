@@ -99,7 +99,7 @@ const MyPage = ({ onQuestionComplete }) => {
 Question Page
     │
     ├── QuestionDefinition (declarative config)
-    │     ├── spaces[]        → bootstrap creates GridSpaceData / PoolSpaceData
+    │     ├── spaces[]        → bootstrap creates GridSpaceData / PoolSpaceData / PathSpaceData
     │     ├── entities[]      → bootstrap creates ItemData, places in initial spaces
     │     ├── phaseRules[]    → page resolves phases from condition context
     │     └── behaviors       → reactor matches events → runs handlers
@@ -115,6 +115,7 @@ Question Page
                   └── GameBoard (arrow surface)
                         ├── GridSpace (state-aware grid with drag-drop)
                         ├── PoolSpace (state-aware inventory)
+                        ├── PathSpace (state-aware transit lane)
                         ├── DragOverlay (drag preview)
                         ├── DrawerLayout (responsive drawer panel)
                         └── Modal (data-driven modal renderer)
@@ -130,7 +131,7 @@ Use this mental model when wiring a question page:
    `SET_QUESTION`, `SET_PHASE`, `SPACE_CREATED` (per space),
    `ENTITY_CREATED` + `ENTITY_ADDED` (per entity with `initialSpace`).
 4. A subsequent render sees the created spaces/entities in `state`.
-5. Engine components (`GridSpace`, `PoolSpace`, `CustomSpace`) can now
+5. Engine components (`GridSpace`, `PoolSpace`, `PathSpace`, `CustomSpace`) can now
    resolve those spaces normally.
 6. User interactions emit events (`ENTITY_MOVED`, `MODAL_SUBMITTED`, etc.).
 7. Behavior reactor matches and executes the first applicable rule.

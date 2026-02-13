@@ -6,13 +6,19 @@
 
 import { produce } from "immer";
 import type { GridPosition, SpaceData } from "../../../domain/space/space-data";
-import { isGridSpace, isPoolSpace } from "../../../domain/space/space-data";
+import {
+	isGridSpace,
+	isPathSpace,
+	isPoolSpace,
+} from "../../../domain/space/space-data";
 import {
 	gridAdd,
 	gridCanAccept,
 	gridContains,
 	gridGetPosition,
 	gridRemove,
+	pathAdd,
+	pathRemove,
 	poolAdd,
 	poolRemove,
 } from "../../../domain/space/space-fns";
@@ -97,6 +103,15 @@ export const spaceReducer = (
 							position: index !== undefined ? { index } : undefined,
 						});
 					}
+				} else if (isPathSpace(space)) {
+					const added = pathAdd(space, entityId);
+					if (added) {
+						events.push({
+							type: "ENTITY_ENTERED_SPACE",
+							entityId,
+							spaceId,
+						});
+					}
 				}
 
 				if (events.length > 0) {
@@ -141,6 +156,15 @@ export const spaceReducer = (
 							position: index >= 0 ? { index } : undefined,
 						});
 					}
+				} else if (isPathSpace(space)) {
+					const removed = pathRemove(space, entityId);
+					if (removed) {
+						events.push({
+							type: "ENTITY_LEFT_SPACE",
+							entityId,
+							spaceId,
+						});
+					}
 				}
 
 				if (events.length > 0) {
@@ -168,7 +192,9 @@ export const spaceReducer = (
 						? {
 								index: fromSpace.entityIds.indexOf(entityId),
 							}
-						: undefined;
+						: isPathSpace(fromSpace)
+							? undefined
+							: undefined;
 
 				// Check if entity is in source space
 				if (!spaceContains(fromSpace, entityId)) {
@@ -184,6 +210,8 @@ export const spaceReducer = (
 					gridRemove(fromSpace, entityId);
 				} else if (isPoolSpace(fromSpace)) {
 					poolRemove(fromSpace, entityId);
+				} else if (isPathSpace(fromSpace)) {
+					pathRemove(fromSpace, entityId);
 				}
 
 				// Add to destination
@@ -199,6 +227,8 @@ export const spaceReducer = (
 							? (toPosition as { index: number }).index
 							: undefined;
 					added = poolAdd(toSpace, entityId, index);
+				} else if (isPathSpace(toSpace)) {
+					added = pathAdd(toSpace, entityId);
 				}
 
 				if (!added) {
@@ -220,6 +250,8 @@ export const spaceReducer = (
 								? (fromPosition as { index: number }).index
 								: 0;
 						poolAdd(fromSpace, entityId, Math.max(0, fromIndex));
+					} else if (isPathSpace(fromSpace)) {
+						pathAdd(fromSpace, entityId);
 					}
 					return;
 				}
@@ -230,7 +262,9 @@ export const spaceReducer = (
 						? {
 								index: toSpace.entityIds.indexOf(entityId),
 							}
-						: undefined;
+						: isPathSpace(toSpace)
+							? undefined
+							: undefined;
 
 				draft.eventQueue = appendEvents(draft.eventQueue, actionId, [
 					{
@@ -363,5 +397,7 @@ function spaceContains(space: SpaceData, entityId: string): boolean {
 		? gridContains(space, entityId)
 		: isPoolSpace(space)
 			? space.entityIds.includes(entityId)
-			: false;
+			: isPathSpace(space)
+				? space.entityIds.includes(entityId)
+				: false;
 }

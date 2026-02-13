@@ -56,6 +56,7 @@ dispatched actions. Order does not matter.
 type SpaceDefinition =
   | { kind: "grid"; config: GridSpaceConfig }
   | { kind: "pool"; config: PoolSpaceConfig }
+  | { kind: "path"; config: PathSpaceConfig }
   | { kind: "custom"; config: CustomSpaceConfig };
 ```
 
@@ -92,6 +93,20 @@ type SpaceDefinition =
 {
   id: string;       // Unique space ID. Used for arrow targeting.
   name?: string;    // Optional display name
+}
+```
+
+**PathSpaceConfig:**
+
+```typescript
+{
+  id: string;
+  name?: string;
+  path: string;                 // SVG path "d"
+  viewBox?: string;             // Default "0 0 320 120"
+  duration?: number;            // Base duration in seconds, default 1.5
+  speedMultiplier?: number;     // Default 1
+  maxCapacity?: number;
 }
 ```
 

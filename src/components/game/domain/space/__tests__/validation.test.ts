@@ -10,6 +10,7 @@ import { createEntityData, createItemData } from "../../entity/entity-fns";
 import type { SpaceData } from "../space-data";
 import {
 	createGridSpaceData,
+	createPathSpaceData,
 	createPoolSpaceData,
 	gridAdd,
 } from "../space-fns";
@@ -95,7 +96,7 @@ describe("validation", () => {
 			).toBe(false);
 		});
 
-		it("should allow placement when allowedPlaces includes 'inventory'", () => {
+		it("should reject placement when allowedPlaces only includes 'inventory'", () => {
 			const entity = createItemData({
 				id: "router-1",
 				name: "Router",
@@ -122,7 +123,7 @@ describe("validation", () => {
 					row: 0,
 					col: 0,
 				}),
-			).toBe(true);
+			).toBe(false);
 		});
 
 		it("should respect GridSpace capacity", () => {
@@ -367,6 +368,31 @@ describe("validation", () => {
 		});
 	});
 
+	describe("canEntityBePlaced with PathSpace", () => {
+		it("should allow PathSpace placement if allowed", () => {
+			const entity = createItemData({
+				id: "router-1",
+				name: "Router",
+				icon: { icon: "router" },
+				allowedPlaces: ["egress-path"],
+			});
+
+			const space = createPathSpaceData({
+				id: "egress-path",
+				path: "M 10 50 L 300 50",
+			});
+
+			const gameState = createTestGameState(
+				{ "egress-path": space },
+				{ "router-1": entity },
+			);
+
+			expect(canEntityBePlaced(gameState, "router-1", "egress-path")).toBe(
+				true,
+			);
+		});
+	});
+
 	describe("findEntitySpace", () => {
 		it("should return space ID when entity found in GridSpace", () => {
 			const space = createGridSpaceData({
@@ -417,6 +443,28 @@ describe("validation", () => {
 			);
 
 			expect(findEntitySpace(gameState, "router-1")).toBe("inventory");
+		});
+
+		it("should return space ID when entity found in PathSpace", () => {
+			const space = createPathSpaceData({
+				id: "egress-path",
+				path: "M 10 50 L 300 50",
+			});
+			space.entityIds.push("router-1");
+
+			const gameState = createTestGameState(
+				{ "egress-path": space },
+				{
+					"router-1": createItemData({
+						id: "router-1",
+						name: "Router",
+						icon: { icon: "router" },
+						allowedPlaces: ["egress-path"],
+					}),
+				},
+			);
+
+			expect(findEntitySpace(gameState, "router-1")).toBe("egress-path");
 		});
 
 		it("should return null when entity not found", () => {

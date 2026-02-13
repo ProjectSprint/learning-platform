@@ -61,6 +61,7 @@ export type {
 export type { EntityData, ItemData } from "./domain/entity/entity-data";
 export type {
 	GridSpaceData,
+	PathSpaceData,
 	PoolSpaceData,
 	SpaceData,
 } from "./domain/space/space-data";

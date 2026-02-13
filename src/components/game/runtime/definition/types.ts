@@ -20,6 +20,7 @@ import type {
 	CustomSpaceConfig,
 	GridPosition,
 	GridSpaceConfig,
+	PathSpaceConfig,
 	PoolSpaceConfig,
 } from "../../domain/space/space-data";
 import type { BehaviorDefinition } from "../behavior/types";
@@ -33,6 +34,7 @@ export type { Condition, InventoryRule, PhaseRule, SpaceRule };
 export type SpaceDefinition =
 	| { kind: "grid"; config: GridSpaceConfig }
 	| { kind: "pool"; config: PoolSpaceConfig }
+	| { kind: "path"; config: PathSpaceConfig }
 	| { kind: "custom"; config: CustomSpaceConfig };
 
 /**

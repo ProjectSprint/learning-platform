@@ -10,11 +10,13 @@ describe("Domain Exports", () => {
 
 		// Type guards
 		expect(spaceModule.isGridSpace).toBeDefined();
+		expect(spaceModule.isPathSpace).toBeDefined();
 		expect(spaceModule.isPoolSpace).toBeDefined();
 		expect(spaceModule.isValidGridPosition).toBeDefined();
 
 		// Factory functions
 		expect(spaceModule.createGridSpaceData).toBeDefined();
+		expect(spaceModule.createPathSpaceData).toBeDefined();
 		expect(spaceModule.createPoolSpaceData).toBeDefined();
 
 		// Grid functions
@@ -38,6 +40,14 @@ describe("Domain Exports", () => {
 		expect(spaceModule.poolGetEntityCount).toBeDefined();
 		expect(spaceModule.poolIsFull).toBeDefined();
 		expect(spaceModule.poolIsEmpty).toBeDefined();
+
+		// Path functions
+		expect(spaceModule.pathAdd).toBeDefined();
+		expect(spaceModule.pathRemove).toBeDefined();
+		expect(spaceModule.pathContains).toBeDefined();
+		expect(spaceModule.pathGetEntityCount).toBeDefined();
+		expect(spaceModule.pathIsFull).toBeDefined();
+		expect(spaceModule.pathIsEmpty).toBeDefined();
 
 		// Polymorphic functions
 		expect(spaceModule.spaceContains).toBeDefined();

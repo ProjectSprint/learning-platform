@@ -10,6 +10,8 @@ import type { SpaceData } from "../../../domain/space/space-data";
 import {
 	gridContains,
 	gridRemove,
+	pathContains,
+	pathRemove,
 	poolContains,
 	poolRemove,
 } from "../../../domain/space/space-fns";
@@ -177,6 +179,8 @@ export const entityReducer = (
 								gridRemove(space, id);
 							} else if (space.kind === "pool") {
 								poolRemove(space, id);
+							} else if (space.kind === "path") {
+								pathRemove(space, id);
 							}
 						}
 					}
@@ -202,5 +206,7 @@ function spaceContains(space: SpaceData, entityId: string): boolean {
 		? gridContains(space, entityId)
 		: space.kind === "pool"
 			? poolContains(space, entityId)
-			: false;
+			: space.kind === "path"
+				? pathContains(space, entityId)
+				: false;
 }

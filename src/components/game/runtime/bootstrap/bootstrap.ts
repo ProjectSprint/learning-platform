@@ -15,6 +15,7 @@ import { createItemData } from "../../domain/entity/entity-fns";
 import {
 	createCustomSpaceData,
 	createGridSpaceData,
+	createPathSpaceData,
 	createPoolSpaceData,
 } from "../../domain/space/space-fns";
 import type { QuestionDefinition } from "../definition/types";
@@ -53,7 +54,9 @@ export function bootstrapQuestion<CK extends string = string, TC = unknown>(
 				? createGridSpaceData(spaceDef.config)
 				: spaceDef.kind === "pool"
 					? createPoolSpaceData(spaceDef.config)
-					: createCustomSpaceData(spaceDef.config);
+					: spaceDef.kind === "path"
+						? createPathSpaceData(spaceDef.config)
+						: createCustomSpaceData(spaceDef.config);
 
 		dispatch({
 			type: "SPACE_CREATED",

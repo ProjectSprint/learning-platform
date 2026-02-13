@@ -88,6 +88,20 @@ export type PoolSpaceConfig = SpaceBaseConfig & {
 };
 
 /**
+ * Path space configuration.
+ */
+export type PathSpaceConfig = SpaceBaseConfig & {
+	/** SVG path "d" string used for movement animation */
+	path: string;
+	/** SVG viewBox for path rendering */
+	viewBox?: string;
+	/** Base animation duration in seconds */
+	duration?: number;
+	/** Animation speed multiplier */
+	speedMultiplier?: number;
+};
+
+/**
  * Plain data type for a pool-based space.
  * Uses string[] for entity IDs instead of Entity[] to stay compatible with Immer.
  */
@@ -101,6 +115,25 @@ export type PoolSpaceData = SpaceBase & {
 	/** Whether entities can be reordered */
 	allowReorder: boolean;
 	/** Array of entity IDs in this pool */
+	entityIds: string[];
+};
+
+/**
+ * Plain data type for a path-based space.
+ * Stores entities currently moving along the path.
+ */
+export type PathSpaceData = SpaceBase & {
+	/** Discriminator: this is a path space */
+	kind: "path";
+	/** SVG path "d" string used for movement animation */
+	path: string;
+	/** SVG viewBox for path rendering */
+	viewBox: string;
+	/** Base animation duration in seconds */
+	duration: number;
+	/** Animation speed multiplier */
+	speedMultiplier: number;
+	/** Entities currently inside path space */
 	entityIds: string[];
 };
 
@@ -123,7 +156,11 @@ export type CustomSpaceData = SpaceBase & {
 /**
  * Discriminated union of all space types.
  */
-export type SpaceData = GridSpaceData | PoolSpaceData | CustomSpaceData;
+export type SpaceData =
+	| GridSpaceData
+	| PoolSpaceData
+	| PathSpaceData
+	| CustomSpaceData;
 
 // ============================================================================
 // Type Guards
@@ -145,6 +182,15 @@ export const isGridSpace = (space: SpaceData): space is GridSpaceData => {
  */
 export const isPoolSpace = (space: SpaceData): space is PoolSpaceData => {
 	return space.kind === "pool";
+};
+
+/**
+ * Type guard to check if a space data is a PathSpaceData.
+ * @param space The space data to check
+ * @returns True if the space is a path space
+ */
+export const isPathSpace = (space: SpaceData): space is PathSpaceData => {
+	return space.kind === "path";
 };
 
 /**

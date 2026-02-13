@@ -51,11 +51,12 @@ import { GameBoard } from "@/components/game/engine";
   <GridSpace ... />
   <GridSpace ... />
   <PoolSpace ... />
+  <PathSpace ... />
   <DragOverlay ... />
 </GameBoard>
 ```
 
-All GridSpace and PoolSpace components should be children of GameBoard.
+All GridSpace, PoolSpace, and PathSpace components should be children of GameBoard.
 GameBoard provides `BoardRegistryProvider` (for tracking board positions) and
 `BoardArrowSurface` (SVG layer for arrows between spaces).
 
@@ -198,6 +199,51 @@ setArrows([{
   to: { spaceId: "progress-widget", anchor: "bl" },
 }]);
 ```
+
+---
+
+## PathSpace
+
+Declarative path transport renderer with default dropzone and GSAP path animation.
+
+```typescript
+import { PathSpace } from "@/components/game/engine";
+```
+
+```tsx
+<PathSpace
+  ctx={gameCtx}
+  config={{
+    id: "egress-path",
+    name: "Egress",
+    path: "M 10 60 C 120 0, 200 120, 310 60",
+    viewBox: "0 0 320 120",
+    duration: 1.8,
+    speedMultiplier: 1,
+  }}
+  title="Packet Path"
+/>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `id` | `string` | Space ID (alternative to config) |
+| `config` | `PathSpaceConfig` | Path config. Requires `id` or `config`. |
+| `ctx` | `GameContextValue` | Game context from `useGameCtx()` |
+| `title` | `string` | Display title |
+| `speedMultiplier` | `number` | Optional runtime speed override |
+
+**Behavior contract:**
+- Drop target is a single default dropzone.
+- When an entity enters path space, animation starts along `config.path`.
+- On animation completion, PathSpace dispatches `ENTITY_REMOVED` for that entity.
+- This emits `ENTITY_LEFT_SPACE`, which behavior rules can catch to route the entity elsewhere.
+
+**Limitations:**
+- PathSpace itself does not auto-transfer to another space.
+- It intentionally only handles transit and completion signaling.
 
 ---
 

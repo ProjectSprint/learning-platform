@@ -10,6 +10,8 @@ export type {
 	GridPosition,
 	GridSpaceConfig,
 	GridSpaceData,
+	PathSpaceConfig,
+	PathSpaceData,
 	PoolSpaceConfig,
 	PoolSpaceData,
 	SpaceBase,
@@ -18,11 +20,18 @@ export type {
 } from "./space-data";
 
 // Type guards
-export { isGridSpace, isPoolSpace, isValidGridPosition } from "./space-data";
+export {
+	isGridSpace,
+	isPathSpace,
+	isPoolSpace,
+	isValidGridPosition,
+} from "./space-data";
 
 // Factory and utility functions
 export {
+	createCustomSpaceData,
 	createGridSpaceData,
+	createPathSpaceData,
 	createPoolSpaceData,
 	gridAdd,
 	gridCanAccept,
@@ -36,6 +45,12 @@ export {
 	gridIsFull,
 	gridIsOccupied,
 	gridRemove,
+	pathAdd,
+	pathContains,
+	pathGetEntityCount,
+	pathIsEmpty,
+	pathIsFull,
+	pathRemove,
 	poolAdd,
 	poolContains,
 	poolGetEntityCount,
