@@ -62,6 +62,9 @@ export const PathSpaceView = ({
 	const [entitySizes, setEntitySizes] = useState<
 		Record<string, EntityRenderSize>
 	>({});
+	const [entityOpacities, setEntityOpacities] = useState<
+		Record<string, number>
+	>({});
 	const [isDropzoneHovered, setIsDropzoneHovered] = useState(false);
 	const [entityPositions, setEntityPositions] = useState<
 		Record<string, PathPoint>
@@ -182,6 +185,10 @@ export const PathSpaceView = ({
 					const { [entityId]: _ignored, ...next } = prev;
 					return next;
 				});
+				setEntityOpacities((prev) => {
+					const { [entityId]: _ignored, ...next } = prev;
+					return next;
+				});
 			}
 		}
 
@@ -202,12 +209,13 @@ export const PathSpaceView = ({
 				height: defaultCardSize.height,
 			};
 			setEntitySizes((prev) => ({ ...prev, [entity.id]: renderSize }));
+			setEntityOpacities((prev) => ({ ...prev, [entity.id]: 1 }));
 			setEntityPositions((prev) => ({
 				...prev,
 				[entity.id]: { x: pathStart.x, y: pathStart.y },
 			}));
 
-			const state = { progress: 0 };
+			const state = { progress: 0, opacity: 1 };
 			const timeline = gsap.timeline({
 				onComplete: () => {
 					timelinesRef.current.delete(entity.id);
@@ -216,6 +224,10 @@ export const PathSpaceView = ({
 						return next;
 					});
 					setEntitySizes((prev) => {
+						const { [entity.id]: _ignored, ...next } = prev;
+						return next;
+					});
+					setEntityOpacities((prev) => {
 						const { [entity.id]: _ignored, ...next } = prev;
 						return next;
 					});
@@ -234,6 +246,17 @@ export const PathSpaceView = ({
 					setEntityPositions((prev) => ({
 						...prev,
 						[entity.id]: { x: point.x, y: point.y },
+					}));
+				},
+			});
+			timeline.to(state, {
+				opacity: 0,
+				duration: 0.18,
+				ease: "power1.out",
+				onUpdate: () => {
+					setEntityOpacities((prev) => ({
+						...prev,
+						[entity.id]: state.opacity,
 					}));
 				},
 			});
@@ -362,6 +385,7 @@ export const PathSpaceView = ({
 								whiteSpace="normal"
 								textAlign="center"
 								zIndex={3}
+								opacity={entityOpacities[entity.id] ?? 1}
 							>
 								{entity.name ?? entity.type}
 							</Box>
