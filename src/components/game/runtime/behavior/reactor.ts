@@ -53,6 +53,32 @@ export type BehaviorReactorResult<TContext> = {
 	context: TContext;
 };
 
+type BehaviorConvenienceHelpers = Pick<
+	EffectContext<Record<string, unknown>>,
+	"setPhase" | "moveToInventory" | "moveToGrid"
+>;
+
+type BehaviorConvenienceDeps = Pick<
+	BehaviorReactorDeps,
+	"world" | "interaction"
+>;
+
+export const createBehaviorConvenience = ({
+	world,
+	interaction,
+}: BehaviorConvenienceDeps): BehaviorConvenienceHelpers => ({
+	setPhase: (phase, source) => {
+		interaction.requestPhaseTransition(phase, source ?? "behavior");
+	},
+	moveToInventory: (entityId) => {
+		world.moveEntity(entityId, "inventory");
+	},
+	moveToGrid: (entityId, spaceId) => {
+		const result = world.moveEntityToGrid(entityId, spaceId);
+		return result.ok;
+	},
+});
+
 export function useBehaviorReactor<
 	TContext extends Record<string, unknown> = Record<string, never>,
 >(
@@ -246,6 +272,11 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 	onceKeys: Set<string>,
 	deps: BehaviorReactorDeps,
 ): EffectContext<TContext> {
+	const convenience = createBehaviorConvenience({
+		world: deps.world,
+		interaction: deps.interaction,
+	});
+
 	return {
 		event,
 		entity,
@@ -276,15 +307,8 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 				deps.terminal?.finishEngine();
 			},
 		},
-		setPhase: (phase, source) => {
-			deps.interaction.requestPhaseTransition(phase, source ?? "behavior");
-		},
-		moveToInventory: (entityId) => {
-			deps.world.removeFromSpace(entityId, "inventory");
-		},
-		moveToGrid: (entityId, spaceId) => {
-			const result = deps.world.moveEntityToGrid(entityId, spaceId);
-			return result.ok;
-		},
+		setPhase: convenience.setPhase,
+		moveToInventory: convenience.moveToInventory,
+		moveToGrid: convenience.moveToGrid,
 	};
 }
