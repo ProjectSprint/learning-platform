@@ -20,7 +20,6 @@ import {
 	NOTICE_MS,
 	OPENED_APPS_FOR_DUAL_CORE_PROMPT,
 	PARSING_MS,
-	RAM_HOLD_MS,
 	SPACE_IDS,
 } from "./constants";
 import type { AppKey, Notice } from "./types";
@@ -137,42 +136,37 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 
 		const partId = partIdsRef.current[currentPartIndexRef.current];
 		if (!partId) {
-			const finalizeTimer = setTimeout(() => {
-				timersRef.current.delete(finalizeTimer);
-				removeEntityFromCurrentSpace(app.appId);
-				world.moveEntityToGrid(app.appId, SPACE_IDS.opened);
-				setAppStatus(app.appId, "opened");
+			removeEntityFromCurrentSpace(app.appId);
+			world.moveEntityToGrid(app.appId, SPACE_IDS.opened);
+			setAppStatus(app.appId, "opened");
 
-				const nextOpened = openedCountRef.current + 1;
-				openedCountRef.current = nextOpened;
-				setOpenedCount(nextOpened);
+			const nextOpened = openedCountRef.current + 1;
+			openedCountRef.current = nextOpened;
+			setOpenedCount(nextOpened);
 
-				pipelineBusyRef.current = false;
-				activeAppRef.current = null;
-				partIdsRef.current = [];
-				currentPartIndexRef.current = 0;
-				setPipelineState("idle");
+			pipelineBusyRef.current = false;
+			activeAppRef.current = null;
+			partIdsRef.current = [];
+			currentPartIndexRef.current = 0;
+			setPipelineState("idle");
 
-				if (
-					nextOpened >= OPENED_APPS_FOR_DUAL_CORE_PROMPT &&
-					!dualCorePromptShownRef.current
-				) {
-					dualCorePromptShownRef.current = true;
-					setDualCorePromptVisible(true);
-					showNotice(
-						"You now have two opened apps. Next step: introduce dual-core scheduling.",
-						"info",
-					);
-				}
-			}, RAM_HOLD_MS);
-			registerTimer(finalizeTimer);
+			if (
+				nextOpened >= OPENED_APPS_FOR_DUAL_CORE_PROMPT &&
+				!dualCorePromptShownRef.current
+			) {
+				dualCorePromptShownRef.current = true;
+				setDualCorePromptVisible(true);
+				showNotice(
+					"You now have two opened apps. Next step: introduce dual-core scheduling.",
+					"info",
+				);
+			}
 			return;
 		}
 
 		setPartStatus(partId, "executing");
 		world.moveEntity(partId, SPACE_IDS.core1);
 	}, [
-		registerTimer,
 		removeEntityFromCurrentSpace,
 		setAppStatus,
 		setPartStatus,
