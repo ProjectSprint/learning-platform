@@ -27,6 +27,8 @@ type PoolSpacePropsBase = {
 	config?: PoolSpaceConfig;
 	/** Optional title for the space */
 	title?: string;
+	/** Optional drag gate callback for pool entities */
+	isEntityDraggable?: (entity: EntityData) => boolean;
 };
 
 export type PoolSpaceProps =
@@ -50,138 +52,143 @@ export type PoolSpaceProps =
  * />
  * ```
  */
-export const PoolSpace = memo(({ id, ctx, config, title }: PoolSpaceProps) => {
-	const contextState = useGameState();
-	const contextDispatch = useGameDispatch();
-	const state = ctx?.state ?? contextState;
-	const dispatch = ctx?.dispatch ?? contextDispatch;
-	const { setActiveDrag, setLastDropResult } = useDragContext();
-	const resolvedId = config?.id ?? id ?? "inventory";
+export const PoolSpace = memo(
+	({ id, ctx, config, title, isEntityDraggable }: PoolSpaceProps) => {
+		const contextState = useGameState();
+		const contextDispatch = useGameDispatch();
+		const state = ctx?.state ?? contextState;
+		const dispatch = ctx?.dispatch ?? contextDispatch;
+		const { setActiveDrag, setLastDropResult } = useDragContext();
+		const resolvedId = config?.id ?? id ?? "inventory";
 
-	useEffect(() => {
-		if (!resolvedId) return;
-		if (process.env.NODE_ENV === "development" && !state.spaces[resolvedId]) {
-			console.warn(
-				`[PoolSpace] Space "${resolvedId}" not found in state. Did you forget to define it in QuestionDefinition?`,
-			);
-		}
-	}, [resolvedId, state.spaces]);
-
-	// Get pool space data
-	const pool = resolvedId
-		? (state.spaces[resolvedId] as PoolSpaceData | undefined)
-		: undefined;
-
-	// Get entities in this pool
-	const poolEntityIds = pool?.entityIds ?? [];
-	const entities = poolEntityIds
-		.map((id) => state.entities[id])
-		.filter((e): e is EntityData => e !== undefined);
-
-	// Find all entity IDs that are placed in grid spaces
-	const placedEntityIds = useMemo(() => {
-		const placed = new Set<string>();
-		for (const entity of Object.values(state.entities)) {
-			// Skip if already in pool
-			if (pool?.entityIds.includes(entity.id)) {
-				continue;
+		useEffect(() => {
+			if (!resolvedId) return;
+			if (process.env.NODE_ENV === "development" && !state.spaces[resolvedId]) {
+				console.warn(
+					`[PoolSpace] Space "${resolvedId}" not found in state. Did you forget to define it in QuestionDefinition?`,
+				);
 			}
-			// Check if in any other space
-			for (const [spaceKey, space] of Object.entries(state.spaces)) {
-				if (spaceKey === resolvedId) continue; // Skip the pool itself
-				if (spaceContains(space, entity.id)) {
-					placed.add(entity.id);
-					break;
+		}, [resolvedId, state.spaces]);
+
+		// Get pool space data
+		const pool = resolvedId
+			? (state.spaces[resolvedId] as PoolSpaceData | undefined)
+			: undefined;
+
+		// Get entities in this pool
+		const poolEntityIds = pool?.entityIds ?? [];
+		const entities = poolEntityIds
+			.map((id) => state.entities[id])
+			.filter((e): e is EntityData => e !== undefined);
+
+		// Find all entity IDs that are placed in grid spaces
+		const placedEntityIds = useMemo(() => {
+			const placed = new Set<string>();
+			for (const entity of Object.values(state.entities)) {
+				// Skip if already in pool
+				if (pool?.entityIds.includes(entity.id)) {
+					continue;
+				}
+				// Check if in any other space
+				for (const [spaceKey, space] of Object.entries(state.spaces)) {
+					if (spaceKey === resolvedId) continue; // Skip the pool itself
+					if (spaceContains(space, entity.id)) {
+						placed.add(entity.id);
+						break;
+					}
 				}
 			}
-		}
-		return placed;
-	}, [state.entities, state.spaces, pool?.entityIds, resolvedId]);
+			return placed;
+		}, [state.entities, state.spaces, pool?.entityIds, resolvedId]);
 
-	// Handle drag start from pool
-	const handleDragStart = (entity: EntityData, event: React.PointerEvent) => {
-		if (!pool) {
-			return;
-		}
-
-		// Check if entity is draggable
-		if (!isItemData(entity) || !entity.draggable) {
-			return;
-		}
-
-		// Only drag entities that are in the pool (not placed elsewhere)
-		if (placedEntityIds.has(entity.id)) {
-			return;
-		}
-
-		event.preventDefault();
-		const target = event.currentTarget as HTMLElement;
-		const rect = target.getBoundingClientRect();
-
-		setLastDropResult(null);
-		setActiveDrag({
-			source: "pool",
-			sourceSpaceId: pool.id,
-			data: {
-				entityId: entity.id,
-				entityType: entity.type,
-				entityName: entity.name,
-				isReposition: false,
-			},
-			element: target,
-			initialRect: rect,
-		});
-	};
-
-	// Handle entity return to pool
-	const handleEntityReturn = useCallback(
-		(entityId: string): boolean => {
-			// Find which space the entity is currently in
-			let currentSpaceId: string | null = null;
-			for (const [spaceKey, space] of Object.entries(state.spaces)) {
-				if (spaceKey === resolvedId) continue; // Skip the pool itself
-				if (spaceContains(space, entityId)) {
-					currentSpaceId = spaceKey;
-					break;
-				}
+		// Handle drag start from pool
+		const handleDragStart = (entity: EntityData, event: React.PointerEvent) => {
+			if (!pool) {
+				return;
 			}
 
-			if (!currentSpaceId) {
-				// Entity not found in any space
-				return false;
+			// Check if entity is draggable
+			if (!isItemData(entity) || !entity.draggable) {
+				return;
+			}
+			if (isEntityDraggable && !isEntityDraggable(entity)) {
+				return;
 			}
 
-			// Dispatch action to move entity back to pool
-			dispatch({
-				type: "ENTITY_MOVED",
-				payload: {
-					entityId,
-					fromSpaceId: currentSpaceId,
-					toSpaceId: resolvedId,
+			// Only drag entities that are in the pool (not placed elsewhere)
+			if (placedEntityIds.has(entity.id)) {
+				return;
+			}
+
+			event.preventDefault();
+			const target = event.currentTarget as HTMLElement;
+			const rect = target.getBoundingClientRect();
+
+			setLastDropResult(null);
+			setActiveDrag({
+				source: "pool",
+				sourceSpaceId: pool.id,
+				data: {
+					entityId: entity.id,
+					entityType: entity.type,
+					entityName: entity.name,
+					isReposition: false,
 				},
+				element: target,
+				initialRect: rect,
 			});
-			return true;
-		},
-		[dispatch, resolvedId, state.spaces],
-	);
+		};
 
-	// Handle null/undefined pool
-	if (!pool) {
-		return null;
-	}
+		// Handle entity return to pool
+		const handleEntityReturn = useCallback(
+			(entityId: string): boolean => {
+				// Find which space the entity is currently in
+				let currentSpaceId: string | null = null;
+				for (const [spaceKey, space] of Object.entries(state.spaces)) {
+					if (spaceKey === resolvedId) continue; // Skip the pool itself
+					if (spaceContains(space, entityId)) {
+						currentSpaceId = spaceKey;
+						break;
+					}
+				}
 
-	const resolvedTitle = title ?? pool.name ?? pool.id;
+				if (!currentSpaceId) {
+					// Entity not found in any space
+					return false;
+				}
 
-	return (
-		<PoolSpaceView
-			space={pool}
-			entities={entities}
-			placedEntityIds={placedEntityIds}
-			title={resolvedTitle}
-			onEntityDragStart={handleDragStart}
-			onEntityReturn={handleEntityReturn}
-		/>
-	);
-});
+				// Dispatch action to move entity back to pool
+				dispatch({
+					type: "ENTITY_MOVED",
+					payload: {
+						entityId,
+						fromSpaceId: currentSpaceId,
+						toSpaceId: resolvedId,
+					},
+				});
+				return true;
+			},
+			[dispatch, resolvedId, state.spaces],
+		);
+
+		// Handle null/undefined pool
+		if (!pool) {
+			return null;
+		}
+
+		const resolvedTitle = title ?? pool.name ?? pool.id;
+
+		return (
+			<PoolSpaceView
+				space={pool}
+				entities={entities}
+				placedEntityIds={placedEntityIds}
+				title={resolvedTitle}
+				onEntityDragStart={handleDragStart}
+				onEntityReturn={handleEntityReturn}
+			/>
+		);
+	},
+);
 
 PoolSpace.displayName = "PoolSpace";

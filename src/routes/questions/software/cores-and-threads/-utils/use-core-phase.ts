@@ -399,6 +399,8 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 		return required.every((id) => Boolean(state.spaces[id]));
 	}, [state.spaces]);
 
+	const isCore1Occupied = Boolean(spaces[SPACE_IDS.core1]?.placedItems.length);
+
 	const getEntityStatus = useCallback(
 		(entity: { data: Record<string, unknown> }) => {
 			const appStatus = entity.data.appStatus as string | undefined;
@@ -435,5 +437,6 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 		corePathSpeedMultiplier: CORE_STEP_DURATION_SECONDS > 0 ? 1 : 1,
 		dualCorePromptVisible,
 		showCore2: dualCorePromptVisible,
+		canDragAppFromPool: (_entity: { id: string }) => !isCore1Occupied,
 	};
 };

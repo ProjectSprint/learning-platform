@@ -245,7 +245,12 @@ const CoresAndThreadsGame = ({
 				<ContextualHint />
 				<DragOverlay getEntityLabel={(entityType) => entityType} />
 				<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
-					<PoolSpace ctx={gameCtx} config={APP_POOL_CONFIG} title="Apps" />
+					<PoolSpace
+						ctx={gameCtx}
+						config={APP_POOL_CONFIG}
+						title="Apps"
+						isEntityDraggable={phase.canDragAppFromPool}
+					/>
 				</DrawerLayout>
 			</GameBoard>
 
