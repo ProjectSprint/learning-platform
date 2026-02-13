@@ -9,7 +9,7 @@ import type {
 	BehaviorRule,
 	EffectContext,
 } from "@/components/game/runtime";
-import { entityEnteredSpace } from "@/components/game/runtime";
+import { entityEnteredSpace, entityMoved } from "@/components/game/runtime";
 
 import {
 	ALLOCATING_MS,
@@ -295,51 +295,62 @@ function beginExecution(
 	);
 }
 
+function handleAppEnteredOpen(ctx: Ctx, appId: string) {
+	if (!APP_IDS.has(appId)) return;
+
+	const app = APP_BY_ID[appId];
+	if (!app) return;
+
+	const laneId = getAvailableLane(ctx);
+	if (!laneId) {
+		ctx.world.moveEntity(appId, SPACE_IDS.appPool);
+		ctx.world.updateEntity(appId, { data: { appStatus: "ready" } });
+		showNotice(
+			ctx,
+			"All available cores are busy. Wait for a lane to free up.",
+			"error",
+		);
+		return;
+	}
+
+	setActiveLaneApp(ctx, laneId, { appId, appKey: app.appKey });
+	ctx.updateContext((c) => {
+		c.pipelineState = "parsing";
+	});
+	ctx.world.updateEntity(appId, { data: { appStatus: "parsing" } });
+
+	ctx.schedule(`core:parse:${appId}`, PARSING_MS, (sctx) => {
+		const currentApp = getActiveLaneApp(sctx, laneId);
+		if (!currentApp || currentApp.appId !== appId) return;
+
+		sctx.updateContext((c) => {
+			c.pipelineState = "allocating";
+		});
+		sctx.world.updateEntity(appId, { data: { appStatus: "allocating" } });
+
+		sctx.schedule(`core:alloc:${appId}`, ALLOCATING_MS, (actx) => {
+			const latestApp = getActiveLaneApp(actx, laneId);
+			if (!latestApp || latestApp.appId !== appId) return;
+			beginExecution(actx, appId, app.appKey, laneId);
+		});
+	});
+}
+
 const rules: BehaviorRule<CoresBehaviorContext>[] = [
 	{
 		id: "cores.app-entered-open",
 		on: entityEnteredSpace(SPACE_IDS.open, "app"),
 		handler: (ctx) => {
 			const event = ctx.event as EntityEnteredSpaceEvent;
-			const appId = event.entityId;
-			if (!APP_IDS.has(appId)) return;
-
-			const app = APP_BY_ID[appId];
-			if (!app) return;
-
-			const laneId = getAvailableLane(ctx);
-			if (!laneId) {
-				ctx.world.moveEntity(appId, SPACE_IDS.appPool);
-				ctx.world.updateEntity(appId, { data: { appStatus: "ready" } });
-				showNotice(
-					ctx,
-					"All available cores are busy. Wait for a lane to free up.",
-					"error",
-				);
-				return;
-			}
-
-			setActiveLaneApp(ctx, laneId, { appId, appKey: app.appKey });
-			ctx.updateContext((c) => {
-				c.pipelineState = "parsing";
-			});
-			ctx.world.updateEntity(appId, { data: { appStatus: "parsing" } });
-
-			ctx.schedule(`core:parse:${appId}`, PARSING_MS, (sctx) => {
-				const currentApp = getActiveLaneApp(sctx, laneId);
-				if (!currentApp || currentApp.appId !== appId) return;
-
-				sctx.updateContext((c) => {
-					c.pipelineState = "allocating";
-				});
-				sctx.world.updateEntity(appId, { data: { appStatus: "allocating" } });
-
-				sctx.schedule(`core:alloc:${appId}`, ALLOCATING_MS, (actx) => {
-					const latestApp = getActiveLaneApp(actx, laneId);
-					if (!latestApp || latestApp.appId !== appId) return;
-					beginExecution(actx, appId, app.appKey, laneId);
-				});
-			});
+			handleAppEnteredOpen(ctx, event.entityId);
+		},
+	},
+	{
+		id: "cores.app-moved-open",
+		on: entityMoved(SPACE_IDS.open, "app"),
+		handler: (ctx) => {
+			if (ctx.event.type !== "ENTITY_MOVED") return;
+			handleAppEnteredOpen(ctx, ctx.event.entityId);
 		},
 	},
 	{
