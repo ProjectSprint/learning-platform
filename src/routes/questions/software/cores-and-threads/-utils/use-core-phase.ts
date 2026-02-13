@@ -23,7 +23,7 @@ import {
 	RAM_HOLD_MS,
 	SPACE_IDS,
 } from "./constants";
-import type { AppKey, ExecutionStep, Notice } from "./types";
+import type { AppKey, Notice } from "./types";
 
 type UseCorePhaseOptions = {
 	world: WorldApi;
@@ -349,13 +349,11 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 			}
 
 			const partStatus = entity.data.partStatus as string | undefined;
+			if (partStatus === "queued") {
+				return { status: "info" as const, message: "Waiting" };
+			}
 			if (partStatus === "executing") {
 				return { status: "warning" as const, message: "Processing" };
-			}
-
-			const step = entity.data.step as ExecutionStep | undefined;
-			if (step) {
-				return { status: "info" as const, message: "Execution part" };
 			}
 
 			return {};
