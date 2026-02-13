@@ -183,7 +183,7 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 	const createExecutionParts = useCallback(
 		(appId: string, appKey: AppKey) => {
 			const partIds: string[] = [];
-			for (const part of EXECUTION_PARTS) {
+			for (const [index, part] of EXECUTION_PARTS.entries()) {
 				const partId = `${appId}-exec-${part.step}`;
 				partIds.push(partId);
 				partOwnerByIdRef.current[partId] = appId;
@@ -202,16 +202,19 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 						},
 					});
 				}
-				const placementTimer = setTimeout(() => {
-					timersRef.current.delete(placementTimer);
-					world.moveEntityToGrid(partId, SPACE_IDS.execution);
-				}, 0);
-				registerTimer(placementTimer);
+				const currentSpaceId = findEntitySpace(stateRef.current, partId);
+				if (currentSpaceId) {
+					world.removeFromSpace(partId, currentSpaceId);
+				}
+				world.addToSpace(partId, SPACE_IDS.execution, {
+					row: 0,
+					col: index,
+				});
 			}
 			partIdsRef.current = partIds;
 			currentPartIndexRef.current = 0;
 		},
-		[registerTimer, world],
+		[world],
 	);
 
 	const beginExecution = useCallback(
