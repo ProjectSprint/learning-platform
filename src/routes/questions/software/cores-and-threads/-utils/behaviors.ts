@@ -169,8 +169,8 @@ function createExecutionParts(
 	for (const [index, part] of EXECUTION_PARTS.entries()) {
 		const partId = `${appId}-exec-${part.step}`;
 		partIds.push(partId);
+		const shouldPauseAtMidpoint = part.step === "request";
 		if (!ctx.state.entities[partId]) {
-			const shouldPauseAtMidpoint = part.step === "request";
 			ctx.world.createEntity({
 				id: partId,
 				name: part.label,
@@ -194,6 +194,21 @@ function createExecutionParts(
 				},
 			});
 		}
+
+		// Re-apply critical execution flags every run so stale entities cannot
+		// keep an old midpoint-pause configuration.
+		ctx.world.updateEntity(partId, {
+			name: part.label,
+			data: {
+				appKey,
+				step: part.step,
+				partStatus: "queued",
+				laneId,
+				ownerAppId: appId,
+				pathPauseAtMidpoint: shouldPauseAtMidpoint,
+				pathResumeToken: 0,
+			},
+		});
 		const currentSpaceId = findEntitySpace(ctx.state, partId);
 		if (currentSpaceId) {
 			ctx.world.removeFromSpace(partId, currentSpaceId);
