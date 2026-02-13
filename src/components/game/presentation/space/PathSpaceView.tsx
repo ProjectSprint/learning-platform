@@ -49,6 +49,7 @@ export const PathSpaceView = ({
 	const {
 		activeDrag,
 		dropAnimationTarget,
+		proxyRef,
 		setDropAnimationTarget,
 		setLastDropResult,
 		targetSpaceIdRef,
@@ -127,7 +128,7 @@ export const PathSpaceView = ({
 			targetSpaceIdRef.current = isInside ? space.id : undefined;
 		};
 
-		const onPointerUp = () => {
+		const onPointerUp = (event: PointerEvent) => {
 			if (!hoveredRef.current) {
 				return;
 			}
@@ -142,6 +143,16 @@ export const PathSpaceView = ({
 			const height = sourceRect?.height ?? defaultCardSize.height;
 			const viewportX = dropzoneRect.left + (dropzoneRect.width - width) / 2;
 			const viewportY = dropzoneRect.top + (dropzoneRect.height - height) / 2;
+
+			// Ensure drop animation starts from the latest mouseup location.
+			if (proxyRef.current) {
+				gsap.set(proxyRef.current, {
+					x: event.clientX - width / 2,
+					y: event.clientY - height / 2,
+					width,
+					height,
+				});
+			}
 
 			pendingDropEntityIdRef.current = entityId;
 			if (sourceRect) {
@@ -183,6 +194,7 @@ export const PathSpaceView = ({
 		defaultCardSize.height,
 		defaultCardSize.width,
 		onDropEntity,
+		proxyRef,
 		setDropAnimationTarget,
 		setLastDropResult,
 		space.id,
