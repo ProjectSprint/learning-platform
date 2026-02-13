@@ -163,6 +163,9 @@ const CoresAndThreadsGame = ({
 									ctx={gameCtx}
 									config={EXECUTION_GRID_CONFIG}
 									title="Execution"
+									responsiveSize={{
+										base: [3, phase.showCore2 ? 2 : 1],
+									}}
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={phase.getEntityStatus}
 								/>
