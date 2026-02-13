@@ -270,44 +270,66 @@ export const PathSpaceView = ({
 			});
 
 			const pauseAtMidpoint = entity.data.pathPauseAtMidpoint === true;
-			timeline.to(state, {
-				progress: 0.5,
-				duration: space.duration / 2,
-				ease: "power2.inOut",
-				onUpdate: () => {
-					const point = pathElement.getPointAtLength(
-						pathLength * state.progress,
-					);
-					setEntityPositions((prev) => ({
-						...prev,
-						[entity.id]: { x: point.x, y: point.y },
-					}));
-				},
-			});
-			timeline.add(() => {
-				if (!midpointNotifiedRef.current.has(entity.id)) {
-					midpointNotifiedRef.current.add(entity.id);
-					onEntityPathMidpoint?.(entity.id);
-				}
-				if (pauseAtMidpoint) {
+			if (pauseAtMidpoint) {
+				timeline.to(state, {
+					progress: 0.5,
+					duration: space.duration / 2,
+					ease: "power2.inOut",
+					onUpdate: () => {
+						const point = pathElement.getPointAtLength(
+							pathLength * state.progress,
+						);
+						setEntityPositions((prev) => ({
+							...prev,
+							[entity.id]: { x: point.x, y: point.y },
+						}));
+					},
+				});
+				timeline.add(() => {
+					if (!midpointNotifiedRef.current.has(entity.id)) {
+						midpointNotifiedRef.current.add(entity.id);
+						onEntityPathMidpoint?.(entity.id);
+					}
 					pausedAtMidpointRef.current.add(entity.id);
 					timeline.pause();
-				}
-			});
-			timeline.to(state, {
-				progress: 1,
-				duration: space.duration / 2,
-				ease: "power2.inOut",
-				onUpdate: () => {
-					const point = pathElement.getPointAtLength(
-						pathLength * state.progress,
-					);
-					setEntityPositions((prev) => ({
-						...prev,
-						[entity.id]: { x: point.x, y: point.y },
-					}));
-				},
-			});
+				});
+				timeline.to(state, {
+					progress: 1,
+					duration: space.duration / 2,
+					ease: "power2.inOut",
+					onUpdate: () => {
+						const point = pathElement.getPointAtLength(
+							pathLength * state.progress,
+						);
+						setEntityPositions((prev) => ({
+							...prev,
+							[entity.id]: { x: point.x, y: point.y },
+						}));
+					},
+				});
+			} else {
+				timeline.to(state, {
+					progress: 1,
+					duration: space.duration,
+					ease: "power2.inOut",
+					onUpdate: () => {
+						const point = pathElement.getPointAtLength(
+							pathLength * state.progress,
+						);
+						setEntityPositions((prev) => ({
+							...prev,
+							[entity.id]: { x: point.x, y: point.y },
+						}));
+						if (
+							state.progress >= 0.5 &&
+							!midpointNotifiedRef.current.has(entity.id)
+						) {
+							midpointNotifiedRef.current.add(entity.id);
+							onEntityPathMidpoint?.(entity.id);
+						}
+					},
+				});
+			}
 			timeline.to(state, {
 				opacity: 0,
 				duration: 0.18,
