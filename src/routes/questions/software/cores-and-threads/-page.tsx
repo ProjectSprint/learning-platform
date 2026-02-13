@@ -3,6 +3,7 @@ import { useLayoutEffect } from "react";
 
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import {
+	CustomSpace,
 	GameBoard,
 	GridSpace,
 	PathSpace,
@@ -26,11 +27,10 @@ import type { QuestionProps } from "@/components/module";
 
 import {
 	APP_POOL_CONFIG,
-	BREAKDOWN_POOL_CONFIG,
-	DECOMPILE_QUEUE_PATH_CONFIG,
-	GRID_SPACE_CONFIGS,
-	OPEN_INGRESS_PATH_CONFIG,
-	OPENED_APPS_POOL_CONFIG,
+	CORE1_PATH_CONFIG,
+	EXECUTION_GRID_CONFIG,
+	OPEN_GRID_CONFIG,
+	OPENED_GRID_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
 	SPACE_IDS,
@@ -77,21 +77,19 @@ const CoresAndThreadsGame = ({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: SPACE_IDS.appPool,
-			spaceIds: [SPACE_IDS.breakdown, SPACE_IDS.appPool, SPACE_IDS.openedApps],
-			title: "Workspace",
+			spaceIds: [SPACE_IDS.appPool],
+			title: "Apps",
 			position: "bottom",
 			initialState: "expanded",
-			expandedSize: { base: "70vh", md: "45vh" },
-			foldedSize: { sm: "30vh" },
+			expandedSize: { base: "62vh", md: "40vh" },
+			foldedSize: { sm: "25vh" },
 			mouseAware: true,
 			showFloatingButton: true,
-			floatingButtonLabel: "Workspace",
+			floatingButtonLabel: "Apps",
 		});
 	}, [registerDrawer]);
 
 	const getEntityLabel = (entity: EntityData) => entity.name ?? entity.id;
-
-	const showCore2 = phase.showCore2;
 
 	return (
 		<Box
@@ -119,17 +117,14 @@ const CoresAndThreadsGame = ({
 			<GameBoard>
 				{phase.boardReady ? (
 					<Grid
-						templateColumns={{
-							base: "1fr",
-							lg: showCore2 ? "1.2fr 1fr 1fr" : "1.2fr 1fr",
-						}}
+						templateColumns={{ base: "1fr", lg: "1.2fr 1fr" }}
 						gap={{ base: 3, md: 4 }}
 					>
 						<GridItem>
 							<InfoCard
-								title="Mode"
-								value={`${phase.mode} / ${phase.phase}`}
-								subtitle={`Opened apps: ${phase.openedCount}/${phase.appCountToWall} (single-core wall)`}
+								title="Single Core Simulation"
+								value={`Opened apps: ${phase.openedCount}`}
+								subtitle="Flow: Open -> RAM -> Execution -> Core 1 -> Opened"
 							/>
 							{phase.notice ? (
 								<Text
@@ -140,27 +135,30 @@ const CoresAndThreadsGame = ({
 									{phase.notice.message}
 								</Text>
 							) : null}
+							{phase.dualCorePromptVisible ? (
+								<Text mt={2} fontSize="sm" color="teal.300">
+									Next lesson prompt: introduce dual-core scheduling now.
+								</Text>
+							) : null}
 							<Box mt={3}>
-								<PathSpace
+								<GridSpace
 									ctx={gameCtx}
-									config={OPEN_INGRESS_PATH_CONFIG}
-									title="Open Lane"
-									speedMultiplier={1}
+									config={OPEN_GRID_CONFIG}
+									title="Open"
+									getEntityLabel={getEntityLabel}
+									getEntityStatus={phase.getEntityStatus}
 								/>
 							</Box>
 							<Box mt={3}>
-								<PathSpace
-									ctx={gameCtx}
-									config={DECOMPILE_QUEUE_PATH_CONFIG}
-									title="Decode Queue"
-									speedMultiplier={phase.queuePathSpeedMultiplier}
-								/>
+								<CustomSpace id={SPACE_IDS.ram}>
+									<RamBar usage={phase.ramUsage} />
+								</CustomSpace>
 							</Box>
 							<Box mt={3}>
 								<GridSpace
 									ctx={gameCtx}
-									config={GRID_SPACE_CONFIGS.ram}
-									title="RAM"
+									config={EXECUTION_GRID_CONFIG}
+									title="Execution"
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={phase.getEntityStatus}
 								/>
@@ -168,57 +166,49 @@ const CoresAndThreadsGame = ({
 						</GridItem>
 
 						<GridItem>
-							<CoreCard
-								title="Core 1"
-								usage={phase.coreUtilization[SPACE_IDS.core1]}
+							<Box
+								bg="gray.900"
+								borderRadius="md"
+								border="1px solid"
+								borderColor="gray.800"
+								p={3}
 							>
+								<Text
+									fontSize="sm"
+									fontWeight="semibold"
+									color="gray.100"
+									mb={2}
+								>
+									Core 1 Queue
+								</Text>
+								<Text fontSize="xs" color="gray.400" mb={3}>
+									Each execution part takes 6 seconds and runs sequentially.
+								</Text>
+								<PathSpace
+									ctx={gameCtx}
+									config={CORE1_PATH_CONFIG}
+									title="Core 1"
+									speedMultiplier={phase.corePathSpeedMultiplier}
+								/>
+							</Box>
+
+							<Box mt={3}>
 								<GridSpace
 									ctx={gameCtx}
-									config={GRID_SPACE_CONFIGS.core1}
+									config={OPENED_GRID_CONFIG}
+									title="Opened"
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={phase.getEntityStatus}
 								/>
-							</CoreCard>
+							</Box>
 						</GridItem>
-
-						{showCore2 ? (
-							<GridItem>
-								<CoreCard
-									title="Core 2"
-									usage={phase.coreUtilization[SPACE_IDS.core2]}
-								>
-									<GridSpace
-										ctx={gameCtx}
-										config={GRID_SPACE_CONFIGS.core2}
-										getEntityLabel={getEntityLabel}
-										getEntityStatus={phase.getEntityStatus}
-									/>
-								</CoreCard>
-							</GridItem>
-						) : null}
 					</Grid>
 				) : null}
 
 				<ContextualHint />
 				<DragOverlay getEntityLabel={(entityType) => entityType} />
 				<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
-					<Flex direction="column" gap={3}>
-						<PoolSpace
-							ctx={gameCtx}
-							config={BREAKDOWN_POOL_CONFIG}
-							title="Subtasks"
-						/>
-						<PoolSpace
-							ctx={gameCtx}
-							config={APP_POOL_CONFIG}
-							title="App Pool"
-						/>
-						<PoolSpace
-							ctx={gameCtx}
-							config={OPENED_APPS_POOL_CONFIG}
-							title="Opened Apps"
-						/>
-					</Flex>
+					<PoolSpace ctx={gameCtx} config={APP_POOL_CONFIG} title="Apps" />
 				</DrawerLayout>
 			</GameBoard>
 
@@ -262,15 +252,7 @@ const InfoCard = ({
 	);
 };
 
-const CoreCard = ({
-	title,
-	usage,
-	children,
-}: {
-	title: string;
-	usage: number;
-	children: React.ReactNode;
-}) => {
+const RamBar = ({ usage }: { usage: number }) => {
 	return (
 		<Box
 			bg="gray.900"
@@ -281,22 +263,24 @@ const CoreCard = ({
 		>
 			<Flex align="center" justify="space-between" mb={2}>
 				<Text fontSize="sm" fontWeight="semibold" color="gray.100">
-					{title}
+					RAM
 				</Text>
 				<Text fontSize="xs" color="gray.400">
-					{usage}%
+					{usage}% utilized
 				</Text>
 			</Flex>
-			<Box h="8px" bg="gray.700" borderRadius="full" mb={3} overflow="hidden">
+			<Box h="10px" bg="gray.700" borderRadius="full" overflow="hidden">
 				<Box
 					h="100%"
-					bg="orange.400"
+					bg="cyan.400"
 					borderRadius="full"
 					width={`${usage}%`}
-					transition="width 0.2s ease-out"
+					transition="width 0.3s ease-out"
 				/>
 			</Box>
-			{children}
+			<Text mt={2} fontSize="xs" color="gray.400">
+				Each opened app consumes half of RAM.
+			</Text>
 		</Box>
 	);
 };

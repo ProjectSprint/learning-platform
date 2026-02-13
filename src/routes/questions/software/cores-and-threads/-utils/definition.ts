@@ -1,16 +1,16 @@
 import type { QuestionDefinition } from "@/components/game/runtime";
+
 import {
 	APP_ITEMS,
 	APP_POOL_CONFIG,
-	BREAKDOWN_POOL_CONFIG,
-	DECOMPILE_QUEUE_PATH_CONFIG,
-	GRID_SPACE_CONFIGS,
-	OPEN_INGRESS_PATH_CONFIG,
-	OPENED_APPS_POOL_CONFIG,
+	CORE1_PATH_CONFIG,
+	EXECUTION_GRID_CONFIG,
+	OPEN_GRID_CONFIG,
+	OPENED_GRID_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
-	TASK_ITEMS,
+	RAM_CUSTOM_CONFIG,
 } from "./constants";
 
 export const CORES_THREADS_DEFINITION: QuestionDefinition<
@@ -22,45 +22,28 @@ export const CORES_THREADS_DEFINITION: QuestionDefinition<
 		title: QUESTION_TITLE,
 		description: QUESTION_DESCRIPTION,
 	},
-	initialPhase: "single-explore",
+	initialPhase: "single-core",
 	spaces: [
-		...Object.values(GRID_SPACE_CONFIGS).map((config) => ({
-			kind: "grid" as const,
-			config,
-		})),
-		{ kind: "path" as const, config: OPEN_INGRESS_PATH_CONFIG },
-		{ kind: "path" as const, config: DECOMPILE_QUEUE_PATH_CONFIG },
 		{ kind: "pool" as const, config: APP_POOL_CONFIG },
-		{ kind: "pool" as const, config: BREAKDOWN_POOL_CONFIG },
-		{ kind: "pool" as const, config: OPENED_APPS_POOL_CONFIG },
+		{ kind: "grid" as const, config: OPEN_GRID_CONFIG },
+		{ kind: "custom" as const, config: RAM_CUSTOM_CONFIG },
+		{ kind: "grid" as const, config: EXECUTION_GRID_CONFIG },
+		{ kind: "path" as const, config: CORE1_PATH_CONFIG },
+		{ kind: "grid" as const, config: OPENED_GRID_CONFIG },
 	],
-	entities: [
-		...APP_ITEMS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-				draggable: item.draggable,
-				category: item.category,
-			},
-			initialSpace: APP_POOL_CONFIG.id,
-		})),
-		...TASK_ITEMS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-				draggable: item.draggable,
-				category: item.category,
-			},
-		})),
-	],
+	entities: APP_ITEMS.map((item) => ({
+		config: {
+			id: item.id,
+			name: item.name,
+			icon: item.icon,
+			tooltip: item.tooltip,
+			allowedPlaces: item.allowedPlaces,
+			data: { ...item.data, type: item.type },
+			draggable: item.draggable,
+			category: item.category,
+		},
+		initialSpace: APP_POOL_CONFIG.id,
+	})),
 	phaseRules: [],
 	behaviors: {
 		initialContext: {},

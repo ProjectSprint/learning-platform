@@ -1,77 +1,26 @@
 import type {
+	CustomSpaceConfig,
 	GridSpaceConfig,
 	PathSpaceConfig,
 	PoolSpaceConfig,
 } from "@/components/game/domain/space";
 import type { Item } from "@/components/game/game-provider";
 
-import type { AppDefinition, TaskDefinition } from "./types";
+import type { AppDefinition, ExecutionStep } from "./types";
 
 export const QUESTION_ID = "parallel-multicore";
-export const QUESTION_TITLE = "🖥️ Boot up your desktop";
+export const QUESTION_TITLE = "🖥️ Open Apps on a Single Core";
 export const QUESTION_DESCRIPTION =
-	"Open apps, feel single-core bottlenecks, then learn scheduling, parallel work, and locking.";
+	"Open apps, watch RAM fill, and see how one core processes execution work in sequence.";
 
 export const SPACE_IDS = {
 	appPool: "app-pool",
-	openIngressPath: "open-ingress-path",
-	decompileQueuePath: "decompile-queue-path",
+	open: "open",
 	ram: "ram",
-	breakdown: "breakdown",
+	execution: "execution",
 	core1: "core-1",
-	core2: "core-2",
-	openedApps: "opened-apps",
+	opened: "opened",
 } as const;
-
-export const GRID_SPACE_CONFIGS: Record<
-	"ram" | "core1" | "core2",
-	GridSpaceConfig
-> = {
-	ram: {
-		id: SPACE_IDS.ram,
-		name: "RAM",
-		rows: 1,
-		cols: 3,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 3,
-	},
-	core1: {
-		id: SPACE_IDS.core1,
-		name: "Core 1",
-		rows: 1,
-		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 1,
-	},
-	core2: {
-		id: SPACE_IDS.core2,
-		name: "Core 2",
-		rows: 1,
-		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 1,
-	},
-};
-
-export const OPEN_INGRESS_PATH_CONFIG: PathSpaceConfig = {
-	id: SPACE_IDS.openIngressPath,
-	name: "Open Lane",
-	path: "M 12 60 L 308 60",
-	viewBox: "0 0 320 120",
-	duration: 1.2,
-	speedMultiplier: 1,
-	maxCapacity: 1,
-};
-
-export const DECOMPILE_QUEUE_PATH_CONFIG: PathSpaceConfig = {
-	id: SPACE_IDS.decompileQueuePath,
-	name: "Decode Queue",
-	path: "M 12 60 L 308 60",
-	viewBox: "0 0 320 120",
-	duration: 1.5,
-	speedMultiplier: 1,
-	maxCapacity: 1,
-};
 
 export const APP_POOL_CONFIG: PoolSpaceConfig = {
 	id: SPACE_IDS.appPool,
@@ -79,16 +28,46 @@ export const APP_POOL_CONFIG: PoolSpaceConfig = {
 	metadata: { visible: true },
 };
 
-export const BREAKDOWN_POOL_CONFIG: PoolSpaceConfig = {
-	id: SPACE_IDS.breakdown,
-	name: "Subtasks",
-	metadata: { visible: true },
+export const OPEN_GRID_CONFIG: GridSpaceConfig = {
+	id: SPACE_IDS.open,
+	name: "Open",
+	rows: 1,
+	cols: 1,
+	metrics: { cellWidth: 72, cellHeight: 72, gapX: 4, gapY: 4 },
+	maxCapacity: 1,
 };
 
-export const OPENED_APPS_POOL_CONFIG: PoolSpaceConfig = {
-	id: SPACE_IDS.openedApps,
-	name: "Opened Apps",
-	metadata: { visible: true },
+export const EXECUTION_GRID_CONFIG: GridSpaceConfig = {
+	id: SPACE_IDS.execution,
+	name: "Execution",
+	rows: 1,
+	cols: 3,
+	metrics: { cellWidth: 68, cellHeight: 68, gapX: 6, gapY: 6 },
+	maxCapacity: 3,
+};
+
+export const OPENED_GRID_CONFIG: GridSpaceConfig = {
+	id: SPACE_IDS.opened,
+	name: "Opened",
+	rows: 1,
+	cols: 2,
+	metrics: { cellWidth: 72, cellHeight: 72, gapX: 6, gapY: 6 },
+	maxCapacity: 2,
+};
+
+export const CORE1_PATH_CONFIG: PathSpaceConfig = {
+	id: SPACE_IDS.core1,
+	name: "Core 1",
+	path: "M 12 60 L 308 60",
+	viewBox: "0 0 320 120",
+	duration: 6,
+	speedMultiplier: 1,
+	maxCapacity: 1,
+};
+
+export const RAM_CUSTOM_CONFIG: CustomSpaceConfig = {
+	id: SPACE_IDS.ram,
+	name: "RAM",
 };
 
 export const APPS: AppDefinition[] = [
@@ -98,7 +77,6 @@ export const APPS: AppDefinition[] = [
 		name: "Word Editor",
 		icon: "twemoji:memo",
 		color: "#60A5FA",
-		weight: "light",
 	},
 	{
 		appKey: "calc",
@@ -106,7 +84,6 @@ export const APPS: AppDefinition[] = [
 		name: "Calculator",
 		icon: "twemoji:abacus",
 		color: "#34D399",
-		weight: "light",
 	},
 	{
 		appKey: "paint",
@@ -114,7 +91,6 @@ export const APPS: AppDefinition[] = [
 		name: "Paint",
 		icon: "twemoji:artist-palette",
 		color: "#FBBF24",
-		weight: "medium",
 	},
 	{
 		appKey: "music",
@@ -122,7 +98,6 @@ export const APPS: AppDefinition[] = [
 		name: "Music Player",
 		icon: "twemoji:musical-note",
 		color: "#A78BFA",
-		weight: "medium",
 	},
 	{
 		appKey: "video",
@@ -130,194 +105,61 @@ export const APPS: AppDefinition[] = [
 		name: "Video Editor",
 		icon: "twemoji:clapper-board",
 		color: "#F87171",
-		weight: "heavy",
 	},
 ];
 
-const wordTasks: TaskDefinition[] = [
+const appAllowedPlaces = [SPACE_IDS.appPool, SPACE_IDS.open, SPACE_IDS.opened];
+
+export const APP_ITEMS: Item[] = APPS.map((app) => ({
+	id: app.entityId,
+	type: "app",
+	name: app.name,
+	icon: { icon: app.icon, color: app.color },
+	allowedPlaces: appAllowedPlaces,
+	data: {
+		appKey: app.appKey,
+		appStatus: "ready",
+	},
+}));
+
+export const APP_BY_ID = Object.fromEntries(
+	APPS.map((app) => [app.entityId, app]),
+) as Record<string, AppDefinition>;
+
+export const APP_IDS = new Set(APP_ITEMS.map((item) => item.id));
+
+export const EXECUTION_PARTS: Array<{
+	step: ExecutionStep;
+	label: string;
+	icon: string;
+	color: string;
+}> = [
 	{
-		taskId: "task-word-locate",
-		appKey: "word",
-		name: "Locate binary",
-		durationMs: 800,
-		dependsOn: [],
+		step: "load",
+		label: "Loading dependencies",
+		icon: "mdi:package-variant-closed",
+		color: "#60A5FA",
 	},
 	{
-		taskId: "task-word-parse",
-		appKey: "word",
-		name: "Parse config",
-		durationMs: 600,
-		dependsOn: ["task-word-locate"],
+		step: "process",
+		label: "Processing dependencies",
+		icon: "mdi:cog-outline",
+		color: "#F59E0B",
 	},
 	{
-		taskId: "task-word-render",
-		appKey: "word",
-		name: "Render UI",
-		durationMs: 1000,
-		dependsOn: ["task-word-parse"],
+		step: "compose",
+		label: "UI composition",
+		icon: "mdi:view-dashboard-outline",
+		color: "#34D399",
 	},
 ];
 
-const calcTasks: TaskDefinition[] = [
-	{
-		taskId: "task-calc-locate",
-		appKey: "calc",
-		name: "Locate binary",
-		durationMs: 500,
-		dependsOn: [],
-	},
-	{
-		taskId: "task-calc-parse",
-		appKey: "calc",
-		name: "Parse config",
-		durationMs: 400,
-		dependsOn: ["task-calc-locate"],
-	},
-	{
-		taskId: "task-calc-render",
-		appKey: "calc",
-		name: "Render UI",
-		durationMs: 600,
-		dependsOn: ["task-calc-parse"],
-	},
-];
-
-const paintTasks: TaskDefinition[] = [
-	{
-		taskId: "task-paint-locate",
-		appKey: "paint",
-		name: "Locate binary",
-		durationMs: 800,
-		dependsOn: [],
-	},
-	{
-		taskId: "task-paint-parse",
-		appKey: "paint",
-		name: "Parse config",
-		durationMs: 600,
-		dependsOn: ["task-paint-locate"],
-	},
-	{
-		taskId: "task-paint-brush",
-		appKey: "paint",
-		name: "Load brush engine",
-		durationMs: 1200,
-		dependsOn: ["task-paint-parse"],
-	},
-	{
-		taskId: "task-paint-render",
-		appKey: "paint",
-		name: "Render canvas",
-		durationMs: 1500,
-		dependsOn: ["task-paint-brush"],
-		resource: "gpu",
-	},
-];
-
-const musicTasks: TaskDefinition[] = [
-	{
-		taskId: "task-music-locate",
-		appKey: "music",
-		name: "Locate binary",
-		durationMs: 700,
-		dependsOn: [],
-	},
-	{
-		taskId: "task-music-parse",
-		appKey: "music",
-		name: "Parse config",
-		durationMs: 500,
-		dependsOn: ["task-music-locate"],
-	},
-	{
-		taskId: "task-music-codec",
-		appKey: "music",
-		name: "Load audio codec",
-		durationMs: 1000,
-		dependsOn: ["task-music-parse"],
-	},
-	{
-		taskId: "task-music-render",
-		appKey: "music",
-		name: "Render player UI",
-		durationMs: 1200,
-		dependsOn: ["task-music-codec"],
-	},
-];
-
-const videoTasks: TaskDefinition[] = [
-	{
-		taskId: "task-video-locate",
-		appKey: "video",
-		name: "Locate binary",
-		durationMs: 1000,
-		dependsOn: [],
-	},
-	{
-		taskId: "task-video-parse",
-		appKey: "video",
-		name: "Parse config",
-		durationMs: 800,
-		dependsOn: ["task-video-locate"],
-	},
-	{
-		taskId: "task-video-codec",
-		appKey: "video",
-		name: "Load video codec",
-		durationMs: 1500,
-		dependsOn: ["task-video-parse"],
-	},
-	{
-		taskId: "task-video-gpu",
-		appKey: "video",
-		name: "Initialize GPU link",
-		durationMs: 1200,
-		dependsOn: ["task-video-parse"],
-		resource: "gpu",
-	},
-	{
-		taskId: "task-video-timeline",
-		appKey: "video",
-		name: "Load timeline engine",
-		durationMs: 2000,
-		dependsOn: ["task-video-codec"],
-	},
-	{
-		taskId: "task-video-render",
-		appKey: "video",
-		name: "Render workspace",
-		durationMs: 2500,
-		dependsOn: ["task-video-timeline", "task-video-gpu"],
-	},
-];
-
-export const TASKS_BY_APP = {
-	word: wordTasks,
-	calc: calcTasks,
-	paint: paintTasks,
-	music: musicTasks,
-	video: videoTasks,
-} as const;
-
-export const ALL_TASKS: TaskDefinition[] = [
-	...wordTasks,
-	...calcTasks,
-	...paintTasks,
-	...musicTasks,
-	...videoTasks,
-];
-
-export const VIDEO_PARALLEL_TASK_IDS = [
-	"task-video-parse",
-	"task-video-codec",
-	"task-video-gpu",
-	"task-video-render",
-] as const;
-
-export const CONFLICT_TASK_IDS = [
-	"task-conflict-video-gpu",
-	"task-conflict-paint-gpu",
-] as const;
+export const PARSING_MS = 1000;
+export const ALLOCATING_MS = 1200;
+export const RAM_HOLD_MS = 1000;
+export const NOTICE_MS = 1800;
+export const CORE_STEP_DURATION_SECONDS = 6;
+export const OPENED_APPS_FOR_DUAL_CORE_PROMPT = 2;
 
 export const MODAL_IDS = {
 	wall: "core-wall",
@@ -328,92 +170,3 @@ export const MODAL_IDS = {
 	lockIntro: "parallel-lock-intro",
 	complete: "parallel-complete",
 } as const;
-
-export const TIMER_NOTICE_MS = 1800;
-export const COUNT_APPS_TO_TRIGGER_WALL = 3;
-export const COUNT_SIMULTANEOUS_APPS_FOR_DUAL_DEMO = 2;
-
-const baseAppAllowedPlaces = [
-	SPACE_IDS.appPool,
-	SPACE_IDS.openIngressPath,
-	SPACE_IDS.openedApps,
-];
-
-export const APP_ITEMS: Item[] = APPS.map((app) => ({
-	id: app.entityId,
-	type: "app",
-	name: app.name,
-	icon: { icon: app.icon, color: app.color },
-	allowedPlaces: baseAppAllowedPlaces,
-	data: {
-		appKey: app.appKey,
-		weight: app.weight,
-		appStatus: "ready",
-	},
-}));
-
-const taskAllowedPlaces = [
-	SPACE_IDS.breakdown,
-	SPACE_IDS.core1,
-	SPACE_IDS.core2,
-];
-
-export const TASK_ITEMS: Item[] = ALL_TASKS.map((task) => ({
-	id: task.taskId,
-	type: "subtask",
-	name: task.name,
-	allowedPlaces: taskAllowedPlaces,
-	icon: { icon: "mdi:cog-outline", color: "#94A3B8" },
-	draggable: true,
-	data: {
-		appKey: task.appKey,
-		taskStatus: "queued",
-		durationMs: task.durationMs,
-		dependsOn: task.dependsOn,
-		resource: task.resource,
-	},
-}));
-
-export const CONFLICT_TASK_ITEMS: Item[] = [
-	{
-		id: CONFLICT_TASK_IDS[0],
-		type: "subtask",
-		name: "Video GPU access",
-		allowedPlaces: taskAllowedPlaces,
-		icon: { icon: "mdi:gpu", color: "#F97316" },
-		draggable: false,
-		data: {
-			appKey: "video",
-			taskStatus: "queued",
-			durationMs: 1500,
-			dependsOn: [],
-			resource: "gpu",
-		},
-	},
-	{
-		id: CONFLICT_TASK_IDS[1],
-		type: "subtask",
-		name: "Paint GPU access",
-		allowedPlaces: taskAllowedPlaces,
-		icon: { icon: "mdi:gpu", color: "#F43F5E" },
-		draggable: false,
-		data: {
-			appKey: "paint",
-			taskStatus: "queued",
-			durationMs: 1500,
-			dependsOn: [],
-			resource: "gpu",
-		},
-	},
-];
-
-export const APP_IDS = new Set(APP_ITEMS.map((item) => item.id));
-export const TASK_IDS = new Set(TASK_ITEMS.map((item) => item.id));
-
-export const APP_BY_ID = Object.fromEntries(
-	APPS.map((app) => [app.entityId, app]),
-) as Record<string, AppDefinition>;
-
-export const TASK_BY_ID = Object.fromEntries(
-	ALL_TASKS.map((task) => [task.taskId, task]),
-) as Record<string, TaskDefinition>;
