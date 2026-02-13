@@ -8,11 +8,10 @@
 -- explicit transition function.
 module GameEngine.Reducer where
 
-import Data.List (find, foldl')
+import Data.List (foldl')
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe (fromMaybe)
-import Data.Text (Text)
 import GameEngine.EventQueue
 import GameEngine.Types
 
@@ -129,64 +128,6 @@ applyAction state action =
           queue' = appendEvents (getNextActionId (gsEventQueue state)) [eventPayload] (gsEventQueue state)
        in state {gsEventQueue = queue'}
 
-applyEntityUpdates :: EntityUpdates -> EntityData -> (EntityData, EntityUpdatePayload)
-applyEntityUpdates EntityUpdates {..} entity =
-  let core = getEntityCore entity
-
-      (nextName, changedName) =
-        case updateName of
-          Nothing -> (coreEntityName core, Nothing)
-          Just candidate ->
-            if Just candidate == coreEntityName core
-              then (coreEntityName core, Nothing)
-              else (Just candidate, Just candidate)
-
-      (nextVisual, visualPatch) = mergePatch (coreEntityVisual core) updateVisual
-      (nextData, dataPatch) = mergePatch (coreEntityData core) updateData
-      (nextState, statePatch) = mergePatch (coreEntityState core) updateState
-
-      core' =
-        core
-          { coreEntityName = nextName,
-            coreEntityVisual = nextVisual,
-            coreEntityData = nextData,
-            coreEntityState = nextState
-          }
-
-      (entity', changedDraggable) =
-        case (entity, updateDraggable) of
-          (ItemEntity item, Just value)
-            | itemDraggable item /= value ->
-                (ItemEntity item {itemCore = core', itemDraggable = value}, Just value)
-          (ItemEntity item, _) -> (ItemEntity item {itemCore = core'}, Nothing)
-          (GenericEntity _, _) -> (GenericEntity core', Nothing)
-
-      payload =
-        EntityUpdatePayload
-          { payloadName = changedName,
-            payloadDraggable = changedDraggable,
-            payloadVisual = visualPatch,
-            payloadData = dataPatch,
-            payloadState = statePatch
-          }
-   in (entity', payload)
-
-mergePatch :: Map Text Value -> Map Text Value -> (Map Text Value, Maybe (Map Text Value))
-mergePatch current patch
-  | Map.null patch = (current, Nothing)
-  | otherwise =
-      let hasChange = any (\(k, v) -> Map.lookup k current /= Just v) (Map.toList patch)
-       in if hasChange
-            then (Map.union patch current, Just patch)
-            else (current, Nothing)
-
-spaceContains :: SpaceData -> EntityId -> Bool
-spaceContains space entityId =
-  case space of
-    GridSpace GridSpaceData {gridEntityPositions} -> Map.member entityId gridEntityPositions
-    PoolSpace PoolSpaceData {poolEntityIds} -> entityId `elem` poolEntityIds
-    CustomSpace _ -> False
-
 removeEntityFromAllSpaces :: Map SpaceId SpaceData -> EntityId -> Map SpaceId SpaceData
 removeEntityFromAllSpaces spaces entityId =
   Map.map
@@ -196,69 +137,6 @@ removeEntityFromAllSpaces spaces entityId =
           Just (space', _) -> space'
     )
     spaces
-
-findEntitySpace :: GameState -> EntityId -> Maybe SpaceId
-findEntitySpace GameState {gsSpaces} entityId =
-  fst <$> find (\(_, space) -> spaceContains space entityId) (Map.toList gsSpaces)
-
-isInBounds :: GridSpaceData -> GridPosition -> Bool
-isInBounds GridSpaceData {gridRows, gridCols} GridPosition {row, col} =
-  row >= 0 && row < gridRows && col >= 0 && col < gridCols
-
-gridCanAccept :: GridSpaceData -> EntityId -> GridPosition -> Bool
-gridCanAccept grid entityId position =
-  isInBounds grid position
-    && capacityOk
-    && occupancyOk
-  where
-    currentCount = Map.size (gridEntityPositions grid)
-    capacityOk =
-      case gridMaxCapacity grid of
-        Nothing -> True
-        Just cap -> Map.member entityId (gridEntityPositions grid) || currentCount < cap
-    occupancyOk
-      | gridAllowMultiplePerCell grid = True
-      | otherwise =
-          not
-            ( any
-                (\(otherId, p) -> otherId /= entityId && p == position)
-                (Map.toList (gridEntityPositions grid))
-            )
-
-gridAdd :: GridSpaceData -> EntityId -> GridPosition -> Maybe GridSpaceData
-gridAdd grid entityId position
-  | not (gridCanAccept grid entityId position) = Nothing
-  | otherwise =
-      let positions = Map.insert entityId position (Map.delete entityId (gridEntityPositions grid))
-       in Just grid {gridEntityPositions = positions}
-
-gridRemove :: GridSpaceData -> EntityId -> Maybe GridSpaceData
-gridRemove grid entityId
-  | Map.member entityId (gridEntityPositions grid) =
-      Just grid {gridEntityPositions = Map.delete entityId (gridEntityPositions grid)}
-  | otherwise = Nothing
-
-poolAdd :: PoolSpaceData -> EntityId -> Maybe Int -> Maybe PoolSpaceData
-poolAdd pool entityId mIndex
-  | not capacityOk = Nothing
-  | otherwise =
-      let without = filter (/= entityId) (poolEntityIds pool)
-          idx = fromMaybe (length without) mIndex
-          clamped = max 0 (min idx (length without))
-          (left, right) = splitAt clamped without
-       in Just pool {poolEntityIds = left ++ [entityId] ++ right}
-  where
-    currentCount = length (poolEntityIds pool)
-    alreadyThere = entityId `elem` poolEntityIds pool
-    capacityOk = case poolMaxCapacity pool of
-      Nothing -> True
-      Just cap -> alreadyThere || currentCount < cap
-
-poolRemove :: PoolSpaceData -> EntityId -> Maybe PoolSpaceData
-poolRemove pool entityId
-  | entityId `elem` poolEntityIds pool =
-      Just pool {poolEntityIds = filter (/= entityId) (poolEntityIds pool)}
-  | otherwise = Nothing
 
 addToSpace :: SpaceData -> EntityId -> Maybe Placement -> Maybe (SpaceData, Maybe Placement)
 addToSpace space entityId placement =
@@ -297,27 +175,6 @@ removeFromSpace space entityId =
       pure (PoolSpace pool', pos)
 
     CustomSpace _ -> Nothing
-
-firstEmptyGridPosition :: GridSpaceData -> Maybe GridPosition
-firstEmptyGridPosition grid =
-  find
-    (\pos -> isNothingOrSelf grid pos)
-    [GridPosition r c | r <- [0 .. gridRows grid - 1], c <- [0 .. gridCols grid - 1]]
-  where
-    isNothingOrSelf g pos =
-      not
-        ( any
-            (\(_, p) -> p == pos)
-            (Map.toList (gridEntityPositions g))
-        )
-
-isNothingOrSelf :: GridSpaceData -> GridPosition -> Bool
-isNothingOrSelf g pos =
-  not
-    ( any
-        (\(_, p) -> p == pos)
-        (Map.toList (gridEntityPositions g))
-    )
 
 elemIndexPlacement :: EntityId -> [EntityId] -> Maybe Placement
 elemIndexPlacement entityId ids =
