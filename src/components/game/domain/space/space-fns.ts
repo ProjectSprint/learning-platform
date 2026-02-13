@@ -78,6 +78,7 @@ export const createPathSpaceData = (config: PathSpaceConfig): PathSpaceData => {
 		viewBox: config.viewBox ?? "0 0 320 120",
 		duration: config.duration ?? 1.5,
 		speedMultiplier: config.speedMultiplier ?? 1,
+		showDropzone: config.showDropzone ?? true,
 		entityIds: [],
 	};
 };

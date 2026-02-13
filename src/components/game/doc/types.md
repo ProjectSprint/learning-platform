@@ -160,6 +160,7 @@ type PathSpaceData = {
   viewBox: string;           // SVG viewBox string
   duration: number;          // Base animation duration in seconds
   speedMultiplier: number;   // Runtime speed multiplier
+  showDropzone: boolean;     // Whether default dropzone is rendered
   entityIds: string[];       // Entities currently in transit
   maxCapacity?: number;
   metadata: Record<string, unknown>;
@@ -197,6 +198,7 @@ type PathSpaceConfig = {
   viewBox?: string;
   duration?: number;
   speedMultiplier?: number;
+  showDropzone?: boolean;     // Default true
   maxCapacity?: number;
   metadata?: Record<string, unknown>;
 };

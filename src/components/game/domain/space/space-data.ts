@@ -99,6 +99,8 @@ export type PathSpaceConfig = SpaceBaseConfig & {
 	duration?: number;
 	/** Animation speed multiplier */
 	speedMultiplier?: number;
+	/** Whether to render the interactive dropzone */
+	showDropzone?: boolean;
 };
 
 /**
@@ -133,6 +135,8 @@ export type PathSpaceData = SpaceBase & {
 	duration: number;
 	/** Animation speed multiplier */
 	speedMultiplier: number;
+	/** Whether to render the interactive dropzone */
+	showDropzone: boolean;
 	/** Entities currently inside path space */
 	entityIds: string[];
 };

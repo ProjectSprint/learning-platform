@@ -62,6 +62,7 @@ export const CORE1_PATH_CONFIG: PathSpaceConfig = {
 	viewBox: "0 0 320 120",
 	duration: 6,
 	speedMultiplier: 1,
+	showDropzone: false,
 	maxCapacity: 1,
 };
 

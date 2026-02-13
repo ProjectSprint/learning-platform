@@ -36,6 +36,7 @@ export type PathSpaceViewProps = {
 	entities: EntityData[];
 	title?: string;
 	speedMultiplier: number;
+	showDropzone?: boolean;
 	onDropEntity?: (entityId: string) => boolean;
 	onEntityPathComplete?: (entityId: string) => void;
 };
@@ -46,6 +47,7 @@ export const PathSpaceView = ({
 	entities,
 	title,
 	speedMultiplier,
+	showDropzone = true,
 	onDropEntity,
 	onEntityPathComplete,
 }: PathSpaceViewProps) => {
@@ -96,9 +98,10 @@ export const PathSpaceView = ({
 	}, [renderedPath]);
 
 	useEffect(() => {
-		if (!activeDrag || !dropzoneRef.current || !onDropEntity) {
+		if (!showDropzone || !activeDrag || !dropzoneRef.current || !onDropEntity) {
 			setIsDropzoneHovered(false);
 			hoveredRef.current = false;
+			targetSpaceIdRef.current = undefined;
 			return;
 		}
 
@@ -170,6 +173,7 @@ export const PathSpaceView = ({
 		defaultCardSize.height,
 		defaultCardSize.width,
 		onDropEntity,
+		showDropzone,
 		setDropAnimationTarget,
 		setLastDropResult,
 		space.id,
@@ -342,33 +346,35 @@ export const PathSpaceView = ({
 							strokeLinejoin="round"
 						/>
 					</svg>
-					<Box
-						ref={dropzoneRef}
-						role="button"
-						tabIndex={0}
-						aria-label={`Drop items into ${space.name ?? space.id}`}
-						position="absolute"
-						left={`${(pathStartPoint.x / viewBoxSize.width) * 100}%`}
-						top={`${(pathStartPoint.y / viewBoxSize.height) * 100}%`}
-						transform="translate(-50%, -50%)"
-						w={`${DROPZONE_CELL_WIDTH}px`}
-						h={`${DROPZONE_CELL_HEIGHT}px`}
-						border="1px dashed"
-						borderColor={isDropzoneHovered ? "cyan.400" : "gray.700"}
-						borderRadius="md"
-						bg={isDropzoneHovered ? "cyan.900" : "gray.900"}
-						transition="border-color 0.15s ease, background-color 0.15s ease"
-						display="flex"
-						alignItems="center"
-						justifyContent="center"
-						pointerEvents="auto"
-						zIndex={2}
-						boxShadow="0 0 0 1px rgba(0, 0, 0, 0.25)"
-					>
-						<Text fontSize="xs" color="gray.300">
-							Drop
-						</Text>
-					</Box>
+					{showDropzone ? (
+						<Box
+							ref={dropzoneRef}
+							role="button"
+							tabIndex={0}
+							aria-label={`Drop items into ${space.name ?? space.id}`}
+							position="absolute"
+							left={`${(pathStartPoint.x / viewBoxSize.width) * 100}%`}
+							top={`${(pathStartPoint.y / viewBoxSize.height) * 100}%`}
+							transform="translate(-50%, -50%)"
+							w={`${DROPZONE_CELL_WIDTH}px`}
+							h={`${DROPZONE_CELL_HEIGHT}px`}
+							border="1px dashed"
+							borderColor={isDropzoneHovered ? "cyan.400" : "gray.700"}
+							borderRadius="md"
+							bg={isDropzoneHovered ? "cyan.900" : "gray.900"}
+							transition="border-color 0.15s ease, background-color 0.15s ease"
+							display="flex"
+							alignItems="center"
+							justifyContent="center"
+							pointerEvents="auto"
+							zIndex={2}
+							boxShadow="0 0 0 1px rgba(0, 0, 0, 0.25)"
+						>
+							<Text fontSize="xs" color="gray.300">
+								Drop
+							</Text>
+						</Box>
+					) : null}
 
 					{entities.map((entity) => {
 						const point = entityPositions[entity.id];

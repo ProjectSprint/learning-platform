@@ -106,6 +106,7 @@ type SpaceDefinition =
   viewBox?: string;             // Default "0 0 320 120"
   duration?: number;            // Base duration in seconds, default 1.5
   speedMultiplier?: number;     // Default 1
+  showDropzone?: boolean;       // Default true
   maxCapacity?: number;
 }
 ```

@@ -13,6 +13,8 @@ import { PathSpaceView } from "../presentation/space/PathSpaceView";
 type PathSpacePropsBase = {
 	/** Responsive SVG path mapping (Chakra breakpoint -> path d) */
 	responsivePath?: Record<string, string>;
+	/** Whether to show the default interactive dropzone */
+	showDropzone?: boolean;
 	id?: string;
 	ctx?: GameContextValue;
 	config?: PathSpaceConfig;
@@ -34,6 +36,7 @@ export const PathSpace = memo(
 		title,
 		speedMultiplier,
 		responsivePath,
+		showDropzone,
 	}: PathSpaceProps) => {
 		const contextState = useGameState();
 		const contextDispatch = useGameDispatch();
@@ -72,6 +75,7 @@ export const PathSpace = memo(
 			speedMultiplier ?? space.speedMultiplier ?? 1,
 		);
 		const path = resolvedPath ?? space.path;
+		const resolvedShowDropzone = showDropzone ?? space.showDropzone ?? true;
 
 		const onDropEntity = (entityId: string): boolean => {
 			if (!canEntityBePlaced(state, entityId, space.id)) {
@@ -123,7 +127,8 @@ export const PathSpace = memo(
 				entities={entities}
 				title={resolvedTitle}
 				speedMultiplier={resolvedSpeedMultiplier}
-				onDropEntity={onDropEntity}
+				showDropzone={resolvedShowDropzone}
+				onDropEntity={resolvedShowDropzone ? onDropEntity : undefined}
 				onEntityPathComplete={onEntityPathComplete}
 			/>
 		);

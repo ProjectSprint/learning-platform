@@ -129,6 +129,7 @@ describe("Factory Functions", () => {
 		expect(space.viewBox).toBe("0 0 320 120");
 		expect(space.duration).toBe(1.5);
 		expect(space.speedMultiplier).toBe(1);
+		expect(space.showDropzone).toBe(true);
 		expect(space.entityIds).toEqual([]);
 	});
 

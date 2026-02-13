@@ -204,7 +204,7 @@ setArrows([{
 
 ## PathSpace
 
-Declarative path transport renderer with default dropzone and GSAP path animation.
+Declarative path transport renderer with optional dropzone and GSAP path animation.
 
 ```typescript
 import { PathSpace } from "@/components/game/engine";
@@ -220,6 +220,7 @@ import { PathSpace } from "@/components/game/engine";
     viewBox: "0 0 320 120",
     duration: 1.8,
     speedMultiplier: 1,
+    showDropzone: true,
   }}
   title="Packet Path"
 />
@@ -234,9 +235,10 @@ import { PathSpace } from "@/components/game/engine";
 | `ctx` | `GameContextValue` | Game context from `useGameCtx()` |
 | `title` | `string` | Display title |
 | `speedMultiplier` | `number` | Optional runtime speed override |
+| `showDropzone` | `boolean` | Optional runtime dropzone override (`true` by default) |
 
 **Behavior contract:**
-- Drop target is a single default dropzone.
+- Drop target is a single default dropzone (unless hidden via `showDropzone: false`).
 - When an entity enters path space, animation starts along `config.path`.
 - On animation completion, PathSpace dispatches `ENTITY_REMOVED` for that entity.
 - This emits `ENTITY_LEFT_SPACE`, which behavior rules can catch to route the entity elsewhere.
