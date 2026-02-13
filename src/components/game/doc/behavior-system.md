@@ -96,6 +96,21 @@ terminalInput(/^ping\s+/)
 phaseChanged("terminal")
 ```
 
+### Lane Scheduler Helpers
+
+For lane-based flows (single-core/dual-core queues), runtime exposes pure
+helpers:
+
+```typescript
+import { pickLane, hasFreeLane } from "@/components/game/runtime";
+```
+
+- `pickLane(...)` supports `first_free` and `round_robin` policies.
+- `hasFreeLane(...)` checks if any enabled lane is currently available.
+
+These helpers keep lane selection deterministic and avoid route-specific
+selection logic drift.
+
 ### Raw EventTrigger Type
 
 For cases where factory functions don't suffice:

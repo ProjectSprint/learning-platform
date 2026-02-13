@@ -11,6 +11,9 @@ export type {
 	EffectContext,
 	EventTrigger,
 	GuardContext,
+	LaneSchedulerInput,
+	LaneSelectionPolicy,
+	LaneSelectionResult,
 	ScheduledEffectContext,
 } from "./behavior";
 export {
@@ -18,9 +21,11 @@ export {
 	entityClicked,
 	entityEnteredSpace,
 	entityMoved,
+	hasFreeLane,
 	modalClosed,
 	modalSubmitted,
 	phaseChanged,
+	pickLane,
 	terminalInput,
 } from "./behavior";
 // Bootstrap

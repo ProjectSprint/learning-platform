@@ -1,3 +1,10 @@
+export {
+	hasFreeLane,
+	type LaneSchedulerInput,
+	type LaneSelectionPolicy,
+	type LaneSelectionResult,
+	pickLane,
+} from "./lane-scheduler";
 export type {
 	BehaviorReactorDeps,
 	BehaviorReactorResult,

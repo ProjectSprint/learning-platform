@@ -10,7 +10,7 @@ import type {
 	BehaviorRule,
 	EffectContext,
 } from "@/components/game/runtime";
-import { entityArrived } from "@/components/game/runtime";
+import { entityArrived, pickLane } from "@/components/game/runtime";
 
 import {
 	ALLOCATING_MS,
@@ -41,6 +41,7 @@ export type CoresBehaviorContext = {
 	partIds2: string[];
 	partIndex1: number;
 	partIndex2: number;
+	laneCursor: number;
 	noticeMessage: string | null;
 	noticeTone: "info" | "error" | null;
 	navigateAway: boolean;
@@ -125,16 +126,21 @@ function isDualCoreUnlocked(ctx: { context: CoresBehaviorContext }): boolean {
 	);
 }
 
-function getAvailableLane(ctx: {
-	context: CoresBehaviorContext;
-}): CoreLaneId | null {
+function selectAvailableLane(
+	ctx: Pick<Ctx, "context" | "updateContext">,
+): CoreLaneId | null {
 	const enabledLanes = isDualCoreUnlocked(ctx) ? CORE_LANES : [SPACE_IDS.core1];
-	for (const laneId of enabledLanes) {
-		if (!getActiveLaneApp(ctx, laneId)) {
-			return laneId;
-		}
-	}
-	return null;
+	const selection = pickLane({
+		lanes: CORE_LANES,
+		enabledLanes,
+		policy: isDualCoreUnlocked(ctx) ? "round_robin" : "first_free",
+		cursor: ctx.context.laneCursor,
+		isOccupied: (laneId) => getActiveLaneApp(ctx, laneId) !== null,
+	});
+	ctx.updateContext((c) => {
+		c.laneCursor = selection.cursor;
+	});
+	return selection.laneId;
 }
 
 function hasAnyActiveLane(ctx: { context: CoresBehaviorContext }): boolean {
@@ -325,7 +331,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 	const currentSpaceId = findEntitySpace(ctx.state, appId);
 	if (currentSpaceId !== SPACE_IDS.open) return;
 
-	const laneId = getAvailableLane(ctx);
+	const laneId = selectAvailableLane(ctx);
 	if (!laneId) {
 		ctx.world.moveEntity(appId, SPACE_IDS.appPool);
 		ctx.world.updateEntity(appId, { data: { appStatus: "ready" } });
@@ -517,6 +523,7 @@ export const CORES_BEHAVIORS: BehaviorDefinition<CoresBehaviorContext> = {
 		partIds2: [],
 		partIndex1: 0,
 		partIndex2: 0,
+		laneCursor: -1,
 		noticeMessage: null,
 		noticeTone: null,
 		navigateAway: false,
