@@ -9,6 +9,8 @@ import { useEntityCardSize } from "../interaction/drag/DragOverlay";
 type PathPoint = { x: number; y: number };
 type PathViewBox = { width: number; height: number };
 type EntityRenderSize = { width: number; height: number };
+const DROPZONE_CELL_WIDTH = 64;
+const DROPZONE_CELL_HEIGHT = 60;
 
 const parseViewBox = (viewBox: string): PathViewBox => {
 	const [minX, minY, width, height] = viewBox
@@ -69,6 +71,10 @@ export const PathSpaceView = ({
 	const [entityPositions, setEntityPositions] = useState<
 		Record<string, PathPoint>
 	>({});
+	const [pathStartPoint, setPathStartPoint] = useState<PathPoint>({
+		x: DROPZONE_CELL_WIDTH / 2,
+		y: DROPZONE_CELL_HEIGHT / 2,
+	});
 	const hoveredRef = useRef(false);
 	const pendingDropEntityIdRef = useRef<string | null>(null);
 	const defaultCardSize = useEntityCardSize();
@@ -212,7 +218,8 @@ export const PathSpaceView = ({
 
 		const currentEntityIds = new Set(entities.map((entity) => entity.id));
 		const pathLength = pathElement.getTotalLength();
-		const pathStartPoint = pathElement.getPointAtLength(0);
+		const pathStart = pathElement.getPointAtLength(0);
+		setPathStartPoint({ x: pathStart.x, y: pathStart.y });
 
 		for (const [entityId, animation] of timelinesRef.current.entries()) {
 			if (!currentEntityIds.has(entityId)) {
@@ -238,7 +245,7 @@ export const PathSpaceView = ({
 			const entryPoint = pendingEntry
 				? toPathCoordinates(pendingEntry.viewportX, pendingEntry.viewportY)
 				: null;
-			const initialPoint = entryPoint ?? pathStartPoint;
+			const initialPoint = entryPoint ?? pathStart;
 
 			const renderSize: EntityRenderSize = pendingEntry?.size ?? {
 				width: defaultCardSize.width,
@@ -269,8 +276,8 @@ export const PathSpaceView = ({
 
 			if (entryPoint) {
 				timeline.to(state, {
-					x: pathStartPoint.x,
-					y: pathStartPoint.y,
+					x: pathStart.x,
+					y: pathStart.y,
 					duration: 0.22,
 					ease: "power2.out",
 					onUpdate: () => {
@@ -344,23 +351,6 @@ export const PathSpaceView = ({
 			)}
 
 			<Flex direction="column" gap={3}>
-				<Box
-					ref={dropzoneRef}
-					role="button"
-					tabIndex={0}
-					aria-label={`Drop items into ${space.name ?? space.id}`}
-					bg={isDropzoneHovered ? "cyan.800" : "gray.800"}
-					border="1px dashed"
-					borderColor={isDropzoneHovered ? "cyan.300" : "gray.600"}
-					borderRadius="md"
-					px={3}
-					py={2}
-				>
-					<Text fontSize="xs" color="gray.100">
-						Dropzone
-					</Text>
-				</Box>
-
 				<Box ref={trackRef} position="relative" h="120px">
 					<svg
 						viewBox={space.viewBox}
@@ -379,6 +369,31 @@ export const PathSpaceView = ({
 							strokeLinejoin="round"
 						/>
 					</svg>
+					<Box
+						ref={dropzoneRef}
+						role="button"
+						tabIndex={0}
+						aria-label={`Drop items into ${space.name ?? space.id}`}
+						position="absolute"
+						left={`${(pathStartPoint.x / viewBoxSize.width) * 100}%`}
+						top={`${(pathStartPoint.y / viewBoxSize.height) * 100}%`}
+						transform="translate(-50%, -50%)"
+						w={`${DROPZONE_CELL_WIDTH}px`}
+						h={`${DROPZONE_CELL_HEIGHT}px`}
+						border="1px dashed"
+						borderColor={isDropzoneHovered ? "cyan.400" : "gray.700"}
+						borderRadius="md"
+						bg={isDropzoneHovered ? "cyan.900" : "transparent"}
+						transition="border-color 0.15s ease, background-color 0.15s ease"
+						display="flex"
+						alignItems="center"
+						justifyContent="center"
+						pointerEvents="auto"
+					>
+						<Text fontSize="xs" color="gray.400">
+							Drop
+						</Text>
+					</Box>
 
 					{entities.map((entity) => {
 						const point = entityPositions[entity.id];
