@@ -1,6 +1,7 @@
 import type {
 	EntityEnteredSpaceEvent,
 	EntityLeftSpaceEvent,
+	EntityMovedEvent,
 	EntityUpdatedEvent,
 } from "@/components/game/application/state/types/events";
 import { findEntitySpace } from "@/components/game/domain/space/validation";
@@ -9,7 +10,7 @@ import type {
 	BehaviorRule,
 	EffectContext,
 } from "@/components/game/runtime";
-import { entityEnteredSpace, entityMoved } from "@/components/game/runtime";
+import { entityArrived } from "@/components/game/runtime";
 
 import {
 	ALLOCATING_MS,
@@ -361,19 +362,11 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 
 const rules: BehaviorRule<CoresBehaviorContext>[] = [
 	{
-		id: "cores.app-entered-open",
-		on: entityEnteredSpace(SPACE_IDS.open, "app"),
+		id: "cores.app-arrived-open",
+		on: entityArrived(SPACE_IDS.open, "app"),
 		handler: (ctx) => {
-			const event = ctx.event as EntityEnteredSpaceEvent;
+			const event = ctx.event as EntityEnteredSpaceEvent | EntityMovedEvent;
 			handleAppEnteredOpen(ctx, event.entityId);
-		},
-	},
-	{
-		id: "cores.app-moved-open",
-		on: entityMoved(SPACE_IDS.open, "app"),
-		handler: (ctx) => {
-			if (ctx.event.type !== "ENTITY_MOVED") return;
-			handleAppEnteredOpen(ctx, ctx.event.entityId);
 		},
 	},
 	{

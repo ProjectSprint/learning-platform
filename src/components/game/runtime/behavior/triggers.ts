@@ -18,6 +18,15 @@ export const entityMoved = (
 	...(entityType && { entityType }),
 });
 
+export const entityArrived = (
+	space?: string,
+	entityType?: string,
+): EventTrigger => ({
+	event: "ENTITY_ARRIVED",
+	...(space && { space }),
+	...(entityType && { entityType }),
+});
+
 export const entityClicked = (
 	entityType?: string,
 	space?: string,

@@ -6,6 +6,7 @@ export type {
 export { useBehaviorReactor } from "./reactor";
 export { QuestionScheduler } from "./scheduler";
 export {
+	entityArrived,
 	entityClicked,
 	entityEnteredSpace,
 	entityMoved,

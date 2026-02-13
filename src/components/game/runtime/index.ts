@@ -14,6 +14,7 @@ export type {
 	ScheduledEffectContext,
 } from "./behavior";
 export {
+	entityArrived,
 	entityClicked,
 	entityEnteredSpace,
 	entityMoved,

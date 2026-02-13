@@ -13,7 +13,7 @@ import type {
   EventTrigger,
   ScheduledEffectContext,
 } from "@/components/game/runtime";
-import { entityClicked, modalSubmitted, terminalInput, entityEnteredSpace, entityMoved, modalClosed, phaseChanged } from "@/components/game/runtime";
+import { entityArrived, entityClicked, modalSubmitted, terminalInput, entityEnteredSpace, entityMoved, modalClosed, phaseChanged } from "@/components/game/runtime";
 ```
 
 ## BehaviorDefinition
@@ -62,6 +62,7 @@ fields match anything.
 | `entityClicked(entityType?, space?)` | `ENTITY_CLICKED` | Filter by entity type and/or space ID |
 | `entityEnteredSpace(space?, entityType?)` | `ENTITY_ENTERED_SPACE` | Filter by target space and/or entity type |
 | `entityMoved(toSpace?, entityType?)` | `ENTITY_MOVED` | Filter by destination space and/or entity type |
+| `entityArrived(space?, entityType?)` | `ENTITY_ENTERED_SPACE` or `ENTITY_MOVED` | Unified arrival trigger for either source event |
 | `modalSubmitted(modalId?, modalActionId?)` | `MODAL_SUBMITTED` | Filter by modal ID and/or action button ID |
 | `modalClosed(modalId?)` | `MODAL_CLOSED` | Filter by modal ID |
 | `terminalInput(match?)` | `TERMINAL_INPUT` | Filter by exact string or RegExp |
@@ -103,6 +104,7 @@ For cases where factory functions don't suffice:
 type EventTrigger =
   | { event: "ENTITY_ENTERED_SPACE"; space?: string; entityType?: string }
   | { event: "ENTITY_MOVED"; toSpace?: string; entityType?: string }
+  | { event: "ENTITY_ARRIVED"; space?: string; entityType?: string }
   | { event: "ENTITY_LEFT_SPACE"; space?: string; entityType?: string }
   | { event: "ENTITY_CLICKED"; entityType?: string; space?: string }
   | { event: "ENTITY_UPDATED"; entityType?: string }

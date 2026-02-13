@@ -124,7 +124,7 @@ export function useBehaviorReactor<
 					const entity = resolveEntity(event, state);
 
 					for (const rule of rules) {
-						if (!matchesTrigger(event, rule.on, state)) continue;
+						if (!matchesEventTrigger(event, rule.on, state)) continue;
 
 						const guardCtx = buildGuardContext<TContext>(
 							event,
@@ -167,13 +167,11 @@ export function useBehaviorReactor<
 	return { context: contextRef.current };
 }
 
-function matchesTrigger(
+export function matchesEventTrigger(
 	event: GameEvent,
 	trigger: EventTrigger,
 	state: GameState,
 ): boolean {
-	if (event.type !== trigger.event) return false;
-
 	const entityType =
 		"entityId" in event
 			? state.entities[(event as { entityId: string }).entityId]?.type
@@ -181,6 +179,7 @@ function matchesTrigger(
 
 	switch (trigger.event) {
 		case "ENTITY_ENTERED_SPACE": {
+			if (event.type !== "ENTITY_ENTERED_SPACE") return false;
 			const e = event as EntityEnteredSpaceEvent;
 			return (
 				(trigger.space === undefined || e.spaceId === trigger.space) &&
@@ -188,13 +187,29 @@ function matchesTrigger(
 			);
 		}
 		case "ENTITY_MOVED": {
+			if (event.type !== "ENTITY_MOVED") return false;
 			const e = event as EntityMovedEvent;
 			return (
 				(trigger.toSpace === undefined || e.toSpaceId === trigger.toSpace) &&
 				(trigger.entityType === undefined || entityType === trigger.entityType)
 			);
 		}
+		case "ENTITY_ARRIVED": {
+			if (
+				event.type !== "ENTITY_ENTERED_SPACE" &&
+				event.type !== "ENTITY_MOVED"
+			) {
+				return false;
+			}
+			const spaceId =
+				event.type === "ENTITY_ENTERED_SPACE" ? event.spaceId : event.toSpaceId;
+			return (
+				(trigger.space === undefined || spaceId === trigger.space) &&
+				(trigger.entityType === undefined || entityType === trigger.entityType)
+			);
+		}
 		case "ENTITY_LEFT_SPACE": {
+			if (event.type !== "ENTITY_LEFT_SPACE") return false;
 			const e = event as EntityLeftSpaceEvent;
 			return (
 				(trigger.space === undefined || e.spaceId === trigger.space) &&
@@ -202,6 +217,7 @@ function matchesTrigger(
 			);
 		}
 		case "ENTITY_CLICKED": {
+			if (event.type !== "ENTITY_CLICKED") return false;
 			const e = event as EntityClickedEvent;
 			return (
 				(trigger.space === undefined || e.spaceId === trigger.space) &&
@@ -209,18 +225,22 @@ function matchesTrigger(
 			);
 		}
 		case "ENTITY_UPDATED":
+			if (event.type !== "ENTITY_UPDATED") return false;
 			return (
 				trigger.entityType === undefined || entityType === trigger.entityType
 			);
 		case "MODAL_OPENED": {
+			if (event.type !== "MODAL_OPENED") return false;
 			const e = event as ModalOpenedEvent;
 			return trigger.modalId === undefined || e.modalId === trigger.modalId;
 		}
 		case "MODAL_CLOSED": {
+			if (event.type !== "MODAL_CLOSED") return false;
 			const e = event as ModalClosedEvent;
 			return trigger.modalId === undefined || e.modalId === trigger.modalId;
 		}
 		case "MODAL_SUBMITTED": {
+			if (event.type !== "MODAL_SUBMITTED") return false;
 			const e = event as ModalSubmittedEvent;
 			return (
 				(trigger.modalId === undefined || e.modalId === trigger.modalId) &&
@@ -229,6 +249,7 @@ function matchesTrigger(
 			);
 		}
 		case "TERMINAL_INPUT": {
+			if (event.type !== "TERMINAL_INPUT") return false;
 			const e = event as TerminalInputEvent;
 			if (trigger.match === undefined) return true;
 			if (typeof trigger.match === "string") return e.input === trigger.match;
@@ -236,6 +257,7 @@ function matchesTrigger(
 			return false;
 		}
 		case "PHASE_CHANGED": {
+			if (event.type !== "PHASE_CHANGED") return false;
 			const e = event as PhaseChangedEvent;
 			return (
 				(trigger.from === undefined || e.from === trigger.from) &&
@@ -243,7 +265,10 @@ function matchesTrigger(
 			);
 		}
 		case "ENGINE_STARTED":
+			if (event.type !== "ENGINE_STARTED") return false;
+			return true;
 		case "ENGINE_FINISHED":
+			if (event.type !== "ENGINE_FINISHED") return false;
 			return true;
 		default:
 			return false;

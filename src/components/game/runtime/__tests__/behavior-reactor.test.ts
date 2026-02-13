@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createBehaviorConvenience } from "../behavior/reactor";
+import type { GameEvent, GameState } from "../../application/state/types";
+import {
+	createBehaviorConvenience,
+	matchesEventTrigger,
+} from "../behavior/reactor";
 import type {
 	InteractionSessionApi,
 	RuntimeApiResult,
@@ -85,5 +89,80 @@ describe("behavior reactor convenience helpers", () => {
 			error: { message: "grid full" },
 		});
 		expect(helpers.moveToGrid("entity-1", "board")).toBe(false);
+	});
+});
+
+const createStateForTriggerTest = (): GameState => ({
+	phase: "idle",
+	spaces: {},
+	entities: {
+		"entity-1": {
+			id: "entity-1",
+			type: "app",
+			visual: {},
+			data: {},
+			state: {},
+			behaviorIds: [],
+		},
+	},
+	overlay: { modals: {} },
+	question: { id: "q", status: "in_progress" },
+	eventQueue: { events: [], lastEventId: 0, lastActionId: 0 },
+	eventCursors: {},
+});
+
+describe("matchesEventTrigger", () => {
+	it("matches entityArrived for ENTITY_ENTERED_SPACE and ENTITY_MOVED", () => {
+		const state = createStateForTriggerTest();
+		const entered: GameEvent = {
+			type: "ENTITY_ENTERED_SPACE",
+			eventId: 1,
+			actionId: 1,
+			entityId: "entity-1",
+			spaceId: "open",
+		};
+		const moved: GameEvent = {
+			type: "ENTITY_MOVED",
+			eventId: 2,
+			actionId: 2,
+			entityId: "entity-1",
+			fromSpaceId: "pool",
+			toSpaceId: "open",
+		};
+		const trigger = {
+			event: "ENTITY_ARRIVED",
+			space: "open",
+			entityType: "app",
+		} as const;
+
+		expect(matchesEventTrigger(entered, trigger, state)).toBe(true);
+		expect(matchesEventTrigger(moved, trigger, state)).toBe(true);
+	});
+
+	it("does not match entityArrived when space or type do not match", () => {
+		const state = createStateForTriggerTest();
+		const moved: GameEvent = {
+			type: "ENTITY_MOVED",
+			eventId: 3,
+			actionId: 3,
+			entityId: "entity-1",
+			fromSpaceId: "pool",
+			toSpaceId: "core-1",
+		};
+
+		expect(
+			matchesEventTrigger(
+				moved,
+				{ event: "ENTITY_ARRIVED", space: "open", entityType: "app" },
+				state,
+			),
+		).toBe(false);
+		expect(
+			matchesEventTrigger(
+				moved,
+				{ event: "ENTITY_ARRIVED", entityType: "subtask" },
+				state,
+			),
+		).toBe(false);
 	});
 });

@@ -14,6 +14,7 @@ import type { WorldApi } from "../wrappers/world-api";
 export type EventTrigger =
 	| { event: "ENTITY_ENTERED_SPACE"; space?: string; entityType?: string }
 	| { event: "ENTITY_MOVED"; toSpace?: string; entityType?: string }
+	| { event: "ENTITY_ARRIVED"; space?: string; entityType?: string }
 	| { event: "ENTITY_LEFT_SPACE"; space?: string; entityType?: string }
 	| { event: "ENTITY_CLICKED"; entityType?: string; space?: string }
 	| { event: "ENTITY_UPDATED"; entityType?: string }
