@@ -13,19 +13,20 @@ export type {
 export { useBehaviorReactor } from "./reactor";
 export { QuestionScheduler } from "./scheduler";
 export {
-	entityArrived,
 	entityClicked,
-	entityEnteredSpace,
-	entityMoved,
 	modalClosed,
 	modalSubmitted,
 	phaseChanged,
 	terminalInput,
+	whenEntityArrivedAtSpace,
+	whenEntityPlacedInSpace,
+	whenEntityTransferredToSpace,
 } from "./triggers";
 export type {
 	BehaviorDefinition,
 	BehaviorRule,
 	EffectContext,
+	EventProvenance,
 	EventTrigger,
 	GuardContext,
 	ScheduledEffectContext,

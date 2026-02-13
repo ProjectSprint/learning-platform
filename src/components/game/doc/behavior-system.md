@@ -13,7 +13,7 @@ import type {
   EventTrigger,
   ScheduledEffectContext,
 } from "@/components/game/runtime";
-import { entityArrived, entityClicked, modalSubmitted, terminalInput, entityEnteredSpace, entityMoved, modalClosed, phaseChanged } from "@/components/game/runtime";
+import { entityClicked, modalSubmitted, terminalInput, whenEntityArrivedAtSpace, whenEntityPlacedInSpace, whenEntityTransferredToSpace, modalClosed, phaseChanged } from "@/components/game/runtime";
 ```
 
 ## BehaviorDefinition
@@ -42,10 +42,6 @@ type BehaviorRule<TContext> = {
   id: string;                                                    // Unique ID for debugging
   on: EventTrigger;                                              // Declarative event pattern
   guard?: (ctx: GuardContext<TContext>) => boolean;               // Optional filter (return true to allow)
-  idempotency?: {
-    key: string | ((ctx: GuardContext<TContext>) => string | undefined);
-    scope?: "action" | "session";                                // default "action"
-  };
   handler: (ctx: EffectContext<TContext>) => void | Promise<void>; // Effect to execute
 };
 ```
@@ -53,10 +49,6 @@ type BehaviorRule<TContext> = {
 **Rule evaluation:** For each event, rules are checked in order. The first rule
 whose `on` trigger matches AND whose `guard` returns true (or is absent) wins.
 Only one rule executes per event. Remaining rules are skipped.
-
-**Idempotency:** set `idempotency` to suppress duplicate rule execution:
-- `scope: "action"` suppresses repeated executions for the same key within a single `actionId`.
-- `scope: "session"` suppresses repeated executions for the full runtime session.
 
 ## EventTrigger
 
@@ -68,9 +60,9 @@ fields match anything.
 | Function | Matches Event | Parameters |
 |----------|--------------|------------|
 | `entityClicked(entityType?, space?)` | `ENTITY_CLICKED` | Filter by entity type and/or space ID |
-| `entityEnteredSpace(space?, entityType?)` | `ENTITY_ENTERED_SPACE` | Filter by target space and/or entity type |
-| `entityMoved(toSpace?, entityType?)` | `ENTITY_MOVED` | Filter by destination space and/or entity type |
-| `entityArrived(space?, entityType?)` | `ENTITY_ENTERED_SPACE` or `ENTITY_MOVED` | Unified arrival trigger for either source event |
+| `whenEntityPlacedInSpace(space?, entityType?)` | `ENTITY_ENTERED_SPACE` | Filter by target space and/or entity type |
+| `whenEntityTransferredToSpace(space?, entityType?)` | `ENTITY_MOVED` | Filter by destination space and/or entity type |
+| `whenEntityArrivedAtSpace(space?, entityType?)` | `ENTITY_ENTERED_SPACE` or `ENTITY_MOVED` | Unified arrival trigger for either source event |
 | `modalSubmitted(modalId?, modalActionId?)` | `MODAL_SUBMITTED` | Filter by modal ID and/or action button ID |
 | `modalClosed(modalId?)` | `MODAL_CLOSED` | Filter by modal ID |
 | `terminalInput(match?)` | `TERMINAL_INPUT` | Filter by exact string or RegExp |
@@ -125,9 +117,9 @@ For cases where factory functions don't suffice:
 
 ```typescript
 type EventTrigger =
-  | { event: "ENTITY_ENTERED_SPACE"; space?: string; entityType?: string }
-  | { event: "ENTITY_MOVED"; toSpace?: string; entityType?: string }
-  | { event: "ENTITY_ARRIVED"; space?: string; entityType?: string }
+  | { event: "ENTITY_PLACED_IN_SPACE"; space?: string; entityType?: string }
+  | { event: "ENTITY_TRANSFERRED_TO_SPACE"; space?: string; entityType?: string }
+  | { event: "ENTITY_ARRIVED_AT_SPACE"; space?: string; entityType?: string }
   | { event: "ENTITY_LEFT_SPACE"; space?: string; entityType?: string }
   | { event: "ENTITY_CLICKED"; entityType?: string; space?: string }
   | { event: "ENTITY_UPDATED"; entityType?: string }
@@ -147,6 +139,7 @@ Passed to `guard` functions. All fields are readonly.
 ```typescript
 type GuardContext<TContext> = {
   readonly event: GameEvent;                // The current event being processed
+  readonly provenance: EventProvenance;     // Trace metadata for this event/rule evaluation
   readonly entity: EntityData | undefined;  // Resolved entity (if event has entityId)
   readonly state: GameState;                // Current game state snapshot
   readonly phase: string;                   // Current phase (shortcut for state.phase)
@@ -180,6 +173,7 @@ Passed to `handler` functions. Provides full read/write access.
 type EffectContext<TContext> = {
   // ── Read-only event info ──
   readonly event: GameEvent;                // Current event
+  readonly provenance: EventProvenance;     // Event trace metadata
   readonly entity: EntityData | undefined;  // Resolved entity
 
   // ── Read-only state ──

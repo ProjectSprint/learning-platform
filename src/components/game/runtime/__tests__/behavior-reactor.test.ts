@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GameEvent, GameState } from "../../application/state/types";
 import {
+	buildEventProvenance,
 	createBehaviorConvenience,
 	matchesEventTrigger,
-	shouldRunRuleWithIdempotency,
 } from "../behavior/reactor";
 import type {
 	InteractionSessionApi,
@@ -113,7 +113,7 @@ const createStateForTriggerTest = (): GameState => ({
 });
 
 describe("matchesEventTrigger", () => {
-	it("matches entityArrived for ENTITY_ENTERED_SPACE and ENTITY_MOVED", () => {
+	it("matches ENTITY_ARRIVED_AT_SPACE for ENTITY_ENTERED_SPACE and ENTITY_MOVED", () => {
 		const state = createStateForTriggerTest();
 		const entered: GameEvent = {
 			type: "ENTITY_ENTERED_SPACE",
@@ -131,7 +131,7 @@ describe("matchesEventTrigger", () => {
 			toSpaceId: "open",
 		};
 		const trigger = {
-			event: "ENTITY_ARRIVED",
+			event: "ENTITY_ARRIVED_AT_SPACE",
 			space: "open",
 			entityType: "app",
 		} as const;
@@ -140,7 +140,7 @@ describe("matchesEventTrigger", () => {
 		expect(matchesEventTrigger(moved, trigger, state)).toBe(true);
 	});
 
-	it("does not match entityArrived when space or type do not match", () => {
+	it("does not match ENTITY_ARRIVED_AT_SPACE when space or type do not match", () => {
 		const state = createStateForTriggerTest();
 		const moved: GameEvent = {
 			type: "ENTITY_MOVED",
@@ -154,61 +154,37 @@ describe("matchesEventTrigger", () => {
 		expect(
 			matchesEventTrigger(
 				moved,
-				{ event: "ENTITY_ARRIVED", space: "open", entityType: "app" },
+				{ event: "ENTITY_ARRIVED_AT_SPACE", space: "open", entityType: "app" },
 				state,
 			),
 		).toBe(false);
 		expect(
 			matchesEventTrigger(
 				moved,
-				{ event: "ENTITY_ARRIVED", entityType: "subtask" },
+				{ event: "ENTITY_ARRIVED_AT_SPACE", entityType: "subtask" },
 				state,
 			),
 		).toBe(false);
 	});
-});
 
-describe("shouldRunRuleWithIdempotency", () => {
-	const guardCtx = (actionId: number) =>
-		({
-			event: {
-				type: "ENTITY_MOVED",
-				eventId: actionId,
-				actionId,
-				entityId: "entity-1",
-				fromSpaceId: "pool",
-				toSpaceId: "open",
-			},
-			entity: undefined,
-			state: createStateForTriggerTest(),
-			phase: "idle",
-			context: {},
-		}) as const;
-
-	it("suppresses duplicate keys within same action for action scope", () => {
-		const registry = new Map<string, number>();
-		const config = { key: "open-app", scope: "action" } as const;
-
-		expect(
-			shouldRunRuleWithIdempotency("rule.a", config, guardCtx(10), registry),
-		).toBe(true);
-		expect(
-			shouldRunRuleWithIdempotency("rule.a", config, guardCtx(10), registry),
-		).toBe(false);
-		expect(
-			shouldRunRuleWithIdempotency("rule.a", config, guardCtx(11), registry),
-		).toBe(true);
-	});
-
-	it("suppresses duplicate keys for full session scope", () => {
-		const registry = new Map<string, number>();
-		const config = { key: "session-once", scope: "session" } as const;
-
-		expect(
-			shouldRunRuleWithIdempotency("rule.b", config, guardCtx(1), registry),
-		).toBe(true);
-		expect(
-			shouldRunRuleWithIdempotency("rule.b", config, guardCtx(2), registry),
-		).toBe(false);
+	it("builds provenance with event and routing context", () => {
+		const moved: GameEvent = {
+			type: "ENTITY_MOVED",
+			eventId: 9,
+			actionId: 5,
+			entityId: "entity-1",
+			fromSpaceId: "pool",
+			toSpaceId: "open",
+		};
+		expect(buildEventProvenance(moved, "rule.open")).toEqual({
+			eventId: 9,
+			actionId: 5,
+			eventType: "ENTITY_MOVED",
+			entityId: "entity-1",
+			fromSpaceId: "pool",
+			toSpaceId: "open",
+			spaceId: "open",
+			ruleId: "rule.open",
+		});
 	});
 });

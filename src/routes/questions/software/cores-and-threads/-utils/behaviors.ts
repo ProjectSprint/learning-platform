@@ -10,7 +10,7 @@ import type {
 	BehaviorRule,
 	EffectContext,
 } from "@/components/game/runtime";
-import { entityArrived, pickLane } from "@/components/game/runtime";
+import { pickLane, whenEntityArrivedAtSpace } from "@/components/game/runtime";
 
 import {
 	ALLOCATING_MS,
@@ -369,12 +369,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 const rules: BehaviorRule<CoresBehaviorContext>[] = [
 	{
 		id: "cores.app-arrived-open",
-		on: entityArrived(SPACE_IDS.open, "app"),
-		idempotency: {
-			key: ({ event }) =>
-				"entityId" in event ? `arrive-open:${event.entityId}` : undefined,
-			scope: "action",
-		},
+		on: whenEntityArrivedAtSpace(SPACE_IDS.open, "app"),
 		handler: (ctx) => {
 			const event = ctx.event as EntityEnteredSpaceEvent | EntityMovedEvent;
 			handleAppEnteredOpen(ctx, event.entityId);

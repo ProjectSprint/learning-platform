@@ -115,7 +115,7 @@ all game logic lives.
 // -utils/behaviors.ts
 import type { TerminalInputEvent } from "@/components/game/application/state/types/events";
 import type { BehaviorDefinition, BehaviorRule } from "@/components/game/runtime";
-import { entityClicked, modalSubmitted, terminalInput } from "@/components/game/runtime";
+import { entityClicked, modalSubmitted, terminalInput, whenEntityPlacedInSpace } from "@/components/game/runtime";
 import { buildConfigModal, buildSuccessModal } from "./modal-builders";
 
 // Context type — tracks cross-rule state
@@ -205,7 +205,7 @@ const rules: BehaviorRule<MyBehaviorContext>[] = [
   // Deferred side effects with keyed scheduler (replaces raw setTimeout)
   {
     id: "my.delayed-reset",
-    on: entityEnteredSpace("transit"),
+    on: whenEntityPlacedInSpace("transit"),
     handler: ({ event, schedule }) => {
       if (event.type !== "ENTITY_ENTERED_SPACE") return;
       schedule(`reset:${event.entityId}`, 1200, (sctx) => {

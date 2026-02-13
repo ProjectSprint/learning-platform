@@ -1,28 +1,28 @@
 import type { EventTrigger } from "./types";
 
-export const entityEnteredSpace = (
+export const whenEntityPlacedInSpace = (
 	space?: string,
 	entityType?: string,
 ): EventTrigger => ({
-	event: "ENTITY_ENTERED_SPACE",
+	event: "ENTITY_PLACED_IN_SPACE",
 	...(space && { space }),
 	...(entityType && { entityType }),
 });
 
-export const entityMoved = (
-	toSpace?: string,
-	entityType?: string,
-): EventTrigger => ({
-	event: "ENTITY_MOVED",
-	...(toSpace && { toSpace }),
-	...(entityType && { entityType }),
-});
-
-export const entityArrived = (
+export const whenEntityTransferredToSpace = (
 	space?: string,
 	entityType?: string,
 ): EventTrigger => ({
-	event: "ENTITY_ARRIVED",
+	event: "ENTITY_TRANSFERRED_TO_SPACE",
+	...(space && { space }),
+	...(entityType && { entityType }),
+});
+
+export const whenEntityArrivedAtSpace = (
+	space?: string,
+	entityType?: string,
+): EventTrigger => ({
+	event: "ENTITY_ARRIVED_AT_SPACE",
 	...(space && { space }),
 	...(entityType && { entityType }),
 });

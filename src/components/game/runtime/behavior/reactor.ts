@@ -28,8 +28,8 @@ import type {
 import type { QuestionScheduler } from "./scheduler";
 import type {
 	BehaviorDefinition,
-	BehaviorRule,
 	EffectContext,
+	EventProvenance,
 	EventTrigger,
 	GuardContext,
 	ScheduledEffectContext,
@@ -97,7 +97,6 @@ export function useBehaviorReactor<
 
 	const onceKeys = useRef<Set<string>>(new Set());
 	const processingRef = useRef(false);
-	const idempotencyKeysRef = useRef<Map<string, number>>(new Map());
 
 	const depsRef = useRef(deps);
 	depsRef.current = deps;
@@ -133,19 +132,10 @@ export function useBehaviorReactor<
 							entity,
 							state,
 							contextRef.current,
+							rule.id,
 						);
 
 						if (rule.guard && !rule.guard(guardCtx)) continue;
-						if (
-							!shouldRunRuleWithIdempotency(
-								rule.id,
-								rule.idempotency,
-								guardCtx,
-								idempotencyKeysRef.current,
-							)
-						) {
-							continue;
-						}
 
 						const effectCtx = buildEffectContext(
 							event,
@@ -156,6 +146,7 @@ export function useBehaviorReactor<
 							depsRef.current,
 							stateRef,
 							depsRef,
+							rule.id,
 						);
 
 						await rule.handler(effectCtx);
@@ -179,64 +170,6 @@ export function useBehaviorReactor<
 	return { context: contextRef.current };
 }
 
-type IdempotencyConfig<TContext> = BehaviorRule<TContext>["idempotency"];
-
-const IDEMPOTENCY_MAX_ENTRIES = 2000;
-
-const trimIdempotencyRegistry = (registry: Map<string, number>) => {
-	if (registry.size <= IDEMPOTENCY_MAX_ENTRIES) {
-		return;
-	}
-	const overflow = registry.size - IDEMPOTENCY_MAX_ENTRIES;
-	const keys = registry.keys();
-	for (let idx = 0; idx < overflow; idx += 1) {
-		const key = keys.next().value;
-		if (typeof key !== "string") {
-			break;
-		}
-		registry.delete(key);
-	}
-};
-
-export function shouldRunRuleWithIdempotency<TContext>(
-	ruleId: string,
-	idempotency: IdempotencyConfig<TContext> | undefined,
-	guardCtx: GuardContext<TContext>,
-	registry: Map<string, number>,
-): boolean {
-	if (!idempotency) {
-		return true;
-	}
-
-	const resolvedKey =
-		typeof idempotency.key === "function"
-			? idempotency.key(guardCtx)
-			: idempotency.key;
-	if (!resolvedKey) {
-		return true;
-	}
-
-	const scope = idempotency.scope ?? "action";
-	const namespacedKey = `${ruleId}:${resolvedKey}`;
-	const existingActionId = registry.get(namespacedKey);
-
-	if (scope === "session") {
-		if (existingActionId !== undefined) {
-			return false;
-		}
-		registry.set(namespacedKey, guardCtx.event.actionId);
-		trimIdempotencyRegistry(registry);
-		return true;
-	}
-
-	if (existingActionId === guardCtx.event.actionId) {
-		return false;
-	}
-	registry.set(namespacedKey, guardCtx.event.actionId);
-	trimIdempotencyRegistry(registry);
-	return true;
-}
-
 export function matchesEventTrigger(
 	event: GameEvent,
 	trigger: EventTrigger,
@@ -248,7 +181,7 @@ export function matchesEventTrigger(
 			: undefined;
 
 	switch (trigger.event) {
-		case "ENTITY_ENTERED_SPACE": {
+		case "ENTITY_PLACED_IN_SPACE": {
 			if (event.type !== "ENTITY_ENTERED_SPACE") return false;
 			const e = event as EntityEnteredSpaceEvent;
 			return (
@@ -256,15 +189,15 @@ export function matchesEventTrigger(
 				(trigger.entityType === undefined || entityType === trigger.entityType)
 			);
 		}
-		case "ENTITY_MOVED": {
+		case "ENTITY_TRANSFERRED_TO_SPACE": {
 			if (event.type !== "ENTITY_MOVED") return false;
 			const e = event as EntityMovedEvent;
 			return (
-				(trigger.toSpace === undefined || e.toSpaceId === trigger.toSpace) &&
+				(trigger.space === undefined || e.toSpaceId === trigger.space) &&
 				(trigger.entityType === undefined || entityType === trigger.entityType)
 			);
 		}
-		case "ENTITY_ARRIVED": {
+		case "ENTITY_ARRIVED_AT_SPACE": {
 			if (
 				event.type !== "ENTITY_ENTERED_SPACE" &&
 				event.type !== "ENTITY_MOVED"
@@ -360,8 +293,16 @@ function buildGuardContext<TContext>(
 	entity: EntityData | undefined,
 	state: GameState,
 	context: Readonly<TContext>,
+	ruleId: string,
 ): GuardContext<TContext> {
-	return { event, entity, state, phase: state.phase, context };
+	return {
+		event,
+		provenance: buildEventProvenance(event, ruleId),
+		entity,
+		state,
+		phase: state.phase,
+		context,
+	};
 }
 
 function buildEffectContext<TContext extends Record<string, unknown>>(
@@ -373,14 +314,17 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 	deps: BehaviorReactorDeps,
 	stateRef: React.MutableRefObject<GameState>,
 	depsRef: React.MutableRefObject<BehaviorReactorDeps>,
+	ruleId: string,
 ): EffectContext<TContext> {
 	const convenience = createBehaviorConvenience({
 		world: deps.world,
 		interaction: deps.interaction,
 	});
+	const provenance = buildEventProvenance(event, ruleId);
 
 	return {
 		event,
+		provenance,
 		entity,
 		state,
 		phase: state.phase,
@@ -420,6 +364,7 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 				const scheduledCtx: ScheduledEffectContext<TContext> = {
 					state: freshState,
 					phase: freshState.phase,
+					provenance,
 					context: contextRef.current,
 					updateContext: (updater) => {
 						updater(contextRef.current);
@@ -486,4 +431,53 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 		moveToInventory: convenience.moveToInventory,
 		moveToGrid: convenience.moveToGrid,
 	};
+}
+
+export function buildEventProvenance(
+	event: GameEvent,
+	ruleId?: string,
+): EventProvenance {
+	const base: EventProvenance = {
+		eventId: event.eventId,
+		actionId: event.actionId,
+		eventType: event.type,
+		ruleId,
+	};
+	switch (event.type) {
+		case "ENTITY_ENTERED_SPACE":
+			return { ...base, entityId: event.entityId, spaceId: event.spaceId };
+		case "ENTITY_LEFT_SPACE":
+			return { ...base, entityId: event.entityId, spaceId: event.spaceId };
+		case "ENTITY_MOVED":
+			return {
+				...base,
+				entityId: event.entityId,
+				fromSpaceId: event.fromSpaceId,
+				toSpaceId: event.toSpaceId,
+				spaceId: event.toSpaceId,
+			};
+		case "ENTITY_UPDATED":
+		case "ENTITY_CLICKED":
+			return { ...base, entityId: event.entityId };
+		case "MODAL_OPENED":
+			return { ...base, modalId: event.modalId };
+		case "MODAL_SUBMITTED":
+			return {
+				...base,
+				modalId: event.modalId,
+				modalActionId: event.modalActionId,
+			};
+		case "MODAL_CLOSED":
+			return { ...base, modalId: event.modalId };
+		case "PHASE_CHANGED":
+			return { ...base, fromPhase: event.from, toPhase: event.to };
+		case "TERMINAL_INPUT":
+			return { ...base, terminalEntryId: event.entryId };
+		case "ENGINE_STARTED":
+		case "ENGINE_FINISHED":
+		case "RUNTIME_WARNING":
+			return base;
+		default:
+			return base;
+	}
 }

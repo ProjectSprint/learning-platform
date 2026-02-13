@@ -3,7 +3,10 @@ import type {
 	BehaviorDefinition,
 	BehaviorRule,
 } from "@/components/game/runtime";
-import { entityEnteredSpace, modalSubmitted } from "@/components/game/runtime";
+import {
+	modalSubmitted,
+	whenEntityPlacedInSpace,
+} from "@/components/game/runtime";
 import type { UdpClientId } from "./constants";
 import { UDP_CLIENT_IDS } from "./constants";
 import { getFrameDestiny, TOTAL_FRAMES } from "./frame-destiny";
@@ -45,7 +48,7 @@ const getClientFramesKey = (
 const rules: BehaviorRule<UdpBehaviorContext>[] = [
 	{
 		id: "udp.frame-entered-internet",
-		on: entityEnteredSpace("internet", "frame"),
+		on: whenEntityPlacedInSpace("internet", "frame"),
 		guard: ({ context }) => context.udpPhase === "streaming",
 		handler: (ctx) => {
 			const { event, entity, world, context, updateContext, schedule } = ctx;

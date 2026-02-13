@@ -9,6 +9,7 @@ export type {
 	BehaviorDefinition,
 	BehaviorRule,
 	EffectContext,
+	EventProvenance,
 	EventTrigger,
 	GuardContext,
 	LaneSchedulerInput,
@@ -17,16 +18,16 @@ export type {
 	ScheduledEffectContext,
 } from "./behavior";
 export {
-	entityArrived,
 	entityClicked,
-	entityEnteredSpace,
-	entityMoved,
 	hasFreeLane,
 	modalClosed,
 	modalSubmitted,
 	phaseChanged,
 	pickLane,
 	terminalInput,
+	whenEntityArrivedAtSpace,
+	whenEntityPlacedInSpace,
+	whenEntityTransferredToSpace,
 } from "./behavior";
 // Bootstrap
 export { bootstrapQuestion } from "./bootstrap/bootstrap";

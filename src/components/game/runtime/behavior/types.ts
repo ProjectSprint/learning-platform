@@ -12,9 +12,13 @@ import type { WorldApi } from "../wrappers/world-api";
  * Example: { event: "ENTITY_ENTERED_SPACE", space: "server", entityType: "syn-flag" }
  */
 export type EventTrigger =
-	| { event: "ENTITY_ENTERED_SPACE"; space?: string; entityType?: string }
-	| { event: "ENTITY_MOVED"; toSpace?: string; entityType?: string }
-	| { event: "ENTITY_ARRIVED"; space?: string; entityType?: string }
+	| { event: "ENTITY_PLACED_IN_SPACE"; space?: string; entityType?: string }
+	| {
+			event: "ENTITY_TRANSFERRED_TO_SPACE";
+			space?: string;
+			entityType?: string;
+	  }
+	| { event: "ENTITY_ARRIVED_AT_SPACE"; space?: string; entityType?: string }
 	| { event: "ENTITY_LEFT_SPACE"; space?: string; entityType?: string }
 	| { event: "ENTITY_CLICKED"; entityType?: string; space?: string }
 	| { event: "ENTITY_UPDATED"; entityType?: string }
@@ -26,11 +30,28 @@ export type EventTrigger =
 	| { event: "ENGINE_STARTED" }
 	| { event: "ENGINE_FINISHED" };
 
+export type EventProvenance = {
+	eventId: number;
+	actionId: number;
+	eventType: GameEvent["type"];
+	entityId?: string;
+	spaceId?: string;
+	fromSpaceId?: string;
+	toSpaceId?: string;
+	modalId?: string;
+	modalActionId?: string;
+	fromPhase?: string;
+	toPhase?: string;
+	terminalEntryId?: string;
+	ruleId?: string;
+};
+
 /**
  * Context passed to guard functions (read-only).
  */
 export type GuardContext<TContext> = {
 	readonly event: GameEvent;
+	readonly provenance: EventProvenance;
 	readonly entity: EntityData | undefined;
 	readonly state: GameState;
 	readonly phase: string;
@@ -43,6 +64,7 @@ export type GuardContext<TContext> = {
 export type EffectContext<TContext> = {
 	// Event info
 	readonly event: GameEvent;
+	readonly provenance: EventProvenance;
 	readonly entity: EntityData | undefined;
 
 	// Read-only state
@@ -102,15 +124,6 @@ export type BehaviorRule<TContext> = {
 	on: EventTrigger;
 	/** Optional guard function — return true to allow handler to run */
 	guard?: (ctx: GuardContext<TContext>) => boolean;
-	/**
-	 * Optional idempotency key for duplicate-event suppression.
-	 * - scope "action" (default): suppress duplicates within the same actionId.
-	 * - scope "session": suppress duplicates for full reactor session.
-	 */
-	idempotency?: {
-		key: string | ((ctx: GuardContext<TContext>) => string | undefined);
-		scope?: "action" | "session";
-	};
 	/** The effect to execute. Can be async (for delay() usage). */
 	handler: (ctx: EffectContext<TContext>) => void | Promise<void>;
 };
