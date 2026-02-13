@@ -324,6 +324,7 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 			SPACE_IDS.ram,
 			SPACE_IDS.execution,
 			SPACE_IDS.core1,
+			SPACE_IDS.core2,
 			SPACE_IDS.opened,
 		];
 		return required.every((id) => Boolean(state.spaces[id]));
@@ -364,5 +365,6 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 		getEntityStatus,
 		corePathSpeedMultiplier: CORE_STEP_DURATION_SECONDS > 0 ? 1 : 1,
 		dualCorePromptVisible,
+		showCore2: dualCorePromptVisible,
 	};
 };

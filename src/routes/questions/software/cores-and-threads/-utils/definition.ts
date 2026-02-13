@@ -4,6 +4,7 @@ import {
 	APP_ITEMS,
 	APP_POOL_CONFIG,
 	CORE1_PATH_CONFIG,
+	CORE2_PATH_CONFIG,
 	EXECUTION_GRID_CONFIG,
 	OPEN_GRID_CONFIG,
 	OPENED_GRID_CONFIG,
@@ -29,6 +30,7 @@ export const CORES_THREADS_DEFINITION: QuestionDefinition<
 		{ kind: "custom" as const, config: RAM_CUSTOM_CONFIG },
 		{ kind: "grid" as const, config: EXECUTION_GRID_CONFIG },
 		{ kind: "path" as const, config: CORE1_PATH_CONFIG },
+		{ kind: "path" as const, config: CORE2_PATH_CONFIG },
 		{ kind: "grid" as const, config: OPENED_GRID_CONFIG },
 	],
 	entities: APP_ITEMS.map((item) => ({

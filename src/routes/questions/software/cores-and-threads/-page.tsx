@@ -28,6 +28,7 @@ import type { QuestionProps } from "@/components/module";
 import {
 	APP_POOL_CONFIG,
 	CORE1_PATH_CONFIG,
+	CORE2_PATH_CONFIG,
 	EXECUTION_GRID_CONFIG,
 	OPEN_GRID_CONFIG,
 	OPENED_GRID_CONFIG,
@@ -117,7 +118,10 @@ const CoresAndThreadsGame = ({
 			<GameBoard>
 				{phase.boardReady ? (
 					<Grid
-						templateColumns={{ base: "1fr", lg: "1.2fr 1fr" }}
+						templateColumns={{
+							base: "1fr",
+							lg: phase.showCore2 ? "1.2fr 1fr 1fr" : "1.2fr 1fr",
+						}}
 						gap={{ base: 3, md: 4 }}
 					>
 						<GridItem>
@@ -202,6 +206,36 @@ const CoresAndThreadsGame = ({
 								/>
 							</Box>
 						</GridItem>
+
+						{phase.showCore2 ? (
+							<GridItem>
+								<Box
+									bg="gray.900"
+									borderRadius="md"
+									border="1px solid"
+									borderColor="gray.800"
+									p={3}
+								>
+									<Text
+										fontSize="sm"
+										fontWeight="semibold"
+										color="gray.100"
+										mb={2}
+									>
+										Core 2 Queue
+									</Text>
+									<Text fontSize="xs" color="gray.400" mb={3}>
+										Dual-core lane is now visible for the next lesson.
+									</Text>
+									<PathSpace
+										ctx={gameCtx}
+										config={CORE2_PATH_CONFIG}
+										title="Core 2"
+										speedMultiplier={phase.corePathSpeedMultiplier}
+									/>
+								</Box>
+							</GridItem>
+						) : null}
 					</Grid>
 				) : null}
 

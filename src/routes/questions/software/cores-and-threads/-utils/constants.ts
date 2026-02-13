@@ -19,6 +19,7 @@ export const SPACE_IDS = {
 	ram: "ram",
 	execution: "execution",
 	core1: "core-1",
+	core2: "core-2",
 	opened: "opened",
 } as const;
 
@@ -58,6 +59,17 @@ export const OPENED_GRID_CONFIG: GridSpaceConfig = {
 export const CORE1_PATH_CONFIG: PathSpaceConfig = {
 	id: SPACE_IDS.core1,
 	name: "Core 1",
+	path: "M 12 60 L 308 60",
+	viewBox: "0 0 320 120",
+	duration: 6,
+	speedMultiplier: 1,
+	showDropzone: false,
+	maxCapacity: 1,
+};
+
+export const CORE2_PATH_CONFIG: PathSpaceConfig = {
+	id: SPACE_IDS.core2,
+	name: "Core 2",
 	path: "M 12 60 L 308 60",
 	viewBox: "0 0 320 120",
 	duration: 6,
