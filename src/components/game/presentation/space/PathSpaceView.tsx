@@ -383,14 +383,16 @@ export const PathSpaceView = ({
 						border="1px dashed"
 						borderColor={isDropzoneHovered ? "cyan.400" : "gray.700"}
 						borderRadius="md"
-						bg={isDropzoneHovered ? "cyan.900" : "transparent"}
+						bg={isDropzoneHovered ? "cyan.900" : "gray.900"}
 						transition="border-color 0.15s ease, background-color 0.15s ease"
 						display="flex"
 						alignItems="center"
 						justifyContent="center"
 						pointerEvents="auto"
+						zIndex={2}
+						boxShadow="0 0 0 1px rgba(0, 0, 0, 0.25)"
 					>
-						<Text fontSize="xs" color="gray.400">
+						<Text fontSize="xs" color="gray.300">
 							Drop
 						</Text>
 					</Box>
