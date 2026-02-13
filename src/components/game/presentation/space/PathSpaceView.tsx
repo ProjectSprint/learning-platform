@@ -238,7 +238,7 @@ export const PathSpaceView = ({
 			timeline.to(state, {
 				progress: 1,
 				duration: space.duration,
-				ease: "none",
+				ease: "power2.inOut",
 				onUpdate: () => {
 					const point = pathElement.getPointAtLength(
 						pathLength * state.progress,
