@@ -1,5 +1,5 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import { useLayoutEffect } from "react";
+import { useCallback, useLayoutEffect, useMemo } from "react";
 
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import {
@@ -25,6 +25,7 @@ import { Modal } from "@/components/game/presentation/modal";
 import { useQuestionRuntime } from "@/components/game/runtime";
 import type { QuestionProps } from "@/components/module";
 
+import type { CoresBehaviorContext } from "./-utils/behaviors";
 import {
 	APP_POOL_CONFIG,
 	CORE1_PATH_CONFIG,
@@ -37,9 +38,15 @@ import {
 	SPACE_IDS,
 } from "./-utils/constants";
 import { CORES_THREADS_DEFINITION } from "./-utils/definition";
-import { useCorePhase } from "./-utils/use-core-phase";
 
 const INVENTORY_DRAWER_ID = "software-inventory-drawer";
+
+const hintByState: Record<CoresBehaviorContext["pipelineState"], string> = {
+	idle: "Drag an app into Open to launch it.",
+	parsing: "OS is parsing the binary header.",
+	allocating: "Allocating RAM before execution.",
+	executing: "Active cores are processing app parts.",
+};
 
 export const CoresAndThreadsQuestion = ({
 	onQuestionComplete,
@@ -51,27 +58,74 @@ export const CoresAndThreadsQuestion = ({
 	);
 };
 
-const CoresAndThreadsGame = ({
-	onQuestionComplete,
-}: {
-	onQuestionComplete: () => void;
-}) => {
-	const { world, interactionSession, progress } = useQuestionRuntime(
-		"cores-and-threads-page",
-		CORES_THREADS_DEFINITION,
-	);
+const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
+	const { state, behaviorContext } = useQuestionRuntime<
+		string,
+		CoresBehaviorContext
+	>("cores-and-threads-page", CORES_THREADS_DEFINITION);
 	const gameCtx = useGameCtx();
 	useDragEngine();
 	const { registerDrawer } = useDrawerManager();
 
-	const phase = useCorePhase({
-		world,
-		interactionSession,
-		progress,
-		onQuestionComplete,
-	});
+	const hint = hintByState[behaviorContext.pipelineState];
+	useContextualHint(hint);
 
-	useContextualHint(phase.hint);
+	const notice = useMemo(() => {
+		if (!behaviorContext.noticeMessage) return null;
+		return {
+			message: behaviorContext.noticeMessage,
+			tone: behaviorContext.noticeTone ?? ("info" as const),
+		};
+	}, [behaviorContext.noticeMessage, behaviorContext.noticeTone]);
+
+	const boardReady = useMemo(() => {
+		const required = [
+			SPACE_IDS.appPool,
+			SPACE_IDS.open,
+			SPACE_IDS.ram,
+			SPACE_IDS.execution,
+			SPACE_IDS.core1,
+			SPACE_IDS.core2,
+			SPACE_IDS.opened,
+		];
+		return required.every((id) => Boolean(state.spaces[id]));
+	}, [state.spaces]);
+
+	const showCore2 = behaviorContext.dualCorePromptVisible;
+
+	const core1Space = state.spaces[SPACE_IDS.core1];
+	const isCore1Occupied =
+		core1Space?.kind === "path" && core1Space.entityIds.length > 0;
+	const canDragAppFromPool = useCallback(
+		(_entity: { id: string }) => !isCore1Occupied,
+		[isCore1Occupied],
+	);
+
+	const getEntityStatus = useCallback(
+		(entity: { data: Record<string, unknown> }) => {
+			const appStatus = entity.data.appStatus as string | undefined;
+			if (appStatus === "parsing") {
+				return { status: "warning" as const, message: "Parsing" };
+			}
+			if (appStatus === "allocating") {
+				return { status: "warning" as const, message: "Allocating" };
+			}
+			if (appStatus === "opened") {
+				return { status: "success" as const, message: "Opened" };
+			}
+
+			const partStatus = entity.data.partStatus as string | undefined;
+			if (partStatus === "queued") {
+				return { status: "info" as const, message: "Waiting" };
+			}
+			if (partStatus === "executing") {
+				return { status: "warning" as const, message: "Processing" };
+			}
+
+			return {};
+		},
+		[],
+	);
 
 	useLayoutEffect(() => {
 		registerDrawer({
@@ -116,30 +170,30 @@ const CoresAndThreadsGame = ({
 			</Box>
 
 			<GameBoard>
-				{phase.boardReady ? (
+				{boardReady ? (
 					<Grid
 						templateColumns={{
 							base: "1fr",
-							lg: phase.showCore2 ? "1.2fr 1fr 1fr" : "1.2fr 1fr",
+							lg: showCore2 ? "1.2fr 1fr 1fr" : "1.2fr 1fr",
 						}}
 						gap={{ base: 3, md: 4 }}
 					>
 						<GridItem>
 							<InfoCard
 								title="Single Core Simulation"
-								value={`Opened apps: ${phase.openedCount}`}
+								value={`Opened apps: ${behaviorContext.openedCount}`}
 								subtitle="Flow: Open -> RAM -> Execution -> Core 1 -> Opened"
 							/>
-							{phase.notice ? (
+							{notice ? (
 								<Text
 									fontSize="sm"
 									mt={2}
-									color={phase.notice.tone === "error" ? "red.300" : "blue.300"}
+									color={notice.tone === "error" ? "red.300" : "blue.300"}
 								>
-									{phase.notice.message}
+									{notice.message}
 								</Text>
 							) : null}
-							{phase.dualCorePromptVisible ? (
+							{behaviorContext.dualCorePromptVisible ? (
 								<Text mt={2} fontSize="sm" color="teal.300">
 									Next lesson prompt: introduce dual-core scheduling now.
 								</Text>
@@ -150,12 +204,12 @@ const CoresAndThreadsGame = ({
 									config={OPEN_GRID_CONFIG}
 									title="Open"
 									getEntityLabel={getEntityLabel}
-									getEntityStatus={phase.getEntityStatus}
+									getEntityStatus={getEntityStatus}
 								/>
 							</Box>
 							<Box mt={3}>
 								<CustomSpace id={SPACE_IDS.ram}>
-									<RamBar usage={phase.ramUsage} />
+									<RamBar usage={behaviorContext.ramUsage} />
 								</CustomSpace>
 							</Box>
 							<Box mt={3}>
@@ -164,10 +218,10 @@ const CoresAndThreadsGame = ({
 									config={EXECUTION_GRID_CONFIG}
 									title="Execution"
 									responsiveSize={{
-										base: [3, phase.showCore2 ? 2 : 1],
+										base: [3, showCore2 ? 2 : 1],
 									}}
 									getEntityLabel={getEntityLabel}
-									getEntityStatus={phase.getEntityStatus}
+									getEntityStatus={getEntityStatus}
 								/>
 							</Box>
 						</GridItem>
@@ -195,7 +249,7 @@ const CoresAndThreadsGame = ({
 									ctx={gameCtx}
 									config={CORE1_PATH_CONFIG}
 									title="Core 1"
-									speedMultiplier={phase.corePathSpeedMultiplier}
+									speedMultiplier={1}
 								/>
 							</Box>
 
@@ -205,12 +259,12 @@ const CoresAndThreadsGame = ({
 									config={OPENED_GRID_CONFIG}
 									title="Opened"
 									getEntityLabel={getEntityLabel}
-									getEntityStatus={phase.getEntityStatus}
+									getEntityStatus={getEntityStatus}
 								/>
 							</Box>
 						</GridItem>
 
-						{phase.showCore2 ? (
+						{showCore2 ? (
 							<GridItem>
 								<Box
 									bg="gray.900"
@@ -234,7 +288,7 @@ const CoresAndThreadsGame = ({
 										ctx={gameCtx}
 										config={CORE2_PATH_CONFIG}
 										title="Core 2"
-										speedMultiplier={phase.corePathSpeedMultiplier}
+										speedMultiplier={1}
 									/>
 								</Box>
 							</GridItem>
@@ -249,7 +303,7 @@ const CoresAndThreadsGame = ({
 						ctx={gameCtx}
 						config={APP_POOL_CONFIG}
 						title="Apps"
-						isEntityDraggable={phase.canDragAppFromPool}
+						isEntityDraggable={canDragAppFromPool}
 					/>
 				</DrawerLayout>
 			</GameBoard>

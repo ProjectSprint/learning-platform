@@ -69,10 +69,26 @@ export type EffectContext<TContext> = {
 		finishEngine: () => void;
 	};
 
+	// Scheduling
+	schedule: (
+		key: string,
+		ms: number,
+		fn: (ctx: ScheduledEffectContext<TContext>) => void | Promise<void>,
+	) => void;
+	cancelSchedule: (key: string) => void;
+
 	// Convenience shortcuts
 	setPhase: (phase: string, source?: string) => void;
 	moveToInventory: (entityId: string) => void;
 	moveToGrid: (entityId: string, spaceId: string) => boolean;
+};
+
+export type ScheduledEffectContext<TContext> = Omit<
+	EffectContext<TContext>,
+	"event" | "entity"
+> & {
+	readonly state: GameState;
+	readonly phase: string;
 };
 
 /**

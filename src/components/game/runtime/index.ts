@@ -11,6 +11,7 @@ export type {
 	EffectContext,
 	EventTrigger,
 	GuardContext,
+	ScheduledEffectContext,
 } from "./behavior";
 export {
 	entityClicked,

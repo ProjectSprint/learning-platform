@@ -4,6 +4,7 @@ export type {
 	TerminalBridge,
 } from "./reactor";
 export { useBehaviorReactor } from "./reactor";
+export { QuestionScheduler } from "./scheduler";
 export {
 	entityClicked,
 	entityEnteredSpace,
@@ -19,4 +20,5 @@ export type {
 	EffectContext,
 	EventTrigger,
 	GuardContext,
+	ScheduledEffectContext,
 } from "./types";

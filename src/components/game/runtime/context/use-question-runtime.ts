@@ -22,6 +22,7 @@ import {
 import { useTerminalStore } from "../../presentation/terminal";
 import type { TerminalBridge } from "../behavior/reactor";
 import { useBehaviorReactor } from "../behavior/reactor";
+import { QuestionScheduler } from "../behavior/scheduler";
 import type { BehaviorDefinition } from "../behavior/types";
 import { bootstrapQuestion } from "../bootstrap/bootstrap";
 import { createCommands } from "../commands/create-commands";
@@ -174,6 +175,13 @@ export function useQuestionRuntime<
 		});
 	}
 
+	const schedulerRef = useRef<QuestionScheduler | null>(null);
+	if (!schedulerRef.current) {
+		schedulerRef.current = new QuestionScheduler();
+	}
+
+	useEffect(() => () => schedulerRef.current?.dispose(), []);
+
 	const { addOutput, clearHistory } = useTerminalStore();
 	const addOutputRef = useRef(addOutput);
 	addOutputRef.current = addOutput;
@@ -201,6 +209,7 @@ export function useQuestionRuntime<
 			flow: executionFlowRef.current,
 			progress: progressRef.current,
 			terminal: terminalBridgeRef.current,
+			scheduler: schedulerRef.current,
 		},
 	);
 

@@ -1,0 +1,387 @@
+import type {
+	EntityEnteredSpaceEvent,
+	EntityLeftSpaceEvent,
+} from "@/components/game/application/state/types/events";
+import { findEntitySpace } from "@/components/game/domain/space/validation";
+import type {
+	BehaviorDefinition,
+	BehaviorRule,
+	EffectContext,
+} from "@/components/game/runtime";
+import { entityEnteredSpace } from "@/components/game/runtime";
+
+import {
+	ALLOCATING_MS,
+	APP_BY_ID,
+	APP_IDS,
+	EXECUTION_PARTS,
+	NOTICE_MS,
+	OPENED_APPS_FOR_DUAL_CORE_PROMPT,
+	PARSING_MS,
+	SPACE_IDS,
+} from "./constants";
+import type { AppKey } from "./types";
+
+type CoreLaneId = typeof SPACE_IDS.core1 | typeof SPACE_IDS.core2;
+const CORE_LANES: CoreLaneId[] = [SPACE_IDS.core1, SPACE_IDS.core2];
+const EXECUTION_SPLIT_SETTLE_MS = 250;
+
+export type CoresBehaviorContext = {
+	pipelineState: "idle" | "parsing" | "allocating" | "executing";
+	openedCount: number;
+	ramUsage: number;
+	dualCorePromptVisible: boolean;
+	activeLane1AppId: string | null;
+	activeLane1AppKey: AppKey | null;
+	activeLane2AppId: string | null;
+	activeLane2AppKey: AppKey | null;
+	partIds1: string[];
+	partIds2: string[];
+	partIndex1: number;
+	partIndex2: number;
+	noticeMessage: string | null;
+	noticeTone: "info" | "error" | null;
+	navigateAway: boolean;
+};
+
+type Ctx = EffectContext<CoresBehaviorContext>;
+
+function getActiveLaneApp(
+	ctx: { context: CoresBehaviorContext },
+	laneId: CoreLaneId,
+): { appId: string; appKey: AppKey } | null {
+	if (laneId === SPACE_IDS.core1) {
+		if (!ctx.context.activeLane1AppId || !ctx.context.activeLane1AppKey) {
+			return null;
+		}
+		return {
+			appId: ctx.context.activeLane1AppId,
+			appKey: ctx.context.activeLane1AppKey,
+		};
+	}
+	if (!ctx.context.activeLane2AppId || !ctx.context.activeLane2AppKey) {
+		return null;
+	}
+	return {
+		appId: ctx.context.activeLane2AppId,
+		appKey: ctx.context.activeLane2AppKey,
+	};
+}
+
+function setActiveLaneApp(
+	ctx: { updateContext: Ctx["updateContext"] },
+	laneId: CoreLaneId,
+	app: { appId: string; appKey: AppKey } | null,
+) {
+	ctx.updateContext((c) => {
+		if (laneId === SPACE_IDS.core1) {
+			c.activeLane1AppId = app?.appId ?? null;
+			c.activeLane1AppKey = app?.appKey ?? null;
+		} else {
+			c.activeLane2AppId = app?.appId ?? null;
+			c.activeLane2AppKey = app?.appKey ?? null;
+		}
+	});
+}
+
+function getPartIds(
+	ctx: { context: CoresBehaviorContext },
+	laneId: CoreLaneId,
+): string[] {
+	return laneId === SPACE_IDS.core1
+		? ctx.context.partIds1
+		: ctx.context.partIds2;
+}
+
+function getPartIndex(
+	ctx: { context: CoresBehaviorContext },
+	laneId: CoreLaneId,
+): number {
+	return laneId === SPACE_IDS.core1
+		? ctx.context.partIndex1
+		: ctx.context.partIndex2;
+}
+
+function setPartIndex(
+	ctx: { updateContext: Ctx["updateContext"] },
+	laneId: CoreLaneId,
+	index: number,
+) {
+	ctx.updateContext((c) => {
+		if (laneId === SPACE_IDS.core1) {
+			c.partIndex1 = index;
+		} else {
+			c.partIndex2 = index;
+		}
+	});
+}
+
+function isDualCoreUnlocked(ctx: { context: CoresBehaviorContext }): boolean {
+	return (
+		ctx.context.dualCorePromptVisible ||
+		ctx.context.openedCount >= OPENED_APPS_FOR_DUAL_CORE_PROMPT
+	);
+}
+
+function getAvailableLane(ctx: {
+	context: CoresBehaviorContext;
+}): CoreLaneId | null {
+	const enabledLanes = isDualCoreUnlocked(ctx) ? CORE_LANES : [SPACE_IDS.core1];
+	for (const laneId of enabledLanes) {
+		if (!getActiveLaneApp(ctx, laneId)) {
+			return laneId;
+		}
+	}
+	return null;
+}
+
+function hasAnyActiveLane(ctx: { context: CoresBehaviorContext }): boolean {
+	return CORE_LANES.some((laneId) => getActiveLaneApp(ctx, laneId) !== null);
+}
+
+function showNotice(
+	ctx: Pick<Ctx, "updateContext" | "schedule">,
+	message: string,
+	tone: "info" | "error",
+) {
+	ctx.updateContext((c) => {
+		c.noticeMessage = message;
+		c.noticeTone = tone;
+	});
+	ctx.schedule("core:notice-clear", NOTICE_MS, (sctx) => {
+		sctx.updateContext((c) => {
+			c.noticeMessage = null;
+			c.noticeTone = null;
+		});
+	});
+}
+
+function createExecutionParts(
+	ctx: Pick<Ctx, "state" | "world" | "updateContext">,
+	appId: string,
+	appKey: AppKey,
+	laneId: CoreLaneId,
+) {
+	const partIds: string[] = [];
+	const targetRow = laneId === SPACE_IDS.core1 ? 0 : 1;
+
+	for (const [index, part] of EXECUTION_PARTS.entries()) {
+		const partId = `${appId}-exec-${part.step}`;
+		partIds.push(partId);
+		if (!ctx.state.entities[partId]) {
+			ctx.world.createEntity({
+				id: partId,
+				name: part.label,
+				allowedPlaces: [SPACE_IDS.execution, SPACE_IDS.core1, SPACE_IDS.core2],
+				icon: { icon: part.icon, color: part.color },
+				draggable: false,
+				data: {
+					type: "subtask",
+					appKey,
+					step: part.step,
+					partStatus: "queued",
+					laneId,
+					ownerAppId: appId,
+				},
+			});
+		}
+		const currentSpaceId = findEntitySpace(ctx.state, partId);
+		if (currentSpaceId) {
+			ctx.world.removeFromSpace(partId, currentSpaceId);
+		}
+		ctx.world.addToSpace(partId, SPACE_IDS.execution, {
+			row: targetRow,
+			col: index,
+		});
+	}
+
+	ctx.updateContext((c) => {
+		if (laneId === SPACE_IDS.core1) {
+			c.partIds1 = partIds;
+			c.partIndex1 = 0;
+		} else {
+			c.partIds2 = partIds;
+			c.partIndex2 = 0;
+		}
+	});
+}
+
+function moveNextPartToCore(
+	ctx: Pick<Ctx, "state" | "world" | "updateContext" | "context" | "schedule">,
+	laneId: CoreLaneId,
+) {
+	const app = getActiveLaneApp(ctx, laneId);
+	if (!app) return;
+
+	const partIndex = getPartIndex(ctx, laneId);
+	const partIds = getPartIds(ctx, laneId);
+	const partId = partIds[partIndex];
+
+	if (!partId) {
+		const currentSpaceId = findEntitySpace(ctx.state, app.appId);
+		if (currentSpaceId) {
+			ctx.world.removeFromSpace(app.appId, currentSpaceId);
+		}
+		ctx.world.moveEntityToGrid(app.appId, SPACE_IDS.opened);
+		ctx.world.updateEntity(app.appId, { data: { appStatus: "opened" } });
+
+		const nextOpened = ctx.context.openedCount + 1;
+		setActiveLaneApp(ctx, laneId, null);
+		ctx.updateContext((c) => {
+			if (laneId === SPACE_IDS.core1) {
+				c.partIds1 = [];
+				c.partIndex1 = 0;
+			} else {
+				c.partIds2 = [];
+				c.partIndex2 = 0;
+			}
+			c.openedCount = nextOpened;
+			c.pipelineState = hasAnyActiveLane(ctx) ? "executing" : "idle";
+		});
+
+		if (
+			nextOpened >= OPENED_APPS_FOR_DUAL_CORE_PROMPT &&
+			!ctx.context.dualCorePromptVisible
+		) {
+			ctx.updateContext((c) => {
+				c.dualCorePromptVisible = true;
+			});
+			showNotice(
+				ctx,
+				"You now have two opened apps. Next step: introduce dual-core scheduling.",
+				"info",
+			);
+		}
+		return;
+	}
+
+	ctx.world.updateEntity(partId, { data: { partStatus: "executing" } });
+	ctx.world.moveEntity(partId, laneId);
+}
+
+function beginExecution(
+	ctx: Pick<Ctx, "state" | "world" | "updateContext" | "context" | "schedule">,
+	appId: string,
+	appKey: AppKey,
+	laneId: CoreLaneId,
+) {
+	ctx.updateContext((c) => {
+		c.pipelineState = "executing";
+		c.ramUsage = Math.min(100, (c.openedCount + 1) * 50);
+	});
+	ctx.world.updateEntity(appId, { data: { appStatus: "allocating" } });
+	createExecutionParts(ctx, appId, appKey, laneId);
+
+	const currentSpaceId = findEntitySpace(ctx.state, appId);
+	if (currentSpaceId) {
+		ctx.world.removeFromSpace(appId, currentSpaceId);
+	}
+
+	ctx.schedule(
+		`core:start-core:${laneId}`,
+		EXECUTION_SPLIT_SETTLE_MS,
+		(sctx) => {
+			moveNextPartToCore(sctx, laneId);
+		},
+	);
+}
+
+const rules: BehaviorRule<CoresBehaviorContext>[] = [
+	{
+		id: "cores.app-entered-open",
+		on: entityEnteredSpace(SPACE_IDS.open, "app"),
+		handler: (ctx) => {
+			const event = ctx.event as EntityEnteredSpaceEvent;
+			const appId = event.entityId;
+			if (!APP_IDS.has(appId)) return;
+
+			const app = APP_BY_ID[appId];
+			if (!app) return;
+
+			const laneId = getAvailableLane(ctx);
+			if (!laneId) {
+				ctx.world.moveEntity(appId, SPACE_IDS.appPool);
+				ctx.world.updateEntity(appId, { data: { appStatus: "ready" } });
+				showNotice(
+					ctx,
+					"All available cores are busy. Wait for a lane to free up.",
+					"error",
+				);
+				return;
+			}
+
+			setActiveLaneApp(ctx, laneId, { appId, appKey: app.appKey });
+			ctx.updateContext((c) => {
+				c.pipelineState = "parsing";
+			});
+			ctx.world.updateEntity(appId, { data: { appStatus: "parsing" } });
+
+			ctx.schedule(`core:parse:${appId}`, PARSING_MS, (sctx) => {
+				const currentApp = getActiveLaneApp(sctx, laneId);
+				if (!currentApp || currentApp.appId !== appId) return;
+
+				sctx.updateContext((c) => {
+					c.pipelineState = "allocating";
+				});
+				sctx.world.updateEntity(appId, { data: { appStatus: "allocating" } });
+
+				sctx.schedule(`core:alloc:${appId}`, ALLOCATING_MS, (actx) => {
+					const latestApp = getActiveLaneApp(actx, laneId);
+					if (!latestApp || latestApp.appId !== appId) return;
+					beginExecution(actx, appId, app.appKey, laneId);
+				});
+			});
+		},
+	},
+	{
+		id: "cores.part-left-core",
+		on: { event: "ENTITY_LEFT_SPACE" },
+		guard: ({ event }) => {
+			if (event.type !== "ENTITY_LEFT_SPACE") return false;
+			const e = event as EntityLeftSpaceEvent;
+			return e.spaceId === SPACE_IDS.core1 || e.spaceId === SPACE_IDS.core2;
+		},
+		handler: (ctx) => {
+			const event = ctx.event as EntityLeftSpaceEvent;
+			const partId = event.entityId;
+			const laneId = event.spaceId as CoreLaneId;
+
+			const partEntity = ctx.state.entities[partId];
+			if (!partEntity) return;
+
+			const ownerAppId = partEntity.data.ownerAppId as string | undefined;
+			const partLaneId = partEntity.data.laneId as string | undefined;
+			if (!ownerAppId || partLaneId !== laneId) return;
+
+			ctx.world.deleteEntities([partId]);
+
+			const activeApp = getActiveLaneApp(ctx, laneId);
+			if (!activeApp || activeApp.appId !== ownerAppId) return;
+
+			const nextIndex = getPartIndex(ctx, laneId) + 1;
+			setPartIndex(ctx, laneId, nextIndex);
+			moveNextPartToCore(ctx, laneId);
+		},
+	},
+];
+
+export const CORES_BEHAVIORS: BehaviorDefinition<CoresBehaviorContext> = {
+	initialContext: {
+		pipelineState: "idle",
+		openedCount: 0,
+		ramUsage: 0,
+		dualCorePromptVisible: false,
+		activeLane1AppId: null,
+		activeLane1AppKey: null,
+		activeLane2AppId: null,
+		activeLane2AppKey: null,
+		partIds1: [],
+		partIds2: [],
+		partIndex1: 0,
+		partIndex2: 0,
+		noticeMessage: null,
+		noticeTone: null,
+		navigateAway: false,
+	},
+	rules,
+};

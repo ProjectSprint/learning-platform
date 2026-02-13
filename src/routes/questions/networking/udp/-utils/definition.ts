@@ -1,4 +1,5 @@
 import type { QuestionDefinition } from "@/components/game/runtime";
+import type { UdpBehaviorContext } from "./behaviors";
 import { UDP_BEHAVIORS } from "./behaviors";
 import {
 	CUSTOM_SPACE_CONFIGS,
@@ -18,10 +19,7 @@ const INITIAL_SYN_ACK_IDS = new Set(
 	INITIAL_TCP_CLIENT_IDS.map((id) => `syn-ack-packet-${id}`),
 );
 
-export const UDP_DEFINITION: QuestionDefinition<
-	string,
-	Record<string, never>
-> = {
+export const UDP_DEFINITION: QuestionDefinition<string, UdpBehaviorContext> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,

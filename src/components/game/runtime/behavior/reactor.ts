@@ -25,11 +25,13 @@ import type {
 	ProgressApi,
 	WorldApi,
 } from "../wrappers";
+import type { QuestionScheduler } from "./scheduler";
 import type {
 	BehaviorDefinition,
 	EffectContext,
 	EventTrigger,
 	GuardContext,
+	ScheduledEffectContext,
 } from "./types";
 
 export type TerminalBridge = {
@@ -47,6 +49,7 @@ export type BehaviorReactorDeps = {
 	flow: ExecutionFlowApi;
 	progress: ProgressApi;
 	terminal?: TerminalBridge;
+	scheduler?: QuestionScheduler;
 };
 
 export type BehaviorReactorResult<TContext> = {
@@ -139,6 +142,8 @@ export function useBehaviorReactor<
 							contextRef,
 							onceKeys.current,
 							depsRef.current,
+							stateRef,
+							depsRef,
 						);
 
 						await rule.handler(effectCtx);
@@ -271,6 +276,8 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 	contextRef: React.MutableRefObject<TContext>,
 	onceKeys: Set<string>,
 	deps: BehaviorReactorDeps,
+	stateRef: React.MutableRefObject<GameState>,
+	depsRef: React.MutableRefObject<BehaviorReactorDeps>,
 ): EffectContext<TContext> {
 	const convenience = createBehaviorConvenience({
 		world: deps.world,
@@ -306,6 +313,79 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 			finishEngine: () => {
 				deps.terminal?.finishEngine();
 			},
+		},
+		schedule: (key, ms, fn) => {
+			deps.scheduler?.schedule(key, ms, () => {
+				const freshState = stateRef.current;
+				const freshDeps = depsRef.current;
+				const freshConvenience = createBehaviorConvenience({
+					world: freshDeps.world,
+					interaction: freshDeps.interaction,
+				});
+				const scheduledCtx: ScheduledEffectContext<TContext> = {
+					state: freshState,
+					phase: freshState.phase,
+					context: contextRef.current,
+					updateContext: (updater) => {
+						updater(contextRef.current);
+					},
+					world: freshDeps.world,
+					interaction: freshDeps.interaction,
+					flow: freshDeps.flow,
+					progress: freshDeps.progress,
+					delay: (d) => new Promise<void>((resolve) => setTimeout(resolve, d)),
+					once: (k, f) => {
+						if (onceKeys.has(k)) return;
+						onceKeys.add(k);
+						f();
+					},
+					terminal: {
+						writeOutput: (content, type = "output") => {
+							freshDeps.terminal?.writeOutput(content, type);
+						},
+						clearHistory: () => {
+							freshDeps.terminal?.clearHistory();
+						},
+						finishEngine: () => {
+							freshDeps.terminal?.finishEngine();
+						},
+					},
+					schedule: (k, d, f) => {
+						freshDeps.scheduler?.schedule(k, d, () => {
+							const s = stateRef.current;
+							const dd = depsRef.current;
+							const sc = createBehaviorConvenience({
+								world: dd.world,
+								interaction: dd.interaction,
+							});
+							const nested: ScheduledEffectContext<TContext> = {
+								...scheduledCtx,
+								state: s,
+								phase: s.phase,
+								context: contextRef.current,
+								world: dd.world,
+								interaction: dd.interaction,
+								flow: dd.flow,
+								progress: dd.progress,
+								setPhase: sc.setPhase,
+								moveToInventory: sc.moveToInventory,
+								moveToGrid: sc.moveToGrid,
+							};
+							f(nested);
+						});
+					},
+					cancelSchedule: (k) => {
+						freshDeps.scheduler?.cancel(k);
+					},
+					setPhase: freshConvenience.setPhase,
+					moveToInventory: freshConvenience.moveToInventory,
+					moveToGrid: freshConvenience.moveToGrid,
+				};
+				fn(scheduledCtx);
+			});
+		},
+		cancelSchedule: (key) => {
+			deps.scheduler?.cancel(key);
 		},
 		setPhase: convenience.setPhase,
 		moveToInventory: convenience.moveToInventory,

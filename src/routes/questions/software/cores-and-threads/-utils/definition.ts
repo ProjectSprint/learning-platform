@@ -1,5 +1,6 @@
 import type { QuestionDefinition } from "@/components/game/runtime";
 
+import { CORES_BEHAVIORS, type CoresBehaviorContext } from "./behaviors";
 import {
 	APP_ITEMS,
 	APP_POOL_CONFIG,
@@ -16,7 +17,7 @@ import {
 
 export const CORES_THREADS_DEFINITION: QuestionDefinition<
 	string,
-	Record<string, never>
+	CoresBehaviorContext
 > = {
 	meta: {
 		id: QUESTION_ID,
@@ -47,8 +48,5 @@ export const CORES_THREADS_DEFINITION: QuestionDefinition<
 		initialSpace: APP_POOL_CONFIG.id,
 	})),
 	phaseRules: [],
-	behaviors: {
-		initialContext: {},
-		rules: [],
-	},
+	behaviors: CORES_BEHAVIORS,
 };

@@ -38,7 +38,9 @@ import { useQuestionRuntime } from "@/components/game/runtime";
 import type { QuestionProps } from "@/components/module";
 
 import { ProgressBar } from "./-components/ProgressBar";
+import type { UdpBehaviorContext } from "./-utils/behaviors";
 import {
+	FRAME_ITEMS,
 	GRID_SPACE_CONFIGS,
 	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_POOL_CONFIG,
@@ -50,10 +52,10 @@ import {
 	UDP_CLIENT_SPACE_IDS,
 } from "./-utils/constants";
 import { UDP_DEFINITION } from "./-utils/definition";
+import { TOTAL_FRAMES } from "./-utils/frame-destiny";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import type { ActiveMode } from "./-utils/types";
 import { useTcpPhase } from "./-utils/use-tcp-phase";
-import { useUdpPhase } from "./-utils/use-udp-phase";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
 
@@ -70,8 +72,8 @@ const UdpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { state, isCompleted, world, interactionSession, progress } =
-		useQuestionRuntime("udp-page", UDP_DEFINITION);
+	const { state, isCompleted, world, interactionSession, behaviorContext } =
+		useQuestionRuntime<string, UdpBehaviorContext>("udp-page", UDP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
 	const { terminal, openTerminal, closeTerminal, setPrompt } =
@@ -93,13 +95,46 @@ const UdpGame = ({
 		onTransitionToUdp: handleTransitionToUdp,
 	});
 
-	const udpPhase = useUdpPhase({
-		active: mode === "udp",
-		world,
-		interactionSession,
-		progress,
-		onQuestionComplete,
-	});
+	// Derive UDP state from behavior context
+	const udpPhase = useMemo(() => {
+		const { lastSentFrame, clientFramesA, clientFramesB, clientFramesC } =
+			behaviorContext;
+		const expectedFrame = Math.min(lastSentFrame + 1, TOTAL_FRAMES);
+		const clientProgress = UDP_CLIENT_IDS.map((clientId) => {
+			const key =
+				clientId === "a"
+					? clientFramesA
+					: clientId === "b"
+						? clientFramesB
+						: clientFramesC;
+			const frames = key.split("").map((ch) => ch === "1");
+			const receivedCount = frames.filter(Boolean).length;
+			const percent = Math.round((receivedCount / TOTAL_FRAMES) * 100);
+			return { clientId, frames, receivedCount, percent };
+		});
+		const notice =
+			behaviorContext.noticeMessage && behaviorContext.noticeTone
+				? {
+						message: behaviorContext.noticeMessage,
+						tone: behaviorContext.noticeTone,
+					}
+				: null;
+		return {
+			phase: behaviorContext.udpPhase,
+			lastSentFrame,
+			expectedFrame,
+			clientProgress,
+			notice,
+			frames: FRAME_ITEMS,
+		};
+	}, [behaviorContext]);
+
+	// Navigate away when behavior signals completion
+	useEffect(() => {
+		if (behaviorContext.navigateAway) {
+			onQuestionComplete();
+		}
+	}, [behaviorContext.navigateAway, onQuestionComplete]);
 
 	const contextualHint = getContextualHint({
 		mode,
@@ -356,6 +391,20 @@ const TcpProgressBar = ({
 	);
 };
 
+type UdpPhaseData = {
+	phase: UdpBehaviorContext["udpPhase"];
+	lastSentFrame: number;
+	expectedFrame: number;
+	clientProgress: {
+		clientId: string;
+		frames: boolean[];
+		receivedCount: number;
+		percent: number;
+	}[];
+	notice: { message: string; tone: "error" | "info" } | null;
+	frames: typeof FRAME_ITEMS;
+};
+
 const UdpView = ({
 	gameCtx,
 	udpPhase,
@@ -363,7 +412,7 @@ const UdpView = ({
 	isEntityClickable,
 }: {
 	gameCtx: ReturnType<typeof useGameCtx>;
-	udpPhase: ReturnType<typeof useUdpPhase>;
+	udpPhase: UdpPhaseData;
 	onEntityClick: (entity: EntityData) => void;
 	isEntityClickable: (entity: EntityData) => boolean;
 }) => {
