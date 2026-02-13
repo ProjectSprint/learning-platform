@@ -300,6 +300,14 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 
 	const app = APP_BY_ID[appId];
 	if (!app) return;
+	const appEntity = ctx.state.entities[appId];
+	if (!appEntity) return;
+
+	const appStatus = appEntity.data.appStatus;
+	if (appStatus !== "ready") return;
+
+	const currentSpaceId = findEntitySpace(ctx.state, appId);
+	if (currentSpaceId !== SPACE_IDS.open) return;
 
 	const laneId = getAvailableLane(ctx);
 	if (!laneId) {
