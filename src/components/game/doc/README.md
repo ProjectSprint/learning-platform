@@ -13,7 +13,7 @@ and the runtime handles bootstrap, event dispatch, and behavior execution.
 // Runtime (main API for question pages)
 import { useQuestionRuntime, type QuestionDefinition } from "@/components/game/runtime";
 import { entityClicked, modalSubmitted, terminalInput } from "@/components/game/runtime";
-import type { BehaviorDefinition, BehaviorRule, EffectContext } from "@/components/game/runtime";
+import type { BehaviorDefinition, BehaviorRule, EffectContext, ScheduledEffectContext } from "@/components/game/runtime";
 
 // Provider and hooks
 import { GameProvider, useGameCtx, useGameState } from "@/components/game/game-provider";
@@ -187,12 +187,14 @@ Practical guidance:
   in behaviors. There is no automatic phase advancement.
 - The behavior reactor processes events asynchronously. State reads inside a
   handler see the latest state at execution time, not at event emission time.
+- Deferred behavior effects should use `schedule`/`cancelSchedule` from
+  `EffectContext` (runtime-managed keyed scheduler), not ad-hoc timers.
 - Event queue is append-only. Events cannot be removed or replayed.
 
 ## Real Examples
 
 See `src/routes/questions/networking/` for complete implementations:
 - **DHCP** — Drag-and-drop topology, entity click → modal config, terminal ping
-- **TCP** — Packet sequencing with imperative state hooks
+- **TCP/UDP** — Packet sequencing and delivery modeled via behaviors
 - **SSL** — Certificate issuance modals, curl/openssl terminal commands
 - **Internet** — Complex multi-entity routing with NAT, DNS, PPPoE

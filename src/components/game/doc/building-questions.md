@@ -22,7 +22,7 @@ src/routes/questions/<category>/<question>/
     entity-label.ts      # Display labels per entity type
     entity-badge.ts      # Status messages per entity type
     get-contextual-hint.ts   # Hint text based on game state
-    use-network-state.ts     # Derived state hook (optional)
+    selectors.ts             # Pure helpers to derive UI data from behaviorContext/state (optional)
 ```
 
 ---
@@ -201,6 +201,18 @@ const rules: BehaviorRule<MyBehaviorContext>[] = [
       updateContext(ctx => { ctx.navigateAway = true; });
     },
   },
+
+  // Deferred side effects with keyed scheduler (replaces raw setTimeout)
+  {
+    id: "my.delayed-reset",
+    on: entityEnteredSpace("transit"),
+    handler: ({ event, schedule }) => {
+      if (event.type !== "ENTITY_ENTERED_SPACE") return;
+      schedule(`reset:${event.entityId}`, 1200, (sctx) => {
+        sctx.world.removeFromSpace(event.entityId, "transit");
+      });
+    },
+  },
 ];
 
 export const MY_BEHAVIORS: BehaviorDefinition<MyBehaviorContext> = {
@@ -212,6 +224,7 @@ export const MY_BEHAVIORS: BehaviorDefinition<MyBehaviorContext> = {
 **Rule ordering matters:**
 - Put specific guards before general ones (e.g. terminal-command before terminal-not-ready).
 - First matching rule wins per event.
+- Prefer `schedule`/`cancelSchedule` for deferred effects so runtime owns timer cleanup.
 
 ---
 

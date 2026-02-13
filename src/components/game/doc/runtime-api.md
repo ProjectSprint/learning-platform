@@ -62,6 +62,10 @@ type QuestionRuntime<TContext> = {
    functions (writeOutput, clearHistory) so behavior handlers can access
    terminal without stale closures.
 
+5. **Behavior scheduler lifecycle** — Runtime instantiates an internal
+   `QuestionScheduler` and disposes it on unmount. `EffectContext.schedule`
+   uses this scheduler so delayed behavior effects are keyed and cancellable.
+
 ### Bootstrap Lifecycle Details
 
 Bootstrap is deterministic and one-time per mounted page instance:
@@ -104,6 +108,11 @@ Treat `useQuestionRuntime()` as the boundary between orchestration and rules:
 
 This split prevents duplicate logic between `useEffect` handlers and behavior
 rules, and makes event processing easier to reason about.
+
+Recommended:
+- derive render/UI state from `behaviorContext`
+- keep page effects for wiring concerns only (navigation, drawers, terminal)
+- keep delayed/queued rule transitions inside behaviors via `schedule`
 
 ### Usage Pattern
 

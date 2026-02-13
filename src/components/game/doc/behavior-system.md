@@ -5,7 +5,14 @@ interactions. Instead of writing useEffect loops over events, question authors
 define BehaviorRules that pattern-match on game events and execute handlers.
 
 ```typescript
-import type { BehaviorDefinition, BehaviorRule, EffectContext, GuardContext, EventTrigger } from "@/components/game/runtime";
+import type {
+  BehaviorDefinition,
+  BehaviorRule,
+  EffectContext,
+  GuardContext,
+  EventTrigger,
+  ScheduledEffectContext,
+} from "@/components/game/runtime";
 import { entityClicked, modalSubmitted, terminalInput, entityEnteredSpace, entityMoved, modalClosed, phaseChanged } from "@/components/game/runtime";
 ```
 
@@ -167,6 +174,12 @@ type EffectContext<TContext> = {
   // ── Effect helpers ──
   delay: (ms: number) => Promise<void>;     // Async delay
   once: (key: string, fn: () => void) => void;  // Execute fn only once per key
+  schedule: (
+    key: string,
+    ms: number,
+    fn: (ctx: ScheduledEffectContext<TContext>) => void | Promise<void>,
+  ) => void;
+  cancelSchedule: (key: string) => void;
 
   // ── Terminal helpers ──
   terminal: {
@@ -179,6 +192,21 @@ type EffectContext<TContext> = {
   setPhase: (phase: string, source?: string) => void;
   moveToInventory: (entityId: string) => void;
   moveToGrid: (entityId: string, spaceId: string) => boolean;
+};
+```
+
+### ScheduledEffectContext
+
+Callbacks executed through `schedule(...)` receive a scheduled context.
+It matches `EffectContext` but omits event/entity because it is timer-driven.
+
+```typescript
+type ScheduledEffectContext<TContext> = Omit<
+  EffectContext<TContext>,
+  "event" | "entity"
+> & {
+  readonly state: GameState;
+  readonly phase: string;
 };
 ```
 
@@ -234,6 +262,17 @@ one-time setup effects.
 once("initial-help", () => {
   terminal.writeOutput("Type 'help' for available commands.");
 });
+```
+
+**schedule / cancelSchedule** — Keyed timer orchestration owned by runtime.
+Scheduling with the same key replaces prior timer. Use this for deterministic
+deferred actions without manual `setTimeout` lifecycle handling.
+```typescript
+schedule("udp:send:frame-1", 1500, (sctx) => {
+  sctx.world.removeFromSpace("frame-1", "internet");
+});
+
+cancelSchedule("udp:send:frame-1");
 ```
 
 **setPhase** — Shortcut for `interaction.requestPhaseTransition(phase, source)`.
