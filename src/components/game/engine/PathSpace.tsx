@@ -1,3 +1,4 @@
+import { useBreakpointValue } from "@chakra-ui/react";
 import { memo, useEffect } from "react";
 import type { EntityData } from "../domain/entity/entity-data";
 import type {
@@ -10,6 +11,8 @@ import { useGameDispatch, useGameState } from "../game-provider";
 import { PathSpaceView } from "../presentation/space/PathSpaceView";
 
 type PathSpacePropsBase = {
+	/** Responsive SVG path mapping (Chakra breakpoint -> path d) */
+	responsivePath?: Record<string, string>;
 	id?: string;
 	ctx?: GameContextValue;
 	config?: PathSpaceConfig;
@@ -21,13 +24,26 @@ export type PathSpaceProps =
 	| (PathSpacePropsBase & { id: string; config?: PathSpaceConfig })
 	| (PathSpacePropsBase & { id?: string; config: PathSpaceConfig });
 
+const EMPTY_BREAKPOINTS: Record<string, string> = {};
+
 export const PathSpace = memo(
-	({ id, ctx, config, title, speedMultiplier }: PathSpaceProps) => {
+	({
+		id,
+		ctx,
+		config,
+		title,
+		speedMultiplier,
+		responsivePath,
+	}: PathSpaceProps) => {
 		const contextState = useGameState();
 		const contextDispatch = useGameDispatch();
 		const state = ctx?.state ?? contextState;
 		const dispatch = ctx?.dispatch ?? contextDispatch;
 		const resolvedId = config?.id ?? id;
+
+		const resolvedPath = useBreakpointValue(
+			responsivePath ?? EMPTY_BREAKPOINTS,
+		) as string | undefined;
 
 		useEffect(() => {
 			if (!resolvedId) return;
@@ -55,6 +71,7 @@ export const PathSpace = memo(
 			0.01,
 			speedMultiplier ?? space.speedMultiplier ?? 1,
 		);
+		const path = resolvedPath ?? space.path;
 
 		const onDropEntity = (entityId: string): boolean => {
 			if (!canEntityBePlaced(state, entityId, space.id)) {
@@ -102,6 +119,7 @@ export const PathSpace = memo(
 		return (
 			<PathSpaceView
 				space={space}
+				path={path}
 				entities={entities}
 				title={resolvedTitle}
 				speedMultiplier={resolvedSpeedMultiplier}

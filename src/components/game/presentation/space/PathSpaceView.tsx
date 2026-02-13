@@ -31,6 +31,8 @@ const parseViewBox = (viewBox: string): PathViewBox => {
 
 export type PathSpaceViewProps = {
 	space: PathSpaceData;
+	/** Optional rendered path override (e.g., responsive breakpoint path) */
+	path?: string;
 	entities: EntityData[];
 	title?: string;
 	speedMultiplier: number;
@@ -40,6 +42,7 @@ export type PathSpaceViewProps = {
 
 export const PathSpaceView = ({
 	space,
+	path,
 	entities,
 	title,
 	speedMultiplier,
@@ -80,6 +83,17 @@ export const PathSpaceView = ({
 		() => parseViewBox(space.viewBox),
 		[space.viewBox],
 	);
+	const renderedPath = path ?? space.path;
+
+	useEffect(() => {
+		void renderedPath;
+		const pathElement = pathRef.current;
+		if (!pathElement) {
+			return;
+		}
+		const pathStart = pathElement.getPointAtLength(0);
+		setPathStartPoint({ x: pathStart.x, y: pathStart.y });
+	}, [renderedPath]);
 
 	useEffect(() => {
 		if (!activeDrag || !dropzoneRef.current || !onDropEntity) {
@@ -320,7 +334,7 @@ export const PathSpaceView = ({
 						<title>{`Path for ${space.name ?? space.id}`}</title>
 						<path
 							ref={pathRef}
-							d={space.path}
+							d={renderedPath}
 							fill="none"
 							stroke="#38bdf8"
 							strokeWidth="4"
