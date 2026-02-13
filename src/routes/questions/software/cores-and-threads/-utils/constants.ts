@@ -51,9 +51,9 @@ export const OPENED_GRID_CONFIG: GridSpaceConfig = {
 	id: SPACE_IDS.opened,
 	name: "Opened",
 	rows: 1,
-	cols: 2,
+	cols: 5,
 	metrics: { cellWidth: 72, cellHeight: 72, gapX: 6, gapY: 6 },
-	maxCapacity: 2,
+	maxCapacity: 5,
 };
 
 export const CORE1_PATH_CONFIG: PathSpaceConfig = {
