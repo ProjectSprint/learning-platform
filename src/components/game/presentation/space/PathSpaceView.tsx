@@ -1,13 +1,16 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { gsap } from "gsap";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "../../domain/entity/entity-data";
 import type { PathSpaceData } from "../../domain/space/space-data";
 import { useDragContext } from "../interaction/drag/DragContext";
+import { useEntityCardSize } from "../interaction/drag/DragOverlay";
 
 type PathPoint = { x: number; y: number };
+type PathViewBox = { width: number; height: number };
+type EntityRenderSize = { width: number; height: number };
 
-const parseViewBox = (viewBox: string): PathPoint => {
+const parseViewBox = (viewBox: string): PathViewBox => {
 	const [minX, minY, width, height] = viewBox
 		.split(/\s+/)
 		.map((value) => Number.parseFloat(value));
@@ -19,9 +22,9 @@ const parseViewBox = (viewBox: string): PathPoint => {
 		width <= 0 ||
 		height <= 0
 	) {
-		return { x: 320, y: 120 };
+		return { width: 320, height: 120 };
 	}
-	return { x: width, y: height };
+	return { width, height };
 };
 
 export type PathSpaceViewProps = {
@@ -45,17 +48,49 @@ export const PathSpaceView = ({
 		useDragContext();
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const dropzoneRef = useRef<HTMLDivElement | null>(null);
+	const trackRef = useRef<HTMLDivElement | null>(null);
 	const pathRef = useRef<SVGPathElement | null>(null);
-	const timelinesRef = useRef<Map<string, gsap.core.Tween>>(new Map());
+	const timelinesRef = useRef<Map<string, gsap.core.Animation>>(new Map());
+	const pendingEntryRef = useRef<
+		Map<
+			string,
+			{ viewportX: number; viewportY: number; size: EntityRenderSize }
+		>
+	>(new Map());
+	const [entitySizes, setEntitySizes] = useState<
+		Record<string, EntityRenderSize>
+	>({});
 	const [isDropzoneHovered, setIsDropzoneHovered] = useState(false);
 	const [entityPositions, setEntityPositions] = useState<
 		Record<string, PathPoint>
 	>({});
 	const hoveredRef = useRef(false);
+	const defaultCardSize = useEntityCardSize();
 
 	const viewBoxSize = useMemo(
 		() => parseViewBox(space.viewBox),
 		[space.viewBox],
+	);
+
+	const toPathCoordinates = useCallback(
+		(viewportX: number, viewportY: number): PathPoint | null => {
+			const track = trackRef.current;
+			if (!track) {
+				return null;
+			}
+			const rect = track.getBoundingClientRect();
+			if (rect.width <= 0 || rect.height <= 0) {
+				return null;
+			}
+
+			const relX = viewportX - rect.left;
+			const relY = viewportY - rect.top;
+			return {
+				x: (relX / rect.width) * viewBoxSize.width,
+				y: (relY / rect.height) * viewBoxSize.height,
+			};
+		},
+		[viewBoxSize.height, viewBoxSize.width],
 	);
 
 	useEffect(() => {
@@ -96,6 +131,17 @@ export const PathSpaceView = ({
 			targetSpaceIdRef.current = undefined;
 
 			if (placed) {
+				const sourceRect =
+					activeDrag.initialRect ??
+					activeDrag.element?.getBoundingClientRect() ??
+					null;
+				if (sourceRect) {
+					pendingEntryRef.current.set(activeDrag.data.entityId, {
+						viewportX: sourceRect.left + sourceRect.width / 2,
+						viewportY: sourceRect.top + sourceRect.height / 2,
+						size: { width: sourceRect.width, height: sourceRect.height },
+					});
+				}
 				setActiveDrag(null);
 			}
 		};
@@ -124,12 +170,17 @@ export const PathSpaceView = ({
 
 		const currentEntityIds = new Set(entities.map((entity) => entity.id));
 		const pathLength = pathElement.getTotalLength();
+		const pathStartPoint = pathElement.getPointAtLength(0);
 
-		for (const [entityId, tween] of timelinesRef.current.entries()) {
+		for (const [entityId, animation] of timelinesRef.current.entries()) {
 			if (!currentEntityIds.has(entityId)) {
-				tween.kill();
+				animation.kill();
 				timelinesRef.current.delete(entityId);
 				setEntityPositions((prev) => {
+					const { [entityId]: _ignored, ...next } = prev;
+					return next;
+				});
+				setEntitySizes((prev) => {
 					const { [entityId]: _ignored, ...next } = prev;
 					return next;
 				});
@@ -141,8 +192,55 @@ export const PathSpaceView = ({
 				continue;
 			}
 
-			const state = { progress: 0 };
-			const tween = gsap.to(state, {
+			const pendingEntry = pendingEntryRef.current.get(entity.id);
+			const entryPoint = pendingEntry
+				? toPathCoordinates(pendingEntry.viewportX, pendingEntry.viewportY)
+				: null;
+			const initialPoint = entryPoint ?? pathStartPoint;
+
+			const renderSize: EntityRenderSize = pendingEntry?.size ?? {
+				width: defaultCardSize.width,
+				height: defaultCardSize.height,
+			};
+			setEntitySizes((prev) => ({ ...prev, [entity.id]: renderSize }));
+			setEntityPositions((prev) => ({
+				...prev,
+				[entity.id]: { x: initialPoint.x, y: initialPoint.y },
+			}));
+
+			const state = { progress: 0, x: initialPoint.x, y: initialPoint.y };
+			const timeline = gsap.timeline({
+				onComplete: () => {
+					timelinesRef.current.delete(entity.id);
+					pendingEntryRef.current.delete(entity.id);
+					setEntityPositions((prev) => {
+						const { [entity.id]: _ignored, ...next } = prev;
+						return next;
+					});
+					setEntitySizes((prev) => {
+						const { [entity.id]: _ignored, ...next } = prev;
+						return next;
+					});
+					onEntityPathComplete?.(entity.id);
+				},
+			});
+
+			if (entryPoint) {
+				timeline.to(state, {
+					x: pathStartPoint.x,
+					y: pathStartPoint.y,
+					duration: 0.22,
+					ease: "power2.out",
+					onUpdate: () => {
+						setEntityPositions((prev) => ({
+							...prev,
+							[entity.id]: { x: state.x, y: state.y },
+						}));
+					},
+				});
+			}
+
+			timeline.to(state, {
 				progress: 1,
 				duration: space.duration,
 				ease: "none",
@@ -155,32 +253,34 @@ export const PathSpaceView = ({
 						[entity.id]: { x: point.x, y: point.y },
 					}));
 				},
-				onComplete: () => {
-					timelinesRef.current.delete(entity.id);
-					setEntityPositions((prev) => {
-						const { [entity.id]: _ignored, ...next } = prev;
-						return next;
-					});
-					onEntityPathComplete?.(entity.id);
-				},
 			});
-			tween.timeScale(speedMultiplier);
-			timelinesRef.current.set(entity.id, tween);
+
+			timeline.timeScale(speedMultiplier);
+			timelinesRef.current.set(entity.id, timeline);
 		}
-	}, [entities, onEntityPathComplete, space.duration, speedMultiplier]);
+	}, [
+		defaultCardSize.height,
+		defaultCardSize.width,
+		entities,
+		onEntityPathComplete,
+		space.duration,
+		speedMultiplier,
+		toPathCoordinates,
+	]);
 
 	useEffect(() => {
-		for (const tween of timelinesRef.current.values()) {
-			tween.timeScale(speedMultiplier);
+		for (const animation of timelinesRef.current.values()) {
+			animation.timeScale(speedMultiplier);
 		}
 	}, [speedMultiplier]);
 
 	useEffect(() => {
 		return () => {
-			for (const tween of timelinesRef.current.values()) {
-				tween.kill();
+			for (const animation of timelinesRef.current.values()) {
+				animation.kill();
 			}
 			timelinesRef.current.clear();
+			pendingEntryRef.current.clear();
 		};
 	}, []);
 
@@ -219,7 +319,7 @@ export const PathSpaceView = ({
 					</Text>
 				</Box>
 
-				<Box position="relative" h="120px">
+				<Box ref={trackRef} position="relative" h="120px">
 					<svg
 						viewBox={space.viewBox}
 						width="100%"
@@ -247,19 +347,25 @@ export const PathSpaceView = ({
 							<Box
 								key={entity.id}
 								position="absolute"
-								left={`${(point.x / viewBoxSize.x) * 100}%`}
-								top={`${(point.y / viewBoxSize.y) * 100}%`}
+								left={`${(point.x / viewBoxSize.width) * 100}%`}
+								top={`${(point.y / viewBoxSize.height) * 100}%`}
 								transform="translate(-50%, -50%)"
 								bg="gray.700"
 								color="gray.100"
 								border="1px solid"
 								borderColor="cyan.400"
 								borderRadius="md"
+								width={`${(entitySizes[entity.id] ?? defaultCardSize).width}px`}
+								height={`${(entitySizes[entity.id] ?? defaultCardSize).height}px`}
+								display="flex"
+								alignItems="center"
+								justifyContent="center"
 								px={2}
-								py={1}
-								fontSize="xs"
+								fontSize="sm"
+								fontWeight="semibold"
 								pointerEvents="none"
-								whiteSpace="nowrap"
+								whiteSpace="normal"
+								textAlign="center"
 							>
 								{entity.name ?? entity.type}
 							</Box>
