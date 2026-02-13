@@ -28,6 +28,7 @@ import type {
 import type { QuestionScheduler } from "./scheduler";
 import type {
 	BehaviorDefinition,
+	BehaviorRule,
 	EffectContext,
 	EventTrigger,
 	GuardContext,
@@ -96,6 +97,7 @@ export function useBehaviorReactor<
 
 	const onceKeys = useRef<Set<string>>(new Set());
 	const processingRef = useRef(false);
+	const idempotencyKeysRef = useRef<Map<string, number>>(new Map());
 
 	const depsRef = useRef(deps);
 	depsRef.current = deps;
@@ -134,6 +136,16 @@ export function useBehaviorReactor<
 						);
 
 						if (rule.guard && !rule.guard(guardCtx)) continue;
+						if (
+							!shouldRunRuleWithIdempotency(
+								rule.id,
+								rule.idempotency,
+								guardCtx,
+								idempotencyKeysRef.current,
+							)
+						) {
+							continue;
+						}
 
 						const effectCtx = buildEffectContext(
 							event,
@@ -165,6 +177,64 @@ export function useBehaviorReactor<
 	}, [events, ack]);
 
 	return { context: contextRef.current };
+}
+
+type IdempotencyConfig<TContext> = BehaviorRule<TContext>["idempotency"];
+
+const IDEMPOTENCY_MAX_ENTRIES = 2000;
+
+const trimIdempotencyRegistry = (registry: Map<string, number>) => {
+	if (registry.size <= IDEMPOTENCY_MAX_ENTRIES) {
+		return;
+	}
+	const overflow = registry.size - IDEMPOTENCY_MAX_ENTRIES;
+	const keys = registry.keys();
+	for (let idx = 0; idx < overflow; idx += 1) {
+		const key = keys.next().value;
+		if (typeof key !== "string") {
+			break;
+		}
+		registry.delete(key);
+	}
+};
+
+export function shouldRunRuleWithIdempotency<TContext>(
+	ruleId: string,
+	idempotency: IdempotencyConfig<TContext> | undefined,
+	guardCtx: GuardContext<TContext>,
+	registry: Map<string, number>,
+): boolean {
+	if (!idempotency) {
+		return true;
+	}
+
+	const resolvedKey =
+		typeof idempotency.key === "function"
+			? idempotency.key(guardCtx)
+			: idempotency.key;
+	if (!resolvedKey) {
+		return true;
+	}
+
+	const scope = idempotency.scope ?? "action";
+	const namespacedKey = `${ruleId}:${resolvedKey}`;
+	const existingActionId = registry.get(namespacedKey);
+
+	if (scope === "session") {
+		if (existingActionId !== undefined) {
+			return false;
+		}
+		registry.set(namespacedKey, guardCtx.event.actionId);
+		trimIdempotencyRegistry(registry);
+		return true;
+	}
+
+	if (existingActionId === guardCtx.event.actionId) {
+		return false;
+	}
+	registry.set(namespacedKey, guardCtx.event.actionId);
+	trimIdempotencyRegistry(registry);
+	return true;
 }
 
 export function matchesEventTrigger(

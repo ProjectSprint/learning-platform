@@ -102,6 +102,15 @@ export type BehaviorRule<TContext> = {
 	on: EventTrigger;
 	/** Optional guard function — return true to allow handler to run */
 	guard?: (ctx: GuardContext<TContext>) => boolean;
+	/**
+	 * Optional idempotency key for duplicate-event suppression.
+	 * - scope "action" (default): suppress duplicates within the same actionId.
+	 * - scope "session": suppress duplicates for full reactor session.
+	 */
+	idempotency?: {
+		key: string | ((ctx: GuardContext<TContext>) => string | undefined);
+		scope?: "action" | "session";
+	};
 	/** The effect to execute. Can be async (for delay() usage). */
 	handler: (ctx: EffectContext<TContext>) => void | Promise<void>;
 };

@@ -42,6 +42,10 @@ type BehaviorRule<TContext> = {
   id: string;                                                    // Unique ID for debugging
   on: EventTrigger;                                              // Declarative event pattern
   guard?: (ctx: GuardContext<TContext>) => boolean;               // Optional filter (return true to allow)
+  idempotency?: {
+    key: string | ((ctx: GuardContext<TContext>) => string | undefined);
+    scope?: "action" | "session";                                // default "action"
+  };
   handler: (ctx: EffectContext<TContext>) => void | Promise<void>; // Effect to execute
 };
 ```
@@ -49,6 +53,10 @@ type BehaviorRule<TContext> = {
 **Rule evaluation:** For each event, rules are checked in order. The first rule
 whose `on` trigger matches AND whose `guard` returns true (or is absent) wins.
 Only one rule executes per event. Remaining rules are skipped.
+
+**Idempotency:** set `idempotency` to suppress duplicate rule execution:
+- `scope: "action"` suppresses repeated executions for the same key within a single `actionId`.
+- `scope: "session"` suppresses repeated executions for the full runtime session.
 
 ## EventTrigger
 

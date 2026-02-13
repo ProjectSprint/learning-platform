@@ -3,6 +3,7 @@ import type { GameEvent, GameState } from "../../application/state/types";
 import {
 	createBehaviorConvenience,
 	matchesEventTrigger,
+	shouldRunRuleWithIdempotency,
 } from "../behavior/reactor";
 import type {
 	InteractionSessionApi,
@@ -163,6 +164,51 @@ describe("matchesEventTrigger", () => {
 				{ event: "ENTITY_ARRIVED", entityType: "subtask" },
 				state,
 			),
+		).toBe(false);
+	});
+});
+
+describe("shouldRunRuleWithIdempotency", () => {
+	const guardCtx = (actionId: number) =>
+		({
+			event: {
+				type: "ENTITY_MOVED",
+				eventId: actionId,
+				actionId,
+				entityId: "entity-1",
+				fromSpaceId: "pool",
+				toSpaceId: "open",
+			},
+			entity: undefined,
+			state: createStateForTriggerTest(),
+			phase: "idle",
+			context: {},
+		}) as const;
+
+	it("suppresses duplicate keys within same action for action scope", () => {
+		const registry = new Map<string, number>();
+		const config = { key: "open-app", scope: "action" } as const;
+
+		expect(
+			shouldRunRuleWithIdempotency("rule.a", config, guardCtx(10), registry),
+		).toBe(true);
+		expect(
+			shouldRunRuleWithIdempotency("rule.a", config, guardCtx(10), registry),
+		).toBe(false);
+		expect(
+			shouldRunRuleWithIdempotency("rule.a", config, guardCtx(11), registry),
+		).toBe(true);
+	});
+
+	it("suppresses duplicate keys for full session scope", () => {
+		const registry = new Map<string, number>();
+		const config = { key: "session-once", scope: "session" } as const;
+
+		expect(
+			shouldRunRuleWithIdempotency("rule.b", config, guardCtx(1), registry),
+		).toBe(true);
+		expect(
+			shouldRunRuleWithIdempotency("rule.b", config, guardCtx(2), registry),
 		).toBe(false);
 	});
 });
