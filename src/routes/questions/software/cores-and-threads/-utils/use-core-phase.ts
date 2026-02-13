@@ -346,11 +346,8 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 			}
 
 			const partStatus = entity.data.partStatus as string | undefined;
-			if (partStatus === "queued") {
-				return { status: "info" as const, message: "Queued" };
-			}
 			if (partStatus === "executing") {
-				return { status: "warning" as const, message: "Executing" };
+				return { status: "warning" as const, message: "Processing" };
 			}
 
 			const step = entity.data.step as ExecutionStep | undefined;
