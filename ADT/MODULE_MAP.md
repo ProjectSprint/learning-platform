@@ -1,58 +1,60 @@
-# ADT Module Map (Domain-Localized)
+# ADT Module Map (Types + Behaviour)
 
-The ADT tree is now organized by domain so your mental model is domain-first.
+The ADT tree is canonicalized around `Types/*` and `Behaviour/*`.
+There is no compatibility layer.
 
-## Domain Modules
-- `ADT/GameEngine/Domain.hs`
-  - domain facade that re-exports every `Domain/*` module
+## Type Modules
+- `ADT/GameEngine/Types/Common.hs`
+  - shared IDs and scalar values (`EntityId`, `SpaceId`, `Phase`, `Value`, ...)
 
-- `ADT/GameEngine/Domain/Common.hs`
-  - shared IDs/scalars (`EntityId`, `SpaceId`, `Phase`, `Value`, ...)
+- `ADT/GameEngine/Types/EntityCore.hs`
+  - shared entity core record used by all entity variants
 
-- `ADT/GameEngine/Domain/Entity.hs`
-  - entity/item types and entity-local behavior helpers
-  - includes update behavior (`applyEntityUpdates`) and structural helpers (`getEntityCore`, `entityIdOf`)
+- `ADT/GameEngine/Types/Item.hs`
+  - item-specific ADTs (`ItemData`, `ItemTooltip`, `IconInfo`, `ItemDataConfig`)
 
-- `ADT/GameEngine/Domain/Space.hs`
-  - space types/configs and space-local behavior helpers
-  - includes placement/capacity behavior (`gridCanAccept`, `gridAdd`, `poolAdd`, ...)
+- `ADT/GameEngine/Types/Entity.hs`
+  - entity ADT union and entity-local behaviour (`applyEntityUpdates`, `entityIdOf`, `mapEntityCore`)
 
-- `ADT/GameEngine/Domain/Modal.hs`
-  - modal and overlay types
+- `ADT/GameEngine/Types/Space.hs`
+  - space ADTs and space-local behaviour (`gridCanAccept`, `gridAdd`, `poolAdd`, ...)
 
-- `ADT/GameEngine/Domain/Event.hs`
-  - event payloads and queue record types
+- `ADT/GameEngine/Types/Modal.hs`
+  - modal and overlay ADTs
 
-- `ADT/GameEngine/Domain/State.hs`
-  - `GameState`, `QuestionStatus`, `Action`, `emptyGameState`
+- `ADT/GameEngine/Types/Event.hs`
+  - event payload ADTs and event queue records
 
-- `ADT/GameEngine/Domain/Runtime.hs`
-  - effect-boundary command algebra (`RuntimeCommand`, intents)
+- `ADT/GameEngine/Types/State.hs`
+  - `GameState`, `QuestionStatus`, `Action`, and `emptyGameState`
 
-- `ADT/GameEngine/Domain/Behavior.hs`
-  - behavior rule model (`EventTrigger`, contexts, `BehaviorRule`, `BehaviorDefinition`)
+- `ADT/GameEngine/Types/Runtime.hs`
+  - runtime command/intents ADT boundary
 
-- `ADT/GameEngine/Domain/Question.hs`
-  - declarative `QuestionDefinition` and phase/inventory/space rule AST
+- `ADT/GameEngine/Types/Behaviour.hs`
+  - behaviour rule ADTs (`EventTrigger`, contexts, `BehaviorRule`, `BehaviorDefinition`)
+
+- `ADT/GameEngine/Types/Question.hs`
+  - declarative question ADTs (`QuestionDefinition`, phase/inventory/space rules)
+
+## Behaviour Modules
+- `ADT/GameEngine/Behaviour/Matcher.hs`
+  - pure trigger matching and event entity resolution
+
+- `ADT/GameEngine/Behaviour/Transition.hs`
+  - pure behaviour rule execution (`runBehaviorEvent`)
 
 ## Engine Modules
 - `ADT/GameEngine/EventQueue.hs`
   - queue mechanics (`appendEvents`, `pendingEventsFor`, `ackEvents`)
 
-- `ADT/GameEngine/Behavior.hs`
-  - rule execution/matching engine (`runBehaviorEvent`, `matchesTrigger`)
-
 - `ADT/GameEngine/Reducer.hs`
-  - pure transitions (`applyAction`, `applyActions`)
-
-## Facades
-- `ADT/GameEngine/Types.hs`
-  - backward-compatible facade that re-exports `GameEngine.Domain`
+  - pure state transitions (`applyAction`, `applyActions`)
 
 - `ADT/GameEngine.hs`
-  - top-level facade (`Types` + reducer/queue/behavior engine)
+  - top-level export module for all `Types/*`, `Behaviour/*`, and engine modules
 
 ## Recommended Mental Model
-1. Pick a domain folder first (`Entity`, `Space`, `Behavior`, etc.).
-2. Read that domain’s `Types + behavior helpers` in one place.
-3. Then read `Reducer` and `Behavior` engine for cross-domain orchestration.
+1. Start from `ADT/GameEngine/Types/*` for available ADTs by domain.
+2. Read `ADT/GameEngine/Behaviour/*` for rule matching/transition behaviour.
+3. Read `ADT/GameEngine/Reducer.hs` and `ADT/GameEngine/EventQueue.hs` for orchestration.

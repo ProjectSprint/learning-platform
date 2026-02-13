@@ -1,13 +1,12 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
--- |
--- Event queue utilities (append/ack/pending) modeled after application hooks
--- and core reducer semantics.
 module GameEngine.EventQueue where
 
 import Data.List (foldl')
 import Data.Map.Strict qualified as Map
-import GameEngine.Types
+import GameEngine.Types.Common
+import GameEngine.Types.Event
+import GameEngine.Types.State
 
 getNextActionId :: GameEventQueue -> ActionId
 getNextActionId GameEventQueue {queueLastActionId} = queueLastActionId + 1

@@ -1,16 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- |
--- Game state and action domain.
-module GameEngine.Domain.State where
+module GameEngine.Types.State where
 
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
-import GameEngine.Domain.Common
-import GameEngine.Domain.Entity
-import GameEngine.Domain.Event
-import GameEngine.Domain.Modal
-import GameEngine.Domain.Space
+import GameEngine.Types.Common
+import GameEngine.Types.Entity
+import GameEngine.Types.Event
+import GameEngine.Types.Modal
+import GameEngine.Types.Space
 
 data QuestionStatus = QuestionInProgress | QuestionCompleted
   deriving (Eq, Show)

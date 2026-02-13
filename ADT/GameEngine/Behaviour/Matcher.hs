@@ -1,45 +1,14 @@
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE RecordWildCards #-}
 
--- |
--- Behavior rule evaluation and trigger matching.
---
--- Keeps imperative concerns out by returning 'BehaviorOutcome' data from
--- pure matching logic.
-module GameEngine.Behavior where
+module GameEngine.Behaviour.Matcher where
 
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
-import GameEngine.Types
-
-runBehaviorEvent :: BehaviorDefinition ctx -> GameState -> ctx -> GameEvent -> Maybe (BehaviorOutcome ctx)
-runBehaviorEvent BehaviorDefinition {behaviorRules} state ctx event =
-  go behaviorRules
-  where
-    entity = resolveEventEntity state event
-    guardCtx =
-      GuardContext
-        { guardEvent = event,
-          guardEntity = entity,
-          guardState = state,
-          guardPhase = gsPhase state,
-          guardBehaviorContext = ctx
-        }
-    effectCtx =
-      EffectContext
-        { effectEvent = event,
-          effectEntity = entity,
-          effectState = state,
-          effectPhase = gsPhase state,
-          effectBehaviorContext = ctx
-        }
-
-    go [] = Nothing
-    go (rule : rest)
-      | not (matchesTrigger state event (behaviorOn rule)) = go rest
-      | not (maybe True ($ guardCtx) (behaviorGuard rule)) = go rest
-      | otherwise = Just (behaviorHandler rule effectCtx)
+import GameEngine.Types.Behaviour
+import GameEngine.Types.Entity
+import GameEngine.Types.Event
+import GameEngine.Types.State
 
 matchesTrigger :: GameState -> GameEvent -> EventTrigger -> Bool
 matchesTrigger state GameEvent {gameEventPayload} trigger =
@@ -84,21 +53,6 @@ matchesTrigger state GameEvent {gameEventPayload} trigger =
 
     _ -> False
 
-matchesTerminalInput :: Text -> TerminalMatch -> Bool
-matchesTerminalInput input matcher =
-  case matcher of
-    MatchExact exact -> input == exact
-    -- Regex represented as Text in this model.
-    MatchRegex pattern -> Text.isInfixOf pattern input
-
-matchMaybe :: (a -> Bool) -> Maybe a -> Bool
-matchMaybe _ Nothing = True
-matchMaybe predicate (Just value) = predicate value
-
--- ----------------------------------------------------------------------------
--- Internal helpers for reducers
--- ----------------------------------------------------------------------------
-
 resolveEventEntity :: GameState -> GameEvent -> Maybe EntityData
 resolveEventEntity GameState {gsEntities} GameEvent {gameEventPayload} =
   case gameEventPayload of
@@ -112,3 +66,13 @@ resolveEventEntity GameState {gsEntities} GameEvent {gameEventPayload} =
 entityTypeOfEvent :: GameState -> EntityId -> Text
 entityTypeOfEvent GameState {gsEntities} eid =
   maybe "" entityTypeOf (Map.lookup eid gsEntities)
+
+matchesTerminalInput :: Text -> TerminalMatch -> Bool
+matchesTerminalInput input matcher =
+  case matcher of
+    MatchExact exact -> input == exact
+    MatchRegex pattern -> Text.isInfixOf pattern input
+
+matchMaybe :: (a -> Bool) -> Maybe a -> Bool
+matchMaybe _ Nothing = True
+matchMaybe predicate (Just value) = predicate value

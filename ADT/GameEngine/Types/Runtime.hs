@@ -1,16 +1,14 @@
--- |
--- Runtime command algebra (effect boundary).
-module GameEngine.Domain.Runtime where
+module GameEngine.Types.Runtime where
 
 import Data.Map.Strict (Map)
 import Data.Text (Text)
-import GameEngine.Domain.Common
-import GameEngine.Domain.Entity
-import GameEngine.Domain.Modal
-import GameEngine.Domain.Space
-import GameEngine.Domain.State (QuestionStatus)
+import GameEngine.Types.Common
+import GameEngine.Types.Entity
+import GameEngine.Types.Item
+import GameEngine.Types.Modal
+import GameEngine.Types.Space
+import GameEngine.Types.State (QuestionStatus)
 
--- | Anything imperative gets emitted as data first, then interpreted.
 data RuntimeCommand
   = CmdWorld WorldIntent
   | CmdInteraction InteractionSessionIntent

@@ -1,10 +1,8 @@
--- |
--- Modal/overlay domain types.
-module GameEngine.Domain.Modal where
+module GameEngine.Types.Modal where
 
 import Data.Map.Strict (Map)
 import Data.Text (Text)
-import GameEngine.Domain.Common
+import GameEngine.Types.Common
 
 data ModalFieldKind
   = FieldText

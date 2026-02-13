@@ -1,13 +1,11 @@
 {-# LANGUAGE LambdaCase #-}
 
--- |
--- Space domain: grid/pool/custom space ADTs and space-local config helpers.
-module GameEngine.Domain.Space where
+module GameEngine.Types.Space where
 
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
-import GameEngine.Domain.Common
+import GameEngine.Types.Common
 
 data GridPosition = GridPosition
   { row :: Int,

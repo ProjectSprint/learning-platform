@@ -1,66 +1,18 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 
--- |
--- Entity domain: item/entity ADTs, update payloads, and entity-local helpers.
-module GameEngine.Domain.Entity where
+module GameEngine.Types.Entity where
 
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
-import GameEngine.Domain.Common
-
-type EntityVisual = Map Text Value
-
-newtype IconInfo = IconInfo {iconName :: Text}
-  deriving (Eq, Show)
-
-data ItemTooltip = ItemTooltip
-  { tooltipContent :: Text,
-    tooltipSeeMoreHref :: Maybe Text
-  }
-  deriving (Eq, Show)
-
-data EntityCore = EntityCore
-  { coreEntityId :: EntityId,
-    coreEntityType :: Text,
-    coreEntityName :: Maybe Text,
-    coreEntityVisual :: EntityVisual,
-    coreEntityData :: Map Text Value,
-    coreEntityState :: Map Text Value,
-    coreBehaviorIds :: [Text]
-  }
-  deriving (Eq, Show)
-
-data ItemData = ItemData
-  { itemCore :: EntityCore,
-    itemAllowedPlaces :: [SpaceId],
-    itemIcon :: Maybe IconInfo,
-    itemTooltip :: Maybe ItemTooltip,
-    itemDraggable :: Bool,
-    itemCategory :: Maybe Text
-  }
-  deriving (Eq, Show)
+import GameEngine.Types.Common
+import GameEngine.Types.EntityCore
+import GameEngine.Types.Item
 
 data EntityData
   = GenericEntity EntityCore
   | ItemEntity ItemData
-  deriving (Eq, Show)
-
-data ItemDataConfig = ItemDataConfig
-  { configEntityId :: EntityId,
-    configEntityType :: Text,
-    configEntityName :: Maybe Text,
-    configEntityVisual :: EntityVisual,
-    configEntityData :: Map Text Value,
-    configEntityState :: Map Text Value,
-    configBehaviorIds :: [Text],
-    configAllowedPlaces :: [SpaceId],
-    configIcon :: Maybe IconInfo,
-    configTooltip :: Maybe ItemTooltip,
-    configDraggable :: Bool,
-    configCategory :: Maybe Text
-  }
   deriving (Eq, Show)
 
 data EntityUpdatePayload = EntityUpdatePayload

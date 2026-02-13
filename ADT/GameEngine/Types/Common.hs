@@ -1,8 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- |
--- Shared scalar and ID types used across all domains.
-module GameEngine.Domain.Common where
+module GameEngine.Types.Common where
 
 import Data.Map.Strict (Map)
 import Data.Text (Text)
@@ -35,7 +33,6 @@ type EventId = Int
 
 type ActionId = Int
 
--- | JSON-like dynamic values (parity with Record<string, unknown>).
 data Value
   = VString Text
   | VBool Bool

@@ -1,12 +1,10 @@
--- |
--- Question definition domain: declarative model for bootstrap + runtime rules.
-module GameEngine.Domain.Question where
+module GameEngine.Types.Question where
 
 import Data.Text (Text)
-import GameEngine.Domain.Behavior
-import GameEngine.Domain.Common
-import GameEngine.Domain.Entity
-import GameEngine.Domain.Space
+import GameEngine.Types.Behaviour
+import GameEngine.Types.Common
+import GameEngine.Types.Item
+import GameEngine.Types.Space
 
 data QuestionMeta = QuestionMeta
   { questionMetaId :: QuestionId,

@@ -1,11 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE RecordWildCards #-}
 
--- |
--- Pure reducer-style transitions and domain helpers.
---
--- Mirrors the TypeScript reducer stack (core/entity/space/ui) using a single
--- explicit transition function.
 module GameEngine.Reducer where
 
 import Data.List (foldl')
@@ -13,7 +7,12 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe (fromMaybe)
 import GameEngine.EventQueue
-import GameEngine.Types
+import GameEngine.Types.Common
+import GameEngine.Types.Entity
+import GameEngine.Types.Event
+import GameEngine.Types.Modal
+import GameEngine.Types.Space
+import GameEngine.Types.State
 
 applyActions :: GameState -> [Action] -> GameState
 applyActions = foldl' applyAction
@@ -143,10 +142,9 @@ addToSpace space entityId placement =
   case space of
     GridSpace grid ->
       case placement of
-        Just (PlacementGrid pos) ->
-          do
-            grid' <- gridAdd grid entityId pos
-            pure (GridSpace grid', Just (PlacementGrid pos))
+        Just (PlacementGrid pos) -> do
+          grid' <- gridAdd grid entityId pos
+          pure (GridSpace grid', Just (PlacementGrid pos))
         _ -> Nothing
 
     PoolSpace pool ->
@@ -281,10 +279,10 @@ openModalInState state modal =
         Just existing
           | modalEntryVisible existing -> state
           | otherwise ->
-                  let payload = EvtModalOpened mid (modalEntryInstance existing)
-                      queue' = appendEvents (getNextActionId (gsEventQueue state)) [payload] (gsEventQueue state)
-                      modals' = Map.insert mid (existing {modalEntryVisible = True}) modals
-                   in state {gsOverlay = OverlayState modals', gsEventQueue = queue'}
+              let payload = EvtModalOpened mid (modalEntryInstance existing)
+                  queue' = appendEvents (getNextActionId (gsEventQueue state)) [payload] (gsEventQueue state)
+                  modals' = Map.insert mid (existing {modalEntryVisible = True}) modals
+               in state {gsOverlay = OverlayState modals', gsEventQueue = queue'}
         Nothing ->
           let payload = EvtModalOpened mid modal
               queue' = appendEvents (getNextActionId (gsEventQueue state)) [payload] (gsEventQueue state)
@@ -305,10 +303,10 @@ closeSingleModal state mid =
         Just entry
           | not (modalEntryVisible entry) -> state
           | otherwise ->
-                  let payload = EvtModalClosed mid (Just (modalEntryInstance entry)) (Just ClosedProgrammatic)
-                      queue' = appendEvents (getNextActionId (gsEventQueue state)) [payload] (gsEventQueue state)
-                      modals' = Map.insert mid (entry {modalEntryVisible = False}) modals
-                   in state {gsOverlay = OverlayState modals', gsEventQueue = queue'}
+              let payload = EvtModalClosed mid (Just (modalEntryInstance entry)) (Just ClosedProgrammatic)
+                  queue' = appendEvents (getNextActionId (gsEventQueue state)) [payload] (gsEventQueue state)
+                  modals' = Map.insert mid (entry {modalEntryVisible = False}) modals
+               in state {gsOverlay = OverlayState modals', gsEventQueue = queue'}
 
 closeAllModals :: GameState -> GameState
 closeAllModals state =

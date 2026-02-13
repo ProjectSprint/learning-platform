@@ -1,13 +1,11 @@
--- |
--- Behavior domain: rule declarations and behavior execution contexts.
-module GameEngine.Domain.Behavior where
+module GameEngine.Types.Behaviour where
 
 import Data.Text (Text)
-import GameEngine.Domain.Common
-import GameEngine.Domain.Entity
-import GameEngine.Domain.Event
-import GameEngine.Domain.Runtime
-import GameEngine.Domain.State
+import GameEngine.Types.Common
+import GameEngine.Types.Entity
+import GameEngine.Types.Event
+import GameEngine.Types.Runtime
+import GameEngine.Types.State
 
 data TerminalMatch
   = MatchExact Text
