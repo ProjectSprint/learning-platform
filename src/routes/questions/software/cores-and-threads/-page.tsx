@@ -98,9 +98,15 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 	const core1Space = state.spaces[SPACE_IDS.core1];
 	const isCore1Occupied =
 		core1Space?.kind === "path" && core1Space.entityIds.length > 0;
+	const core2Space = state.spaces[SPACE_IDS.core2];
+	const isCore2Occupied =
+		core2Space?.kind === "path" && core2Space.entityIds.length > 0;
+	const hasAvailableLane = showCore2
+		? !isCore1Occupied || !isCore2Occupied
+		: !isCore1Occupied;
 	const canDragAppFromPool = useCallback(
-		(_entity: { id: string }) => !isCore1Occupied,
-		[isCore1Occupied],
+		(_entity: { id: string }) => hasAvailableLane,
+		[hasAvailableLane],
 	);
 
 	const getEntityStatus = useCallback(
