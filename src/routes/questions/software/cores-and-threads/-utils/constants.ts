@@ -1,5 +1,6 @@
 import type {
 	GridSpaceConfig,
+	PathSpaceConfig,
 	PoolSpaceConfig,
 } from "@/components/game/domain/space";
 import type { Item } from "@/components/game/game-provider";
@@ -13,7 +14,9 @@ export const QUESTION_DESCRIPTION =
 
 export const SPACE_IDS = {
 	appPool: "app-pool",
-	open: "open",
+	openIngressPath: "open-ingress-path",
+	decompileQueuePath: "decompile-queue-path",
+	ram: "ram",
 	breakdown: "breakdown",
 	core1: "core-1",
 	core2: "core-2",
@@ -21,16 +24,16 @@ export const SPACE_IDS = {
 } as const;
 
 export const GRID_SPACE_CONFIGS: Record<
-	"open" | "core1" | "core2",
+	"ram" | "core1" | "core2",
 	GridSpaceConfig
 > = {
-	open: {
-		id: SPACE_IDS.open,
-		name: "Open Zone",
+	ram: {
+		id: SPACE_IDS.ram,
+		name: "RAM",
 		rows: 1,
-		cols: 2,
+		cols: 3,
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-		maxCapacity: 2,
+		maxCapacity: 3,
 	},
 	core1: {
 		id: SPACE_IDS.core1,
@@ -48,6 +51,26 @@ export const GRID_SPACE_CONFIGS: Record<
 		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
 		maxCapacity: 1,
 	},
+};
+
+export const OPEN_INGRESS_PATH_CONFIG: PathSpaceConfig = {
+	id: SPACE_IDS.openIngressPath,
+	name: "Open Lane",
+	path: "M 12 60 L 308 60",
+	viewBox: "0 0 320 120",
+	duration: 1.2,
+	speedMultiplier: 1,
+	maxCapacity: 1,
+};
+
+export const DECOMPILE_QUEUE_PATH_CONFIG: PathSpaceConfig = {
+	id: SPACE_IDS.decompileQueuePath,
+	name: "Decode Queue",
+	path: "M 12 60 L 308 60",
+	viewBox: "0 0 320 120",
+	duration: 1.5,
+	speedMultiplier: 1,
+	maxCapacity: 1,
 };
 
 export const APP_POOL_CONFIG: PoolSpaceConfig = {
@@ -312,7 +335,7 @@ export const COUNT_SIMULTANEOUS_APPS_FOR_DUAL_DEMO = 2;
 
 const baseAppAllowedPlaces = [
 	SPACE_IDS.appPool,
-	SPACE_IDS.open,
+	SPACE_IDS.openIngressPath,
 	SPACE_IDS.openedApps,
 ];
 

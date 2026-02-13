@@ -45,14 +45,6 @@ import type {
 	TaskStatus,
 } from "./types";
 
-type AutoJob = {
-	appId: string;
-	appKey: AppKey;
-	taskIds: string[];
-	currentIndex: number;
-	coreId: CoreLaneId;
-};
-
 type UseCorePhaseOptions = {
 	world: WorldApi;
 	interactionSession: InteractionSessionApi;
@@ -68,7 +60,7 @@ const initialCoreUtilization = {
 };
 
 const hintByPhase: Record<CorePhase, string> = {
-	"single-explore": "Drag any app into Open Zone.",
+	"single-explore": "Drag any app into Open Lane.",
 	"single-execute": "Single core is processing. Wait for completion.",
 	"single-pain": "Open more apps and feel the queue on one core.",
 	"single-wall": "Add a second core to continue.",
@@ -88,6 +80,12 @@ const PARALLEL_DEPENDENCIES: Record<string, string[]> = {
 	"task-video-gpu": ["task-video-parse"],
 	"task-video-render": ["task-video-codec", "task-video-gpu"],
 };
+
+const DECOMPILE_STEP_DEFINITIONS = [
+	{ key: "locate", name: "Locate binary", speedMultiplier: 1.8, tone: "info" },
+	{ key: "parse", name: "Parse config", speedMultiplier: 0.8, tone: "info" },
+	{ key: "render", name: "Render UI", speedMultiplier: 0.75, tone: "info" },
+] as const;
 
 const toneByTaskStatus: Record<
 	TaskStatus,
@@ -118,6 +116,7 @@ export const useCorePhase = ({
 	const [coreUtilization, setCoreUtilization] = useState(
 		initialCoreUtilization,
 	);
+	const [queuePathSpeedMultiplier, setQueuePathSpeedMultiplier] = useState(1);
 
 	const phaseRef = useRef(phase);
 	const modeRef = useRef(mode);
@@ -125,11 +124,17 @@ export const useCorePhase = ({
 	const stateRef = useRef(state);
 	const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const timersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
-	const openDropPrevIdsRef = useRef(new Set<string>());
 	const coreDropPrevIdsRef = useRef<Record<CoreLaneId, Set<string>>>({
 		[SPACE_IDS.core1]: new Set<string>(),
 		[SPACE_IDS.core2]: new Set<string>(),
 	});
+	const acceptedIngressAppIdsRef = useRef(new Set<string>());
+	const decomposingAppIdsRef = useRef(new Set<string>());
+	const queueTaskOwnerRef = useRef<
+		Record<string, { appId: string; appKey: AppKey }>
+	>({});
+	const queuedTaskOrderRef = useRef<Record<string, string[]>>({});
+	const queuedTaskIndexRef = useRef<Record<string, number>>({});
 	const openedCountRef = useRef(0);
 	const dualSchedulerCompletionsRef = useRef(0);
 	const modalFlagsRef = useRef({
@@ -142,10 +147,6 @@ export const useCorePhase = ({
 		completeShown: false,
 	});
 
-	const autoJobsRef = useRef<Record<CoreLaneId, AutoJob | null>>({
-		[SPACE_IDS.core1]: null,
-		[SPACE_IDS.core2]: null,
-	});
 	const taskStatusRef = useRef<Record<string, TaskStatus>>({});
 	const lockOwnerRef = useRef<CoreLaneId | null>(null);
 	const lockWaitingRef = useRef<{ taskId: string; coreId: CoreLaneId } | null>(
@@ -261,6 +262,59 @@ export const useCorePhase = ({
 			});
 		},
 		[world],
+	);
+
+	const setQueueStepSpeed = useCallback((speedMultiplier: number) => {
+		setQueuePathSpeedMultiplier(speedMultiplier);
+	}, []);
+
+	const createDecompileTasks = useCallback(
+		(appId: string, appKey: AppKey) => {
+			const taskIds: string[] = [];
+			for (const step of DECOMPILE_STEP_DEFINITIONS) {
+				const taskId = `${appId}-${step.key}`;
+				taskIds.push(taskId);
+
+				if (!stateRef.current.entities[taskId]) {
+					world.createEntity({
+						id: taskId,
+						name: step.name,
+						allowedPlaces: [SPACE_IDS.decompileQueuePath, SPACE_IDS.ram],
+						icon: { icon: "mdi:cog-outline", color: "#93C5FD" },
+						draggable: false,
+						data: {
+							type: "subtask",
+							appKey,
+							taskStatus: "queued",
+							stage: step.key,
+						},
+					});
+				}
+				queueTaskOwnerRef.current[taskId] = { appId, appKey };
+			}
+			queuedTaskOrderRef.current[appId] = taskIds;
+			queuedTaskIndexRef.current[appId] = 0;
+			return taskIds;
+		},
+		[world],
+	);
+
+	const moveNextDecompileTaskToQueue = useCallback(
+		(appId: string) => {
+			const taskIds = queuedTaskOrderRef.current[appId] ?? [];
+			const index = queuedTaskIndexRef.current[appId] ?? 0;
+			const taskId = taskIds[index];
+			if (!taskId) {
+				return false;
+			}
+
+			const step = DECOMPILE_STEP_DEFINITIONS[index];
+			setQueueStepSpeed(step?.speedMultiplier ?? 1);
+			setTaskStatus(taskId, "processing");
+			ensureEntityInSpace(taskId, SPACE_IDS.decompileQueuePath);
+			return true;
+		},
+		[ensureEntityInSpace, setQueueStepSpeed, setTaskStatus],
 	);
 
 	const resetTaskToIdle = useCallback(
@@ -401,72 +455,30 @@ export const useCorePhase = ({
 		],
 	);
 
-	const runAutoTaskStep = useCallback(
-		(job: AutoJob) => {
-			const currentTaskId = job.taskIds[job.currentIndex];
-			if (!currentTaskId) {
-				autoJobsRef.current[job.coreId] = null;
-				setCoreUsage(job.coreId, 0);
-				handleAppCompleted(job.appId, job.appKey);
-				return;
-			}
-
-			setTaskStatus(currentTaskId, "processing");
-			ensureEntityInSpace(currentTaskId, job.coreId);
-			setCoreUsage(job.coreId, 100);
-
-			const durationMs = TASK_BY_ID[currentTaskId]?.durationMs ?? 800;
+	const finalizeDecompilePipeline = useCallback(
+		(appId: string, appKey: AppKey) => {
 			const timer = setTimeout(() => {
 				timersRef.current.delete(timer);
-				ensureEntityInSpace(currentTaskId, SPACE_IDS.breakdown);
-				setTaskStatus(currentTaskId, "done");
-				job.currentIndex += 1;
-				runAutoTaskStep(job);
-			}, durationMs);
+				const taskIds = queuedTaskOrderRef.current[appId] ?? [];
+				for (const taskId of taskIds) {
+					removeEntityFromCurrentSpace(taskId);
+					world.deleteEntities([taskId]);
+					delete queueTaskOwnerRef.current[taskId];
+				}
+				delete queuedTaskOrderRef.current[appId];
+				delete queuedTaskIndexRef.current[appId];
+				decomposingAppIdsRef.current.delete(appId);
+				handleAppCompleted(appId, appKey);
+				setQueueStepSpeed(1);
+			}, 1000);
 			registerTimer(timer);
 		},
 		[
-			ensureEntityInSpace,
 			handleAppCompleted,
 			registerTimer,
-			setCoreUsage,
-			setTaskStatus,
-		],
-	);
-
-	const startAutoJob = useCallback(
-		(appId: string, coreId: CoreLaneId) => {
-			const app = APP_BY_ID[appId];
-			if (!app) {
-				return;
-			}
-			const tasks = TASKS_BY_APP[app.appKey];
-			for (const task of tasks) {
-				ensureEntityInSpace(task.taskId, SPACE_IDS.breakdown);
-				setTaskStatus(task.taskId, "queued");
-			}
-
-			setAppStatus(appId, "processing");
-			syncPhase(
-				modeRef.current === "single-core" ? "single-execute" : phaseRef.current,
-			);
-
-			const job: AutoJob = {
-				appId,
-				appKey: app.appKey,
-				taskIds: tasks.map((task) => task.taskId),
-				currentIndex: 0,
-				coreId,
-			};
-			autoJobsRef.current[coreId] = job;
-			runAutoTaskStep(job);
-		},
-		[
-			ensureEntityInSpace,
-			runAutoTaskStep,
-			setAppStatus,
-			setTaskStatus,
-			syncPhase,
+			removeEntityFromCurrentSpace,
+			setQueueStepSpeed,
+			world,
 		],
 	);
 
@@ -748,33 +760,8 @@ export const useCorePhase = ({
 				return;
 			}
 
-			if (modeRef.current === "single-core") {
-				if (autoJobsRef.current[SPACE_IDS.core1]) {
-					rejectAppDrop(appId, "Core 1 is busy. Wait for completion.");
-					return;
-				}
-				startAutoJob(appId, SPACE_IDS.core1);
-				return;
-			}
-
-			if (phaseRef.current === "dual-idle") {
-				if (autoJobsRef.current[SPACE_IDS.core1]) {
-					rejectAppDrop(appId, "Core 1 is busy. Scheduler is not enabled yet.");
-					return;
-				}
-				startAutoJob(appId, SPACE_IDS.core1);
-				return;
-			}
-
-			if (phaseRef.current === "dual-scheduler") {
-				const core1Busy = Boolean(autoJobsRef.current[SPACE_IDS.core1]);
-				const core2Busy = Boolean(autoJobsRef.current[SPACE_IDS.core2]);
-				if (core1Busy && core2Busy) {
-					rejectAppDrop(appId, "Both cores are busy.");
-					return;
-				}
-				const coreId = core1Busy ? SPACE_IDS.core2 : SPACE_IDS.core1;
-				startAutoJob(appId, coreId);
+			if (decomposingAppIdsRef.current.size > 0) {
+				rejectAppDrop(appId, "Decompiler pipeline is busy.");
 				return;
 			}
 
@@ -783,11 +770,8 @@ export const useCorePhase = ({
 					rejectAppDrop(appId, "Open Video Editor to continue.");
 					return;
 				}
-				if (autoJobsRef.current[SPACE_IDS.core1]) {
-					rejectAppDrop(appId, "Core 1 is still busy.");
-					return;
-				}
-				startAutoJob(appId, SPACE_IDS.core1);
+				acceptedIngressAppIdsRef.current.add(appId);
+				setAppStatus(appId, "decompiling");
 				return;
 			}
 
@@ -802,15 +786,28 @@ export const useCorePhase = ({
 				showNotice("Assign codec and GPU subtasks to different cores.", "info");
 				return;
 			}
+
+			if (
+				phaseRef.current === "single-explore" ||
+				phaseRef.current === "single-execute" ||
+				phaseRef.current === "single-pain" ||
+				phaseRef.current === "dual-idle" ||
+				phaseRef.current === "dual-scheduler"
+			) {
+				acceptedIngressAppIdsRef.current.add(appId);
+				setAppStatus(appId, "decompiling");
+				if (
+					phaseRef.current === "single-explore" ||
+					phaseRef.current === "single-pain"
+				) {
+					syncPhase("single-execute");
+				}
+				return;
+			}
+
+			rejectAppDrop(appId, "App opening is not active in this phase.");
 		},
-		[
-			rejectAppDrop,
-			setAppStatus,
-			setupParallelSplit,
-			showNotice,
-			startAutoJob,
-			syncPhase,
-		],
+		[rejectAppDrop, setAppStatus, setupParallelSplit, showNotice, syncPhase],
 	);
 
 	useEffect(() => {
@@ -819,6 +816,54 @@ export const useCorePhase = ({
 		}
 
 		for (const event of events) {
+			if (
+				event.type === "ENTITY_ENTERED_SPACE" &&
+				event.spaceId === SPACE_IDS.openIngressPath &&
+				APP_IDS.has(event.entityId)
+			) {
+				handleAppDrop(event.entityId);
+				continue;
+			}
+
+			if (
+				event.type === "ENTITY_LEFT_SPACE" &&
+				event.spaceId === SPACE_IDS.openIngressPath &&
+				acceptedIngressAppIdsRef.current.has(event.entityId)
+			) {
+				const app = APP_BY_ID[event.entityId];
+				if (!app || decomposingAppIdsRef.current.has(event.entityId)) {
+					continue;
+				}
+				acceptedIngressAppIdsRef.current.delete(event.entityId);
+				decomposingAppIdsRef.current.add(event.entityId);
+				setAppStatus(event.entityId, "decompiling");
+				createDecompileTasks(event.entityId, app.appKey);
+				moveNextDecompileTaskToQueue(event.entityId);
+				continue;
+			}
+
+			if (
+				event.type === "ENTITY_LEFT_SPACE" &&
+				event.spaceId === SPACE_IDS.decompileQueuePath
+			) {
+				const owner = queueTaskOwnerRef.current[event.entityId];
+				if (!owner) {
+					continue;
+				}
+
+				setTaskStatus(event.entityId, "done");
+				world.moveEntityToGrid(event.entityId, SPACE_IDS.ram);
+
+				const currentIndex = queuedTaskIndexRef.current[owner.appId] ?? 0;
+				queuedTaskIndexRef.current[owner.appId] = currentIndex + 1;
+
+				const hasNext = moveNextDecompileTaskToQueue(owner.appId);
+				if (!hasNext) {
+					finalizeDecompilePipeline(owner.appId, owner.appKey);
+				}
+				continue;
+			}
+
 			if (event.type !== "MODAL_SUBMITTED") {
 				continue;
 			}
@@ -888,32 +933,22 @@ export const useCorePhase = ({
 		ack();
 	}, [
 		ack,
+		createDecompileTasks,
 		events,
+		finalizeDecompilePipeline,
+		handleAppDrop,
 		maybeOpenLockIntroModal,
 		maybeOpenParallelIntroModal,
+		moveNextDecompileTaskToQueue,
 		onQuestionComplete,
 		resetVideoForParallel,
+		setAppStatus,
+		setTaskStatus,
 		setupConflictScenario,
 		showNotice,
 		syncPhase,
+		world,
 	]);
-
-	useEffect(() => {
-		const openSpace = spaces[SPACE_IDS.open];
-		if (!openSpace) {
-			return;
-		}
-		const nextIds = new Set(openSpace.placedItems.map((item) => item.id));
-		for (const item of openSpace.placedItems) {
-			if (openDropPrevIdsRef.current.has(item.id)) {
-				continue;
-			}
-			if (item.type === "app") {
-				handleAppDrop(item.id);
-			}
-		}
-		openDropPrevIdsRef.current = nextIds;
-	}, [handleAppDrop, spaces]);
 
 	useEffect(() => {
 		for (const coreId of CORE_IDS) {
@@ -944,7 +979,9 @@ export const useCorePhase = ({
 	const boardReady = useMemo(() => {
 		const required = [
 			SPACE_IDS.appPool,
-			SPACE_IDS.open,
+			SPACE_IDS.openIngressPath,
+			SPACE_IDS.decompileQueuePath,
+			SPACE_IDS.ram,
 			SPACE_IDS.breakdown,
 			SPACE_IDS.core1,
 			SPACE_IDS.core2,
@@ -961,6 +998,12 @@ export const useCorePhase = ({
 			}
 
 			const appStatus = entity.data.appStatus as string | undefined;
+			if (appStatus === "decompiling") {
+				return {
+					status: "warning" as const,
+					message: "Decompiling instructions",
+				};
+			}
 			if (appStatus === "processing") {
 				return { status: "warning" as const, message: "Processing" };
 			}
@@ -988,6 +1031,7 @@ export const useCorePhase = ({
 		showCore2: mode !== "single-core",
 		boardReady,
 		getEntityStatus,
+		queuePathSpeedMultiplier,
 		appCountToWall: COUNT_APPS_TO_TRIGGER_WALL,
 	};
 };

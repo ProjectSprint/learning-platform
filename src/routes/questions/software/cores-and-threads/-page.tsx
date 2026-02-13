@@ -2,7 +2,12 @@ import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useLayoutEffect } from "react";
 
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
+import {
+	GameBoard,
+	GridSpace,
+	PathSpace,
+	PoolSpace,
+} from "@/components/game/engine";
 import { useDragEngine } from "@/components/game/engines";
 import {
 	GameProvider,
@@ -22,7 +27,9 @@ import type { QuestionProps } from "@/components/module";
 import {
 	APP_POOL_CONFIG,
 	BREAKDOWN_POOL_CONFIG,
+	DECOMPILE_QUEUE_PATH_CONFIG,
 	GRID_SPACE_CONFIGS,
+	OPEN_INGRESS_PATH_CONFIG,
 	OPENED_APPS_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
@@ -134,10 +141,26 @@ const CoresAndThreadsGame = ({
 								</Text>
 							) : null}
 							<Box mt={3}>
+								<PathSpace
+									ctx={gameCtx}
+									config={OPEN_INGRESS_PATH_CONFIG}
+									title="Open Lane"
+									speedMultiplier={1}
+								/>
+							</Box>
+							<Box mt={3}>
+								<PathSpace
+									ctx={gameCtx}
+									config={DECOMPILE_QUEUE_PATH_CONFIG}
+									title="Decode Queue"
+									speedMultiplier={phase.queuePathSpeedMultiplier}
+								/>
+							</Box>
+							<Box mt={3}>
 								<GridSpace
 									ctx={gameCtx}
-									config={GRID_SPACE_CONFIGS.open}
-									title="Open Zone"
+									config={GRID_SPACE_CONFIGS.ram}
+									title="RAM"
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={phase.getEntityStatus}
 								/>
