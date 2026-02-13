@@ -1,6 +1,6 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { gsap } from "gsap";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "../../domain/entity/entity-data";
 import type { PathSpaceData } from "../../domain/space/space-data";
 import { useDragContext } from "../interaction/drag/DragContext";
@@ -49,7 +49,6 @@ export const PathSpaceView = ({
 	const {
 		activeDrag,
 		dropAnimationTarget,
-		proxyRef,
 		setDropAnimationTarget,
 		setLastDropResult,
 		targetSpaceIdRef,
@@ -59,12 +58,7 @@ export const PathSpaceView = ({
 	const trackRef = useRef<HTMLDivElement | null>(null);
 	const pathRef = useRef<SVGPathElement | null>(null);
 	const timelinesRef = useRef<Map<string, gsap.core.Animation>>(new Map());
-	const pendingEntryRef = useRef<
-		Map<
-			string,
-			{ viewportX: number; viewportY: number; size: EntityRenderSize }
-		>
-	>(new Map());
+	const pendingTransitRef = useRef<Set<string>>(new Set());
 	const [entitySizes, setEntitySizes] = useState<
 		Record<string, EntityRenderSize>
 	>({});
@@ -77,33 +71,11 @@ export const PathSpaceView = ({
 		y: DROPZONE_CELL_HEIGHT / 2,
 	});
 	const hoveredRef = useRef(false);
-	const pendingDropEntityIdRef = useRef<string | null>(null);
 	const defaultCardSize = useEntityCardSize();
 
 	const viewBoxSize = useMemo(
 		() => parseViewBox(space.viewBox),
 		[space.viewBox],
-	);
-
-	const toPathCoordinates = useCallback(
-		(viewportX: number, viewportY: number): PathPoint | null => {
-			const track = trackRef.current;
-			if (!track) {
-				return null;
-			}
-			const rect = track.getBoundingClientRect();
-			if (rect.width <= 0 || rect.height <= 0) {
-				return null;
-			}
-
-			const relX = viewportX - rect.left;
-			const relY = viewportY - rect.top;
-			return {
-				x: (relX / rect.width) * viewBoxSize.width,
-				y: (relY / rect.height) * viewBoxSize.height,
-			};
-		},
-		[viewBoxSize.height, viewBoxSize.width],
 	);
 
 	useEffect(() => {
@@ -128,12 +100,18 @@ export const PathSpaceView = ({
 			targetSpaceIdRef.current = isInside ? space.id : undefined;
 		};
 
-		const onPointerUp = (event: PointerEvent) => {
+		const onPointerUp = () => {
 			if (!hoveredRef.current) {
 				return;
 			}
 
 			const entityId = activeDrag.data.entityId;
+			const placed = onDropEntity(entityId);
+			setLastDropResult({
+				source: activeDrag.source,
+				placed,
+			});
+
 			const sourceRect =
 				activeDrag.initialRect ??
 				activeDrag.element?.getBoundingClientRect() ??
@@ -144,42 +122,23 @@ export const PathSpaceView = ({
 			const viewportX = dropzoneRect.left + (dropzoneRect.width - width) / 2;
 			const viewportY = dropzoneRect.top + (dropzoneRect.height - height) / 2;
 
-			// Ensure drop animation starts from the latest mouseup location.
-			if (proxyRef.current) {
-				gsap.set(proxyRef.current, {
-					x: event.clientX - width / 2,
-					y: event.clientY - height / 2,
+			setIsDropzoneHovered(false);
+			hoveredRef.current = false;
+			targetSpaceIdRef.current = undefined;
+
+			if (placed) {
+				pendingTransitRef.current.add(entityId);
+				setEntitySizes((prev) => ({ ...prev, [entityId]: { width, height } }));
+				setDropAnimationTarget({
+					entityId,
+					row: 0,
+					col: 0,
+					viewportX,
+					viewportY,
 					width,
 					height,
 				});
 			}
-
-			pendingDropEntityIdRef.current = entityId;
-			if (sourceRect) {
-				pendingEntryRef.current.set(entityId, {
-					viewportX: sourceRect.left + sourceRect.width / 2,
-					viewportY: sourceRect.top + sourceRect.height / 2,
-					size: { width: sourceRect.width, height: sourceRect.height },
-				});
-			}
-
-			setLastDropResult({
-				source: activeDrag.source,
-				placed: true,
-			});
-
-			setIsDropzoneHovered(false);
-			hoveredRef.current = false;
-			targetSpaceIdRef.current = undefined;
-			setDropAnimationTarget({
-				entityId,
-				row: 0,
-				col: 0,
-				viewportX,
-				viewportY,
-				width,
-				height,
-			});
 		};
 
 		window.addEventListener("pointermove", onPointerMove);
@@ -194,33 +153,11 @@ export const PathSpaceView = ({
 		defaultCardSize.height,
 		defaultCardSize.width,
 		onDropEntity,
-		proxyRef,
 		setDropAnimationTarget,
 		setLastDropResult,
 		space.id,
 		targetSpaceIdRef,
 	]);
-
-	useEffect(() => {
-		const pendingEntityId = pendingDropEntityIdRef.current;
-		if (!pendingEntityId) {
-			return;
-		}
-
-		// Wait until DragOverlay finishes its drop animation and clears drag state.
-		if (activeDrag || dropAnimationTarget) {
-			return;
-		}
-
-		pendingDropEntityIdRef.current = null;
-		const placed = onDropEntity?.(pendingEntityId) ?? false;
-		if (!placed) {
-			pendingEntryRef.current.delete(pendingEntityId);
-			setLastDropResult((previous) =>
-				previous ? { ...previous, placed: false } : previous,
-			);
-		}
-	}, [activeDrag, dropAnimationTarget, onDropEntity, setLastDropResult]);
 
 	useEffect(() => {
 		const pathElement = pathRef.current;
@@ -253,27 +190,27 @@ export const PathSpaceView = ({
 				continue;
 			}
 
-			const pendingEntry = pendingEntryRef.current.get(entity.id);
-			const entryPoint = pendingEntry
-				? toPathCoordinates(pendingEntry.viewportX, pendingEntry.viewportY)
-				: null;
-			const initialPoint = entryPoint ?? pathStart;
+			if (pendingTransitRef.current.has(entity.id)) {
+				if (activeDrag || dropAnimationTarget) {
+					continue;
+				}
+				pendingTransitRef.current.delete(entity.id);
+			}
 
-			const renderSize: EntityRenderSize = pendingEntry?.size ?? {
+			const renderSize: EntityRenderSize = entitySizes[entity.id] ?? {
 				width: defaultCardSize.width,
 				height: defaultCardSize.height,
 			};
 			setEntitySizes((prev) => ({ ...prev, [entity.id]: renderSize }));
 			setEntityPositions((prev) => ({
 				...prev,
-				[entity.id]: { x: initialPoint.x, y: initialPoint.y },
+				[entity.id]: { x: pathStart.x, y: pathStart.y },
 			}));
 
-			const state = { progress: 0, x: initialPoint.x, y: initialPoint.y };
+			const state = { progress: 0 };
 			const timeline = gsap.timeline({
 				onComplete: () => {
 					timelinesRef.current.delete(entity.id);
-					pendingEntryRef.current.delete(entity.id);
 					setEntityPositions((prev) => {
 						const { [entity.id]: _ignored, ...next } = prev;
 						return next;
@@ -285,21 +222,6 @@ export const PathSpaceView = ({
 					onEntityPathComplete?.(entity.id);
 				},
 			});
-
-			if (entryPoint) {
-				timeline.to(state, {
-					x: pathStart.x,
-					y: pathStart.y,
-					duration: 0.22,
-					ease: "power2.out",
-					onUpdate: () => {
-						setEntityPositions((prev) => ({
-							...prev,
-							[entity.id]: { x: state.x, y: state.y },
-						}));
-					},
-				});
-			}
 
 			timeline.to(state, {
 				progress: 1,
@@ -322,11 +244,13 @@ export const PathSpaceView = ({
 	}, [
 		defaultCardSize.height,
 		defaultCardSize.width,
+		dropAnimationTarget,
+		entitySizes,
 		entities,
 		onEntityPathComplete,
 		space.duration,
 		speedMultiplier,
-		toPathCoordinates,
+		activeDrag,
 	]);
 
 	useEffect(() => {
@@ -341,7 +265,7 @@ export const PathSpaceView = ({
 				animation.kill();
 			}
 			timelinesRef.current.clear();
-			pendingEntryRef.current.clear();
+			pendingTransitRef.current.clear();
 		};
 	}, []);
 
