@@ -44,8 +44,13 @@ export const PathSpaceView = ({
 	onDropEntity,
 	onEntityPathComplete,
 }: PathSpaceViewProps) => {
-	const { activeDrag, setActiveDrag, setLastDropResult, targetSpaceIdRef } =
-		useDragContext();
+	const {
+		activeDrag,
+		dropAnimationTarget,
+		setDropAnimationTarget,
+		setLastDropResult,
+		targetSpaceIdRef,
+	} = useDragContext();
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const dropzoneRef = useRef<HTMLDivElement | null>(null);
 	const trackRef = useRef<HTMLDivElement | null>(null);
@@ -65,6 +70,7 @@ export const PathSpaceView = ({
 		Record<string, PathPoint>
 	>({});
 	const hoveredRef = useRef(false);
+	const pendingDropEntityIdRef = useRef<string | null>(null);
 	const defaultCardSize = useEntityCardSize();
 
 	const viewBoxSize = useMemo(
@@ -120,30 +126,43 @@ export const PathSpaceView = ({
 				return;
 			}
 
-			const placed = onDropEntity(activeDrag.data.entityId);
+			const entityId = activeDrag.data.entityId;
+			const sourceRect =
+				activeDrag.initialRect ??
+				activeDrag.element?.getBoundingClientRect() ??
+				null;
+			const dropzoneRect = dropzone.getBoundingClientRect();
+			const width = sourceRect?.width ?? defaultCardSize.width;
+			const height = sourceRect?.height ?? defaultCardSize.height;
+			const viewportX = dropzoneRect.left + (dropzoneRect.width - width) / 2;
+			const viewportY = dropzoneRect.top + (dropzoneRect.height - height) / 2;
+
+			pendingDropEntityIdRef.current = entityId;
+			if (sourceRect) {
+				pendingEntryRef.current.set(entityId, {
+					viewportX: sourceRect.left + sourceRect.width / 2,
+					viewportY: sourceRect.top + sourceRect.height / 2,
+					size: { width: sourceRect.width, height: sourceRect.height },
+				});
+			}
+
 			setLastDropResult({
 				source: activeDrag.source,
-				placed,
+				placed: true,
 			});
 
 			setIsDropzoneHovered(false);
 			hoveredRef.current = false;
 			targetSpaceIdRef.current = undefined;
-
-			if (placed) {
-				const sourceRect =
-					activeDrag.initialRect ??
-					activeDrag.element?.getBoundingClientRect() ??
-					null;
-				if (sourceRect) {
-					pendingEntryRef.current.set(activeDrag.data.entityId, {
-						viewportX: sourceRect.left + sourceRect.width / 2,
-						viewportY: sourceRect.top + sourceRect.height / 2,
-						size: { width: sourceRect.width, height: sourceRect.height },
-					});
-				}
-				setActiveDrag(null);
-			}
+			setDropAnimationTarget({
+				entityId,
+				row: 0,
+				col: 0,
+				viewportX,
+				viewportY,
+				width,
+				height,
+			});
 		};
 
 		window.addEventListener("pointermove", onPointerMove);
@@ -155,12 +174,35 @@ export const PathSpaceView = ({
 		};
 	}, [
 		activeDrag,
+		defaultCardSize.height,
+		defaultCardSize.width,
 		onDropEntity,
-		setActiveDrag,
+		setDropAnimationTarget,
 		setLastDropResult,
 		space.id,
 		targetSpaceIdRef,
 	]);
+
+	useEffect(() => {
+		const pendingEntityId = pendingDropEntityIdRef.current;
+		if (!pendingEntityId) {
+			return;
+		}
+
+		// Wait until DragOverlay finishes its drop animation and clears drag state.
+		if (activeDrag || dropAnimationTarget) {
+			return;
+		}
+
+		pendingDropEntityIdRef.current = null;
+		const placed = onDropEntity?.(pendingEntityId) ?? false;
+		if (!placed) {
+			pendingEntryRef.current.delete(pendingEntityId);
+			setLastDropResult((previous) =>
+				previous ? { ...previous, placed: false } : previous,
+			);
+		}
+	}, [activeDrag, dropAnimationTarget, onDropEntity, setLastDropResult]);
 
 	useEffect(() => {
 		const pathElement = pathRef.current;
