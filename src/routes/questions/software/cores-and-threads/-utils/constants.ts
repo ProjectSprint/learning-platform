@@ -41,10 +41,10 @@ export const OPEN_GRID_CONFIG: GridSpaceConfig = {
 export const EXECUTION_GRID_CONFIG: GridSpaceConfig = {
 	id: SPACE_IDS.execution,
 	name: "Execution",
-	rows: 1,
+	rows: 2,
 	cols: 3,
 	metrics: { cellWidth: 68, cellHeight: 68, gapX: 6, gapY: 6 },
-	maxCapacity: 3,
+	maxCapacity: 6,
 };
 
 export const OPENED_GRID_CONFIG: GridSpaceConfig = {

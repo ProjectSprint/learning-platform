@@ -34,13 +34,15 @@ type UseCorePhaseOptions = {
 type PipelineState = "idle" | "parsing" | "allocating" | "executing";
 
 type PartStatus = "queued" | "executing";
+type CoreLaneId = typeof SPACE_IDS.core1 | typeof SPACE_IDS.core2;
+const CORE_LANES: CoreLaneId[] = [SPACE_IDS.core1, SPACE_IDS.core2];
 const EXECUTION_SPLIT_SETTLE_MS = 250;
 
 const hintByState: Record<PipelineState, string> = {
 	idle: "Drag an app into Open to launch it.",
 	parsing: "OS is parsing the binary header.",
 	allocating: "Allocating RAM before execution.",
-	executing: "Core 1 is processing app parts sequentially.",
+	executing: "Active cores are processing app parts.",
 };
 
 export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
@@ -59,11 +61,23 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 	const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const timersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
 	const openPrevIdsRef = useRef(new Set<string>());
-	const activeAppRef = useRef<{ appId: string; appKey: AppKey } | null>(null);
-	const pipelineBusyRef = useRef(false);
-	const currentPartIndexRef = useRef(0);
-	const partIdsRef = useRef<string[]>([]);
-	const partOwnerByIdRef = useRef<Record<string, string>>({});
+	const activeAppByLaneRef = useRef<
+		Record<CoreLaneId, { appId: string; appKey: AppKey } | null>
+	>({
+		[SPACE_IDS.core1]: null,
+		[SPACE_IDS.core2]: null,
+	});
+	const partIdsByLaneRef = useRef<Record<CoreLaneId, string[]>>({
+		[SPACE_IDS.core1]: [],
+		[SPACE_IDS.core2]: [],
+	});
+	const currentPartIndexByLaneRef = useRef<Record<CoreLaneId, number>>({
+		[SPACE_IDS.core1]: 0,
+		[SPACE_IDS.core2]: 0,
+	});
+	const partOwnerByIdRef = useRef<
+		Record<string, { appId: string; laneId: CoreLaneId }>
+	>({});
 	const dualCorePromptShownRef = useRef(false);
 
 	useEffect(() => {
@@ -92,6 +106,12 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 			}
 		};
 	}, [clearAllTimers]);
+
+	const hasAnyActiveLane = useCallback(() => {
+		return CORE_LANES.some(
+			(laneId) => activeAppByLaneRef.current[laneId] !== null,
+		);
+	}, []);
 
 	const showNotice = useCallback((message: string, tone: "info" | "error") => {
 		setNotice({ message, tone });
@@ -128,64 +148,91 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 		[world],
 	);
 
-	const moveNextPartToCore = useCallback(() => {
-		const app = activeAppRef.current;
-		if (!app) {
-			return;
-		}
+	const isDualCoreUnlocked = useCallback(() => {
+		return (
+			dualCorePromptShownRef.current ||
+			openedCountRef.current >= OPENED_APPS_FOR_DUAL_CORE_PROMPT
+		);
+	}, []);
 
-		const partId = partIdsRef.current[currentPartIndexRef.current];
-		if (!partId) {
-			removeEntityFromCurrentSpace(app.appId);
-			world.moveEntityToGrid(app.appId, SPACE_IDS.opened);
-			setAppStatus(app.appId, "opened");
-
-			const nextOpened = openedCountRef.current + 1;
-			openedCountRef.current = nextOpened;
-			setOpenedCount(nextOpened);
-
-			pipelineBusyRef.current = false;
-			activeAppRef.current = null;
-			partIdsRef.current = [];
-			currentPartIndexRef.current = 0;
-			setPipelineState("idle");
-
-			if (
-				nextOpened >= OPENED_APPS_FOR_DUAL_CORE_PROMPT &&
-				!dualCorePromptShownRef.current
-			) {
-				dualCorePromptShownRef.current = true;
-				setDualCorePromptVisible(true);
-				showNotice(
-					"You now have two opened apps. Next step: introduce dual-core scheduling.",
-					"info",
-				);
+	const getAvailableLane = useCallback((): CoreLaneId | null => {
+		const enabledLanes = isDualCoreUnlocked() ? CORE_LANES : [SPACE_IDS.core1];
+		for (const laneId of enabledLanes) {
+			if (!activeAppByLaneRef.current[laneId]) {
+				return laneId;
 			}
-			return;
 		}
+		return null;
+	}, [isDualCoreUnlocked]);
 
-		setPartStatus(partId, "executing");
-		world.moveEntity(partId, SPACE_IDS.core1);
-	}, [
-		removeEntityFromCurrentSpace,
-		setAppStatus,
-		setPartStatus,
-		showNotice,
-		world,
-	]);
+	const moveNextPartToCore = useCallback(
+		(laneId: CoreLaneId) => {
+			const app = activeAppByLaneRef.current[laneId];
+			if (!app) {
+				return;
+			}
+
+			const partIndex = currentPartIndexByLaneRef.current[laneId];
+			const partId = partIdsByLaneRef.current[laneId][partIndex];
+			if (!partId) {
+				removeEntityFromCurrentSpace(app.appId);
+				world.moveEntityToGrid(app.appId, SPACE_IDS.opened);
+				setAppStatus(app.appId, "opened");
+
+				const nextOpened = openedCountRef.current + 1;
+				openedCountRef.current = nextOpened;
+				setOpenedCount(nextOpened);
+
+				activeAppByLaneRef.current[laneId] = null;
+				partIdsByLaneRef.current[laneId] = [];
+				currentPartIndexByLaneRef.current[laneId] = 0;
+				setPipelineState(hasAnyActiveLane() ? "executing" : "idle");
+
+				if (
+					nextOpened >= OPENED_APPS_FOR_DUAL_CORE_PROMPT &&
+					!dualCorePromptShownRef.current
+				) {
+					dualCorePromptShownRef.current = true;
+					setDualCorePromptVisible(true);
+					showNotice(
+						"You now have two opened apps. Next step: introduce dual-core scheduling.",
+						"info",
+					);
+				}
+				return;
+			}
+
+			setPartStatus(partId, "executing");
+			world.moveEntity(partId, laneId);
+		},
+		[
+			hasAnyActiveLane,
+			removeEntityFromCurrentSpace,
+			setAppStatus,
+			setPartStatus,
+			showNotice,
+			world,
+		],
+	);
 
 	const createExecutionParts = useCallback(
-		(appId: string, appKey: AppKey) => {
+		(appId: string, appKey: AppKey, laneId: CoreLaneId) => {
 			const partIds: string[] = [];
+			const targetRow = laneId === SPACE_IDS.core1 ? 0 : 1;
+
 			for (const [index, part] of EXECUTION_PARTS.entries()) {
 				const partId = `${appId}-exec-${part.step}`;
 				partIds.push(partId);
-				partOwnerByIdRef.current[partId] = appId;
+				partOwnerByIdRef.current[partId] = { appId, laneId };
 				if (!stateRef.current.entities[partId]) {
 					world.createEntity({
 						id: partId,
 						name: part.label,
-						allowedPlaces: [SPACE_IDS.execution, SPACE_IDS.core1],
+						allowedPlaces: [
+							SPACE_IDS.execution,
+							SPACE_IDS.core1,
+							SPACE_IDS.core2,
+						],
 						icon: { icon: part.icon, color: part.color },
 						draggable: false,
 						data: {
@@ -201,26 +248,27 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 					world.removeFromSpace(partId, currentSpaceId);
 				}
 				world.addToSpace(partId, SPACE_IDS.execution, {
-					row: 0,
+					row: targetRow,
 					col: index,
 				});
 			}
-			partIdsRef.current = partIds;
-			currentPartIndexRef.current = 0;
+
+			partIdsByLaneRef.current[laneId] = partIds;
+			currentPartIndexByLaneRef.current[laneId] = 0;
 		},
 		[world],
 	);
 
 	const beginExecution = useCallback(
-		(appId: string, appKey: AppKey) => {
+		(appId: string, appKey: AppKey, laneId: CoreLaneId) => {
 			setPipelineState("executing");
 			setAppStatus(appId, "allocating");
 			setRamUsage(Math.min(100, (openedCountRef.current + 1) * 50));
-			createExecutionParts(appId, appKey);
+			createExecutionParts(appId, appKey, laneId);
 			removeEntityFromCurrentSpace(appId);
 			const startCoreTimer = setTimeout(() => {
 				timersRef.current.delete(startCoreTimer);
-				moveNextPartToCore();
+				moveNextPartToCore(laneId);
 			}, EXECUTION_SPLIT_SETTLE_MS);
 			registerTimer(startCoreTimer);
 		},
@@ -244,35 +292,50 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 				return;
 			}
 
-			if (pipelineBusyRef.current) {
+			const laneId = getAvailableLane();
+			if (!laneId) {
 				world.moveEntity(appId, SPACE_IDS.appPool);
 				setAppStatus(appId, "ready");
 				showNotice(
-					"Core pipeline is busy. Wait until current app is opened.",
+					"All available cores are busy. Wait for a lane to free up.",
 					"error",
 				);
 				return;
 			}
 
-			pipelineBusyRef.current = true;
-			activeAppRef.current = { appId, appKey: app.appKey };
+			activeAppByLaneRef.current[laneId] = { appId, appKey: app.appKey };
 			setPipelineState("parsing");
 			setAppStatus(appId, "parsing");
 
 			const parseTimer = setTimeout(() => {
 				timersRef.current.delete(parseTimer);
+				const currentLaneApp = activeAppByLaneRef.current[laneId];
+				if (!currentLaneApp || currentLaneApp.appId !== appId) {
+					return;
+				}
 				setPipelineState("allocating");
 				setAppStatus(appId, "allocating");
 
 				const allocateTimer = setTimeout(() => {
 					timersRef.current.delete(allocateTimer);
-					beginExecution(appId, app.appKey);
+					const latestLaneApp = activeAppByLaneRef.current[laneId];
+					if (!latestLaneApp || latestLaneApp.appId !== appId) {
+						return;
+					}
+					beginExecution(appId, app.appKey, laneId);
 				}, ALLOCATING_MS);
 				registerTimer(allocateTimer);
 			}, PARSING_MS);
 			registerTimer(parseTimer);
 		},
-		[beginExecution, registerTimer, setAppStatus, showNotice, world],
+		[
+			beginExecution,
+			getAvailableLane,
+			registerTimer,
+			setAppStatus,
+			showNotice,
+			world,
+		],
 	);
 
 	useEffect(() => {
@@ -297,21 +360,27 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 
 		for (const event of events) {
 			if (
-				event.type === "ENTITY_LEFT_SPACE" &&
-				event.spaceId === SPACE_IDS.core1 &&
-				partOwnerByIdRef.current[event.entityId]
+				event.type !== "ENTITY_LEFT_SPACE" ||
+				(event.spaceId !== SPACE_IDS.core1 && event.spaceId !== SPACE_IDS.core2)
 			) {
-				const ownerAppId = partOwnerByIdRef.current[event.entityId];
-				delete partOwnerByIdRef.current[event.entityId];
-				world.deleteEntities([event.entityId]);
-
-				const activeApp = activeAppRef.current;
-				if (!activeApp || activeApp.appId !== ownerAppId) {
-					continue;
-				}
-				currentPartIndexRef.current += 1;
-				moveNextPartToCore();
+				continue;
 			}
+
+			const owner = partOwnerByIdRef.current[event.entityId];
+			if (!owner || owner.laneId !== event.spaceId) {
+				continue;
+			}
+
+			delete partOwnerByIdRef.current[event.entityId];
+			world.deleteEntities([event.entityId]);
+
+			const activeApp = activeAppByLaneRef.current[owner.laneId];
+			if (!activeApp || activeApp.appId !== owner.appId) {
+				continue;
+			}
+
+			currentPartIndexByLaneRef.current[owner.laneId] += 1;
+			moveNextPartToCore(owner.laneId);
 		}
 
 		ack();
