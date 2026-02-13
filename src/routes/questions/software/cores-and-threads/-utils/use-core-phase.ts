@@ -35,6 +35,7 @@ type UseCorePhaseOptions = {
 type PipelineState = "idle" | "parsing" | "allocating" | "executing";
 
 type PartStatus = "queued" | "executing";
+const EXECUTION_SPLIT_SETTLE_MS = 250;
 
 const hintByState: Record<PipelineState, string> = {
 	idle: "Drag an app into Open to launch it.",
@@ -201,12 +202,16 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 						},
 					});
 				}
-				world.moveEntityToGrid(partId, SPACE_IDS.execution);
+				const placementTimer = setTimeout(() => {
+					timersRef.current.delete(placementTimer);
+					world.moveEntityToGrid(partId, SPACE_IDS.execution);
+				}, 0);
+				registerTimer(placementTimer);
 			}
 			partIdsRef.current = partIds;
 			currentPartIndexRef.current = 0;
 		},
-		[world],
+		[registerTimer, world],
 	);
 
 	const beginExecution = useCallback(
@@ -216,11 +221,16 @@ export const useCorePhase = ({ world }: UseCorePhaseOptions) => {
 			setRamUsage(Math.min(100, (openedCountRef.current + 1) * 50));
 			createExecutionParts(appId, appKey);
 			removeEntityFromCurrentSpace(appId);
-			moveNextPartToCore();
+			const startCoreTimer = setTimeout(() => {
+				timersRef.current.delete(startCoreTimer);
+				moveNextPartToCore();
+			}, EXECUTION_SPLIT_SETTLE_MS);
+			registerTimer(startCoreTimer);
 		},
 		[
 			createExecutionParts,
 			moveNextPartToCore,
+			registerTimer,
 			removeEntityFromCurrentSpace,
 			setAppStatus,
 		],
