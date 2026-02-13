@@ -20,6 +20,7 @@ export const SPACE_IDS = {
 	execution: "execution",
 	core1: "core-1",
 	core2: "core-2",
+	storage: "storage",
 	opened: "opened",
 } as const;
 
@@ -76,6 +77,16 @@ export const CORE2_PATH_CONFIG: PathSpaceConfig = {
 	speedMultiplier: 1,
 	showDropzone: false,
 	maxCapacity: 1,
+};
+
+export const STORAGE_PATH_CONFIG: PathSpaceConfig = {
+	id: SPACE_IDS.storage,
+	name: "Storage",
+	path: "M 52 20 L 52 132 Q 52 160 80 160 L 240 160 Q 268 160 268 132 L 268 20",
+	viewBox: "0 0 320 180",
+	duration: 2.4,
+	speedMultiplier: 1,
+	showDropzone: false,
 };
 
 export const RAM_CUSTOM_CONFIG: CustomSpaceConfig = {
@@ -148,8 +159,8 @@ export const EXECUTION_PARTS: Array<{
 	color: string;
 }> = [
 	{
-		step: "load",
-		label: "Loading dependencies",
+		step: "request",
+		label: "Requesting dependencies",
 		icon: "mdi:package-variant-closed",
 		color: "#60A5FA",
 	},

@@ -1,6 +1,6 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { gsap } from "gsap";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "../../domain/entity/entity-data";
 import type { PathSpaceData } from "../../domain/space/space-data";
 import { useDragContext } from "../interaction/drag/DragContext";
@@ -38,6 +38,7 @@ export type PathSpaceViewProps = {
 	speedMultiplier: number;
 	showDropzone?: boolean;
 	onDropEntity?: (entityId: string) => boolean;
+	onEntityPathMidpoint?: (entityId: string) => void;
 	onEntityPathComplete?: (entityId: string) => void;
 };
 
@@ -49,6 +50,7 @@ export const PathSpaceView = ({
 	speedMultiplier,
 	showDropzone = true,
 	onDropEntity,
+	onEntityPathMidpoint,
 	onEntityPathComplete,
 }: PathSpaceViewProps) => {
 	const {
@@ -63,6 +65,9 @@ export const PathSpaceView = ({
 	const trackRef = useRef<HTMLDivElement | null>(null);
 	const pathRef = useRef<SVGPathElement | null>(null);
 	const timelinesRef = useRef<Map<string, gsap.core.Animation>>(new Map());
+	const pausedAtMidpointRef = useRef<Set<string>>(new Set());
+	const midpointNotifiedRef = useRef<Set<string>>(new Set());
+	const resumeTokensRef = useRef<Map<string, number>>(new Map());
 	const pendingTransitRef = useRef<Set<string>>(new Set());
 	const [entitySizes, setEntitySizes] = useState<
 		Record<string, EntityRenderSize>
@@ -86,6 +91,10 @@ export const PathSpaceView = ({
 		[space.viewBox],
 	);
 	const renderedPath = path ?? space.path;
+	const getResumeToken = useCallback((entity: EntityData): number => {
+		const raw = entity.data.pathResumeToken;
+		return typeof raw === "number" ? raw : 0;
+	}, []);
 
 	useEffect(() => {
 		void renderedPath;
@@ -195,6 +204,9 @@ export const PathSpaceView = ({
 			if (!currentEntityIds.has(entityId)) {
 				animation.kill();
 				timelinesRef.current.delete(entityId);
+				pausedAtMidpointRef.current.delete(entityId);
+				midpointNotifiedRef.current.delete(entityId);
+				resumeTokensRef.current.delete(entityId);
 				setEntityPositions((prev) => {
 					const { [entityId]: _ignored, ...next } = prev;
 					return next;
@@ -232,11 +244,15 @@ export const PathSpaceView = ({
 				...prev,
 				[entity.id]: { x: pathStart.x, y: pathStart.y },
 			}));
+			resumeTokensRef.current.set(entity.id, getResumeToken(entity));
 
 			const state = { progress: 0, opacity: 1 };
 			const timeline = gsap.timeline({
 				onComplete: () => {
 					timelinesRef.current.delete(entity.id);
+					pausedAtMidpointRef.current.delete(entity.id);
+					midpointNotifiedRef.current.delete(entity.id);
+					resumeTokensRef.current.delete(entity.id);
 					setEntityPositions((prev) => {
 						const { [entity.id]: _ignored, ...next } = prev;
 						return next;
@@ -253,9 +269,34 @@ export const PathSpaceView = ({
 				},
 			});
 
+			const pauseAtMidpoint = entity.data.pathPauseAtMidpoint === true;
+			timeline.to(state, {
+				progress: 0.5,
+				duration: space.duration / 2,
+				ease: "power2.inOut",
+				onUpdate: () => {
+					const point = pathElement.getPointAtLength(
+						pathLength * state.progress,
+					);
+					setEntityPositions((prev) => ({
+						...prev,
+						[entity.id]: { x: point.x, y: point.y },
+					}));
+				},
+			});
+			timeline.add(() => {
+				if (!midpointNotifiedRef.current.has(entity.id)) {
+					midpointNotifiedRef.current.add(entity.id);
+					onEntityPathMidpoint?.(entity.id);
+				}
+				if (pauseAtMidpoint) {
+					pausedAtMidpointRef.current.add(entity.id);
+					timeline.pause();
+				}
+			});
 			timeline.to(state, {
 				progress: 1,
-				duration: space.duration,
+				duration: space.duration / 2,
 				ease: "power2.inOut",
 				onUpdate: () => {
 					const point = pathElement.getPointAtLength(
@@ -281,6 +322,7 @@ export const PathSpaceView = ({
 
 			timeline.timeScale(speedMultiplier);
 			timelinesRef.current.set(entity.id, timeline);
+			timeline.play();
 		}
 	}, [
 		defaultCardSize.height,
@@ -288,11 +330,36 @@ export const PathSpaceView = ({
 		dropAnimationTarget,
 		entitySizes,
 		entities,
+		onEntityPathMidpoint,
 		onEntityPathComplete,
 		space.duration,
 		speedMultiplier,
 		activeDrag,
+		getResumeToken,
 	]);
+
+	useEffect(() => {
+		if (entities.length === 0) {
+			return;
+		}
+		for (const entity of entities) {
+			if (!pausedAtMidpointRef.current.has(entity.id)) {
+				continue;
+			}
+			const nextToken = getResumeToken(entity);
+			const prevToken = resumeTokensRef.current.get(entity.id) ?? 0;
+			if (nextToken === prevToken) {
+				continue;
+			}
+			resumeTokensRef.current.set(entity.id, nextToken);
+			const timeline = timelinesRef.current.get(entity.id);
+			if (!timeline) {
+				continue;
+			}
+			pausedAtMidpointRef.current.delete(entity.id);
+			timeline.play();
+		}
+	}, [entities, getResumeToken]);
 
 	useEffect(() => {
 		for (const animation of timelinesRef.current.values()) {
@@ -306,6 +373,9 @@ export const PathSpaceView = ({
 				animation.kill();
 			}
 			timelinesRef.current.clear();
+			pausedAtMidpointRef.current.clear();
+			midpointNotifiedRef.current.clear();
+			resumeTokensRef.current.clear();
 			pendingTransitRef.current.clear();
 		};
 	}, []);

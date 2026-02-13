@@ -111,6 +111,10 @@ type SpaceDefinition =
 }
 ```
 
+PathSpace runtime control keys on `entity.data`:
+- `pathPauseAtMidpoint: true` pauses a path transit exactly at progress `0.5`.
+- `pathResumeToken: number` resumes a paused transit when value increments.
+
 ### entities
 
 Array of entity definitions. Each entity is created and optionally placed in

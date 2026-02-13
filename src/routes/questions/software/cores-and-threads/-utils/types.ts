@@ -8,7 +8,7 @@ export type AppDefinition = {
 	color: string;
 };
 
-export type ExecutionStep = "load" | "process" | "compose";
+export type ExecutionStep = "request" | "process" | "compose";
 
 export type Notice = {
 	message: string;

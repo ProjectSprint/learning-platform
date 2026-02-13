@@ -15,6 +15,8 @@ type PathSpacePropsBase = {
 	responsivePath?: Record<string, string>;
 	/** Whether to show the default interactive dropzone */
 	showDropzone?: boolean;
+	/** Optional callback when an entity reaches path midpoint (progress 0.5) */
+	onEntityMidpoint?: (entityId: string) => void;
 	id?: string;
 	ctx?: GameContextValue;
 	config?: PathSpaceConfig;
@@ -37,6 +39,7 @@ export const PathSpace = memo(
 		speedMultiplier,
 		responsivePath,
 		showDropzone,
+		onEntityMidpoint,
 	}: PathSpaceProps) => {
 		const contextState = useGameState();
 		const contextDispatch = useGameDispatch();
@@ -120,6 +123,21 @@ export const PathSpace = memo(
 			});
 		};
 
+		const onEntityPathMidpoint = (entityId: string) => {
+			dispatch({
+				type: "ENTITY_UPDATED",
+				payload: {
+					entityId,
+					updates: {
+						data: {
+							pathMidpointTick: Date.now(),
+						},
+					},
+				},
+			});
+			onEntityMidpoint?.(entityId);
+		};
+
 		return (
 			<PathSpaceView
 				space={space}
@@ -129,6 +147,7 @@ export const PathSpace = memo(
 				speedMultiplier={resolvedSpeedMultiplier}
 				showDropzone={resolvedShowDropzone}
 				onDropEntity={resolvedShowDropzone ? onDropEntity : undefined}
+				onEntityPathMidpoint={onEntityPathMidpoint}
 				onEntityPathComplete={onEntityPathComplete}
 			/>
 		);

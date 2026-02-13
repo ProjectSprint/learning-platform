@@ -36,6 +36,7 @@ import {
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
 	SPACE_IDS,
+	STORAGE_PATH_CONFIG,
 } from "./-utils/constants";
 import { CORES_THREADS_DEFINITION } from "./-utils/definition";
 
@@ -86,6 +87,7 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 			SPACE_IDS.execution,
 			SPACE_IDS.core1,
 			SPACE_IDS.core2,
+			SPACE_IDS.storage,
 			SPACE_IDS.opened,
 		];
 		return required.every((id) => Boolean(state.spaces[id]));
@@ -117,6 +119,9 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 			const partStatus = entity.data.partStatus as string | undefined;
 			if (partStatus === "queued") {
 				return { status: "info" as const, message: "Waiting" };
+			}
+			if (partStatus === "waiting-io") {
+				return { status: "warning" as const, message: "Waiting for I/O" };
 			}
 			if (partStatus === "executing") {
 				return { status: "warning" as const, message: "Processing" };
@@ -223,6 +228,33 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={getEntityStatus}
 								/>
+							</Box>
+							<Box mt={3}>
+								<Box
+									bg="gray.900"
+									borderRadius="md"
+									border="1px solid"
+									borderColor="gray.800"
+									p={3}
+								>
+									<Text
+										fontSize="sm"
+										fontWeight="semibold"
+										color="gray.100"
+										mb={2}
+									>
+										Storage
+									</Text>
+									<Text fontSize="xs" color="gray.400" mb={3}>
+										Handles file request/response before CPU continues.
+									</Text>
+									<PathSpace
+										ctx={gameCtx}
+										config={STORAGE_PATH_CONFIG}
+										title="Storage"
+										speedMultiplier={1}
+									/>
+								</Box>
 							</Box>
 						</GridItem>
 

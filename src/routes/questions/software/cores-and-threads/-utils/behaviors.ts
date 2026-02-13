@@ -1,6 +1,7 @@
 import type {
 	EntityEnteredSpaceEvent,
 	EntityLeftSpaceEvent,
+	EntityUpdatedEvent,
 } from "@/components/game/application/state/types/events";
 import { findEntitySpace } from "@/components/game/domain/space/validation";
 import type {
@@ -169,10 +170,16 @@ function createExecutionParts(
 		const partId = `${appId}-exec-${part.step}`;
 		partIds.push(partId);
 		if (!ctx.state.entities[partId]) {
+			const shouldPauseAtMidpoint = part.step === "request";
 			ctx.world.createEntity({
 				id: partId,
 				name: part.label,
-				allowedPlaces: [SPACE_IDS.execution, SPACE_IDS.core1, SPACE_IDS.core2],
+				allowedPlaces: [
+					SPACE_IDS.execution,
+					SPACE_IDS.core1,
+					SPACE_IDS.core2,
+					SPACE_IDS.storage,
+				],
 				icon: { icon: part.icon, color: part.color },
 				draggable: false,
 				data: {
@@ -182,6 +189,8 @@ function createExecutionParts(
 					partStatus: "queued",
 					laneId,
 					ownerAppId: appId,
+					pathPauseAtMidpoint: shouldPauseAtMidpoint,
+					pathResumeToken: 0,
 				},
 			});
 		}
@@ -331,6 +340,108 @@ const rules: BehaviorRule<CoresBehaviorContext>[] = [
 					beginExecution(actx, appId, app.appKey, laneId);
 				});
 			});
+		},
+	},
+	{
+		id: "cores.request-midpoint-waits-for-io",
+		on: { event: "ENTITY_UPDATED", entityType: "subtask" },
+		guard: ({ event, entity }) => {
+			if (event.type !== "ENTITY_UPDATED") return false;
+			const updated = event as EntityUpdatedEvent;
+			if (typeof updated.updates.data?.pathMidpointTick !== "number")
+				return false;
+			if (!entity) return false;
+			return (
+				entity.data.step === "request" &&
+				(entity.data.laneId === SPACE_IDS.core1 ||
+					entity.data.laneId === SPACE_IDS.core2) &&
+				typeof entity.data.ownerAppId === "string"
+			);
+		},
+		handler: (ctx) => {
+			const event = ctx.event as EntityUpdatedEvent;
+			const partId = event.entityId;
+			const partEntity = ctx.state.entities[partId];
+			if (!partEntity) return;
+
+			const ownerAppId = partEntity.data.ownerAppId as string;
+			const laneId = partEntity.data.laneId as CoreLaneId;
+			const ioRequestId = `io-request:${ownerAppId}:${laneId}:${event.actionId}`;
+
+			ctx.world.updateEntity(partId, {
+				data: { partStatus: "waiting-io" },
+			});
+			ctx.world.createEntity({
+				id: ioRequestId,
+				name: "File request",
+				allowedPlaces: [SPACE_IDS.storage],
+				icon: { icon: "mdi:file-search-outline", color: "#60A5FA" },
+				draggable: false,
+				data: {
+					type: "subtask",
+					ioRole: "storage",
+					ioState: "request",
+					ownerPartId: partId,
+					ownerAppId,
+					laneId,
+					pathPauseAtMidpoint: false,
+					pathResumeToken: 0,
+				},
+			});
+			ctx.world.addToSpace(ioRequestId, SPACE_IDS.storage);
+		},
+	},
+	{
+		id: "cores.storage-midpoint-swaps-response",
+		on: { event: "ENTITY_UPDATED", entityType: "subtask" },
+		guard: ({ event, entity }) => {
+			if (event.type !== "ENTITY_UPDATED") return false;
+			const updated = event as EntityUpdatedEvent;
+			if (typeof updated.updates.data?.pathMidpointTick !== "number")
+				return false;
+			if (!entity) return false;
+			return (
+				entity.data.ioRole === "storage" && entity.data.ioState === "request"
+			);
+		},
+		handler: (ctx) => {
+			const event = ctx.event as EntityUpdatedEvent;
+			const ioRequestId = event.entityId;
+			ctx.world.updateEntity(ioRequestId, {
+				name: "File response",
+				data: { ioState: "response" },
+			});
+		},
+	},
+	{
+		id: "cores.storage-complete-resumes-request",
+		on: { event: "ENTITY_LEFT_SPACE", space: SPACE_IDS.storage },
+		handler: (ctx) => {
+			const event = ctx.event as EntityLeftSpaceEvent;
+			const ioRequestEntity = ctx.state.entities[event.entityId];
+			if (!ioRequestEntity) return;
+			if (ioRequestEntity.data.ioRole !== "storage") return;
+
+			const ownerPartId = ioRequestEntity.data.ownerPartId as
+				| string
+				| undefined;
+			if (!ownerPartId) return;
+			const ownerPartEntity = ctx.state.entities[ownerPartId];
+			if (!ownerPartEntity) {
+				ctx.world.deleteEntities([event.entityId]);
+				return;
+			}
+
+			const prevToken = ownerPartEntity.data.pathResumeToken;
+			const nextResumeToken = typeof prevToken === "number" ? prevToken + 1 : 1;
+
+			ctx.world.updateEntity(ownerPartId, {
+				data: {
+					partStatus: "executing",
+					pathResumeToken: nextResumeToken,
+				},
+			});
+			ctx.world.deleteEntities([event.entityId]);
 		},
 	},
 	{

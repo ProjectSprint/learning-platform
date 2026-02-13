@@ -236,12 +236,18 @@ import { PathSpace } from "@/components/game/engine";
 | `title` | `string` | Display title |
 | `speedMultiplier` | `number` | Optional runtime speed override |
 | `showDropzone` | `boolean` | Optional runtime dropzone override (`true` by default) |
+| `responsivePath` | `Record<string, string>` | Optional Chakra-breakpoint SVG path overrides |
+| `onEntityMidpoint` | `(entityId: string) => void` | Optional callback fired when entity reaches path progress `0.5` |
 
 **Behavior contract:**
 - Drop target is a single default dropzone (unless hidden via `showDropzone: false`).
 - When an entity enters path space, animation starts along `config.path`.
+- PathSpace emits an `ENTITY_UPDATED` event at midpoint (`progress: 0.5`) with
+  `updates.data.pathMidpointTick`.
 - On animation completion, PathSpace dispatches `ENTITY_REMOVED` for that entity.
 - This emits `ENTITY_LEFT_SPACE`, which behavior rules can catch to route the entity elsewhere.
+- If `entity.data.pathPauseAtMidpoint === true`, transit pauses exactly at midpoint.
+  Bumping `entity.data.pathResumeToken` resumes that paused entity.
 
 **Limitations:**
 - PathSpace itself does not auto-transfer to another space.

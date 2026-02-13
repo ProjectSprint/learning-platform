@@ -28,4 +28,11 @@ describe("engine space contract", () => {
 		expect(source).not.toContain('type: "SPACE_CREATED"');
 		expect(source).toContain(missingSpaceWarningSuffix);
 	});
+
+	it("PathSpace dispatches midpoint update contract", () => {
+		const source = readSource("src/components/game/engine/PathSpace.tsx");
+		expect(source).toContain("onEntityMidpoint");
+		expect(source).toContain("pathMidpointTick");
+		expect(source).toContain('type: "ENTITY_UPDATED"');
+	});
 });

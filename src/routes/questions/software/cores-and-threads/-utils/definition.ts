@@ -13,6 +13,7 @@ import {
 	QUESTION_ID,
 	QUESTION_TITLE,
 	RAM_CUSTOM_CONFIG,
+	STORAGE_PATH_CONFIG,
 } from "./constants";
 
 export const CORES_THREADS_DEFINITION: QuestionDefinition<
@@ -32,6 +33,7 @@ export const CORES_THREADS_DEFINITION: QuestionDefinition<
 		{ kind: "grid" as const, config: EXECUTION_GRID_CONFIG },
 		{ kind: "path" as const, config: CORE1_PATH_CONFIG },
 		{ kind: "path" as const, config: CORE2_PATH_CONFIG },
+		{ kind: "path" as const, config: STORAGE_PATH_CONFIG },
 		{ kind: "grid" as const, config: OPENED_GRID_CONFIG },
 	],
 	entities: APP_ITEMS.map((item) => ({

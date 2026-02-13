@@ -209,6 +209,8 @@ space to a new space. Emits ENTITY_MOVED event.
 
 PathSpace note:
 - Moving into a path space emits `ENTITY_MOVED` (to path space).
+- At path midpoint (`progress: 0.5`), PathSpace emits `ENTITY_UPDATED` with
+  `updates.data.pathMidpointTick`.
 - PathSpace engine removes entity when transit completes, which emits
   `ENTITY_LEFT_SPACE`.
 - Behavior rules should listen to `ENTITY_LEFT_SPACE` with `space` filter set
