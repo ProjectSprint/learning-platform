@@ -361,6 +361,7 @@ export const PathSpaceView = ({
 								pointerEvents="none"
 								whiteSpace="normal"
 								textAlign="center"
+								zIndex={3}
 							>
 								{entity.name ?? entity.type}
 							</Box>
