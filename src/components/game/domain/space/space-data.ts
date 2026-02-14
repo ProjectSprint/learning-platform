@@ -158,13 +158,71 @@ export type CustomSpaceData = SpaceBase & {
 };
 
 /**
+ * Queue space configuration — ordered FIFO lane for entities.
+ */
+export type QueueSpaceConfig = SpaceBaseConfig & {
+	/** Maximum queue depth (undefined = unlimited) */
+	maxDepth?: number;
+	/** Visual direction */
+	direction?: "horizontal" | "vertical";
+};
+
+/**
+ * Plain data type for a queue-based space.
+ */
+export type QueueSpaceData = SpaceBase & {
+	/** Discriminator: this is a queue space */
+	kind: "queue";
+	/** Maximum queue depth (undefined = unlimited) */
+	maxDepth?: number;
+	/** Visual direction */
+	direction: "horizontal" | "vertical";
+	/** Array of entity IDs in FIFO order */
+	entityIds: string[];
+};
+
+/**
+ * Meter space configuration — displays a numeric value as a bar/gauge.
+ */
+export type MeterSpaceConfig = SpaceBaseConfig & {
+	/** Minimum value */
+	min: number;
+	/** Maximum value */
+	max: number;
+	/** Unit label (e.g., "%", "MB", "ms") */
+	unit?: string;
+	/** Color thresholds */
+	thresholds?: Array<{ value: number; color: string }>;
+};
+
+/**
+ * Plain data type for a meter/gauge space.
+ */
+export type MeterSpaceData = SpaceBase & {
+	/** Discriminator: this is a meter space */
+	kind: "meter";
+	/** Minimum value */
+	min: number;
+	/** Maximum value */
+	max: number;
+	/** Current value */
+	value: number;
+	/** Unit label */
+	unit: string;
+	/** Color thresholds */
+	thresholds: Array<{ value: number; color: string }>;
+};
+
+/**
  * Discriminated union of all space types.
  */
 export type SpaceData =
 	| GridSpaceData
 	| PoolSpaceData
 	| PathSpaceData
-	| CustomSpaceData;
+	| CustomSpaceData
+	| QueueSpaceData
+	| MeterSpaceData;
 
 // ============================================================================
 // Type Guards
@@ -204,6 +262,24 @@ export const isPathSpace = (space: SpaceData): space is PathSpaceData => {
  */
 export const isCustomSpace = (space: SpaceData): space is CustomSpaceData => {
 	return space.kind === "custom";
+};
+
+/**
+ * Type guard to check if a space data is a QueueSpaceData.
+ * @param space The space data to check
+ * @returns True if the space is a queue space
+ */
+export const isQueueSpace = (space: SpaceData): space is QueueSpaceData => {
+	return space.kind === "queue";
+};
+
+/**
+ * Type guard to check if a space data is a MeterSpaceData.
+ * @param space The space data to check
+ * @returns True if the space is a meter space
+ */
+export const isMeterSpace = (space: SpaceData): space is MeterSpaceData => {
+	return space.kind === "meter";
 };
 
 /**

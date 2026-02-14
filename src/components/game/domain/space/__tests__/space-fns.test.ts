@@ -8,8 +8,10 @@ import type { SpaceData } from "../space-data";
 import {
 	createCustomSpaceData,
 	createGridSpaceData,
+	createMeterSpaceData,
 	createPathSpaceData,
 	createPoolSpaceData,
+	createQueueSpaceData,
 	gridAdd,
 	gridCanAccept,
 	gridContains,
@@ -34,6 +36,14 @@ import {
 	poolIsEmpty,
 	poolIsFull,
 	poolRemove,
+	queueContains,
+	queueDequeue,
+	queueEnqueue,
+	queueGetEntityCount,
+	queueIsEmpty,
+	queueIsFull,
+	queuePeek,
+	queueRemove,
 	spaceContains,
 	spaceGetEntityCount,
 	spaceIsEmpty,
@@ -775,5 +785,165 @@ describe("Polymorphic Space Functions", () => {
 		poolAdd(space, "ent-1");
 
 		expect(spaceIsEmpty(space)).toBe(false);
+	});
+});
+
+describe("Queue Space - Factory", () => {
+	it("creates a queue space with minimal config", () => {
+		const space = createQueueSpaceData({ id: "queue-1" });
+
+		expect(space.id).toBe("queue-1");
+		expect(space.kind).toBe("queue");
+		expect(space.direction).toBe("horizontal");
+		expect(space.maxDepth).toBeUndefined();
+		expect(space.entityIds).toEqual([]);
+		expect(space.maxCapacity).toBeUndefined();
+		expect(space.metadata).toEqual({});
+	});
+
+	it("creates a queue space with full config", () => {
+		const space = createQueueSpaceData({
+			id: "queue-1",
+			name: "Task Queue",
+			maxDepth: 5,
+			direction: "vertical",
+			metadata: { priority: "high" },
+		});
+
+		expect(space.id).toBe("queue-1");
+		expect(space.name).toBe("Task Queue");
+		expect(space.kind).toBe("queue");
+		expect(space.direction).toBe("vertical");
+		expect(space.maxDepth).toBe(5);
+		expect(space.maxCapacity).toBe(5);
+		expect(space.entityIds).toEqual([]);
+		expect(space.metadata).toEqual({ priority: "high" });
+	});
+});
+
+describe("Queue Space - Operations", () => {
+	it("enqueues and dequeues entities in FIFO order", () => {
+		const space = createQueueSpaceData({ id: "queue-1" });
+
+		queueEnqueue(space, "ent-1");
+		queueEnqueue(space, "ent-2");
+		queueEnqueue(space, "ent-3");
+
+		expect(queueDequeue(space)).toBe("ent-1");
+		expect(queueDequeue(space)).toBe("ent-2");
+		expect(queueDequeue(space)).toBe("ent-3");
+		expect(queueDequeue(space)).toBeUndefined();
+	});
+
+	it("respects maxDepth", () => {
+		const space = createQueueSpaceData({ id: "queue-1", maxDepth: 2 });
+
+		expect(queueEnqueue(space, "ent-1")).toBe(true);
+		expect(queueEnqueue(space, "ent-2")).toBe(true);
+		expect(queueEnqueue(space, "ent-3")).toBe(false);
+		expect(queueIsFull(space)).toBe(true);
+	});
+
+	it("removes a specific entity", () => {
+		const space = createQueueSpaceData({ id: "queue-1" });
+
+		queueEnqueue(space, "ent-1");
+		queueEnqueue(space, "ent-2");
+
+		expect(queueRemove(space, "ent-1")).toBe(true);
+		expect(queueContains(space, "ent-1")).toBe(false);
+		expect(space.entityIds).toEqual(["ent-2"]);
+	});
+
+	it("returns false when removing non-existent entity", () => {
+		const space = createQueueSpaceData({ id: "queue-1" });
+
+		expect(queueRemove(space, "ent-1")).toBe(false);
+	});
+
+	it("peeks without removing", () => {
+		const space = createQueueSpaceData({ id: "queue-1" });
+
+		queueEnqueue(space, "ent-1");
+		queueEnqueue(space, "ent-2");
+
+		expect(queuePeek(space)).toBe("ent-1");
+		expect(queueGetEntityCount(space)).toBe(2);
+	});
+
+	it("reports empty/full correctly", () => {
+		const space = createQueueSpaceData({ id: "queue-1", maxDepth: 1 });
+
+		expect(queueIsEmpty(space)).toBe(true);
+		expect(queueIsFull(space)).toBe(false);
+
+		queueEnqueue(space, "ent-1");
+
+		expect(queueIsEmpty(space)).toBe(false);
+		expect(queueIsFull(space)).toBe(true);
+	});
+
+	it("queue without maxDepth is never full", () => {
+		const space = createQueueSpaceData({ id: "queue-1" });
+
+		queueEnqueue(space, "ent-1");
+		queueEnqueue(space, "ent-2");
+
+		expect(queueIsFull(space)).toBe(false);
+	});
+});
+
+describe("Meter Space - Factory", () => {
+	it("creates a meter space with minimal config", () => {
+		const space = createMeterSpaceData({
+			id: "meter-1",
+			min: 0,
+			max: 100,
+		});
+
+		expect(space.id).toBe("meter-1");
+		expect(space.kind).toBe("meter");
+		expect(space.min).toBe(0);
+		expect(space.max).toBe(100);
+		expect(space.value).toBe(0);
+		expect(space.unit).toBe("");
+		expect(space.thresholds).toEqual([]);
+		expect(space.metadata).toEqual({});
+	});
+
+	it("creates a meter space with thresholds", () => {
+		const thresholds = [
+			{ value: 50, color: "yellow" },
+			{ value: 80, color: "red" },
+		];
+		const space = createMeterSpaceData({
+			id: "meter-1",
+			name: "CPU Usage",
+			min: 0,
+			max: 100,
+			unit: "%",
+			thresholds,
+			metadata: { type: "cpu" },
+		});
+
+		expect(space.id).toBe("meter-1");
+		expect(space.name).toBe("CPU Usage");
+		expect(space.kind).toBe("meter");
+		expect(space.min).toBe(0);
+		expect(space.max).toBe(100);
+		expect(space.value).toBe(0);
+		expect(space.unit).toBe("%");
+		expect(space.thresholds).toEqual(thresholds);
+		expect(space.metadata).toEqual({ type: "cpu" });
+	});
+
+	it("initial value equals min", () => {
+		const space = createMeterSpaceData({
+			id: "meter-1",
+			min: 10,
+			max: 50,
+		});
+
+		expect(space.value).toBe(10);
 	});
 });

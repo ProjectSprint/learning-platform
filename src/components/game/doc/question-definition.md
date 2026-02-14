@@ -26,6 +26,9 @@ type QuestionDefinition<
   inventoryRules?: InventoryRule<CK>[];
   spaceRules?: SpaceRule<CK>[];
   behaviors?: BehaviorDefinition<TContext>;
+  dragRules?: DragGatingRule[];
+  layoutRules?: LayoutVisibilityRule[];
+  shapeRules?: SpaceShapeRule[];
 };
 ```
 
@@ -57,7 +60,9 @@ type SpaceDefinition =
   | { kind: "grid"; config: GridSpaceConfig }
   | { kind: "pool"; config: PoolSpaceConfig }
   | { kind: "path"; config: PathSpaceConfig }
-  | { kind: "custom"; config: CustomSpaceConfig };
+  | { kind: "custom"; config: CustomSpaceConfig }
+  | { kind: "queue"; config: QueueSpaceConfig }
+  | { kind: "meter"; config: MeterSpaceConfig };
 ```
 
 **GridSpaceConfig:**
@@ -114,6 +119,38 @@ type SpaceDefinition =
 PathSpace runtime control keys on `entity.data`:
 - `pathPauseAtMidpoint: true` pauses a path transit exactly at progress `0.5`.
 - `pathResumeToken: number` resumes a paused transit when value increments.
+
+**QueueSpaceConfig:**
+
+```typescript
+{
+  id: string;                                    // Unique space ID
+  name?: string;                                 // Display name
+  maxDepth?: number;                             // Maximum queue depth (undefined = unlimited)
+  direction?: "horizontal" | "vertical";         // Visual direction (default "horizontal")
+}
+```
+
+Queue spaces maintain FIFO ordering of entities. Entities are enqueued at the
+back and dequeued from the front. Use for modeling process scheduling queues,
+network buffers, or any ordered waiting structure.
+
+**MeterSpaceConfig:**
+
+```typescript
+{
+  id: string;                                    // Unique space ID
+  name?: string;                                 // Display name
+  min: number;                                   // Minimum value
+  max: number;                                   // Maximum value
+  unit?: string;                                 // Unit label (e.g., "%", "MB", "ms")
+  thresholds?: Array<{ value: number; color: string }>;  // Color thresholds
+}
+```
+
+Meter spaces represent a numeric gauge/bar. They track a single `value` between
+`min` and `max`, with optional color thresholds for visual feedback. Use for
+CPU usage, memory bars, bandwidth meters, or progress indicators.
 
 ### entities
 
@@ -205,6 +242,59 @@ phaseRules: [
   { kind: "set", when: { kind: "eq", key: "questionStatus", value: "completed" }, to: "completed" },
 ],
 ```
+
+### dragRules
+
+Optional array of `DragGatingRule[]`. Controls when entities are draggable
+from specific spaces. Rules are evaluated in order; the first matching rule
+determines draggability. If no rule matches, falls back to `entity.draggable`.
+
+```typescript
+dragRules: [
+  {
+    spaceId: "board",
+    entityType: "router",
+    canDrag: ({ state }) => state.phase === "setup",
+  },
+],
+```
+
+See [runtime-api.md](./runtime-api.md#drag-gating-rules) for full API.
+
+### layoutRules
+
+Optional array of `LayoutVisibilityRule[]`. Controls conditional visibility
+of spaces or layout sections based on runtime state.
+
+```typescript
+layoutRules: [
+  {
+    targetId: "terminal-panel",
+    visible: ({ phase }) => phase === "terminal" || phase === "completed",
+  },
+],
+```
+
+See [runtime-api.md](./runtime-api.md#layout--shape-rules) for full API.
+
+### shapeRules
+
+Optional array of `SpaceShapeRule[]`. Dynamically adjusts space configuration
+(grid dimensions, capacity, path speed, title) based on runtime state.
+
+```typescript
+shapeRules: [
+  {
+    spaceId: "processing-grid",
+    compute: ({ state }) => {
+      const count = Object.keys(state.entities).length;
+      return count > 4 ? { rows: 2, cols: 3 } : undefined;
+    },
+  },
+],
+```
+
+See [runtime-api.md](./runtime-api.md#layout--shape-rules) for full API.
 
 ### behaviors
 

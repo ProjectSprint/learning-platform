@@ -10,6 +10,7 @@ import {
 	isGridSpace,
 	isPathSpace,
 	isPoolSpace,
+	isQueueSpace,
 } from "../../../domain/space/space-data";
 import {
 	gridAdd,
@@ -21,6 +22,8 @@ import {
 	pathRemove,
 	poolAdd,
 	poolRemove,
+	queueEnqueue,
+	queueRemove,
 } from "../../../domain/space/space-fns";
 import type { SpaceAction } from "../actions/space";
 import type { GameEventInput } from "../events";
@@ -112,6 +115,15 @@ export const spaceReducer = (
 							spaceId,
 						});
 					}
+				} else if (isQueueSpace(space)) {
+					const added = queueEnqueue(space, entityId);
+					if (added) {
+						events.push({
+							type: "ENTITY_ENTERED_SPACE",
+							entityId,
+							spaceId,
+						});
+					}
 				}
 
 				if (events.length > 0) {
@@ -165,6 +177,15 @@ export const spaceReducer = (
 							spaceId,
 						});
 					}
+				} else if (isQueueSpace(space)) {
+					const removed = queueRemove(space, entityId);
+					if (removed) {
+						events.push({
+							type: "ENTITY_LEFT_SPACE",
+							entityId,
+							spaceId,
+						});
+					}
 				}
 
 				if (events.length > 0) {
@@ -194,7 +215,11 @@ export const spaceReducer = (
 							}
 						: isPathSpace(fromSpace)
 							? undefined
-							: undefined;
+							: isQueueSpace(fromSpace)
+								? {
+										index: fromSpace.entityIds.indexOf(entityId),
+									}
+								: undefined;
 
 				// Check if entity is in source space
 				if (!spaceContains(fromSpace, entityId)) {
@@ -212,6 +237,8 @@ export const spaceReducer = (
 					poolRemove(fromSpace, entityId);
 				} else if (isPathSpace(fromSpace)) {
 					pathRemove(fromSpace, entityId);
+				} else if (isQueueSpace(fromSpace)) {
+					queueRemove(fromSpace, entityId);
 				}
 
 				// Add to destination
@@ -229,6 +256,8 @@ export const spaceReducer = (
 					added = poolAdd(toSpace, entityId, index);
 				} else if (isPathSpace(toSpace)) {
 					added = pathAdd(toSpace, entityId);
+				} else if (isQueueSpace(toSpace)) {
+					added = queueEnqueue(toSpace, entityId);
 				}
 
 				if (!added) {
@@ -252,6 +281,8 @@ export const spaceReducer = (
 						poolAdd(fromSpace, entityId, Math.max(0, fromIndex));
 					} else if (isPathSpace(fromSpace)) {
 						pathAdd(fromSpace, entityId);
+					} else if (isQueueSpace(fromSpace)) {
+						queueEnqueue(fromSpace, entityId);
 					}
 					return;
 				}
@@ -264,7 +295,11 @@ export const spaceReducer = (
 							}
 						: isPathSpace(toSpace)
 							? undefined
-							: undefined;
+							: isQueueSpace(toSpace)
+								? {
+										index: toSpace.entityIds.indexOf(entityId),
+									}
+								: undefined;
 
 				draft.eventQueue = appendEvents(draft.eventQueue, actionId, [
 					{
@@ -399,5 +434,7 @@ function spaceContains(space: SpaceData, entityId: string): boolean {
 			? space.entityIds.includes(entityId)
 			: isPathSpace(space)
 				? space.entityIds.includes(entityId)
-				: false;
+				: isQueueSpace(space)
+					? space.entityIds.includes(entityId)
+					: false;
 }

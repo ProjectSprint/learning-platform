@@ -11,6 +11,15 @@ export {
 	stampBatch,
 	stampTemplate,
 } from "./entity-templates";
+export type {
+	BehaviorInspector,
+	InspectorLogEntry,
+} from "./inspector";
+export {
+	createBehaviorInspector,
+	createConsoleInspector,
+	NOOP_INSPECTOR,
+} from "./inspector";
 export {
 	hasFreeLane,
 	type LaneSchedulerInput,
@@ -18,6 +27,13 @@ export {
 	type LaneSelectionResult,
 	pickLane,
 } from "./lane-scheduler";
+export type {
+	LayoutRuleContext,
+	LayoutVisibilityRule,
+	SpaceShapeOverrides,
+	SpaceShapeRule,
+} from "./layout-rules";
+export { evaluateShapeRules, evaluateVisibility } from "./layout-rules";
 export {
 	isMidpointTick,
 	type PathCheckpoint,
@@ -30,6 +46,17 @@ export type {
 	TerminalBridge,
 } from "./reactor";
 export { useBehaviorReactor } from "./reactor";
+export {
+	createResourceLock,
+	isHeldBy,
+	isLocked,
+	type LockMode,
+	type LockRequest,
+	type ResourceLockState,
+	releaseLock,
+	tryAcquire,
+	waitQueueSize,
+} from "./resource-lock";
 export { QuestionScheduler } from "./scheduler";
 export {
 	createJoinTracker,

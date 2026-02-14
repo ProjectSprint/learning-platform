@@ -20,10 +20,16 @@ import type {
 	CustomSpaceConfig,
 	GridPosition,
 	GridSpaceConfig,
+	MeterSpaceConfig,
 	PathSpaceConfig,
 	PoolSpaceConfig,
+	QueueSpaceConfig,
 } from "../../domain/space/space-data";
 import type { DragGatingRule } from "../behavior/drag-rules";
+import type {
+	LayoutVisibilityRule,
+	SpaceShapeRule,
+} from "../behavior/layout-rules";
 import type { BehaviorDefinition } from "../behavior/types";
 
 // Re-export condition types for convenience
@@ -36,7 +42,9 @@ export type SpaceDefinition =
 	| { kind: "grid"; config: GridSpaceConfig }
 	| { kind: "pool"; config: PoolSpaceConfig }
 	| { kind: "path"; config: PathSpaceConfig }
-	| { kind: "custom"; config: CustomSpaceConfig };
+	| { kind: "custom"; config: CustomSpaceConfig }
+	| { kind: "queue"; config: QueueSpaceConfig }
+	| { kind: "meter"; config: MeterSpaceConfig };
 
 /**
  * Declarative description of an entity to create during bootstrap.
@@ -78,4 +86,6 @@ export type QuestionDefinition<
 	spaceRules?: SpaceRule<CK>[];
 	behaviors?: BehaviorDefinition<TContext>;
 	dragRules?: DragGatingRule[];
+	layoutRules?: LayoutVisibilityRule[];
+	shapeRules?: SpaceShapeRule[];
 };

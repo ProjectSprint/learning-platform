@@ -15,8 +15,10 @@ import { createItemData } from "../../domain/entity/entity-fns";
 import {
 	createCustomSpaceData,
 	createGridSpaceData,
+	createMeterSpaceData,
 	createPathSpaceData,
 	createPoolSpaceData,
+	createQueueSpaceData,
 } from "../../domain/space/space-fns";
 import type { QuestionDefinition } from "../definition/types";
 
@@ -56,7 +58,11 @@ export function bootstrapQuestion<CK extends string = string, TC = unknown>(
 					? createPoolSpaceData(spaceDef.config)
 					: spaceDef.kind === "path"
 						? createPathSpaceData(spaceDef.config)
-						: createCustomSpaceData(spaceDef.config);
+						: spaceDef.kind === "queue"
+							? createQueueSpaceData(spaceDef.config)
+							: spaceDef.kind === "meter"
+								? createMeterSpaceData(spaceDef.config)
+								: createCustomSpaceData(spaceDef.config);
 
 		dispatch({
 			type: "SPACE_CREATED",

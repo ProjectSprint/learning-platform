@@ -21,6 +21,7 @@ import {
 	CUSTOM_SPACE_CONFIGS as UDP_CUSTOM_SPACE_CONFIGS,
 	GRID_SPACE_CONFIGS as UDP_GRID_SPACE_CONFIGS,
 	INVENTORY_POOL_CONFIG as UDP_INVENTORY_POOL_CONFIG,
+	RECEIVED_POOL_CONFIG as UDP_RECEIVED_POOL_CONFIG,
 } from "../udp/-utils/constants";
 import { UDP_DEFINITION } from "../udp/-utils/definition";
 import {
@@ -116,6 +117,7 @@ describe("networking init-spaces", () => {
 			...Object.keys(UDP_GRID_SPACE_CONFIGS),
 			...Object.keys(UDP_CUSTOM_SPACE_CONFIGS),
 			UDP_INVENTORY_POOL_CONFIG.id,
+			UDP_RECEIVED_POOL_CONFIG.id,
 		]);
 	});
 

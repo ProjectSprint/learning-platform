@@ -202,6 +202,94 @@ setArrows([{
 
 ---
 
+## QueueSpace
+
+Declarative FIFO queue renderer. Displays entities in ordered sequence with
+configurable direction.
+
+Queue spaces are data-only — entities are managed through the queue operations
+(`queueEnqueue`, `queueDequeue`, `queueRemove`) via the reducer, not through
+drag-and-drop. Use behavior handlers to enqueue/dequeue entities.
+
+**Space definition:**
+
+```typescript
+{ kind: "queue", config: { id: "ready-queue", name: "Ready Queue", maxDepth: 5, direction: "horizontal" } }
+```
+
+**Runtime data shape (`QueueSpaceData`):**
+
+```typescript
+{
+  kind: "queue";
+  id: string;
+  name?: string;
+  maxDepth?: number;
+  direction: "horizontal" | "vertical";
+  entityIds: string[];    // Ordered FIFO — index 0 is front
+}
+```
+
+**Queue operations** (available in `space-fns`):
+
+| Function | Description |
+|----------|-------------|
+| `queueEnqueue(space, entityId)` | Add entity to back. Returns `false` if full. |
+| `queueDequeue(space)` | Remove and return front entity ID. |
+| `queueRemove(space, entityId)` | Remove specific entity. |
+| `queueContains(space, entityId)` | Check if entity is in queue. |
+| `queuePeek(space)` | Look at front entity without removing. |
+| `queueIsFull(space)` | Check if queue is at `maxDepth`. |
+| `queueIsEmpty(space)` | Check if queue has no entities. |
+| `queueGetEntityCount(space)` | Current entity count. |
+
+---
+
+## MeterSpace
+
+Declarative gauge/bar renderer. Displays a numeric value between a min and
+max, with optional color thresholds.
+
+Meter spaces do not contain entities — they represent a single numeric value.
+Update the value through state mutations in behavior handlers.
+
+**Space definition:**
+
+```typescript
+{
+  kind: "meter",
+  config: {
+    id: "cpu-usage",
+    name: "CPU Usage",
+    min: 0,
+    max: 100,
+    unit: "%",
+    thresholds: [
+      { value: 50, color: "green" },
+      { value: 80, color: "yellow" },
+      { value: 95, color: "red" },
+    ],
+  },
+}
+```
+
+**Runtime data shape (`MeterSpaceData`):**
+
+```typescript
+{
+  kind: "meter";
+  id: string;
+  name?: string;
+  min: number;
+  max: number;
+  value: number;       // Current value (initialized to min)
+  unit: string;
+  thresholds: Array<{ value: number; color: string }>;
+}
+```
+
+---
+
 ## PathSpace
 
 Declarative path transport renderer with optional dropzone and GSAP path animation.

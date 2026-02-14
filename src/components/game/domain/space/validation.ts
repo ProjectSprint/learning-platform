@@ -7,7 +7,12 @@
 import type { GameState } from "@/components/game/game-provider";
 import { isItemData } from "../entity/entity-data";
 import type { GridPosition } from "./space-data";
-import { isGridSpace, isPathSpace, isPoolSpace } from "./space-data";
+import {
+	isGridSpace,
+	isPathSpace,
+	isPoolSpace,
+	isQueueSpace,
+} from "./space-data";
 import { gridCanAccept, spaceContains } from "./space-fns";
 
 /**
@@ -71,6 +76,19 @@ export function canEntityBePlaced(
 			if (
 				!targetSpace.entityIds.includes(entityId) &&
 				currentCount >= targetSpace.maxCapacity
+			) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	if (isQueueSpace(targetSpace)) {
+		if (targetSpace.maxDepth !== undefined) {
+			const currentCount = targetSpace.entityIds.length;
+			if (
+				!targetSpace.entityIds.includes(entityId) &&
+				currentCount >= targetSpace.maxDepth
 			) {
 				return false;
 			}

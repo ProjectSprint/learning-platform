@@ -12,10 +12,14 @@ import type {
 	GridPosition,
 	GridSpaceConfig,
 	GridSpaceData,
+	MeterSpaceConfig,
+	MeterSpaceData,
 	PathSpaceConfig,
 	PathSpaceData,
 	PoolSpaceConfig,
 	PoolSpaceData,
+	QueueSpaceConfig,
+	QueueSpaceData,
 	SpaceData,
 } from "./space-data";
 
@@ -97,6 +101,48 @@ export const createCustomSpaceData = (
 		maxCapacity: config.maxCapacity,
 		metadata: config.metadata ?? {},
 		kind: "custom",
+	};
+};
+
+/**
+ * Creates a new QueueSpaceData object.
+ * @param config Queue space configuration
+ * @returns A new queue space data object
+ */
+export const createQueueSpaceData = (
+	config: QueueSpaceConfig,
+): QueueSpaceData => {
+	return {
+		id: config.id,
+		name: config.name,
+		maxCapacity: config.maxCapacity ?? config.maxDepth,
+		metadata: config.metadata ?? {},
+		kind: "queue",
+		maxDepth: config.maxDepth,
+		direction: config.direction ?? "horizontal",
+		entityIds: [],
+	};
+};
+
+/**
+ * Creates a new MeterSpaceData object.
+ * @param config Meter space configuration
+ * @returns A new meter space data object
+ */
+export const createMeterSpaceData = (
+	config: MeterSpaceConfig,
+): MeterSpaceData => {
+	return {
+		id: config.id,
+		name: config.name,
+		maxCapacity: config.maxCapacity,
+		metadata: config.metadata ?? {},
+		kind: "meter",
+		min: config.min,
+		max: config.max,
+		value: config.min,
+		unit: config.unit ?? "",
+		thresholds: config.thresholds ?? [],
 	};
 };
 
@@ -533,6 +579,119 @@ export const pathIsEmpty = (space: PathSpaceData): boolean => {
 };
 
 // ============================================================================
+// Queue Space Functions
+// ============================================================================
+
+/**
+ * Enqueues an entity to the back of a queue space.
+ * Mutates the queue space in-place (for use with Immer produce()).
+ * @param space The queue space data to mutate
+ * @param entityId The ID of the entity to enqueue
+ * @returns True if the entity was successfully enqueued, false otherwise
+ */
+export const queueEnqueue = (
+	space: QueueSpaceData,
+	entityId: string,
+): boolean => {
+	if (space.maxDepth !== undefined) {
+		const currentCount = space.entityIds.length;
+		if (!space.entityIds.includes(entityId) && currentCount >= space.maxDepth) {
+			return false;
+		}
+	}
+
+	const existingIndex = space.entityIds.indexOf(entityId);
+	if (existingIndex !== -1) {
+		space.entityIds.splice(existingIndex, 1);
+	}
+
+	space.entityIds.push(entityId);
+	return true;
+};
+
+/**
+ * Dequeues an entity from the front of a queue space.
+ * Mutates the queue space in-place (for use with Immer produce()).
+ * @param space The queue space data to mutate
+ * @returns The dequeued entity ID, or undefined if the queue is empty
+ */
+export const queueDequeue = (space: QueueSpaceData): string | undefined => {
+	return space.entityIds.shift();
+};
+
+/**
+ * Removes a specific entity from a queue space.
+ * Mutates the queue space in-place (for use with Immer produce()).
+ * @param space The queue space data to mutate
+ * @param entityId The ID of the entity to remove
+ * @returns True if the entity was successfully removed, false otherwise
+ */
+export const queueRemove = (
+	space: QueueSpaceData,
+	entityId: string,
+): boolean => {
+	const index = space.entityIds.indexOf(entityId);
+	if (index === -1) {
+		return false;
+	}
+
+	space.entityIds.splice(index, 1);
+	return true;
+};
+
+/**
+ * Checks if a queue space contains an entity.
+ * @param space The queue space data
+ * @param entityId The ID of the entity to check for
+ * @returns True if the entity is in the space
+ */
+export const queueContains = (
+	space: QueueSpaceData,
+	entityId: string,
+): boolean => {
+	return space.entityIds.includes(entityId);
+};
+
+/**
+ * Gets the number of entities in a queue space.
+ * @param space The queue space data
+ * @returns The entity count
+ */
+export const queueGetEntityCount = (space: QueueSpaceData): number => {
+	return space.entityIds.length;
+};
+
+/**
+ * Checks if a queue space is at maximum depth.
+ * @param space The queue space data
+ * @returns True if the queue is full
+ */
+export const queueIsFull = (space: QueueSpaceData): boolean => {
+	if (space.maxDepth === undefined) {
+		return false;
+	}
+	return queueGetEntityCount(space) >= space.maxDepth;
+};
+
+/**
+ * Checks if a queue space is empty.
+ * @param space The queue space data
+ * @returns True if the queue contains no entities
+ */
+export const queueIsEmpty = (space: QueueSpaceData): boolean => {
+	return queueGetEntityCount(space) === 0;
+};
+
+/**
+ * Peeks at the front entity of a queue without removing it.
+ * @param space The queue space data
+ * @returns The entity ID at the front, or undefined if empty
+ */
+export const queuePeek = (space: QueueSpaceData): string | undefined => {
+	return space.entityIds[0];
+};
+
+// ============================================================================
 // Polymorphic Space Functions
 // ============================================================================
 
@@ -551,6 +710,9 @@ export const spaceContains = (space: SpaceData, entityId: string): boolean => {
 	}
 	if (space.kind === "path") {
 		return pathContains(space, entityId);
+	}
+	if (space.kind === "queue") {
+		return queueContains(space, entityId);
 	}
 	return false;
 };
@@ -572,6 +734,9 @@ export const spaceRemove = (space: SpaceData, entityId: string): boolean => {
 	if (space.kind === "path") {
 		return pathRemove(space, entityId);
 	}
+	if (space.kind === "queue") {
+		return queueRemove(space, entityId);
+	}
 	return false;
 };
 
@@ -589,6 +754,9 @@ export const spaceGetEntityCount = (space: SpaceData): number => {
 	}
 	if (space.kind === "path") {
 		return pathGetEntityCount(space);
+	}
+	if (space.kind === "queue") {
+		return queueGetEntityCount(space);
 	}
 	return 0;
 };
@@ -608,6 +776,9 @@ export const spaceIsFull = (space: SpaceData): boolean => {
 	if (space.kind === "path") {
 		return pathIsFull(space);
 	}
+	if (space.kind === "queue") {
+		return queueIsFull(space);
+	}
 	return false;
 };
 
@@ -625,6 +796,9 @@ export const spaceIsEmpty = (space: SpaceData): boolean => {
 	}
 	if (space.kind === "path") {
 		return pathIsEmpty(space);
+	}
+	if (space.kind === "queue") {
+		return queueIsEmpty(space);
 	}
 	return true;
 };

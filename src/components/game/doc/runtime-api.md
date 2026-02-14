@@ -339,3 +339,676 @@ type InteractionSessionState = {
 
 This state is NOT in GameState. It's managed via React useState and controlled
 by InteractionSessionApi.setTerminalVisible/setModalGateOpen.
+
+---
+
+## Runtime Primitives
+
+The runtime exposes several declarative primitives for building complex
+question behaviors. All are importable from `@/components/game/runtime`.
+
+### Drag-Gating Rules
+
+Declarative rules that control when an entity is draggable from a space.
+Evaluated by the drag system before allowing a drag operation.
+
+```typescript
+import type { DragGatingRule, DragGatingContext } from "@/components/game/runtime";
+import { evaluateDragGating } from "@/components/game/runtime";
+```
+
+**Types:**
+
+```typescript
+type DragGatingRule = {
+  spaceId: string;             // Space this rule applies to ("*" for all)
+  entityType?: string;         // Entity type filter (undefined = all)
+  canDrag: (ctx: DragGatingContext) => boolean;
+};
+
+type DragGatingContext = {
+  readonly entityId: string;
+  readonly entityType: string;
+  readonly spaceId: string;
+  readonly state: GameState;
+};
+```
+
+**Functions:**
+
+- `evaluateDragGating(rules, ctx)` — Returns `true` if drag is allowed,
+  `false` if denied, `undefined` if no rule matches (falls back to
+  `entity.draggable`).
+
+**Usage in a definition:**
+
+```typescript
+const definition: QuestionDefinition = {
+  // ...
+  dragRules: [
+    {
+      spaceId: "board",
+      entityType: "router",
+      canDrag: ({ state }) => state.phase === "setup",
+    },
+    {
+      spaceId: "*",
+      canDrag: ({ state }) => state.question.status !== "completed",
+    },
+  ],
+};
+```
+
+---
+
+### PathSpace Checkpoints
+
+Helpers for configuring entity behavior at PathSpace midpoints (pause/resume).
+
+```typescript
+import type { PathCheckpoint } from "@/components/game/runtime";
+import { pathCheckpointData, pathResumeData, isMidpointTick } from "@/components/game/runtime";
+```
+
+**Types:**
+
+```typescript
+type PathCheckpoint = {
+  at?: number;        // Progress point (0-1). Default: 0.5
+  pause: boolean;     // Whether entity pauses at this checkpoint
+  emitEvent?: string; // Optional event name to emit
+};
+```
+
+**Functions:**
+
+- `pathCheckpointData(checkpoint)` — Returns entity data flags
+  (`{ pathPauseAtMidpoint, pathResumeToken }`) to attach when creating entities
+  that travel through PathSpaces.
+- `pathResumeData(currentToken)` — Returns data to bump the resume token,
+  resuming a paused entity.
+- `isMidpointTick(updates)` — Returns `true` if an entity update event
+  represents a midpoint tick.
+
+**Usage in a behavior handler:**
+
+```typescript
+{
+  id: "my.packet-pause",
+  on: whenEntityPlacedInSpace("egress-path"),
+  handler: ({ entity, world }) => {
+    if (!entity) return;
+    // Pause entity at midpoint
+    world.updateEntity(entity.id, {
+      data: pathCheckpointData({ pause: true }),
+    });
+  },
+}
+
+{
+  id: "my.packet-resume",
+  on: entityClicked("packet"),
+  handler: ({ entity, world }) => {
+    if (!entity) return;
+    world.updateEntity(entity.id, {
+      data: pathResumeData(entity.data.pathResumeToken),
+    });
+  },
+}
+```
+
+---
+
+### Entity Templates & Spawn Plans
+
+Factory utilities for stamping entities from reusable templates and executing
+spawn plans that create + place entities in a single step.
+
+```typescript
+import type { EntityTemplate, SpawnPlan } from "@/components/game/runtime";
+import { stampTemplate, stampBatch, executeSpawnPlan, executeSpawnPlans } from "@/components/game/runtime";
+```
+
+**Types:**
+
+```typescript
+type EntityTemplate = Omit<ItemDataConfig, "id"> & {
+  idPrefix?: string;    // Optional ID prefix for generated entities
+};
+
+type SpawnPlan = {
+  config: ItemDataConfig;
+  spaceId?: string;
+  position?: Record<string, unknown>;
+};
+```
+
+**Functions:**
+
+- `stampTemplate(template, id, overrides?)` — Produce a concrete
+  `ItemDataConfig` from a template with a specific ID.
+- `stampBatch(template, count, prefix?, perItemOverrides?)` — Stamp multiple
+  entities with sequential IDs (`${prefix}-0`, `${prefix}-1`, …).
+- `executeSpawnPlan(plan, world)` — Create an entity and optionally place it
+  in a space.
+- `executeSpawnPlans(plans, world)` — Execute multiple spawn plans.
+
+**Usage in a behavior handler:**
+
+```typescript
+const PACKET_TEMPLATE: EntityTemplate = {
+  name: "Packet",
+  allowedPlaces: ["inventory", "egress-path"],
+  icon: { icon: "mdi:email" },
+  data: { type: "packet" },
+};
+
+{
+  id: "my.spawn-packets",
+  on: phaseChanged("playing"),
+  handler: ({ world }) => {
+    const plans = stampBatch(PACKET_TEMPLATE, 3, "pkt").map(config => ({
+      config,
+      spaceId: "inventory",
+    }));
+    executeSpawnPlans(plans, world);
+  },
+}
+```
+
+---
+
+### Split/Join Operators
+
+Decompose a parent entity into children and track their completion with
+configurable join policies.
+
+```typescript
+import type { SplitDescriptor, JoinPolicy, JoinTracker } from "@/components/game/runtime";
+import { createJoinTracker, markChildComplete, isJoinComplete, joinRemaining } from "@/components/game/runtime";
+```
+
+**Types:**
+
+```typescript
+type SplitDescriptor = {
+  parentId: string;
+  children: Array<{ id: string; data?: Record<string, unknown> }>;
+};
+
+type JoinPolicy = "all" | "any" | { count: number };
+
+type JoinTracker = {
+  parentId: string;
+  childIds: string[];
+  completedIds: string[];
+  policy: JoinPolicy;
+};
+```
+
+**Functions:**
+
+- `createJoinTracker(parentId, childIds, policy?)` — Create a tracker.
+  Default policy is `"all"`.
+- `markChildComplete(tracker, childId)` — Returns a new tracker with the
+  child marked complete (immutable).
+- `isJoinComplete(tracker)` — Returns `true` when the join policy is satisfied.
+- `joinRemaining(tracker)` — Number of children still needed.
+
+**Usage in a behavior handler:**
+
+```typescript
+{
+  id: "my.task-split",
+  on: entityClicked("task"),
+  handler: ({ entity, updateContext }) => {
+    if (!entity) return;
+    const tracker = createJoinTracker(entity.id, ["sub-a", "sub-b", "sub-c"], "all");
+    updateContext(ctx => { ctx.joinTracker = tracker; });
+  },
+}
+
+{
+  id: "my.subtask-done",
+  on: whenEntityArrivedAtSpace("done-zone"),
+  handler: ({ entity, context, updateContext, progress }) => {
+    if (!entity) return;
+    const updated = markChildComplete(context.joinTracker, entity.id);
+    updateContext(ctx => { ctx.joinTracker = updated; });
+    if (isJoinComplete(updated)) {
+      progress.completeQuestion();
+    }
+  },
+}
+```
+
+---
+
+### Status/Effect Rules & Timeline Actions
+
+Declarative status badge resolution for entities, plus delayed timeline
+actions for scheduling entity mutations.
+
+```typescript
+import type { StatusRule, StatusBadge, StatusRuleContext, TimelineAction } from "@/components/game/runtime";
+import { evaluateStatusRules, delayedUpdate, delayedDelete, delayedMove } from "@/components/game/runtime";
+```
+
+**Types:**
+
+```typescript
+type StatusBadge = {
+  status: "info" | "warning" | "success" | "error";
+  message: string;
+};
+
+type StatusRule = {
+  id: string;
+  entityType?: string;
+  match: (entity: StatusRuleContext) => boolean;
+  badge: StatusBadge;
+};
+
+type TimelineAction = {
+  key: string;
+  delayMs: number;
+  action: "updateEntity" | "deleteEntity" | "moveEntity" | "custom";
+  entityId?: string;
+  updates?: Record<string, unknown>;
+  toSpaceId?: string;
+};
+```
+
+**Functions:**
+
+- `evaluateStatusRules(rules, ctx)` — First-match badge resolution. Returns
+  `StatusBadge | undefined`.
+- `delayedUpdate(key, entityId, delayMs, updates)` — Create a timeline action
+  for a delayed entity update.
+- `delayedDelete(key, entityId, delayMs)` — Create a timeline action for a
+  delayed entity removal.
+- `delayedMove(key, entityId, toSpaceId, delayMs)` — Create a timeline action
+  for a delayed entity move.
+
+**Usage in a behavior handler:**
+
+```typescript
+// Status rules in getEntityStatus callback
+const STATUS_RULES: StatusRule[] = [
+  {
+    id: "configured",
+    entityType: "router",
+    match: (e) => !!e.data.dhcpEnabled,
+    badge: { status: "success", message: "DHCP enabled" },
+  },
+  {
+    id: "unconfigured",
+    entityType: "router",
+    match: () => true,
+    badge: { status: "warning", message: "Not configured" },
+  },
+];
+
+// Timeline action via schedule
+{
+  id: "my.delayed-cleanup",
+  on: phaseChanged("completed"),
+  handler: ({ schedule, world }) => {
+    const action = delayedDelete("cleanup-temp", "temp-entity", 2000);
+    schedule(action.key, action.delayMs, (sctx) => {
+      sctx.world.deleteEntities([action.entityId!]);
+    });
+  },
+}
+```
+
+---
+
+### Workflow / State Machine
+
+Declarative state machine for entity lifecycles with guarded transitions
+and timed auto-transitions.
+
+```typescript
+import type { WorkflowDefinition, WorkflowState, WorkflowTransition, WorkflowInstance } from "@/components/game/runtime/behavior/workflow";
+import { createWorkflow, transitionWorkflow, checkAutoTransition, validateWorkflow } from "@/components/game/runtime/behavior/workflow";
+```
+
+**Types:**
+
+```typescript
+type WorkflowState = {
+  name: string;
+  autoTransitionMs?: number;    // Auto-transition after this many ms
+  autoTransitionTo?: string;    // Target state for auto-transition
+};
+
+type WorkflowTransition = {
+  from: string;
+  to: string;
+  guard?: (ctx: WorkflowTransitionContext) => boolean;
+};
+
+type WorkflowDefinition = {
+  initialState: string;
+  states: WorkflowState[];
+  transitions?: WorkflowTransition[];  // If empty, all transitions allowed
+};
+
+type WorkflowInstance = {
+  currentState: string;
+  enteredAt: number;
+  history: string[];
+};
+```
+
+**Functions:**
+
+- `createWorkflow(definition, nowMs?)` — Create a new workflow instance.
+- `transitionWorkflow(instance, definition, toState, ctx?, nowMs?)` — Attempt
+  a transition. Returns same instance if invalid/guarded.
+- `checkAutoTransition(instance, definition, nowMs?)` — Returns target state
+  name if auto-transition is due, or `undefined`.
+- `validateWorkflow(definition)` — Returns an array of error strings.
+
+**Usage in a behavior handler:**
+
+```typescript
+const ENTITY_WORKFLOW: WorkflowDefinition = {
+  initialState: "idle",
+  states: [
+    { name: "idle" },
+    { name: "processing", autoTransitionMs: 3000, autoTransitionTo: "done" },
+    { name: "done" },
+  ],
+  transitions: [
+    { from: "idle", to: "processing" },
+    { from: "processing", to: "done" },
+  ],
+};
+
+{
+  id: "my.start-processing",
+  on: entityClicked("task"),
+  handler: ({ entity, world, schedule }) => {
+    if (!entity) return;
+    const wf = createWorkflow(ENTITY_WORKFLOW);
+    const next = transitionWorkflow(wf, ENTITY_WORKFLOW, "processing");
+    world.updateEntityState(entity.id, { workflow: next });
+
+    // Check for auto-transition
+    schedule("wf-auto", next.currentState === "processing" ? 3000 : 0, (sctx) => {
+      const target = checkAutoTransition(next, ENTITY_WORKFLOW);
+      if (target) {
+        const final = transitionWorkflow(next, ENTITY_WORKFLOW, target);
+        sctx.world.updateEntityState(entity.id, { workflow: final });
+      }
+    });
+  },
+}
+```
+
+---
+
+### Resource Locks
+
+Exclusive and shared lock primitives for managing resource contention
+between entities or tasks.
+
+```typescript
+import type { ResourceLockState, LockRequest, LockMode } from "@/components/game/runtime";
+import { createResourceLock, tryAcquire, releaseLock, isLocked, isHeldBy, waitQueueSize } from "@/components/game/runtime";
+```
+
+**Types:**
+
+```typescript
+type LockMode = "exclusive" | "shared";
+
+type LockRequest = {
+  resourceId: string;
+  requesterId: string;
+  mode: LockMode;
+};
+
+type ResourceLockState = {
+  resourceId: string;
+  holders: string[];
+  mode: LockMode | null;
+  waitQueue: LockRequest[];
+};
+```
+
+**Functions:**
+
+- `createResourceLock(resourceId)` — Create initial lock state.
+- `tryAcquire(lock, request)` — Returns `{ lock, acquired }`. If contention,
+  requester is queued.
+- `releaseLock(lock, requesterId)` — Returns `{ lock, promoted }`. Promotes
+  next waiter if any.
+- `isLocked(lock)` — Check if resource is currently held.
+- `isHeldBy(lock, requesterId)` — Check if a specific requester holds it.
+- `waitQueueSize(lock)` — Number of waiters in queue.
+
+**Usage in a behavior handler:**
+
+```typescript
+{
+  id: "my.acquire-bus",
+  on: whenEntityArrivedAtSpace("bus-stop"),
+  handler: ({ entity, context, updateContext }) => {
+    if (!entity) return;
+    const { lock, acquired } = tryAcquire(context.busLock, {
+      resourceId: "bus",
+      requesterId: entity.id,
+      mode: "exclusive",
+    });
+    updateContext(ctx => { ctx.busLock = lock; });
+    if (!acquired) {
+      // Entity must wait
+    }
+  },
+}
+
+{
+  id: "my.release-bus",
+  on: whenEntityArrivedAtSpace("bus-exit"),
+  handler: ({ entity, context, updateContext }) => {
+    if (!entity) return;
+    const { lock, promoted } = releaseLock(context.busLock, entity.id);
+    updateContext(ctx => { ctx.busLock = lock; });
+    // promoted is the next requester ID, if any
+  },
+}
+```
+
+---
+
+### Lane Scheduler
+
+Deterministic lane selection for multi-lane queue/processing flows.
+
+```typescript
+import type { LaneSchedulerInput, LaneSelectionPolicy, LaneSelectionResult } from "@/components/game/runtime";
+import { pickLane, hasFreeLane } from "@/components/game/runtime";
+```
+
+**Types:**
+
+```typescript
+type LaneSelectionPolicy = "first_free" | "round_robin";
+
+type LaneSchedulerInput<TLaneId extends string> = {
+  lanes: TLaneId[];
+  enabledLanes?: TLaneId[];
+  policy: LaneSelectionPolicy;
+  cursor?: number;
+  isOccupied: (laneId: TLaneId) => boolean;
+};
+
+type LaneSelectionResult<TLaneId extends string> = {
+  laneId: TLaneId | null;
+  cursor: number;
+};
+```
+
+**Functions:**
+
+- `pickLane(input)` — Select the next available lane based on policy. Returns
+  `{ laneId, cursor }`. `laneId` is `null` if all lanes are occupied.
+- `hasFreeLane(input)` — Check if any enabled lane is available.
+
+**Usage in a behavior handler:**
+
+```typescript
+{
+  id: "my.dispatch-to-lane",
+  on: whenEntityArrivedAtSpace("dispatch"),
+  handler: ({ entity, context, updateContext, world }) => {
+    if (!entity) return;
+    const result = pickLane({
+      lanes: ["lane-a", "lane-b"],
+      policy: "round_robin",
+      cursor: context.laneCursor,
+      isOccupied: (id) => !!context.laneOccupied[id],
+    });
+    if (result.laneId) {
+      world.moveEntity(entity.id, result.laneId);
+      updateContext(ctx => {
+        ctx.laneCursor = result.cursor;
+        ctx.laneOccupied[result.laneId!] = true;
+      });
+    }
+  },
+}
+```
+
+---
+
+### Layout & Shape Rules
+
+Declarative rules for conditional space/section visibility and dynamic
+space configuration changes based on runtime state.
+
+```typescript
+import type { LayoutVisibilityRule, SpaceShapeRule, LayoutRuleContext, SpaceShapeOverrides } from "@/components/game/runtime";
+import { evaluateVisibility, evaluateShapeRules } from "@/components/game/runtime";
+```
+
+**Types:**
+
+```typescript
+type LayoutVisibilityRule = {
+  targetId: string;
+  visible: (ctx: LayoutRuleContext) => boolean;
+};
+
+type SpaceShapeRule = {
+  spaceId: string;
+  compute: (ctx: LayoutRuleContext) => SpaceShapeOverrides | undefined;
+};
+
+type LayoutRuleContext = {
+  readonly state: GameState;
+  readonly phase: string;
+};
+
+type SpaceShapeOverrides = {
+  rows?: number;
+  cols?: number;
+  maxCapacity?: number;
+  speedMultiplier?: number;
+  title?: string;
+};
+```
+
+**Functions:**
+
+- `evaluateVisibility(rules, ctx)` — Returns `Record<string, boolean>` mapping
+  target IDs to visibility.
+- `evaluateShapeRules(rules, ctx)` — Returns `Record<string, SpaceShapeOverrides>`
+  mapping space IDs to overrides.
+
+**Usage in a definition:**
+
+```typescript
+const definition: QuestionDefinition = {
+  // ...
+  layoutRules: [
+    {
+      targetId: "terminal-panel",
+      visible: ({ phase }) => phase === "terminal" || phase === "completed",
+    },
+  ],
+  shapeRules: [
+    {
+      spaceId: "processing-grid",
+      compute: ({ state }) => {
+        const entityCount = Object.keys(state.entities).length;
+        return entityCount > 4 ? { rows: 2, cols: 3 } : undefined;
+      },
+    },
+  ],
+};
+```
+
+---
+
+### Behavior Inspector
+
+Development-only debug logging for the behavior system. Provides structured
+traces of rule matching, guard evaluation, and handler execution.
+
+```typescript
+import type { BehaviorInspector, InspectorLogEntry } from "@/components/game/runtime";
+import { createBehaviorInspector, createConsoleInspector, NOOP_INSPECTOR } from "@/components/game/runtime";
+```
+
+**Types:**
+
+```typescript
+type InspectorLogEntry = {
+  timestamp: number;
+  eventType: string;
+  eventId: number;
+  ruleId: string;
+  action: "matched" | "guard-passed" | "guard-failed" | "handler-executed" | "handler-error";
+  entityId?: string;
+  spaceId?: string;
+  detail?: string;
+};
+
+type BehaviorInspector = {
+  log: (entry: InspectorLogEntry) => void;
+  getEntries: () => readonly InspectorLogEntry[];
+  clear: () => void;
+  subscribe: (listener: (entry: InspectorLogEntry) => void) => () => void;
+};
+```
+
+**Functions:**
+
+- `createBehaviorInspector(maxEntries?)` — In-memory inspector with FIFO
+  eviction (default 200 entries).
+- `createConsoleInspector(maxEntries?)` — Wraps the in-memory inspector and
+  also logs to `console.debug` / `console.warn` with formatted output.
+- `NOOP_INSPECTOR` — No-op inspector for production (all methods are no-ops).
+
+**Usage:**
+
+```typescript
+// Development: enable console tracing
+const inspector = import.meta.env.DEV
+  ? createConsoleInspector()
+  : NOOP_INSPECTOR;
+
+// Subscribe to entries programmatically
+const unsub = inspector.subscribe((entry) => {
+  if (entry.action === "handler-error") {
+    console.error("Behavior error:", entry);
+  }
+});
+
+// Read all entries
+const entries = inspector.getEntries();
+```
