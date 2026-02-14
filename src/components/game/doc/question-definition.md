@@ -153,17 +153,24 @@ Declarative rules for automatic phase transitions. Evaluated by the page
 component using `resolvePhase()`.
 
 ```typescript
-type PhaseRule<CK extends string> = {
-  kind: "set";
-  when: Condition<CK>;
-  to: string;          // Target phase
-};
+type PhaseRule<CK extends string> =
+  | {
+      kind: "set";
+      when: Condition<CK>;
+      to: string;          // Target phase
+    }
+  | {
+      kind: "retain";
+      when: Condition<CK>; // Keep current phase and stop evaluation
+    };
 
 type Condition<CK extends string> =
-  | { kind: "eq"; key: CK; value: unknown }
-  | { kind: "neq"; key: CK; value: unknown }
-  | { kind: "and"; conditions: Condition<CK>[] }
-  | { kind: "or"; conditions: Condition<CK>[] };
+  | { kind: "and"; all: Condition<CK>[] }
+  | { kind: "or"; any: Condition<CK>[] }
+  | { kind: "not"; value: Condition<CK> }
+  | { kind: "flag"; key: CK; is: boolean }
+  | { kind: "eq"; key: CK; value: string | number | boolean | null }
+  | { kind: "in"; key: CK; values: Array<string | number> };
 ```
 
 **Usage in page component:**
@@ -181,17 +188,21 @@ useEffect(() => {
 }, [dragEngine.progress.status, state.phase, state.question.status]);
 ```
 
-Phase rules are evaluated top-to-bottom. The first rule whose condition matches
-determines the next phase. If no rule matches, the phase stays unchanged.
+Phase rules are evaluated top-to-bottom with these semantics:
+- `retain` returns immediately with current phase.
+- `set` updates candidate `nextPhase` and evaluation continues.
+- Final result is the **last matching `set` rule** (unless a matching `retain`
+  short-circuits first).
+- If no rule matches, fallback phase is used by `resolvePhase(...)`.
 
-**Common pattern:** Order rules from most specific (completed) to least specific
-(started) so higher-priority phases win.
+**Common pattern:** Put broad defaults earlier and higher-priority overrides
+later, because later matching `set` rules win.
 
 ```typescript
 phaseRules: [
-  { kind: "set", when: { kind: "eq", key: "questionStatus", value: "completed" }, to: "completed" },
-  { kind: "set", when: { kind: "eq", key: "dragStatus", value: "finished" }, to: "terminal" },
   { kind: "set", when: { kind: "eq", key: "dragStatus", value: "started" }, to: "playing" },
+  { kind: "set", when: { kind: "eq", key: "dragStatus", value: "finished" }, to: "terminal" },
+  { kind: "set", when: { kind: "eq", key: "questionStatus", value: "completed" }, to: "completed" },
 ],
 ```
 
@@ -232,9 +243,9 @@ export const DHCP_DEFINITION: QuestionDefinition<DhcpConditionKey, DhcpBehaviorC
     { config: { id: "pc-2", name: "PC-2", allowedPlaces: ["inventory", "pc-2-board"], icon: { icon: "twemoji:laptop-computer" }, data: { type: "pc" } }, initialSpace: "inventory" },
   ],
   phaseRules: [
-    { kind: "set", when: { kind: "eq", key: "questionStatus", value: "completed" }, to: "completed" },
-    { kind: "set", when: { kind: "eq", key: "dragStatus", value: "finished" }, to: "terminal" },
     { kind: "set", when: { kind: "eq", key: "dragStatus", value: "started" }, to: "playing" },
+    { kind: "set", when: { kind: "eq", key: "dragStatus", value: "finished" }, to: "terminal" },
+    { kind: "set", when: { kind: "eq", key: "questionStatus", value: "completed" }, to: "completed" },
   ],
   behaviors: DHCP_BEHAVIORS,
 };
@@ -248,7 +259,8 @@ actions are dispatched once on mount:
 1. `SET_QUESTION` — Sets question ID and status to "in_progress"
 2. `SET_PHASE` — Sets initialPhase
 3. `SPACE_CREATED` — One per space in definition.spaces
-4. `ENTITY_CREATED` + `ENTITY_ADDED` — One pair per entity in definition.entities
+4. `ENTITY_CREATED` — One per entity in definition.entities
+5. `ENTITY_ADDED` — Dispatched only for entities with `initialSpace`
 
 Bootstrap runs exactly once (guarded by ref). Subsequent renders do not
 re-bootstrap.
@@ -258,8 +270,9 @@ re-bootstrap.
 The runtime validates the definition on every render and throws if invalid:
 
 - `meta.id` must be non-empty
-- Each space must have a non-empty `config.id`
-- Each entity must have a non-empty `config.id`
 - Entity `initialSpace` must reference a defined space ID
 - No duplicate space IDs
-- No duplicate entity IDs
+
+Not currently enforced by `validateDefinition()`:
+- Duplicate entity IDs
+- Empty space/entity IDs beyond what TypeScript/static authoring already catches

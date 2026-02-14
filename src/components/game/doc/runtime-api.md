@@ -50,7 +50,8 @@ type QuestionRuntime<TContext> = {
 
 1. **Bootstrap (once)** — If definition is provided, dispatches init actions on
    mount: SET_QUESTION, SET_PHASE, SPACE_CREATED (per space), ENTITY_CREATED +
-   ENTITY_ADDED (per entity). Guarded by ref, runs exactly once.
+   ENTITY_ADDED (only when entity has `initialSpace`). Guarded by ref, runs
+   exactly once.
 
 2. **Validation (every render)** — Validates the definition and throws if
    invalid. This is intentional: invalid definitions should fail fast.
@@ -291,8 +292,10 @@ interaction.openModal({
 });
 ```
 
-**closeModal(modalId?)** — Closes a modal. If modalId is omitted, closes the
-top modal. Emits MODAL_CLOSED event.
+**closeModal(modalId?)** — Closes modal visibility through reducer close path.
+- If `modalId` is provided: closes that specific visible modal.
+- If `modalId` is omitted: closes all visible modals.
+- Each closed modal emits `MODAL_CLOSED`.
 
 **requestPhaseTransition(phase, source)** — Request a phase change. The source
 string is for debugging (e.g. `"dhcp.phase_rules"`). Emits PHASE_CHANGED event.

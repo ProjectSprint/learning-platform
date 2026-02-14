@@ -344,12 +344,17 @@ import { Modal } from "@/components/game/presentation/modal";
 
 **Side effects:**
 - Renders modals in a React portal.
-- Handles backdrop click → MODAL_CLOSED event (reason: "backdrop").
-- Handles Escape key → MODAL_CLOSED event (reason: "escape").
-- Handles action button click → MODAL_SUBMITTED event (if not closesModal) or
-  MODAL_CLOSED event (if closesModal).
+- Handles backdrop click / Escape key by dispatching `CLOSE_MODAL` to the reducer.
+- Emits `MODAL_CLOSED` from reducer path when modal visibility changes.
+- Handles action button click by dispatching `MODAL_SUBMITTED` first (always).
+- Then closes the modal when `action.closesModal !== false` (default is close).
 - Runs field validators before submit when action has `validate: true`.
 - Supports modal stacking (multiple open modals).
+
+**Important implementation detail (event ordering):**
+- Action click order is: `MODAL_SUBMITTED` event first, then optional close.
+- This means handlers listening to `MODAL_SUBMITTED` still run even when the
+  action closes the modal.
 
 **Must be rendered inside GameProvider.** Place it at the end of the page JSX,
 outside GameBoard (modals render in a portal anyway).
@@ -409,7 +414,7 @@ const {
   closeTerminal,  // () => void
   setPrompt,      // (prompt: string) => void
   addEntry,       // (entry: TerminalEntry) => void
-  addOutput,      // (content: string, type?: "output" | "error") => void
+  addOutput,      // (content: string, type: Exclude<TerminalEntryType, "input" | "prompt">) => void
 } = useTerminalStore();
 ```
 

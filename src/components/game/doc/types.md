@@ -237,7 +237,7 @@ type GameEventBase = {
 | `ENTITY_CLICKED` | entityId, spaceId, position? | Entity clicked in a GridSpace |
 | `MODAL_OPENED` | modalId, modal | Modal opened |
 | `MODAL_SUBMITTED` | modalId, modalActionId, values | Modal action button pressed |
-| `MODAL_CLOSED` | modalId, reason? | Modal closed (backdrop/escape/button/programmatic) |
+| `MODAL_CLOSED` | modalId, reason? | Modal closed through reducer close path (reason currently emitted as `programmatic`) |
 | `TERMINAL_INPUT` | entryId, input | User submitted terminal input |
 | `PHASE_CHANGED` | from, to | Game phase changed |
 | `ENGINE_STARTED` | engineId? | Engine started |
@@ -295,12 +295,15 @@ type ModalContentBlock =
 
 ```typescript
 type ModalField =
-  | { kind: "text";     id: string; label: string; placeholder?: string; defaultValue?: string; helpText?: string; validate?: (value, allValues) => string | null }
-  | { kind: "textarea"; id: string; label: string; placeholder?: string; defaultValue?: string; helpText?: string; validate?: (value, allValues) => string | null }
-  | { kind: "checkbox"; id: string; label: string; defaultValue?: boolean; helpText?: string }
-  | { kind: "select";   id: string; label: string; options: { value: string; label: string }[]; placeholder?: string; defaultValue?: string; helpText?: string; validate?: (value, allValues) => string | null }
-  | { kind: "readonly"; id: string; label: string; value: string; helpText?: string };
+  | { kind: "text";     id: string; label: string; placeholder?: string; defaultValue?: string; helpText?: string; helpLink?: { label: string; href: string }; validate?: (value, allValues) => string | null }
+  | { kind: "textarea"; id: string; label: string; placeholder?: string; defaultValue?: string; helpText?: string; helpLink?: { label: string; href: string }; validate?: (value, allValues) => string | null }
+  | { kind: "checkbox"; id: string; label: string; defaultValue?: boolean; helpText?: string; helpLink?: { label: string; href: string } }
+  | { kind: "select";   id: string; label: string; options: { value: string; label: string }[]; placeholder?: string; defaultValue?: string; helpText?: string; helpLink?: { label: string; href: string }; validate?: (value, allValues) => string | null }
+  | { kind: "readonly"; id: string; label: string; value: string; helpText?: string; helpLink?: { label: string; href: string } };
 ```
+
+Current renderer note:
+- `kind: "select"` exists in schema but is not rendered yet in `ModalInstanceView`.
 
 ### ModalAction
 
@@ -310,13 +313,14 @@ type ModalAction = {
   label: string;                           // Button text
   variant?: "primary" | "secondary" | "ghost" | "danger";
   validate?: boolean;                      // If true, runs field validators before triggering
-  closesModal?: boolean;                   // If true, closes modal after action (no MODAL_SUBMITTED event)
+  closesModal?: boolean;                   // If false, keeps modal open after submit. Default behavior closes modal.
 };
 ```
 
-**Important:** If `closesModal: true`, the modal closes immediately and emits a
-`MODAL_CLOSED` event, NOT a `MODAL_SUBMITTED` event. Use `closesModal` for
-"Cancel" buttons and omit it for "Save" buttons you want to handle in behaviors.
+**Important (actual order):**
+- Button click dispatches `MODAL_SUBMITTED` first.
+- If `closesModal !== false` (default), reducer close path then emits `MODAL_CLOSED`.
+- To keep modal open after submit, set `closesModal: false`.
 
 ---
 
@@ -334,16 +338,27 @@ type Arrow = {
 
 type ArrowEndpoint = {
   spaceId: string;
-  anchor: ArrowAnchor;  // Responsive: { base: "tl", lg: "tr" } or fixed: "tl"
+  anchor: ArrowAnchorValue;  // Responsive map or fixed value
 };
 
-type ArrowAnchorValue = "tl" | "tr" | "bl" | "br" | "t" | "b" | "l" | "r";
+type ArrowAnchorValue =
+  | "tl" | "tr" | "bl" | "br"
+  | Partial<Record<"base" | "sm" | "md" | "lg" | "xl" | "2xl", "tl" | "tr" | "bl" | "br">>;
 
 type ArrowStyle = {
   stroke?: string;
   strokeWidth?: number;
+  opacity?: number;
   headSize?: number;
+  dashed?: boolean;
   bow?: number;
+  stretch?: number;
+  stretchMin?: number;
+  stretchMax?: number;
+  padStart?: number;
+  padEnd?: number;
+  flip?: boolean;
+  straights?: boolean;
 };
 ```
 
@@ -356,17 +371,18 @@ Configuration for registering a responsive drawer panel.
 ```typescript
 type DrawerConfig = {
   id: string;
-  contentType: "space" | "custom";
-  spaceId?: string;                 // Required if contentType is "space"
-  title: string;
-  position: "bottom" | "left" | "right";
-  initialState: "expanded" | "folded";
-  expandedSize: DrawerSizeMap;      // Responsive: { base: "65vh", md: "40vh" }
+  contentType: "space";
+  spaceId: string;
+  spaceIds?: string[];              // Optional additional spaces (ordered)
+  title?: string;
+  position?: "bottom" | "top" | "left" | "right";
+  initialState?: "expanded" | "folded";
+  expandedSize?: DrawerSizeMap;      // Responsive: { base: "65vh", md: "40vh" }
   foldedSize?: DrawerSizeMap;
   mouseAware?: boolean;             // Auto-expand on mouse hover
   showFloatingButton?: boolean;
   floatingButtonLabel?: string;
 };
 
-type DrawerSizeMap = Record<string, string>;  // breakpoint → CSS size
+type DrawerSizeMap = Partial<Record<"base" | "sm" | "md" | "lg" | "xl" | "2xl", string>>;
 ```

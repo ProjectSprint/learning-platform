@@ -274,9 +274,9 @@ export const MY_DEFINITION: QuestionDefinition<MyConditionKey, MyBehaviorContext
     initialSpace: "inventory",
   })),
   phaseRules: [
-    { kind: "set", when: { kind: "eq", key: "questionStatus", value: "completed" }, to: "completed" },
-    { kind: "set", when: { kind: "eq", key: "dragStatus", value: "finished" }, to: "terminal" },
     { kind: "set", when: { kind: "eq", key: "dragStatus", value: "started" }, to: "playing" },
+    { kind: "set", when: { kind: "eq", key: "dragStatus", value: "finished" }, to: "terminal" },
+    { kind: "set", when: { kind: "eq", key: "questionStatus", value: "completed" }, to: "completed" },
   ],
   behaviors: MY_BEHAVIORS,
 };
@@ -336,11 +336,11 @@ export const buildSuccessModal = (
 extract the entity ID from `event.modalId.replace("config-", "")`.
 
 **closesModal vs regular actions:**
-- `closesModal: true` → closes modal, emits MODAL_CLOSED (no values).
-  Use for Cancel buttons.
-- No `closesModal` → emits MODAL_SUBMITTED with form values. Use for Save/Submit
-  buttons. The behavior handler is responsible for closing the modal
-  (it auto-closes after MODAL_SUBMITTED).
+- Button click emits `MODAL_SUBMITTED` first.
+- If `closesModal !== false` (default), reducer close path runs after submit and
+  emits `MODAL_CLOSED`.
+- Use `closesModal: false` when you need submit-without-closing behavior.
+- Use `closesModal: true` explicitly for readability on Cancel buttons.
 
 ---
 
@@ -616,7 +616,7 @@ Mount
   ├── useQuestionRuntime("my-page", DEFINITION)
   │     ├── validates definition (throws if invalid)
   │     ├── bootstrapQuestion(definition, dispatch) → dispatches:
-  │     │     SET_QUESTION, SET_PHASE, SPACE_CREATED×N, (ENTITY_CREATED + ENTITY_ADDED)×N
+  │     │     SET_QUESTION, SET_PHASE, SPACE_CREATED×N, ENTITY_CREATED×N, ENTITY_ADDED×K (entities with initialSpace only)
   │     └── useBehaviorReactor() starts watching events
   │
   ├── useLayoutEffect: registerDrawer() → drawer ready
@@ -672,7 +672,7 @@ and behavior rules.
 - [ ] `index.tsx` — Route handler with navigation
 - [ ] Entity `allowedPlaces` includes "inventory" and target space
 - [ ] Entity `data.type` is set for behavior trigger matching
-- [ ] Phase rules ordered: completed > terminal > playing (most specific first)
+- [ ] Phase rules ordered for resolver semantics: broad/default first, overrides later (last matching `set` wins)
 - [ ] Bootstrap-safe render guard applied if board contains dynamic custom/grid spaces
 - [ ] Gameplay rule mutations are behavior-driven (page effects are orchestration-only)
 - [ ] `registerTerminalFinish.current = terminalEngine.finish` wired
