@@ -1,9 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createCompatState } from "@/components/game/application/compat/state-conversion";
-import type {
-	SpaceItemLocation,
-	SpaceState,
-} from "@/components/game/game-provider";
 import { useGameState } from "@/components/game/game-provider";
 import type { EngineLifecycleCallbacks } from "../engine-types";
 import {
@@ -12,8 +7,8 @@ import {
 } from "../use-engine-progress";
 
 export interface DragEngineState {
-	space: SpaceState;
-	placedItems: SpaceItemLocation[];
+	primaryGridSpaceId: string | null;
+	placedEntityIds: string[];
 }
 
 export interface DragEngineConfig<TContext = unknown>
@@ -38,25 +33,33 @@ export const useDragEngine = <TContext = unknown>(
 	});
 	const [autoStarted, setAutoStarted] = useState(false);
 
-	const compat = useMemo(() => createCompatState(gameState), [gameState]);
+	const primaryGridSpace = useMemo(
+		() =>
+			Object.values(gameState.spaces).find((space) => space.kind === "grid") ??
+			null,
+		[gameState.spaces],
+	);
 
 	const state: DragEngineState = useMemo(
 		() => ({
-			space: compat.space,
-			placedItems: compat.space.placedItems,
+			primaryGridSpaceId: primaryGridSpace?.id ?? null,
+			placedEntityIds:
+				primaryGridSpace?.kind === "grid"
+					? Object.keys(primaryGridSpace.entityPositions)
+					: [],
 		}),
-		[compat.space],
+		[primaryGridSpace],
 	);
 
 	useEffect(() => {
 		if (!autoStart) return;
 		if (autoStarted) return;
 		if (controller.progress.status !== "pending") return;
-		if (state.placedItems.length === 0) return;
+		if (state.placedEntityIds.length === 0) return;
 
 		setAutoStarted(true);
 		controller.start();
-	}, [autoStart, autoStarted, controller, state.placedItems.length]);
+	}, [autoStart, autoStarted, controller, state.placedEntityIds.length]);
 
 	const reset = useCallback(() => {
 		setAutoStarted(false);

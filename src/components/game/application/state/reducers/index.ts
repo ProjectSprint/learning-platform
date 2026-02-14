@@ -3,6 +3,7 @@
  * Combines all reducers for the new domain-driven architecture.
  */
 
+import { assertSingleSpaceOwnership } from "../../../domain/invariants";
 import type { Action } from "../actions";
 import type { GameState } from "../types";
 import { coreReducer as appCoreReducer } from "./core";
@@ -22,6 +23,8 @@ export const applicationReducer = (
 	state: GameState,
 	action: Action,
 ): GameState => {
+	let nextState: GameState;
+
 	// Route to appropriate reducer based on action type
 	switch (action.type) {
 		// Space actions
@@ -32,20 +35,23 @@ export const applicationReducer = (
 		case "ENTITY_MOVED":
 		case "ENTITY_POSITION_UPDATED":
 		case "ENTITIES_SWAPPED":
-			return spaceReducer(state, action);
+			nextState = spaceReducer(state, action);
+			break;
 
 		// Entity actions
 		case "ENTITY_CREATED":
 		case "ENTITY_UPDATED":
 		case "ENTITY_STATE_UPDATED":
 		case "ENTITIES_DELETED":
-			return entityReducer(state, action);
+			nextState = entityReducer(state, action);
+			break;
 
 		// UI actions
 		case "OPEN_MODAL":
 		case "CLOSE_MODAL":
 		case "MODAL_SUBMITTED":
-			return uiReducer(state, action);
+			nextState = uiReducer(state, action);
+			break;
 
 		// Core actions
 		case "SET_QUESTION":
@@ -53,11 +59,19 @@ export const applicationReducer = (
 		case "COMPLETE_QUESTION":
 		case "ACK_EVENTS":
 		case "EMIT_EVENTS":
-			return appCoreReducer(state, action);
+			nextState = appCoreReducer(state, action);
+			break;
 
 		default:
-			return state;
+			nextState = state;
+			break;
 	}
+
+	if (process.env.NODE_ENV !== "production" && nextState !== state) {
+		assertSingleSpaceOwnership(nextState);
+	}
+
+	return nextState;
 };
 
 /**

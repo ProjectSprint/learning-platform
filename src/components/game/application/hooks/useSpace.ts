@@ -3,18 +3,14 @@
  * Provides access to a space by ID from the game state.
  */
 
+import {
+	getGridEntityPosition,
+	getSpaceEntityIds,
+	selectSpaceEntityCount,
+	selectSpaceIsEmpty,
+	selectSpaceIsFull,
+} from "../../domain/read";
 import type { GridPosition, SpaceData } from "../../domain/space/space-data";
-import {
-	isGridSpace,
-	isPathSpace,
-	isPoolSpace,
-} from "../../domain/space/space-data";
-import {
-	gridGetPosition,
-	spaceGetEntityCount,
-	spaceIsEmpty,
-	spaceIsFull,
-} from "../../domain/space/space-fns";
 import { useGameState } from "../../game-provider";
 
 /**
@@ -67,22 +63,8 @@ export const useSpaces = (): Record<string, SpaceData> => {
  * ```
  */
 export const useSpaceEntities = (spaceId: string): string[] => {
-	const space = useSpace(spaceId);
-	if (!space) {
-		return [];
-	}
-
-	if (isGridSpace(space)) {
-		// Grid space: return all entity IDs from entityPositions
-		return Object.keys(space.entityPositions);
-	} else if (isPoolSpace(space)) {
-		// Pool space: return entityIds array
-		return space.entityIds;
-	} else if (isPathSpace(space)) {
-		return space.entityIds;
-	}
-
-	return [];
+	const state = useGameState();
+	return getSpaceEntityIds(state, spaceId);
 };
 
 /**
@@ -100,8 +82,8 @@ export const useSpaceEntities = (spaceId: string): string[] => {
  * ```
  */
 export const useSpaceIsFull = (spaceId: string): boolean => {
-	const space = useSpace(spaceId);
-	return space ? spaceIsFull(space) : false;
+	const state = useGameState();
+	return selectSpaceIsFull(state, spaceId);
 };
 
 /**
@@ -119,8 +101,8 @@ export const useSpaceIsFull = (spaceId: string): boolean => {
  * ```
  */
 export const useSpaceIsEmpty = (spaceId: string): boolean => {
-	const space = useSpace(spaceId);
-	return space ? spaceIsEmpty(space) : true;
+	const state = useGameState();
+	return selectSpaceIsEmpty(state, spaceId);
 };
 
 /**
@@ -140,12 +122,13 @@ export const useSpaceIsEmpty = (spaceId: string): boolean => {
 export const useSpaceCapacity = (
 	spaceId: string,
 ): { current: number; max: number | undefined } | null => {
-	const space = useSpace(spaceId);
+	const state = useGameState();
+	const space = state.spaces[spaceId];
 	if (!space) {
 		return null;
 	}
 	return {
-		current: spaceGetEntityCount(space),
+		current: selectSpaceEntityCount(state, spaceId),
 		max: space.maxCapacity,
 	};
 };
@@ -167,16 +150,6 @@ export const useSpaceCapacity = (
 export const useEntityGridPosition = (
 	entityId: string,
 ): GridPosition | undefined => {
-	const spaces = useSpaces();
-
-	for (const space of Object.values(spaces)) {
-		if (isGridSpace(space)) {
-			const pos = gridGetPosition(space, entityId);
-			if (pos) {
-				return pos;
-			}
-		}
-	}
-
-	return undefined;
+	const state = useGameState();
+	return getGridEntityPosition(state, entityId);
 };

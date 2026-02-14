@@ -1,11 +1,11 @@
 import { useBreakpointValue } from "@chakra-ui/react";
 import { memo, useEffect } from "react";
 import type { EntityData } from "../domain/entity/entity-data";
+import { getEntitySpaceId, isEntityPlacementAllowed } from "../domain/read";
 import type {
 	PathSpaceConfig,
 	PathSpaceData,
 } from "../domain/space/space-data";
-import { canEntityBePlaced, findEntitySpace } from "../domain/space/validation";
 import type { GameContextValue } from "../game-provider";
 import { useGameDispatch, useGameState } from "../game-provider";
 import { PathSpaceView } from "../presentation/space/PathSpaceView";
@@ -81,11 +81,11 @@ export const PathSpace = memo(
 		const resolvedShowDropzone = showDropzone ?? space.showDropzone ?? true;
 
 		const onDropEntity = (entityId: string): boolean => {
-			if (!canEntityBePlaced(state, entityId, space.id)) {
+			if (!isEntityPlacementAllowed(state, entityId, space.id)) {
 				return false;
 			}
 
-			const fromSpaceId = findEntitySpace(state, entityId);
+			const fromSpaceId = getEntitySpaceId(state, entityId);
 
 			if (fromSpaceId && fromSpaceId === space.id) {
 				return false;

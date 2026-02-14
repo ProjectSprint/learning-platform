@@ -4,9 +4,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getEntitySpaceId } from "@/components/game/domain/read";
 import { isGridSpace } from "@/components/game/domain/space";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
-import { findEntitySpace } from "@/components/game/domain/space/validation";
 import { useEngineEvents, useGameState } from "@/components/game/game-provider";
 import type {
 	ExecutionFlowApi,
@@ -197,8 +197,8 @@ export const useTcpState = ({
 	}, [lossScenarioActive]);
 
 	useEffect(() => {
-		const messageFileSpaceId = findEntitySpace(state, FILE_ITEM_ID);
-		const notesFileSpaceId = findEntitySpace(state, NOTES_FILE_ITEM_ID);
+		const messageFileSpaceId = getEntitySpaceId(state, FILE_ITEM_ID);
+		const notesFileSpaceId = getEntitySpaceId(state, NOTES_FILE_ITEM_ID);
 		const shouldShowMessageSplitter =
 			messageSplitterUnlocked && Boolean(messageFileSpaceId);
 		const shouldShowSplitter =
@@ -293,7 +293,7 @@ export const useTcpState = ({
 			position?: { row: number; col: number },
 		) => {
 			const currentState = stateRef.current;
-			const fromSpaceId = findEntitySpace(currentState, entityId);
+			const fromSpaceId = getEntitySpaceId(currentState, entityId);
 			if (fromSpaceId === spaceId) {
 				return true;
 			}

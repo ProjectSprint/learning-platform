@@ -2,6 +2,10 @@
  * Helpers for appending deterministic events to the game state.
  */
 
+import {
+	applyAppendEvents,
+	getNextActionId as getNextTransitionActionId,
+} from "../../domain/transformers/event-queue";
 import type { GameEvent, GameEventQueue } from "./types";
 
 export type GameEventInput = GameEvent extends infer Event
@@ -10,14 +14,8 @@ export type GameEventInput = GameEvent extends infer Event
 		: never
 	: never;
 
-const ensureQueue = (queue?: GameEventQueue): GameEventQueue => {
-	if (queue) return queue;
-	return { events: [], lastActionId: 0, lastEventId: 0 };
-};
-
 export const getNextActionId = (queue?: GameEventQueue): number => {
-	const safeQueue = ensureQueue(queue);
-	return safeQueue.lastActionId + 1;
+	return getNextTransitionActionId(queue);
 };
 
 export const appendEvents = (
@@ -25,22 +23,5 @@ export const appendEvents = (
 	actionId: number,
 	inputs: GameEventInput[],
 ): GameEventQueue => {
-	const safeQueue = ensureQueue(queue);
-	if (inputs.length === 0) return safeQueue;
-
-	let nextEventId = safeQueue.lastEventId;
-	const events = inputs.map((input) => {
-		nextEventId += 1;
-		return {
-			...input,
-			eventId: nextEventId,
-			actionId,
-		} as GameEvent;
-	});
-
-	return {
-		events: [...safeQueue.events, ...events],
-		lastEventId: nextEventId,
-		lastActionId: actionId,
-	};
+	return applyAppendEvents<GameEvent>(queue, actionId, inputs);
 };

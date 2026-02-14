@@ -10,13 +10,12 @@
 import { useBreakpointValue } from "@chakra-ui/react";
 import { memo, useEffect, useMemo } from "react";
 import type { EntityData } from "../domain/entity/entity-data";
+import { getEntitySpaceId, isEntityPlacementAllowed } from "../domain/read";
 import type {
 	GridPosition,
 	GridSpaceConfig,
 	GridSpaceData,
 } from "../domain/space/space-data";
-import { gridGetPosition } from "../domain/space/space-fns";
-import { canEntityBePlaced, findEntitySpace } from "../domain/space/validation";
 import type { GameContextValue } from "../game-provider";
 import { useGameDispatch, useGameState } from "../game-provider";
 import type { EntityStatus } from "../presentation/entity/PlacedEntity";
@@ -92,7 +91,7 @@ export type GridSpaceProps =
  * Handles:
  * - Fetching space data from game state
  * - Computing entity list in the space
- * - Validating drag-drop using canEntityBePlaced
+ * - Validating drag-drop using isEntityPlacementAllowed
  * - Dispatching actions for entity placement
  *
  * @example
@@ -147,21 +146,16 @@ export const GridSpace = memo(
 		const viewRows = resolvedSize?.[1];
 		const isRemapping = viewCols !== undefined && viewCols !== dataCols;
 
-		// Compute entities in this space using gridGetPosition
+		// Compute entities in this space using guarded read helpers
 		const rawEntities = useMemo(() => {
 			if (!space) return [];
-			return Array.from(Object.entries(state.entities)).flatMap(
-				([entityId, entity]) => {
-					const position = gridGetPosition(space, entityId);
-					if (
-						position &&
-						typeof position === "object" &&
-						"row" in position &&
-						"col" in position
-					) {
-						return [{ entity, position: position as GridPosition }];
+			return Object.entries(space.entityPositions).flatMap(
+				([entityId, position]) => {
+					const entity = state.entities[entityId];
+					if (!entity) {
+						return [];
 					}
-					return [];
+					return [{ entity, position }];
 				},
 			);
 		}, [space, state.entities]);
@@ -182,7 +176,7 @@ export const GridSpace = memo(
 
 		const resolvedTitle = title ?? space.name ?? space.id;
 
-		// Validation callback using Phase 1 canEntityBePlaced
+		// Validation callback using read-layer placement guard
 		// When remapping, convert view position → data position before validating
 		const canPlaceAt = (
 			entityId: string,
@@ -193,7 +187,12 @@ export const GridSpace = memo(
 				isRemapping && viewCols !== undefined
 					? viewToData(position, dataCols, viewCols)
 					: position;
-			return canEntityBePlaced(state, entityId, targetSpaceId, dataPosition);
+			return isEntityPlacementAllowed(
+				state,
+				entityId,
+				targetSpaceId,
+				dataPosition,
+			);
 		};
 
 		// Placement callback - dispatches appropriate action
@@ -214,12 +213,14 @@ export const GridSpace = memo(
 			}
 
 			// Validate placement before dispatching
-			if (!canEntityBePlaced(state, entityId, toSpaceId, dataToPosition)) {
+			if (
+				!isEntityPlacementAllowed(state, entityId, toSpaceId, dataToPosition)
+			) {
 				return false;
 			}
 
 			// Find where the entity currently lives
-			const fromSpaceId = findEntitySpace(state, entityId);
+			const fromSpaceId = getEntitySpaceId(state, entityId);
 
 			// If moving within same space
 			if (fromSpaceId && fromSpaceId === toSpaceId) {

@@ -13,10 +13,8 @@ import type { Action } from "../../application/state/actions";
 import type { GameState } from "../../application/state/types";
 import type { ItemDataConfig } from "../../domain/entity/entity-data";
 import { createItemData } from "../../domain/entity/entity-fns";
-import type { GridSpaceData } from "../../domain/space/space-data";
+import { getEntitySpaceId, selectGridEmptyPositions } from "../../domain/read";
 import { isGridSpace } from "../../domain/space/space-data";
-import { gridGetEmptyPositions } from "../../domain/space/space-fns";
-import { findEntitySpace } from "../../domain/space/validation";
 import type { Commands } from "./types";
 
 export type CommandContext = {
@@ -36,7 +34,7 @@ export function createCommands(ctx: CommandContext): Commands {
 		position?: Record<string, unknown>,
 	) => {
 		const state = getState();
-		const fromSpaceId = findEntitySpace(state, entityId);
+		const fromSpaceId = getEntitySpaceId(state, entityId);
 
 		if (fromSpaceId) {
 			dispatch({
@@ -125,7 +123,7 @@ export function createCommands(ctx: CommandContext): Commands {
 				return false;
 			}
 
-			const emptyPositions = gridGetEmptyPositions(space as GridSpaceData);
+			const emptyPositions = selectGridEmptyPositions(state, spaceId);
 			if (emptyPositions.length === 0) {
 				return false;
 			}

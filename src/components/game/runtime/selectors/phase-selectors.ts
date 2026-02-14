@@ -4,12 +4,12 @@
  * Wraps resolvePhase from question-ast.ts for consistent API surface.
  */
 
-import {
-	type ConditionContext,
-	type PhaseResolution,
-	type PhaseRule,
-	resolvePhase,
+import type {
+	ConditionContext,
+	PhaseResolution,
+	PhaseRule,
 } from "../../domain/question/question-ast";
+import { selectDerivedPhase as selectDerivedPhaseFromRead } from "../../domain/read";
 
 /**
  * Derive the next phase from rules + condition context.
@@ -22,5 +22,10 @@ export function selectDerivedPhase<CK extends string>(
 	currentPhase: string,
 	fallbackPhase: string,
 ): PhaseResolution {
-	return resolvePhase(rules, context, currentPhase, fallbackPhase);
+	return selectDerivedPhaseFromRead(
+		rules,
+		context,
+		currentPhase,
+		fallbackPhase,
+	);
 }

@@ -90,10 +90,19 @@ const MyPage = ({ onQuestionComplete }) => {
 | [question-definition.md](./question-definition.md) | QuestionDefinition type reference (spaces, entities, phase rules) |
 | [behavior-system.md](./behavior-system.md) | Behavior rules, event triggers, guards, and EffectContext |
 | [runtime-api.md](./runtime-api.md) | useQuestionRuntime hook and API wrappers (WorldApi, ProgressApi, etc.) |
+| [adr-adt-read-transformer-effect.md](./adr-adt-read-transformer-effect.md) | Frozen architecture contract for ADT, Read, Transformer, and Effect layers |
 | [components.md](./components.md) | GameProvider, GameBoard, GridSpace, PoolSpace, Modal, Terminal, etc. |
 | [types.md](./types.md) | GameState, EntityData, SpaceData, GameEvent, ModalInstance |
 
 ## Architecture Overview
+
+Boundary contract:
+- ADT: data, constructors, type guards
+- Read: pure `is/get/select` queries
+- Transformer: deterministic `apply/try` transitions with explicit noop
+- Effect: runtime wrappers, hooks, and component orchestration
+
+See `adr-adt-read-transformer-effect.md` for the frozen contract and migration rules.
 
 ```
 Question Page

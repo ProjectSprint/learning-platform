@@ -102,7 +102,7 @@ import { GridSpace } from "@/components/game/engine";
 
 **Side effects:**
 - Reads space data from GameState by `config.id` or `id`.
-- Validates entity placement using `canEntityBePlaced()`.
+- Validates entity placement using `isEntityPlacementAllowed()`.
 - Dispatches `ENTITY_ADDED`, `ENTITY_MOVED`, or `ENTITY_POSITION_UPDATED` on drop.
 - Emits `ENTITY_CLICKED` event when entity is clicked (not dragged).
 - Uses ResizeObserver to track board dimensions for arrow positioning.

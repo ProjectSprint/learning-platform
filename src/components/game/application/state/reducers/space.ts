@@ -1,42 +1,25 @@
 /**
  * Space reducer.
  * Handles state updates for space-related actions using Immer for immutability.
- * Uses FP functions from domain/space/space-fns for space operations.
+ * Delegates transition semantics to domain/transformers/space.
  */
 
 import { produce } from "immer";
-import type { GridPosition, SpaceData } from "../../../domain/space/space-data";
 import {
-	isGridSpace,
-	isPathSpace,
-	isPoolSpace,
-	isQueueSpace,
-} from "../../../domain/space/space-data";
-import {
-	gridAdd,
-	gridCanAccept,
-	gridContains,
-	gridGetPosition,
-	gridRemove,
-	pathAdd,
-	pathRemove,
-	poolAdd,
-	poolRemove,
-	queueEnqueue,
-	queueRemove,
-} from "../../../domain/space/space-fns";
+	applyCreateSpace,
+	tryAddEntityToSpace,
+	tryMoveEntityAcrossSpaces,
+	tryRemoveEntityFromSpace,
+	tryRemoveSpace,
+	trySwapGridEntities,
+	tryUpdateGridEntityPosition,
+} from "../../../domain/transformers/space";
 import type { SpaceAction } from "../actions/space";
-import type { GameEventInput } from "../events";
 import { appendEvents, getNextActionId } from "../events";
 import type { GameState } from "../types";
 
 /**
  * Reduces space-related actions to update the game state.
- * Uses Immer's produce for immutable updates with mutable-like syntax.
- *
- * @param state Current game state
- * @param action Space action to process
- * @returns Updated game state
  */
 export const spaceReducer = (
 	state: GameState,
@@ -45,396 +28,104 @@ export const spaceReducer = (
 	switch (action.type) {
 		case "SPACE_CREATED": {
 			return produce(state, (draft) => {
-				const { space } = action.payload;
-				draft.spaces[space.id] = space;
+				applyCreateSpace(draft, action.payload.space);
 			});
 		}
 
 		case "SPACE_REMOVED": {
 			return produce(state, (draft) => {
-				const { spaceId } = action.payload;
-				const space = draft.spaces[spaceId];
-				if (!space) {
-					return;
-				}
-
-				// Remove the space - entities are still in state but not in any space
-				delete draft.spaces[spaceId];
+				tryRemoveSpace(draft, action.payload.spaceId);
 			});
 		}
 
 		case "ENTITY_ADDED": {
-			return produce(state, (draft) => {
-				const { entityId, spaceId, position } = action.payload;
-
-				const space = draft.spaces[spaceId];
-				const entity = draft.entities[entityId];
-
-				if (!space || !entity) {
+			const nextState = produce(state, (draft) => {
+				const transition = tryAddEntityToSpace(draft, {
+					entityId: action.payload.entityId,
+					spaceId: action.payload.spaceId,
+					position: action.payload.position,
+				});
+				if (transition.status !== "applied") {
 					return;
 				}
-
-				const events: GameEventInput[] = [];
-				const actionId = getNextActionId(draft.eventQueue);
-
-				// Use FP functions based on space type
-				if (isGridSpace(space) && position) {
-					const gridPos = position as GridPosition;
-					if (!gridCanAccept(space, entityId, gridPos)) {
-						return;
-					}
-					const added = gridAdd(space, entityId, gridPos);
-					if (added) {
-						events.push({
-							type: "ENTITY_ENTERED_SPACE",
-							entityId,
-							spaceId,
-							position: gridPos,
-						});
-					}
-				} else if (isPoolSpace(space)) {
-					const index =
-						typeof position === "object" && "index" in position
-							? (position as { index: number }).index
-							: undefined;
-					const added = poolAdd(space, entityId, index);
-					if (added) {
-						events.push({
-							type: "ENTITY_ENTERED_SPACE",
-							entityId,
-							spaceId,
-							position: index !== undefined ? { index } : undefined,
-						});
-					}
-				} else if (isPathSpace(space)) {
-					const added = pathAdd(space, entityId);
-					if (added) {
-						events.push({
-							type: "ENTITY_ENTERED_SPACE",
-							entityId,
-							spaceId,
-						});
-					}
-				} else if (isQueueSpace(space)) {
-					const added = queueEnqueue(space, entityId);
-					if (added) {
-						events.push({
-							type: "ENTITY_ENTERED_SPACE",
-							entityId,
-							spaceId,
-						});
-					}
-				}
-
-				if (events.length > 0) {
-					draft.eventQueue = appendEvents(draft.eventQueue, actionId, events);
-				}
+				draft.eventQueue = appendEvents(
+					draft.eventQueue,
+					getNextActionId(draft.eventQueue),
+					transition.value.events,
+				);
 			});
+			return nextState;
 		}
 
 		case "ENTITY_REMOVED": {
-			return produce(state, (draft) => {
-				const { entityId, spaceId } = action.payload;
-
-				const space = draft.spaces[spaceId];
-				const entity = draft.entities[entityId];
-
-				if (!space || !entity) {
+			const nextState = produce(state, (draft) => {
+				const transition = tryRemoveEntityFromSpace(draft, {
+					entityId: action.payload.entityId,
+					spaceId: action.payload.spaceId,
+				});
+				if (transition.status !== "applied") {
 					return;
 				}
-
-				const events: GameEventInput[] = [];
-				const actionId = getNextActionId(draft.eventQueue);
-
-				if (isGridSpace(space)) {
-					const position = gridGetPosition(space, entityId);
-					const removed = gridRemove(space, entityId);
-					if (removed) {
-						events.push({
-							type: "ENTITY_LEFT_SPACE",
-							entityId,
-							spaceId,
-							position,
-						});
-					}
-				} else if (isPoolSpace(space)) {
-					const index = space.entityIds.indexOf(entityId);
-					const removed = poolRemove(space, entityId);
-					if (removed) {
-						events.push({
-							type: "ENTITY_LEFT_SPACE",
-							entityId,
-							spaceId,
-							position: index >= 0 ? { index } : undefined,
-						});
-					}
-				} else if (isPathSpace(space)) {
-					const removed = pathRemove(space, entityId);
-					if (removed) {
-						events.push({
-							type: "ENTITY_LEFT_SPACE",
-							entityId,
-							spaceId,
-						});
-					}
-				} else if (isQueueSpace(space)) {
-					const removed = queueRemove(space, entityId);
-					if (removed) {
-						events.push({
-							type: "ENTITY_LEFT_SPACE",
-							entityId,
-							spaceId,
-						});
-					}
-				}
-
-				if (events.length > 0) {
-					draft.eventQueue = appendEvents(draft.eventQueue, actionId, events);
-				}
+				draft.eventQueue = appendEvents(
+					draft.eventQueue,
+					getNextActionId(draft.eventQueue),
+					transition.value.events,
+				);
 			});
+			return nextState;
 		}
 
 		case "ENTITY_MOVED": {
-			const { entityId, fromSpaceId, toSpaceId, toPosition } = action.payload;
-
-			return produce(state, (draft) => {
-				const fromSpace = draft.spaces[fromSpaceId];
-				const toSpace = draft.spaces[toSpaceId];
-				const entity = draft.entities[entityId];
-
-				if (!fromSpace || !toSpace || !entity) {
+			const nextState = produce(state, (draft) => {
+				const transition = tryMoveEntityAcrossSpaces(draft, {
+					entityId: action.payload.entityId,
+					fromSpaceId: action.payload.fromSpaceId,
+					toSpaceId: action.payload.toSpaceId,
+					toPosition: action.payload.toPosition,
+				});
+				if (transition.status !== "applied") {
 					return;
 				}
-
-				const actionId = getNextActionId(draft.eventQueue);
-				const fromPosition = isGridSpace(fromSpace)
-					? gridGetPosition(fromSpace, entityId)
-					: isPoolSpace(fromSpace)
-						? {
-								index: fromSpace.entityIds.indexOf(entityId),
-							}
-						: isPathSpace(fromSpace)
-							? undefined
-							: isQueueSpace(fromSpace)
-								? {
-										index: fromSpace.entityIds.indexOf(entityId),
-									}
-								: undefined;
-
-				// Check if entity is in source space
-				if (!spaceContains(fromSpace, entityId)) {
-					// Entity may already be at destination (React StrictMode double-invocation)
-					if (spaceContains(toSpace, entityId)) {
-						return;
-					}
-					return;
-				}
-
-				// Remove from source
-				if (isGridSpace(fromSpace)) {
-					gridRemove(fromSpace, entityId);
-				} else if (isPoolSpace(fromSpace)) {
-					poolRemove(fromSpace, entityId);
-				} else if (isPathSpace(fromSpace)) {
-					pathRemove(fromSpace, entityId);
-				} else if (isQueueSpace(fromSpace)) {
-					queueRemove(fromSpace, entityId);
-				}
-
-				// Add to destination
-				let added = false;
-				if (isGridSpace(toSpace) && toPosition) {
-					const gridPos = toPosition as GridPosition;
-					added =
-						gridCanAccept(toSpace, entityId, gridPos) &&
-						gridAdd(toSpace, entityId, gridPos);
-				} else if (isPoolSpace(toSpace)) {
-					const index =
-						typeof toPosition === "object" && "index" in toPosition
-							? (toPosition as { index: number }).index
-							: undefined;
-					added = poolAdd(toSpace, entityId, index);
-				} else if (isPathSpace(toSpace)) {
-					added = pathAdd(toSpace, entityId);
-				} else if (isQueueSpace(toSpace)) {
-					added = queueEnqueue(toSpace, entityId);
-				}
-
-				if (!added) {
-					// Rollback: add back to source
-					if (isGridSpace(fromSpace)) {
-						if (
-							fromPosition &&
-							typeof fromPosition === "object" &&
-							"row" in fromPosition &&
-							"col" in fromPosition
-						) {
-							gridAdd(fromSpace, entityId, fromPosition as GridPosition);
-						}
-					} else if (isPoolSpace(fromSpace)) {
-						const fromIndex =
-							fromPosition &&
-							typeof fromPosition === "object" &&
-							"index" in fromPosition
-								? (fromPosition as { index: number }).index
-								: 0;
-						poolAdd(fromSpace, entityId, Math.max(0, fromIndex));
-					} else if (isPathSpace(fromSpace)) {
-						pathAdd(fromSpace, entityId);
-					} else if (isQueueSpace(fromSpace)) {
-						queueEnqueue(fromSpace, entityId);
-					}
-					return;
-				}
-
-				const toPositionValue = isGridSpace(toSpace)
-					? gridGetPosition(toSpace, entityId)
-					: isPoolSpace(toSpace)
-						? {
-								index: toSpace.entityIds.indexOf(entityId),
-							}
-						: isPathSpace(toSpace)
-							? undefined
-							: isQueueSpace(toSpace)
-								? {
-										index: toSpace.entityIds.indexOf(entityId),
-									}
-								: undefined;
-
-				draft.eventQueue = appendEvents(draft.eventQueue, actionId, [
-					{
-						type: "ENTITY_MOVED",
-						entityId,
-						fromSpaceId,
-						toSpaceId,
-						fromPosition,
-						toPosition: toPositionValue,
-					},
-				]);
+				draft.eventQueue = appendEvents(
+					draft.eventQueue,
+					getNextActionId(draft.eventQueue),
+					transition.value.events,
+				);
 			});
+			return nextState;
 		}
 
 		case "ENTITY_POSITION_UPDATED": {
 			return produce(state, (draft) => {
-				const { entityId, spaceId, position } = action.payload;
-
-				const space = draft.spaces[spaceId];
-				const entity = draft.entities[entityId];
-
-				if (!space || !entity) {
-					return;
-				}
-
-				if (!spaceContains(space, entityId)) {
-					return;
-				}
-
-				if (isGridSpace(space) && position) {
-					const gridPos = position as GridPosition;
-					if (gridCanAccept(space, entityId, gridPos)) {
-						// Remove from current position and add to new position
-						gridRemove(space, entityId);
-						gridAdd(space, entityId, gridPos);
-					}
-				}
+				tryUpdateGridEntityPosition(draft, {
+					entityId: action.payload.entityId,
+					spaceId: action.payload.spaceId,
+					position: action.payload.position,
+				});
 			});
 		}
 
 		case "ENTITIES_SWAPPED": {
-			return produce(state, (draft) => {
-				const { entity1Id, space1Id, entity2Id, space2Id } = action.payload;
-
-				const space1 = draft.spaces[space1Id];
-				const space2 = draft.spaces[space2Id];
-
-				if (!space1 || !space2) {
+			const nextState = produce(state, (draft) => {
+				const transition = trySwapGridEntities(draft, {
+					entity1Id: action.payload.entity1Id,
+					space1Id: action.payload.space1Id,
+					entity2Id: action.payload.entity2Id,
+					space2Id: action.payload.space2Id,
+				});
+				if (transition.status !== "applied") {
 					return;
 				}
-
-				// Swap only works for grid spaces
-				if (!isGridSpace(space1) || !isGridSpace(space2)) {
-					return;
-				}
-
-				if (
-					!spaceContains(space1, entity1Id) ||
-					!spaceContains(space2, entity2Id)
-				) {
-					return;
-				}
-
-				// Get positions
-				const pos1 = gridGetPosition(space1, entity1Id);
-				const pos2 = gridGetPosition(space2, entity2Id);
-
-				const actionId = getNextActionId(draft.eventQueue);
-				const from1 = gridGetPosition(space1, entity1Id);
-				const from2 = gridGetPosition(space2, entity2Id);
-
-				if (space1Id === space2Id) {
-					// Same grid space: remove both and add at swapped positions
-					gridRemove(space1, entity1Id);
-					gridRemove(space1, entity2Id);
-					if (pos2) {
-						gridAdd(space1, entity1Id, pos2);
-					}
-					if (pos1) {
-						gridAdd(space1, entity2Id, pos1);
-					}
-				} else {
-					// Different grid spaces: transfer both entities
-					gridRemove(space1, entity1Id);
-					gridRemove(space2, entity2Id);
-					if (pos2) {
-						gridAdd(space2, entity1Id, pos2);
-					}
-					if (pos1) {
-						gridAdd(space1, entity2Id, pos1);
-					}
-				}
-
-				const to1 = gridGetPosition(space2, entity1Id);
-				const to2 = gridGetPosition(space1, entity2Id);
-
-				if (from1 && to1 && from2 && to2) {
-					draft.eventQueue = appendEvents(draft.eventQueue, actionId, [
-						{
-							type: "ENTITY_MOVED",
-							entityId: entity1Id,
-							fromSpaceId: space1Id,
-							toSpaceId: space2Id,
-							fromPosition: from1,
-							toPosition: to1,
-						},
-						{
-							type: "ENTITY_MOVED",
-							entityId: entity2Id,
-							fromSpaceId: space2Id,
-							toSpaceId: space1Id,
-							fromPosition: from2,
-							toPosition: to2,
-						},
-					]);
-				}
+				draft.eventQueue = appendEvents(
+					draft.eventQueue,
+					getNextActionId(draft.eventQueue),
+					transition.value.events,
+				);
 			});
+			return nextState;
 		}
 
 		default:
 			return state;
 	}
 };
-
-/**
- * Helper function to check if a space contains an entity (polymorphic).
- */
-function spaceContains(space: SpaceData, entityId: string): boolean {
-	return isGridSpace(space)
-		? gridContains(space, entityId)
-		: isPoolSpace(space)
-			? space.entityIds.includes(entityId)
-			: isPathSpace(space)
-				? space.entityIds.includes(entityId)
-				: isQueueSpace(space)
-					? space.entityIds.includes(entityId)
-					: false;
-}

@@ -20,8 +20,6 @@ describe("Domain Exports", () => {
 		expect(spaceModule.createPoolSpaceData).toBeDefined();
 
 		// Grid functions
-		expect(spaceModule.gridAdd).toBeDefined();
-		expect(spaceModule.gridRemove).toBeDefined();
 		expect(spaceModule.gridContains).toBeDefined();
 		expect(spaceModule.gridGetPosition).toBeDefined();
 		expect(spaceModule.gridCanAccept).toBeDefined();
@@ -34,16 +32,12 @@ describe("Domain Exports", () => {
 		expect(spaceModule.gridIsEmpty).toBeDefined();
 
 		// Pool functions
-		expect(spaceModule.poolAdd).toBeDefined();
-		expect(spaceModule.poolRemove).toBeDefined();
 		expect(spaceModule.poolContains).toBeDefined();
 		expect(spaceModule.poolGetEntityCount).toBeDefined();
 		expect(spaceModule.poolIsFull).toBeDefined();
 		expect(spaceModule.poolIsEmpty).toBeDefined();
 
 		// Path functions
-		expect(spaceModule.pathAdd).toBeDefined();
-		expect(spaceModule.pathRemove).toBeDefined();
 		expect(spaceModule.pathContains).toBeDefined();
 		expect(spaceModule.pathGetEntityCount).toBeDefined();
 		expect(spaceModule.pathIsFull).toBeDefined();
@@ -51,7 +45,6 @@ describe("Domain Exports", () => {
 
 		// Polymorphic functions
 		expect(spaceModule.spaceContains).toBeDefined();
-		expect(spaceModule.spaceRemove).toBeDefined();
 		expect(spaceModule.spaceGetEntityCount).toBeDefined();
 		expect(spaceModule.spaceIsFull).toBeDefined();
 		expect(spaceModule.spaceIsEmpty).toBeDefined();
@@ -69,9 +62,6 @@ describe("Domain Exports", () => {
 
 		// Utility functions
 		expect(entityModule.getEntityStateValue).toBeDefined();
-		expect(entityModule.setEntityStateValue).toBeDefined();
-		expect(entityModule.updateEntityState).toBeDefined();
-		expect(entityModule.resetEntityState).toBeDefined();
 		expect(entityModule.canPlaceIn).toBeDefined();
 		expect(entityModule.isDraggable).toBeDefined();
 		expect(entityModule.getItemTooltip).toBeDefined();
@@ -79,5 +69,21 @@ describe("Domain Exports", () => {
 		expect(entityModule.isInCategory).toBeDefined();
 		expect(entityModule.cloneEntityData).toBeDefined();
 		expect(entityModule.cloneItemData).toBeDefined();
+	});
+
+	it("should export read + transformer contracts", async () => {
+		const readModule = await import("../read");
+		const transformerModule = await import("../transformers");
+
+		expect(readModule.readApi).toBeDefined();
+		expect(readModule.getEntitySpaceId).toBeDefined();
+		expect(readModule.isEntityPlacementAllowed).toBeDefined();
+		expect(readModule.selectGridEmptyPositions).toBeDefined();
+
+		expect(transformerModule.transformApi).toBeDefined();
+		expect(transformerModule.tryAddEntityToSpace).toBeDefined();
+		expect(transformerModule.tryMoveEntityAcrossSpaces).toBeDefined();
+		expect(transformerModule.tryPatchEntity).toBeDefined();
+		expect(transformerModule.trySetPhase).toBeDefined();
 	});
 });

@@ -28,7 +28,4 @@ export {
 	getItemTooltip,
 	isDraggable,
 	isInCategory,
-	resetEntityState,
-	setEntityStateValue,
-	updateEntityState,
 } from "./entity-fns";

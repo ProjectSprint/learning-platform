@@ -5,6 +5,13 @@
  *   import { useQuestionRuntime, type QuestionDefinition } from "@/components/game/runtime";
  */
 
+// Selectors
+export {
+	getEntitySpaceId as selectEntitySpace,
+	selectDerivedPhase,
+	selectEntitiesByType,
+	selectEntityStateValue,
+} from "../domain/read";
 export type {
 	BehaviorDefinition,
 	BehaviorInspector,
@@ -90,13 +97,6 @@ export type { ExecutionFlowIntent } from "./intents/execution-flow";
 export type { InteractionSessionIntent } from "./intents/interaction-session";
 export type { ProgressIntent } from "./intents/progress";
 export type { WorldIntent } from "./intents/world";
-// Selectors
-export {
-	selectEntitiesByType,
-	selectEntitySpace,
-	selectEntityStateValue,
-} from "./selectors/entity-selectors";
-export { selectDerivedPhase } from "./selectors/phase-selectors";
 export {
 	createExecutionFlowApi,
 	createInteractionSessionApi,

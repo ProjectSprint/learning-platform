@@ -12,7 +12,6 @@ import type {
 	PoolSpaceConfig,
 	PoolSpaceData,
 } from "../domain/space/space-data";
-import { spaceContains } from "../domain/space/space-fns";
 import type { GameContextValue } from "../game-provider";
 import { useGameDispatch, useGameState } from "../game-provider";
 import { useDragContext } from "../presentation/interaction/drag/DragContext";
@@ -92,7 +91,15 @@ export const PoolSpace = memo(
 				// Check if in any other space
 				for (const [spaceKey, space] of Object.entries(state.spaces)) {
 					if (spaceKey === resolvedId) continue; // Skip the pool itself
-					if (spaceContains(space, entity.id)) {
+					const inSpace =
+						space.kind === "grid"
+							? entity.id in space.entityPositions
+							: space.kind === "pool" ||
+									space.kind === "path" ||
+									space.kind === "queue"
+								? space.entityIds.includes(entity.id)
+								: false;
+					if (inSpace) {
 						placed.add(entity.id);
 						break;
 					}
@@ -142,17 +149,26 @@ export const PoolSpace = memo(
 		// Handle entity return to pool
 		const handleEntityReturn = useCallback(
 			(entityId: string): boolean => {
-				// Find which space the entity is currently in
 				let currentSpaceId: string | null = null;
 				for (const [spaceKey, space] of Object.entries(state.spaces)) {
-					if (spaceKey === resolvedId) continue; // Skip the pool itself
-					if (spaceContains(space, entityId)) {
+					if (spaceKey === resolvedId) {
+						continue;
+					}
+					const inSpace =
+						space.kind === "grid"
+							? entityId in space.entityPositions
+							: space.kind === "pool" ||
+									space.kind === "path" ||
+									space.kind === "queue"
+								? space.entityIds.includes(entityId)
+								: false;
+					if (inSpace) {
 						currentSpaceId = spaceKey;
 						break;
 					}
 				}
 
-				if (!currentSpaceId) {
+				if (!currentSpaceId || currentSpaceId === resolvedId) {
 					// Entity not found in any space
 					return false;
 				}

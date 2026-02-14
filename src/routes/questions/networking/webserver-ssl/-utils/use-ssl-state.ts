@@ -5,8 +5,8 @@
 
 import { useCallback, useMemo } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
+import { isEntityInSpace } from "@/components/game/domain/read";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
-import { spaceContains } from "@/components/game/domain/space/space-fns";
 import { useGameState } from "@/components/game/game-provider";
 import { DEFAULT_DOMAIN } from "./constants";
 
@@ -35,13 +35,13 @@ export const useSslState = () => {
 			if (!space) return [];
 			const entities: EntityData[] = [];
 			for (const entity of Object.values(state.entities)) {
-				if (spaceContains(space, entity.id)) {
+				if (isEntityInSpace(state, entity.id, space.id)) {
 					entities.push(entity);
 				}
 			}
 			return entities;
 		},
-		[state.entities],
+		[state],
 	);
 
 	const browserEntities = useMemo(

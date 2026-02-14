@@ -8,7 +8,7 @@ import {
 	useState,
 } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import { findEntitySpace } from "@/components/game/domain/space/validation";
+import { getEntitySpaceId } from "@/components/game/domain/read";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
 import {
@@ -303,7 +303,7 @@ const SslGame = ({
 		}
 
 		for (const item of SSL_SETUP_INVENTORY_ITEMS) {
-			const currentSpaceId = findEntitySpace(state, item.id);
+			const currentSpaceId = getEntitySpaceId(state, item.id);
 			if (currentSpaceId) {
 				continue;
 			}
@@ -318,7 +318,7 @@ const SslGame = ({
 		}
 
 		for (const item of SSL_ITEMS_INVENTORY) {
-			const currentSpaceId = findEntitySpace(state, item.id);
+			const currentSpaceId = getEntitySpaceId(state, item.id);
 			if (currentSpaceId) {
 				continue;
 			}
@@ -446,7 +446,7 @@ const SslGame = ({
 				);
 			},
 			domain: (entity: EntityData) => {
-				const spaceId = findEntitySpace(state, entity.id);
+				const spaceId = getEntitySpaceId(state, entity.id);
 				if (spaceId !== "letsencrypt") {
 					return;
 				}
@@ -466,13 +466,13 @@ const SslGame = ({
 				interactionSession.openModal(buildIndexHtmlViewModal(entity.id));
 			},
 			"private-key": (entity: EntityData) => {
-				const installed = findEntitySpace(state, entity.id) === "port-443";
+				const installed = getEntitySpaceId(state, entity.id) === "port-443";
 				interactionSession.openModal(
 					buildPrivateKeyInfoModal(entity.id, installed),
 				);
 			},
 			certificate: (entity: EntityData) => {
-				const installed = findEntitySpace(state, entity.id) === "port-443";
+				const installed = getEntitySpaceId(state, entity.id) === "port-443";
 				interactionSession.openModal(
 					buildCertificateInfoModal(entity.id, installed),
 				);
@@ -511,7 +511,7 @@ const SslGame = ({
 	const isEntityClickable = useCallback(
 		(entity: EntityData) => {
 			if (entity.type === "domain") {
-				return findEntitySpace(state, entity.id) === "letsencrypt";
+				return getEntitySpaceId(state, entity.id) === "letsencrypt";
 			}
 			return [
 				"browser",
@@ -528,7 +528,7 @@ const SslGame = ({
 
 	const getEntityStatus = useCallback(
 		(entity: EntityData) => {
-			const spaceId = findEntitySpace(state, entity.id);
+			const spaceId = getEntitySpaceId(state, entity.id);
 			if (!spaceId) {
 				return {};
 			}

@@ -5,8 +5,13 @@
 
 import type { EntityData, ItemData } from "../../domain/entity/entity-data";
 import { isItemData } from "../../domain/entity/entity-data";
+import {
+	getEntitySpaceId,
+	getGridEntityPosition,
+	selectEntitiesByType,
+	selectEntityStateValue,
+} from "../../domain/read";
 import type { SpaceData } from "../../domain/space/space-data";
-import { gridGetPosition, spaceContains } from "../../domain/space/space-fns";
 import { useGameState } from "../../game-provider";
 
 /**
@@ -58,7 +63,7 @@ export const useEntities = (): Record<string, EntityData> => {
  */
 export const useEntitiesByType = (type: string): EntityData[] => {
 	const state = useGameState();
-	return Object.values(state.entities).filter((e) => e.type === type);
+	return selectEntitiesByType(state, type);
 };
 
 /**
@@ -95,8 +100,8 @@ export const useEntityStateValue = <T = unknown>(
 	entityId: string,
 	key: string,
 ): T | undefined => {
-	const state = useEntityState(entityId);
-	return (state[key] as T) ?? undefined;
+	const state = useGameState();
+	return selectEntityStateValue<T>(state, entityId, key);
 };
 
 /**
@@ -134,15 +139,11 @@ export const useEntityExists = (entityId: string): boolean => {
  */
 export const useEntitySpace = (entityId: string): SpaceData | undefined => {
 	const state = useGameState();
-
-	// Search all spaces for the entity
-	for (const space of Object.values(state.spaces)) {
-		if (spaceContains(space, entityId)) {
-			return space;
-		}
+	const spaceId = getEntitySpaceId(state, entityId);
+	if (!spaceId) {
+		return undefined;
 	}
-
-	return undefined;
+	return state.spaces[spaceId];
 };
 
 /**
@@ -163,18 +164,7 @@ export const useEntityPosition = (
 	entityId: string,
 ): Record<string, unknown> | undefined => {
 	const state = useGameState();
-
-	// Search all spaces for the entity
-	for (const space of Object.values(state.spaces)) {
-		if (space.kind === "grid") {
-			const pos = gridGetPosition(space, entityId);
-			if (pos) {
-				return pos;
-			}
-		}
-	}
-
-	return undefined;
+	return getGridEntityPosition(state, entityId);
 };
 
 /**

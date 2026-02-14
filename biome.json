@@ -24,7 +24,28 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"style": {
+				"noRestrictedImports": {
+					"level": "error",
+					"options": {
+						"patterns": [
+							{
+								"group": ["**/application/compat/**"],
+								"message": "Compatibility layer retired. Use domain/read and current GameState shapes."
+							},
+							{
+								"group": ["**/runtime/selectors/**"],
+								"message": "Import selector/read APIs from domain/read."
+							},
+							{
+								"group": ["**/domain/space/validation"],
+								"message": "Use domain/read (isEntityPlacementAllowed, getEntitySpaceId) instead."
+							}
+						]
+					}
+				}
+			}
 		}
 	},
 	"javascript": {

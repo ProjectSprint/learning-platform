@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { isItemData } from "@/components/game/domain/entity/entity-data";
-import { findEntitySpace } from "@/components/game/domain/space/validation";
-import type { Item, SpaceItemLocation } from "@/components/game/game-provider";
 import {
-	useAllSpaces,
-	useEngineEvents,
-	useGameState,
-} from "@/components/game/game-provider";
+	getEntitySpaceId,
+	getSpaceEntityIds,
+} from "@/components/game/domain/read";
+import type { Item } from "@/components/game/game-provider";
+import { useEngineEvents, useGameState } from "@/components/game/game-provider";
 import type {
 	InteractionSessionApi,
 	WorldApi,
@@ -73,6 +72,17 @@ type UseTcpPhaseOptions = {
 	onPoolExpand?: () => void;
 };
 
+type TcpSpaceItem = {
+	id: string;
+	type: string;
+	status: string;
+	data: Record<string, unknown>;
+};
+
+type TcpSpaceSnapshot = {
+	placedItems: TcpSpaceItem[];
+};
+
 export const useTcpPhase = ({
 	active,
 	world,
@@ -81,7 +91,26 @@ export const useTcpPhase = ({
 	onPoolExpand,
 }: UseTcpPhaseOptions) => {
 	const state = useGameState();
-	const spaces = useAllSpaces();
+	const spaces = useMemo<Record<string, TcpSpaceSnapshot>>(() => {
+		const result: Record<string, TcpSpaceSnapshot> = {};
+		for (const [spaceId] of Object.entries(state.spaces)) {
+			const entityIds = getSpaceEntityIds(state, spaceId);
+			const placedItems = entityIds
+				.map((entityId) => state.entities[entityId])
+				.filter((entity): entity is EntityData => entity !== undefined)
+				.map((entity) => ({
+					id: entity.id,
+					type: entity.type,
+					status:
+						typeof entity.state.status === "string"
+							? entity.state.status
+							: "normal",
+					data: entity.data,
+				}));
+			result[spaceId] = { placedItems };
+		}
+		return result;
+	}, [state]);
 
 	const [phase, setPhase] = useState<TcpPhase>("handshake-synack");
 	const [packetsSent, setPacketsSent] = useState(0);
@@ -264,7 +293,7 @@ export const useTcpPhase = ({
 						continue;
 					}
 
-					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
+					const currentSpaceId = getEntitySpaceId(stateRef.current, item.id);
 					if (currentSpaceId === targetPoolId) {
 						world.removeFromSpace(item.id, targetPoolId);
 					}
@@ -284,7 +313,7 @@ export const useTcpPhase = ({
 						});
 					}
 
-					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
+					const currentSpaceId = getEntitySpaceId(stateRef.current, item.id);
 					if (!currentSpaceId) {
 						world.addToSpace(item.id, targetPoolId);
 						continue;
@@ -359,7 +388,7 @@ export const useTcpPhase = ({
 	const findItemLocationLatest = useCallback((itemId: string) => {
 		for (const [spaceId, space] of Object.entries(spacesRef.current)) {
 			const item = space.placedItems.find(
-				(entry: SpaceItemLocation) => entry.id === itemId,
+				(entry: TcpSpaceItem) => entry.id === itemId,
 			);
 			if (item) {
 				return { item, spaceId };
@@ -370,7 +399,7 @@ export const useTcpPhase = ({
 
 	const updateItemIfNeeded = useCallback(
 		(
-			item: SpaceItemLocation,
+			item: TcpSpaceItem,
 			_spaceId: string,
 			updates: Record<string, unknown>,
 		) => {
@@ -393,7 +422,7 @@ export const useTcpPhase = ({
 	);
 
 	const removeItem = useCallback(
-		(item: SpaceItemLocation, spaceId: string) => {
+		(item: TcpSpaceItem, spaceId: string) => {
 			world.removeFromSpace(item.id, spaceId);
 		},
 		[world],
@@ -636,7 +665,7 @@ export const useTcpPhase = ({
 	}, [phase, triggerBreakingPoint, triggerNewClient]);
 
 	const handleSynAckArrival = useCallback(
-		(item: SpaceItemLocation, clientId: string) => {
+		(item: TcpSpaceItem, clientId: string) => {
 			removeItem(item, "internet");
 			ensureClientState(clientId);
 			clientStateRef.current[clientId].synAckSent = true;
@@ -687,7 +716,7 @@ export const useTcpPhase = ({
 	);
 
 	const handleDataArrival = useCallback(
-		(item: SpaceItemLocation, clientId: string) => {
+		(item: TcpSpaceItem, clientId: string) => {
 			removePoolItem(POOL_GROUP_IDS.dataPackets, item.id);
 			if (typeof item.data?.seq === "number") {
 				markPacketReceived(clientId, item.data.seq);
@@ -713,7 +742,7 @@ export const useTcpPhase = ({
 	);
 
 	const handleInternetItem = useCallback(
-		(item: SpaceItemLocation) => {
+		(item: TcpSpaceItem) => {
 			if (item.type === "syn-packet") {
 				updateItemIfNeeded(item, "internet", {
 					status: "warning",
@@ -813,10 +842,10 @@ export const useTcpPhase = ({
 		const internetSpace = spaces.internet;
 		if (!internetSpace) return;
 		const currentIds = new Set(
-			internetSpace.placedItems.map((item: SpaceItemLocation) => item.id),
+			internetSpace.placedItems.map((item: TcpSpaceItem) => item.id),
 		);
 		const newItems = internetSpace.placedItems.filter(
-			(item: SpaceItemLocation) => !prevInternetIdsRef.current.has(item.id),
+			(item: TcpSpaceItem) => !prevInternetIdsRef.current.has(item.id),
 		);
 
 		for (const item of newItems) {

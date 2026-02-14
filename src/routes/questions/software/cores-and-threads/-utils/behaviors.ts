@@ -4,7 +4,7 @@ import type {
 	EntityMovedEvent,
 	EntityUpdatedEvent,
 } from "@/components/game/application/state/types/events";
-import { findEntitySpace } from "@/components/game/domain/space/validation";
+import { getEntitySpaceId } from "@/components/game/domain/read";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
@@ -216,7 +216,7 @@ function createExecutionParts(
 				pathResumeToken: 0,
 			},
 		});
-		const currentSpaceId = findEntitySpace(ctx.state, partId);
+		const currentSpaceId = getEntitySpaceId(ctx.state, partId);
 		if (currentSpaceId) {
 			ctx.world.removeFromSpace(partId, currentSpaceId);
 		}
@@ -249,7 +249,7 @@ function moveNextPartToCore(
 	const partId = partIds[partIndex];
 
 	if (!partId) {
-		const currentSpaceId = findEntitySpace(ctx.state, app.appId);
+		const currentSpaceId = getEntitySpaceId(ctx.state, app.appId);
 		if (currentSpaceId) {
 			ctx.world.removeFromSpace(app.appId, currentSpaceId);
 		}
@@ -303,7 +303,7 @@ function beginExecution(
 	ctx.world.updateEntity(appId, { data: { appStatus: "allocating" } });
 	createExecutionParts(ctx, appId, appKey, laneId);
 
-	const currentSpaceId = findEntitySpace(ctx.state, appId);
+	const currentSpaceId = getEntitySpaceId(ctx.state, appId);
 	if (currentSpaceId) {
 		ctx.world.removeFromSpace(appId, currentSpaceId);
 	}
@@ -328,7 +328,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 	const appStatus = appEntity.data.appStatus;
 	if (appStatus !== "ready") return;
 
-	const currentSpaceId = findEntitySpace(ctx.state, appId);
+	const currentSpaceId = getEntitySpaceId(ctx.state, appId);
 	if (currentSpaceId !== SPACE_IDS.open) return;
 
 	const laneId = selectAvailableLane(ctx);

@@ -5,8 +5,11 @@
  */
 
 import type { GameState } from "../../application/state/types";
-import type { EntityData } from "../../domain/entity/entity-data";
-import { findEntitySpace } from "../../domain/space/validation";
+import {
+	getEntitySpaceId,
+	selectEntitiesByType as selectEntitiesByTypeFromRead,
+	selectEntityStateValue as selectEntityStateValueFromRead,
+} from "../../domain/read";
 
 /**
  * Find which space contains the given entity.
@@ -16,17 +19,14 @@ export function selectEntitySpace(
 	state: GameState,
 	entityId: string,
 ): string | null {
-	return findEntitySpace(state, entityId);
+	return getEntitySpaceId(state, entityId);
 }
 
 /**
  * Get all entities whose `type` matches the given type string.
  */
-export function selectEntitiesByType(
-	state: GameState,
-	type: string,
-): EntityData[] {
-	return Object.values(state.entities).filter((e) => e.type === type);
+export function selectEntitiesByType(state: GameState, type: string) {
+	return selectEntitiesByTypeFromRead(state, type);
 }
 
 /**
@@ -38,7 +38,5 @@ export function selectEntityStateValue<T = unknown>(
 	entityId: string,
 	key: string,
 ): T | undefined {
-	const entity = state.entities[entityId];
-	if (!entity) return undefined;
-	return entity.state[key] as T | undefined;
+	return selectEntityStateValueFromRead<T>(state, entityId, key);
 }

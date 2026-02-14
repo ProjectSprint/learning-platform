@@ -6,7 +6,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
-import { gridGetPosition } from "@/components/game/domain/space/space-fns";
 import type { DragEngine } from "@/components/game/engines";
 import type {
 	BoardItemStatus,
@@ -49,7 +48,7 @@ const entityToBoardItem = (
 	entity: EntityData,
 	space: GridSpaceData,
 ): SpaceItemLocation | null => {
-	const position = gridGetPosition(space, entity.id);
+	const position = space.entityPositions[entity.id];
 	if (!position || !("row" in position && "col" in position)) {
 		return null;
 	}

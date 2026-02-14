@@ -2,84 +2,79 @@
  * Core game reducer for phase and question status.
  */
 
+import { produce } from "immer";
+import {
+	applyCompleteQuestion,
+	tryAckEvents,
+	tryEmitEvents,
+	trySetPhase,
+	trySetQuestion,
+} from "../../../domain/transformers/game";
 import type { CoreAction } from "../actions/core";
+import type { GameEventInput } from "../events";
 import { appendEvents, getNextActionId } from "../events";
 import type { GameState } from "../types";
+
+const appendTransitionEvents = (
+	state: GameState,
+	events: GameEventInput[],
+): GameState => {
+	if (events.length === 0) {
+		return state;
+	}
+	return {
+		...state,
+		eventQueue: appendEvents(
+			state.eventQueue,
+			getNextActionId(state.eventQueue),
+			events,
+		),
+	};
+};
 
 export const coreReducer = (
 	state: GameState,
 	action: CoreAction,
 ): GameState => {
 	switch (action.type) {
-		case "SET_QUESTION":
-			if (
-				state.question.id === action.payload.id &&
-				(action.payload.status === undefined ||
-					state.question.status === action.payload.status)
-			) {
-				return state;
-			}
-			return {
-				...state,
-				question: {
-					id: action.payload.id,
-					status: action.payload.status ?? state.question.status,
-				},
-			};
-		case "SET_PHASE":
-			if (state.phase === action.payload.phase) {
-				return state;
-			}
-			return {
-				...state,
-				phase: action.payload.phase,
-				eventQueue: appendEvents(
-					state.eventQueue,
-					getNextActionId(state.eventQueue),
-					[
-						{
-							type: "PHASE_CHANGED",
-							from: state.phase,
-							to: action.payload.phase,
-						},
-					],
-				),
-			};
-		case "COMPLETE_QUESTION":
-			return {
-				...state,
-				question: {
-					...state.question,
-					status: "completed",
-				},
-			};
+		case "SET_QUESTION": {
+			return produce(state, (draft) => {
+				trySetQuestion(draft, action.payload);
+			});
+		}
+		case "SET_PHASE": {
+			const nextState = produce(state, (draft) => {
+				const transition = trySetPhase(draft, { phase: action.payload.phase });
+				if (transition.status !== "applied") {
+					return;
+				}
+				draft.eventQueue = appendEvents(
+					draft.eventQueue,
+					getNextActionId(draft.eventQueue),
+					transition.value.events,
+				);
+			});
+			return nextState;
+		}
+		case "COMPLETE_QUESTION": {
+			return produce(state, (draft) => {
+				applyCompleteQuestion(draft);
+			});
+		}
 		case "ACK_EVENTS": {
-			const { engineId, cursor } = action.payload;
-			const nextCursor = Math.min(cursor, state.eventQueue.lastEventId);
-			const currentCursor = state.eventCursors[engineId] ?? 0;
-			if (nextCursor <= currentCursor) {
-				return state;
-			}
-			return {
-				...state,
-				eventCursors: {
-					...state.eventCursors,
-					[engineId]: nextCursor,
-				},
-			};
+			return produce(state, (draft) => {
+				tryAckEvents(draft, action.payload);
+			});
 		}
 		case "EMIT_EVENTS": {
-			if (action.payload.events.length === 0) {
+			const transition = tryEmitEvents(action.payload.events);
+			if (transition.status !== "applied") {
 				return state;
 			}
-			return {
-				...state,
-				eventQueue: appendEvents(
-					state.eventQueue,
-					getNextActionId(state.eventQueue),
-					action.payload.events,
-				),
-			};
+			return appendTransitionEvents(
+				state,
+				transition.value.events as GameEventInput[],
+			);
 		}
 		default:
 			return state;
