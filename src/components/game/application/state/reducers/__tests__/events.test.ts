@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createItemData } from "../../../../domain/entity/entity-fns";
-import {
-	createGridSpaceData,
-	gridGetPosition,
-} from "../../../../domain/space/space-fns";
+import { createGridSpaceData, createItemData } from "../../../../domain/adt";
 import { applicationReducer, createDefaultState } from "../index";
 
 const metrics = { cellWidth: 1, cellHeight: 1 };
@@ -212,11 +208,11 @@ describe("game events", () => {
 		expect(fromSpace?.kind).toBe("grid");
 		expect(toSpace?.kind).toBe("grid");
 		if (fromSpace?.kind === "grid" && toSpace?.kind === "grid") {
-			expect(gridGetPosition(fromSpace, "item-from")).toEqual({
+			expect(fromSpace.entityPositions["item-from"]).toEqual({
 				row: 0,
 				col: 0,
 			});
-			expect(gridGetPosition(toSpace, "item-from")).toBeUndefined();
+			expect(toSpace.entityPositions["item-from"]).toBeUndefined();
 		}
 		expect(state.eventQueue.events).toHaveLength(0);
 	});

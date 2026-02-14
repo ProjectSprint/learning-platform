@@ -1,15 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { createItemData } from "../entity/entity-fns";
+import {
+	createGridSpaceData,
+	createItemData,
+	createPoolSpaceData,
+} from "../adt";
 import {
 	assertSingleSpaceOwnership,
 	findOwnershipViolations,
 } from "../invariants";
-import {
-	createGridSpaceData,
-	createPoolSpaceData,
-	gridAdd,
-	poolAdd,
-} from "../space/space-fns";
 
 const metrics = { cellWidth: 1, cellHeight: 1 };
 
@@ -28,7 +26,7 @@ describe("domain invariants", () => {
 			allowedPlaces: ["board", "inventory"],
 		});
 
-		gridAdd(board, entity.id, { row: 0, col: 0 });
+		board.entityPositions[entity.id] = { row: 0, col: 0 };
 		const state = {
 			entities: { [entity.id]: entity },
 			spaces: { board, inventory },
@@ -52,8 +50,8 @@ describe("domain invariants", () => {
 			allowedPlaces: ["board", "inventory"],
 		});
 
-		gridAdd(board, entity.id, { row: 0, col: 0 });
-		poolAdd(inventory, entity.id);
+		board.entityPositions[entity.id] = { row: 0, col: 0 };
+		inventory.entityIds.push(entity.id);
 		const state = {
 			entities: { [entity.id]: entity },
 			spaces: { board, inventory },

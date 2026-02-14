@@ -11,15 +11,15 @@
  */
 
 import type { Action } from "../../application/state/actions";
-import { createItemData } from "../../domain/entity/entity-fns";
 import {
 	createCustomSpaceData,
 	createGridSpaceData,
+	createItemData,
 	createMeterSpaceData,
 	createPathSpaceData,
 	createPoolSpaceData,
 	createQueueSpaceData,
-} from "../../domain/space/space-fns";
+} from "../../domain/adt";
 import type { QuestionDefinition } from "../definition/types";
 
 type Dispatch = (action: Action) => void;

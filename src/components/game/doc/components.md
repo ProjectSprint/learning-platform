@@ -208,8 +208,8 @@ Declarative FIFO queue renderer. Displays entities in ordered sequence with
 configurable direction.
 
 Queue spaces are data-only — entities are managed through the queue operations
-(`queueEnqueue`, `queueDequeue`, `queueRemove`) via the reducer, not through
-drag-and-drop. Use behavior handlers to enqueue/dequeue entities.
+(`world.addToSpace`, `world.removeFromSpace`, `world.moveEntity`) via runtime
+commands/transformers, not through direct page mutation loops.
 
 **Space definition:**
 
@@ -230,18 +230,10 @@ drag-and-drop. Use behavior handlers to enqueue/dequeue entities.
 }
 ```
 
-**Queue operations** (available in `space-fns`):
+**Queue operations**:
 
-| Function | Description |
-|----------|-------------|
-| `queueEnqueue(space, entityId)` | Add entity to back. Returns `false` if full. |
-| `queueDequeue(space)` | Remove and return front entity ID. |
-| `queueRemove(space, entityId)` | Remove specific entity. |
-| `queueContains(space, entityId)` | Check if entity is in queue. |
-| `queuePeek(space)` | Look at front entity without removing. |
-| `queueIsFull(space)` | Check if queue is at `maxDepth`. |
-| `queueIsEmpty(space)` | Check if queue has no entities. |
-| `queueGetEntityCount(space)` | Current entity count. |
+- Read state through `domain/read` selectors (`getSpaceEntityIds`, `selectSpaceEntityCount`, `selectSpaceIsFull`, `selectSpaceIsEmpty`).
+- Mutate through runtime/world commands (`world.addToSpace`, `world.removeFromSpace`, `world.moveEntity`) or transformer APIs.
 
 ---
 

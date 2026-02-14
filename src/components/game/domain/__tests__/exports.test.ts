@@ -5,70 +5,53 @@
 import { describe, expect, it } from "vitest";
 
 describe("Domain Exports", () => {
-	it("should export Space factory functions from FP model", async () => {
+	it("should export ADT constructors and brand helpers", async () => {
+		const adtModule = await import("../adt");
+
+		expect(adtModule.toEntityId).toBeDefined();
+		expect(adtModule.toSpaceId).toBeDefined();
+		expect(adtModule.toPhaseId).toBeDefined();
+		expect(adtModule.fromEntityId).toBeDefined();
+		expect(adtModule.fromSpaceId).toBeDefined();
+		expect(adtModule.fromPhaseId).toBeDefined();
+
+		expect(adtModule.createEntityData).toBeDefined();
+		expect(adtModule.createItemData).toBeDefined();
+		expect(adtModule.cloneEntityData).toBeDefined();
+		expect(adtModule.cloneItemData).toBeDefined();
+		expect(adtModule.createGridSpaceData).toBeDefined();
+		expect(adtModule.createPoolSpaceData).toBeDefined();
+		expect(adtModule.createPathSpaceData).toBeDefined();
+		expect(adtModule.createQueueSpaceData).toBeDefined();
+		expect(adtModule.createMeterSpaceData).toBeDefined();
+		expect(adtModule.createCustomSpaceData).toBeDefined();
+	});
+
+	it("should keep space module focused on data contracts", async () => {
 		const spaceModule = await import("../space");
 
 		// Type guards
 		expect(spaceModule.isGridSpace).toBeDefined();
 		expect(spaceModule.isPathSpace).toBeDefined();
 		expect(spaceModule.isPoolSpace).toBeDefined();
+		expect(spaceModule.isQueueSpace).toBeDefined();
+		expect(spaceModule.isMeterSpace).toBeDefined();
 		expect(spaceModule.isValidGridPosition).toBeDefined();
 
-		// Factory functions
-		expect(spaceModule.createGridSpaceData).toBeDefined();
-		expect(spaceModule.createPathSpaceData).toBeDefined();
-		expect(spaceModule.createPoolSpaceData).toBeDefined();
-
-		// Grid functions
-		expect(spaceModule.gridContains).toBeDefined();
-		expect(spaceModule.gridGetPosition).toBeDefined();
-		expect(spaceModule.gridCanAccept).toBeDefined();
-		expect(spaceModule.gridGetEntitiesAt).toBeDefined();
-		expect(spaceModule.gridIsOccupied).toBeDefined();
-		expect(spaceModule.gridGetEmptyPositions).toBeDefined();
-		expect(spaceModule.gridGetOccupiedPositions).toBeDefined();
-		expect(spaceModule.gridGetEntityCount).toBeDefined();
-		expect(spaceModule.gridIsFull).toBeDefined();
-		expect(spaceModule.gridIsEmpty).toBeDefined();
-
-		// Pool functions
-		expect(spaceModule.poolContains).toBeDefined();
-		expect(spaceModule.poolGetEntityCount).toBeDefined();
-		expect(spaceModule.poolIsFull).toBeDefined();
-		expect(spaceModule.poolIsEmpty).toBeDefined();
-
-		// Path functions
-		expect(spaceModule.pathContains).toBeDefined();
-		expect(spaceModule.pathGetEntityCount).toBeDefined();
-		expect(spaceModule.pathIsFull).toBeDefined();
-		expect(spaceModule.pathIsEmpty).toBeDefined();
-
-		// Polymorphic functions
-		expect(spaceModule.spaceContains).toBeDefined();
-		expect(spaceModule.spaceGetEntityCount).toBeDefined();
-		expect(spaceModule.spaceIsFull).toBeDefined();
-		expect(spaceModule.spaceIsEmpty).toBeDefined();
+		expect("createGridSpaceData" in spaceModule).toBe(false);
+		expect("gridContains" in spaceModule).toBe(false);
+		expect("spaceContains" in spaceModule).toBe(false);
 	});
 
-	it("should export Entity factory functions from FP model", async () => {
+	it("should keep entity module focused on data contracts", async () => {
 		const entityModule = await import("../entity");
 
 		// Type guards
 		expect(entityModule.isItemData).toBeDefined();
-
-		// Factory functions
-		expect(entityModule.createEntityData).toBeDefined();
-		expect(entityModule.createItemData).toBeDefined();
-
-		// Utility functions
-		expect(entityModule.getEntityStateValue).toBeDefined();
-		expect(entityModule.canPlaceIn).toBeDefined();
-		expect(entityModule.isDraggable).toBeDefined();
-		expect(entityModule.getItemTooltip).toBeDefined();
-		expect(entityModule.getItemIcon).toBeDefined();
-		expect(entityModule.isInCategory).toBeDefined();
-		expect(entityModule.cloneEntityData).toBeDefined();
-		expect(entityModule.cloneItemData).toBeDefined();
+		expect("createEntityData" in entityModule).toBe(false);
+		expect("createItemData" in entityModule).toBe(false);
+		expect("canPlaceIn" in entityModule).toBe(false);
+		expect("getEntityStateValue" in entityModule).toBe(false);
 	});
 
 	it("should export read + transformer contracts", async () => {

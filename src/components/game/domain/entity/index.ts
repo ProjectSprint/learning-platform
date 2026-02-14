@@ -1,6 +1,6 @@
 /**
  * Entity domain exports.
- * Provides access to all entity types, data, and utility functions.
+ * Provides access to entity data contracts and type guards.
  */
 
 // Types
@@ -15,17 +15,3 @@ export type {
 
 // Type guards
 export { isItemData } from "./entity-data";
-
-// Factory and utility functions
-export {
-	canPlaceIn,
-	cloneEntityData,
-	cloneItemData,
-	createEntityData,
-	createItemData,
-	getEntityStateValue,
-	getItemIcon,
-	getItemTooltip,
-	isDraggable,
-	isInCategory,
-} from "./entity-fns";

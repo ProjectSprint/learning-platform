@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createItemData } from "../../domain/entity/entity-fns";
+import { createItemData } from "../../domain/adt";
 import type { Commands } from "../commands/types";
 import {
 	createInteractionSessionApi,

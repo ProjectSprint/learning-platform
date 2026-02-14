@@ -41,6 +41,14 @@
 							{
 								"group": ["**/domain/space/validation"],
 								"message": "Use domain/read (isEntityPlacementAllowed, getEntitySpaceId) instead."
+							},
+							{
+								"group": ["**/domain/entity/entity-fns"],
+								"message": "Entity constructors moved to domain/adt. Use domain/read + domain/transformers for behavior logic."
+							},
+							{
+								"group": ["**/domain/space/space-fns"],
+								"message": "Space constructors moved to domain/adt. Use domain/read + domain/transformers for behavior logic."
 							}
 						]
 					}

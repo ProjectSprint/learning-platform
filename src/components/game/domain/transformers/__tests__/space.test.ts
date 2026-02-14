@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createItemData } from "../../entity/entity-fns";
-import { createGridSpaceData, gridAdd } from "../../space/space-fns";
+import { createGridSpaceData, createItemData } from "../../adt";
 import { tryAddEntityToSpace, tryMoveEntityAcrossSpaces } from "../space";
 
 const metrics = { cellWidth: 1, cellHeight: 1 };
@@ -58,8 +57,8 @@ describe("domain/transformers/space", () => {
 			metrics,
 		});
 
-		gridAdd(from, "item-1", { row: 0, col: 0 });
-		gridAdd(to, "item-2", { row: 0, col: 0 });
+		from.entityPositions["item-1"] = { row: 0, col: 0 };
+		to.entityPositions["item-2"] = { row: 0, col: 0 };
 
 		const state = {
 			entities: {

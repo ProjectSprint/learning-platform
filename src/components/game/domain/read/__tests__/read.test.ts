@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createItemData } from "../../entity/entity-fns";
 import {
 	createGridSpaceData,
+	createItemData,
 	createPoolSpaceData,
-	gridAdd,
-	poolAdd,
-} from "../../space/space-fns";
+} from "../../adt";
 import {
 	getEntitySpaceId,
 	getGridEntityPosition,
@@ -32,8 +30,8 @@ describe("domain/read", () => {
 			allowedPlaces: ["board", "inventory"],
 		});
 
-		gridAdd(board, item.id, { row: 1, col: 0 });
-		poolAdd(pool, "other");
+		board.entityPositions[item.id] = { row: 1, col: 0 };
+		pool.entityIds.push("other");
 
 		const state = {
 			entities: {
@@ -92,7 +90,7 @@ describe("domain/read", () => {
 			data: { type: "pc" },
 		});
 
-		gridAdd(board, router.id, { row: 0, col: 0 });
+		board.entityPositions[router.id] = { row: 0, col: 0 };
 
 		const state = {
 			entities: {

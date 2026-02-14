@@ -2,8 +2,8 @@
 
 The domain layer is split into explicit boundaries:
 
-- `adt/`: foundational types (brands, readonly helpers)
-- `entity/` + `space/`: plain data models, constructors, and type guards
+- `adt/`: foundational types + constructors (brands, readonly helpers, create*)
+- `entity/` + `space/`: plain data models and type guards
 - `read/`: pure query APIs (`is*`, `get*`, `select*`)
 - `transformers/`: deterministic transition APIs (`apply*`, `try*`)
 - `invariants.ts`: runtime invariant checks used as safety rails

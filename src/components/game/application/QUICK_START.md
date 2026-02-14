@@ -15,8 +15,11 @@ export const MyQuestion = ({ onQuestionComplete }) => (
 ## 2) Initialize Explicitly
 
 ```ts
-import { createItemData } from "@/components/game/domain/entity/entity-fns";
-import { createGridSpaceData, createPoolSpaceData } from "@/components/game/domain/space/space-fns";
+import {
+	createGridSpaceData,
+	createItemData,
+	createPoolSpaceData,
+} from "@/components/game/domain/adt";
 import type { GameAction } from "@/components/game/game-provider";
 
 type GameDispatch = (action: GameAction) => void;
@@ -102,4 +105,3 @@ Intent channels:
 - Do not use deprecated world names such as `CREATE_SPACE`, `ADD_ENTITY_TO_SPACE`, `MOVE_ENTITY_BETWEEN_SPACES`.
 - Do not rely on space mount side effects for world creation.
 - Keep placement authority in space logic, not page-level imperative mutation code.
-

@@ -1,3 +1,9 @@
+export {
+	cloneEntityData,
+	cloneItemData,
+	createEntityData,
+	createItemData,
+} from "./entity";
 export type {
 	Branded,
 	EntityId,
@@ -13,3 +19,11 @@ export {
 	toSpaceId,
 } from "./ids";
 export type { ReadonlyDeep } from "./readonly";
+export {
+	createCustomSpaceData,
+	createGridSpaceData,
+	createMeterSpaceData,
+	createPathSpaceData,
+	createPoolSpaceData,
+	createQueueSpaceData,
+} from "./space";

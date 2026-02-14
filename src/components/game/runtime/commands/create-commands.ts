@@ -11,8 +11,8 @@
 
 import type { Action } from "../../application/state/actions";
 import type { GameState } from "../../application/state/types";
+import { createItemData } from "../../domain/adt";
 import type { ItemDataConfig } from "../../domain/entity/entity-data";
-import { createItemData } from "../../domain/entity/entity-fns";
 import { getEntitySpaceId, selectGridEmptyPositions } from "../../domain/read";
 import { isGridSpace } from "../../domain/space/space-data";
 import type { Commands } from "./types";

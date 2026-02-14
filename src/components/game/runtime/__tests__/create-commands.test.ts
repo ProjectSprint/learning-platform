@@ -4,14 +4,13 @@ import {
 	applicationReducer,
 	createDefaultState,
 } from "../../application/state/reducers";
-import { createItemData } from "../../domain/entity/entity-fns";
-import { isGridSpace, isPoolSpace } from "../../domain/space/space-data";
 import {
 	createGridSpaceData,
+	createItemData,
 	createPoolSpaceData,
-	gridContains,
-	poolContains,
-} from "../../domain/space/space-fns";
+} from "../../domain/adt";
+import { isEntityInSpace } from "../../domain/read";
+import { isGridSpace, isPoolSpace } from "../../domain/space/space-data";
 import { createCommands } from "../commands/create-commands";
 
 describe("createCommands", () => {
@@ -62,7 +61,7 @@ describe("createCommands", () => {
 			throw new Error("unexpected space kind");
 		}
 
-		expect(poolContains(nextInventory, entity.id)).toBe(false);
-		expect(gridContains(nextBoard, entity.id)).toBe(true);
+		expect(isEntityInSpace(state, entity.id, nextInventory.id)).toBe(false);
+		expect(isEntityInSpace(state, entity.id, nextBoard.id)).toBe(true);
 	});
 });

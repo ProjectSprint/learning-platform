@@ -63,7 +63,7 @@ Rules:
 
 ## Migration Policy
 - Compatibility bridge modules are removed once callsites are migrated.
-- Deprecated imports (`application/compat/*`, `domain/space/validation`, runtime selector wrappers) are blocked by lint restrictions.
+- Deprecated helper surfaces (`application/compat/*`, `domain/entity/entity-fns`, `domain/space/space-fns`, `domain/space/validation`, runtime selector wrappers) are blocked by lint restrictions.
 - New route logic must not introduce alternative mutation pathways.
 
 ## Verification Gates
