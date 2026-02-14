@@ -1,1014 +1,682 @@
-# RuntimeAPI — useQuestionRuntime and API Wrappers
+# Runtime API: Flow-Ordered Question Author Reference
 
-The runtime API provides a single hook that replaces manual dispatch patterns
-and four domain-specific API wrappers for safe state mutation.
+This document is the canonical method reference for authors building files under
+`src/routes/questions/**`.
 
-```typescript
-import { useQuestionRuntime } from "@/components/game/runtime";
-import type { QuestionRuntime, WorldApi, ProgressApi, InteractionSessionApi, ExecutionFlowApi } from "@/components/game/runtime";
-```
+It is intentionally explicit so humans and AI agents can follow one model:
 
-## useQuestionRuntime
+1. Initialize runtime once.
+2. Define structure declaratively.
+3. Read state via guarded selectors.
+4. React to events via behavior triggers.
+5. Mutate through runtime APIs only.
+6. Use advanced internals only when the primary API cannot express the case.
 
-The primary hook for question pages. Provides everything a page needs:
-bootstrap, state access, event subscription, behavior context, and API wrappers.
+If this document conflicts with older examples, follow this document.
 
-```typescript
-function useQuestionRuntime<CK extends string, TContext>(
-  engineId: string,
-  definition?: QuestionDefinition<CK, TContext>,
-): QuestionRuntime<TContext>;
-```
+## Scope
 
-**Parameters:**
+This file documents callable exports that question code can import from game
+modules, grouped by authoring flow. For each group, you get:
 
-- `engineId` — Unique engine ID for event subscription (e.g. `"dhcp-page"`).
-  Each page should use a distinct ID.
-- `definition` — Optional QuestionDefinition. When provided, the runtime
-  bootstraps game state on mount and activates the behavior reactor.
+- What each method is for.
+- Side effects.
+- Usage examples.
+- Do and don't guardrails.
 
-### Return Type: QuestionRuntime
+## Import Paths You Should Prefer
 
-```typescript
-type QuestionRuntime<TContext> = {
-  world: WorldApi;                     // Entity/space mutations
-  progress: ProgressApi;               // Question completion
-  executionFlow: ExecutionFlowApi;     // Phase orchestration
-  interactionSession: InteractionSessionApi;  // Modal/terminal/phase control
-  interactionState: InteractionSessionState;  // React-local ephemeral state
-  state: GameState;                    // Current game state (read-only)
-  phase: string;                       // Shortcut for state.phase
-  isCompleted: boolean;                // Shortcut for state.question.status === "completed"
-  events: GameEvent[];                 // Pending events for this engine
-  ack: () => void;                     // Acknowledge processed events
-  behaviorContext: TContext;            // Current behavior context value
-  registerTerminalFinish: MutableRefObject<(() => void) | null>;  // Terminal finish callback ref
-};
-```
+- `@/components/game/runtime`
+- `@/components/game/game-provider`
+- `@/components/game/engine`
+- `@/components/game/engines`
+- `@/components/game/domain/adt`
+- `@/components/game/domain/read`
 
-### Side Effects
+Advanced paths (use intentionally):
 
-1. **Bootstrap (once)** — If definition is provided, dispatches init actions on
-   mount: SET_QUESTION, SET_PHASE, SPACE_CREATED (per space), ENTITY_CREATED +
-   ENTITY_ADDED (only when entity has `initialSpace`). Guarded by ref, runs
-   exactly once.
+- `@/components/game/runtime/behavior`
+- `@/components/game/domain/transformers`
+- `@/components/game/application`
+- `@/components/game/domain/question`
+- `@/components/game/domain/validation`
+- `@/components/game/infrastructure`
 
-2. **Validation (every render)** — Validates the definition and throws if
-   invalid. This is intentional: invalid definitions should fail fast.
+Forbidden legacy imports:
 
-3. **Behavior reactor (every render with events)** — When `events.length > 0`,
-   processes events through behavior rules asynchronously, then calls `ack()`.
-
-4. **Terminal bridge** — Creates a stable ref-based bridge to terminal store
-   functions (writeOutput, clearHistory) so behavior handlers can access
-   terminal without stale closures.
-
-5. **Behavior scheduler lifecycle** — Runtime instantiates an internal
-   `QuestionScheduler` and disposes it on unmount. `EffectContext.schedule`
-   uses this scheduler so delayed behavior effects are keyed and cancellable.
-
-### Bootstrap Lifecycle Details
-
-Bootstrap is deterministic and one-time per mounted page instance:
-
-1. Definition validation runs.
-2. Question metadata/phase are initialized.
-3. Spaces are created from `definition.spaces`.
-4. Entities are created from `definition.entities`.
-5. Entities with `initialSpace` are placed into spaces.
-
-Practical timing note:
-- Your page component may render once before all bootstrap actions are reflected
-  in `state`.
-- Space-dependent UI (`GridSpace`, `PoolSpace`, `CustomSpace`) should tolerate
-  "space not ready yet" on initial render.
-
-Recommended pattern:
-
-```typescript
-const boardReady = Boolean(
-  state.spaces.internet &&
-  state.spaces["client-a"]?.kind === "custom" &&
-  state.spaces["client-b"]?.kind === "custom",
-);
-
-return boardReady ? <GameBoard>{/* board content */}</GameBoard> : null;
-```
-
-Use whatever readiness condition matches your question; the key is to avoid
-assuming every space exists on render zero.
-
-### Behavior-First Runtime Flow
-
-Treat `useQuestionRuntime()` as the boundary between orchestration and rules:
-
-- **Page layer**: wires UI and lifecycle concerns (drawer, hints, terminal
-  visibility, navigation callback, phase-rule resolution).
-- **Behavior layer**: owns game rule mutations and decision logic using
-  `world`, `interaction`, and `progress`.
-
-This split prevents duplicate logic between `useEffect` handlers and behavior
-rules, and makes event processing easier to reason about.
-
-Recommended:
-- derive render/UI state from `behaviorContext`
-- keep page effects for wiring concerns only (navigation, drawers, terminal)
-- keep delayed/queued rule transitions inside behaviors via `schedule`
-
-### Usage Pattern
-
-```typescript
-const MyPage = ({ onQuestionComplete }: { onQuestionComplete: () => void }) => {
-  const {
-    world,
-    interactionSession,
-    state,
-    behaviorContext,
-    isCompleted,
-    registerTerminalFinish,
-  } = useQuestionRuntime("my-page", MY_DEFINITION);
-
-  const gameCtx = useGameCtx();
-  const dragEngine = useDragEngine();
-  const terminalEngine = useTerminalEngine({});
-
-  // Wire terminal finish to behavior system
-  registerTerminalFinish.current = terminalEngine.finish;
-
-  // Watch for navigation signal from behaviors
-  useEffect(() => {
-    if (behaviorContext.navigateAway) {
-      onQuestionComplete();
-    }
-  }, [behaviorContext.navigateAway, onQuestionComplete]);
-
-  // Resolve phase rules
-  useEffect(() => {
-    const context = { dragStatus: dragEngine.progress.status, questionStatus: state.question.status };
-    const resolved = resolvePhase(MY_DEFINITION.phaseRules, context, state.phase, "setup");
-    if (state.phase !== resolved.nextPhase) {
-      interactionSession.requestPhaseTransition(resolved.nextPhase, "my.phase_rules");
-    }
-  }, [dragEngine.progress.status, state.phase, state.question.status]);
-
-  return ( /* render tree */ );
-};
-```
+- `@/components/game/domain/entity/entity-fns`
+- `@/components/game/domain/space/space-fns`
+- `@/components/game/domain/space/validation`
+- `@/components/game/runtime/selectors/*`
 
 ---
 
-## WorldApi
+## 1) Initialization And Runtime Entry
 
-Mutates entities and their placement in spaces. All methods return
-`RuntimeApiResult`.
+### Primary methods
 
-```typescript
-type WorldApi = {
-  createEntity(config: ItemDataConfig): RuntimeApiResult;
-  updateEntity(entityId: string, updates: { name?: string; data?: Record<string, unknown>; visual?: Record<string, unknown> }): RuntimeApiResult;
-  updateEntityState(entityId: string, state: Record<string, unknown>): RuntimeApiResult;
-  deleteEntities(entityIds: string[]): RuntimeApiResult;
-  addToSpace(entityId: string, spaceId: string, position?: GridPosition): RuntimeApiResult;
-  removeFromSpace(entityId: string, spaceId: string): RuntimeApiResult;
-  moveEntity(entityId: string, toSpaceId: string, position?: GridPosition): RuntimeApiResult;
-  moveEntityToGrid(entityId: string, spaceId: string): RuntimeApiResult;
+- `GameProvider`
+  - Description: wraps the page with game state contexts and providers.
+  - Side effects: initializes React state and provider trees.
+- `useQuestionRuntime(engineId, definition?)`
+  - Description: one-stop runtime hook returning `world`, `progress`,
+    `executionFlow`, `interactionSession`, `state`, `events`, `ack`, and
+    `behaviorContext`.
+  - Side effects: validates definition, bootstraps once, subscribes to event
+    queue, runs behavior reactor, creates scheduler.
+- `validateDefinition(definition)`
+  - Description: validates a `QuestionDefinition` before runtime use.
+  - Side effects: none (pure validation).
+- `bootstrapQuestion(definition, dispatch)`
+  - Description: dispatches init actions (`SET_QUESTION`, `SET_PHASE`,
+    `SPACE_CREATED`, `ENTITY_CREATED`, `ENTITY_ADDED`).
+  - Side effects: dispatches to reducer.
+
+### Context access methods
+
+- `useGameState`
+  - Description: read full game state from context.
+  - Side effects: rerenders on state changes.
+- `useGameDispatch`
+  - Description: get dispatch function.
+  - Side effects: none by itself.
+- `useGameCtx`
+  - Description: get `{ state, dispatch }` together.
+  - Side effects: same as `useGameState`.
+
+### UI orchestration hooks (`@/components/game/game-provider`)
+
+- `useDrawerManager`
+  - Description: imperative drawer open/close/register control for drawer UI.
+  - Side effects: updates drawer state in provider store.
+- `useDrawerEvents`
+  - Description: subscribe to drawer state transitions and actions.
+  - Side effects: registers and tears down subscriptions.
+- `useEngineEvents(engineId)`
+  - Description: consume per-engine event batches and `ack` cursor control.
+  - Side effects: reads event queue and updates cursor when `ack` is called.
+
+### Example
+
+```tsx
+const Page = () => {
+  const runtime = useQuestionRuntime("dhcp-page", DEFINITION);
+  const game = useGameCtx();
+
+  if (!runtime.state.spaces.inventory) return null;
+
+  return (
+    <GameBoard>
+      <GridSpace ctx={game} config={SPACE_CONFIGS.board} />
+      <PoolSpace ctx={game} config={INVENTORY_POOL_CONFIG} />
+      <Modal />
+    </GameBoard>
+  );
 };
 ```
+
+### Do
+
+- Use `useQuestionRuntime` once per page.
+- Keep readiness guards when rendering spaces created by bootstrap.
+
+### Don't
+
+- Do not run custom bootstrap loops in page `useEffect`.
+- Do not split ownership between page mutation loops and behavior rules.
+
+---
+
+## 2) Define Game Structure (ADT Constructors)
+
+Use these when building data objects for initialization, test fixtures, or
+advanced setup code.
+
+### Entity constructors and clones (`@/components/game/domain/adt`)
+
+- `createEntityData(config)`
+  - Description: create a generic `EntityData` object.
+  - Side effects: none.
+- `createItemData(config)`
+  - Description: create an `ItemData` object with item defaults.
+  - Side effects: none.
+- `cloneEntityData(entity, newId)`
+  - Description: deep-ish clone entity with a new id.
+  - Side effects: none.
+- `cloneItemData(item, newId)`
+  - Description: deep-ish clone item with a new id.
+  - Side effects: none.
+
+### Space constructors (`@/components/game/domain/adt`)
+
+- `createGridSpaceData(config)`
+- `createPoolSpaceData(config)`
+- `createPathSpaceData(config)`
+- `createQueueSpaceData(config)`
+- `createMeterSpaceData(config)`
+- `createCustomSpaceData(config)`
+  - Description: create typed space records for each space kind.
+  - Side effects: none.
+
+### Branded id helpers (`@/components/game/domain/adt`)
+
+- `toEntityId`, `toSpaceId`, `toPhaseId`
+  - Description: cast raw strings into branded ids.
+  - Side effects: none.
+- `fromEntityId`, `fromSpaceId`, `fromPhaseId`
+  - Description: unwrap branded ids back to plain strings.
+  - Side effects: none.
+
+### Example
+
+```ts
+import { createItemData, createGridSpaceData } from "@/components/game/domain/adt";
+
+const entity = createItemData({
+  id: "router-1",
+  name: "Router",
+  allowedPlaces: ["inventory", "board"],
+});
+
+const board = createGridSpaceData({
+  id: "board",
+  rows: 2,
+  cols: 2,
+  metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+});
+```
+
+### Do
+
+- Use ADT constructors for fixtures and controlled setup.
+
+### Don't
+
+- Do not mutate constructors into transition logic; transitions belong to
+  transformers/runtime.
+
+---
+
+## 3) Render And Engine Hooks
+
+### Components (`@/components/game/engine`)
+
+- `GameBoard`
+  - Description: root visual board wrapper.
+  - Side effects: UI rendering only.
+- `GridSpace`
+  - Description: renders state-aware grid space.
+  - Side effects: UI rendering and drag handlers.
+- `PoolSpace`
+  - Description: renders state-aware inventory/pool.
+  - Side effects: UI rendering and drag handlers.
+- `PathSpace`
+  - Description: renders path lane/animation space.
+  - Side effects: UI rendering and path interactions.
+- `CustomSpace`
+  - Description: custom container for bespoke content.
+  - Side effects: UI rendering only.
+
+### Engine hooks (`@/components/game/engines`)
+
+- `useDragEngine(config?)`
+  - Description: derived drag progress state.
+  - Side effects: subscribes to game state, updates local engine progress.
+- `useTerminalEngine(config?)`
+  - Description: terminal lifecycle helpers.
+  - Side effects: terminal output history updates.
+- `useEngineProgress(config?)`
+  - Description: generic engine progress controller.
+  - Side effects: local state updates and emitted progress events.
+
+### Do
+
+- Keep UI rendering concerns here.
+
+### Don't
+
+- Do not embed game-rule mutation logic into render components.
+
+---
+
+## 4) Read State And Derive Facts
+
+### Runtime selector aliases (`@/components/game/runtime`)
+
+- `selectEntitySpace`
+  - Description: alias for `getEntitySpaceId`.
+  - Side effects: none.
+- `selectDerivedPhase`
+  - Description: resolve next phase from phase rules and condition context.
+  - Side effects: none.
+- `selectEntitiesByType`
+  - Description: filter entities by type.
+  - Side effects: none.
+- `selectEntityStateValue`
+  - Description: read one state key from one entity.
+  - Side effects: none.
+
+### Canonical read layer (`@/components/game/domain/read`)
+
+- `readApi`
+  - Description: typed read contract object.
+  - Side effects: none.
+- `getEntity`, `getSpace`, `getSpaceEntityIds`, `getEntitySpaceId`,
+  `getGridEntityPosition`
+  - Description: direct lookup methods.
+  - Side effects: none.
+- `isEntityKnown`, `isSpaceKnown`, `isEntityInSpace`,
+  `isEntityPlacementAllowed`
+  - Description: guarded predicates.
+  - Side effects: none.
+- `selectEntitiesByType`, `selectEntityStateValue`, `selectSpaceEntityCount`,
+  `selectSpaceIsFull`, `selectSpaceIsEmpty`, `selectGridEmptyPositions`,
+  `selectDerivedPhase`
+  - Description: derived selectors.
+  - Side effects: none.
+
+### Guard helpers (`@/components/game/domain/space`, `@/components/game/domain/entity`)
+
+- `isGridSpace`, `isPoolSpace`, `isPathSpace`, `isQueueSpace`, `isMeterSpace`,
+  `isValidGridPosition`, `isItemData`
+  - Description: runtime type guards.
+  - Side effects: none.
+
+### Hook-level readers (`@/components/game/game-provider` and `@/components/game/application`)
+
+- `useEntities`, `useEntitiesByType`, `useEntity`, `useEntityExists`,
+  `useEntityPosition`, `useEntitySpace`, `useEntityState`,
+  `useEntityStateValue`, `useSpace`, `useSpaceCapacity`, `useSpaceEntities`,
+  `useSpaceIsEmpty`, `useSpaceIsFull`, `useSpaces`
+  - Description: React convenience selectors over game context.
+  - Side effects: rerender on relevant state changes.
+- Provider-only convenience hooks:
+  `useEntityAllowedPlaces`, `useEntityIsDraggable`, `useItem`,
+  `useEntityGridPosition`
+  - Description: convenience entity helpers for page/UI logic.
+  - Side effects: rerender on relevant state changes.
+
+### Example
+
+```ts
+const state = useGameState();
+const routerSpace = getEntitySpaceId(state, "router-1");
+const boardOpenSlots = selectGridEmptyPositions(state, "board");
+const canPlace = isEntityPlacementAllowed(state, "router-1", "board", { row: 0, col: 1 });
+```
+
+### Do
+
+- Prefer `domain/read` and runtime selector aliases for all reads.
+
+### Don't
+
+- Do not read by ad-hoc scanning in multiple page files.
+
+---
+
+## 5) Interaction Event Wiring (Behavior Layer)
+
+These methods are mostly pure helpers used in behavior rules.
+
+### Triggers (`@/components/game/runtime`)
+
+- `entityClicked`
+- `modalSubmitted`
+- `modalClosed`
+- `phaseChanged`
+- `terminalInput`
+- `whenEntityPlacedInSpace`
+- `whenEntityTransferredToSpace`
+- `whenEntityArrivedAtSpace`
+  - Description: trigger matchers for behavior rules.
+  - Side effects: none.
+
+### Gating and layout (`@/components/game/runtime`)
+
+- `evaluateDragGating`
+  - Description: evaluate drag eligibility from rules.
+  - Side effects: none.
+- `evaluateVisibility`
+  - Description: evaluate layout visibility rules.
+  - Side effects: none.
+- `evaluateShapeRules`
+  - Description: evaluate shape overrides for spaces.
+  - Side effects: none.
+
+### Split/join/locks/lane helpers (`@/components/game/runtime`)
+
+- Join helpers: `createJoinTracker`, `markChildComplete`, `isJoinComplete`,
+  `joinRemaining`.
+- Lock helpers: `createResourceLock`, `tryAcquire`, `releaseLock`, `isLocked`,
+  `isHeldBy`, `waitQueueSize`.
+- Lane helpers: `hasFreeLane`, `pickLane`.
+- Path checkpoint helpers: `pathCheckpointData`, `pathResumeData`,
+  `isMidpointTick`.
+  - Description: orchestration helpers for concurrent flows and path timing.
+  - Side effects: mutate helper objects local to behavior runtime, not game
+    state.
+
+### Inspector helpers (`@/components/game/runtime`)
+
+- `createBehaviorInspector`, `createConsoleInspector`, `NOOP_INSPECTOR`
+  - Description: behavior execution tracing.
+  - Side effects: in-memory logs, optional console output.
+
+### Example
+
+```ts
+import { entityClicked, modalSubmitted, whenEntityPlacedInSpace } from "@/components/game/runtime";
+
+const triggers = [
+  entityClicked("router-1"),
+  modalSubmitted("configure-router"),
+  whenEntityPlacedInSpace("router-1", "board"),
+];
+```
+
+### Do
+
+- Keep all event-to-rule decisions in behavior definitions.
+
+### Don't
+
+- Do not replicate trigger logic in page-level `useEffect` trees.
+
+---
+
+## 6) Mutate World, Phase, And Session
+
+### Runtime object APIs (from `useQuestionRuntime`)
+
+#### `world`
+
+- `world.createEntity(config)`
+  - Description: create entity via command dispatch.
+  - Side effects: dispatches `ENTITY_CREATED`, appends events.
+- `world.updateEntity(entityId, updates)`
+  - Side effects: dispatches `ENTITY_UPDATED`, may append events.
+- `world.updateEntityState(entityId, state)`
+  - Side effects: dispatches `ENTITY_STATE_UPDATED`, may append events.
+- `world.deleteEntities(entityIds)`
+  - Side effects: dispatches `ENTITIES_DELETED`.
+- `world.addToSpace(entityId, spaceId, position?)`
+  - Side effects: dispatches `ENTITY_ADDED`.
+- `world.removeFromSpace(entityId, spaceId)`
+  - Side effects: dispatches `ENTITY_REMOVED`.
+- `world.moveEntity(entityId, toSpaceId, position?)`
+  - Side effects: dispatches `ENTITY_MOVED` or `ENTITY_ADDED`.
+- `world.moveEntityToGrid(entityId, spaceId)`
+  - Side effects: reads state then dispatches move/add.
+
+#### `progress`
+
+- `progress.completeQuestion()`
+  - Side effects: dispatches `COMPLETE_QUESTION`.
+- `progress.setQuestion({ id, status? })`
+  - Side effects: dispatches `SET_QUESTION`.
+
+#### `executionFlow`
+
+- `executionFlow.requestPhaseTransition(phase, source)`
+  - Side effects: dispatches flow intent, may emit warnings/events.
+- `executionFlow.dispatchIntent(intent)`
+  - Side effects: dispatches execution-flow intent.
+
+#### `interactionSession`
+
+- `interactionSession.openModal(modal)`
+  - Side effects: dispatches `OPEN_MODAL`.
+- `interactionSession.closeModal(modalId?)`
+  - Side effects: dispatches `CLOSE_MODAL`.
+- `interactionSession.requestPhaseTransition(phase, source)`
+  - Side effects: forwards to execution-flow dispatcher.
+- `interactionSession.setTerminalVisible(visible)`
+  - Side effects: local runtime interaction state update.
+- `interactionSession.setModalGateOpen(open)`
+  - Side effects: local runtime interaction state update.
+
+### Command factory (`@/components/game/runtime`)
+
+- `createCommands(ctx)`
+  - Description: low-level command object factory.
+  - Side effects: none when created.
+
+Produced command methods:
+
+- `createEntity`, `updateEntity`, `updateEntityState`, `deleteEntities`,
+  `addToSpace`, `removeFromSpace`, `moveEntity`, `moveEntityToGrid`,
+  `completeQuestion`, `openModal`, `closeModal`.
+  - Side effects: dispatch reducer actions.
+
+### Wrapper factories (`@/components/game/runtime`)
+
+- `createWorldApi`, `createProgressApi`, `createExecutionFlowApi`,
+  `createInteractionSessionApi`
+  - Description: factory functions used by runtime internals.
+  - Side effects: none at creation; returned methods dispatch and mutate local
+    interaction state.
+
+### Example
+
+```ts
+const { world, progress, interactionSession } = useQuestionRuntime("ssl-page", SSL_DEFINITION);
+
+world.moveEntity("cert-1", "https-server", { row: 0, col: 0 });
+interactionSession.openModal(buildCertModal());
+progress.completeQuestion();
+```
+
+### Do
+
+- Prefer wrapper objects from `useQuestionRuntime`.
+- Treat return value `RuntimeApiResult` as authoritative success/failure signal.
+
+### Don't
+
+- Do not dispatch raw actions from question pages if a wrapper method exists.
+
+---
+
+## 7) Behavior Submodule (Advanced)
+
+Import path: `@/components/game/runtime/behavior`.
+
+Use this when `@/components/game/runtime` barrel does not expose the helper you
+need.
+
+### Extra methods not re-exported by runtime barrel
+
+- Spawn helpers: `stampTemplate`, `stampBatch`, `executeSpawnPlan`,
+  `executeSpawnPlans`.
+- Status timeline helpers: `evaluateStatusRules`, `delayedUpdate`,
+  `delayedMove`, `delayedDelete`.
+- Workflow helpers: `createWorkflow`, `transitionWorkflow`,
+  `checkAutoTransition`, `validateWorkflow`.
+- Reactor and scheduler internals: `useBehaviorReactor`, `QuestionScheduler`.
+
+Side effects:
+
+- Spawn helpers: dispatch only when used inside effect handlers.
+- Timeline helpers: schedule delayed effects.
+- `useBehaviorReactor`: subscribes to event stream and executes handlers.
+- `QuestionScheduler`: manages keyed timed callbacks.
+
+Do:
+
+- Keep these in behavior modules, not page UI files.
+
+Don't:
+
+- Do not create ad-hoc timer chains if scheduler helpers can express it.
+
+---
+
+## 8) Application Reducer Surface (Internal/Expert)
+
+Import path: `@/components/game/application`.
+
+- `applicationReducer`
+- `entityReducer`
+- `spaceReducer`
+- `createDefaultState`
+
+Description:
+
+- Reducer-level APIs for state machines, tests, and infrastructure code.
+
+Side effects:
+
+- Reducers are pure in contract, but operate over action-driven state
+  transitions and can trigger invariant assertions in development.
+
+Do:
+
+- Use for engine tests, harnesses, and controlled infrastructure code.
+
+Don't:
+
+- Do not wire question route gameplay through direct reducer calls.
+
+---
+
+## 9) Transformer Surface (Internal/Expert)
+
+Import path: `@/components/game/domain/transformers`.
 
 ### Methods
 
-**createEntity(config)** — Create a new entity at runtime. The entity is not
-placed in any space; use addToSpace() after creation.
+- API object and result helpers:
+  - `transformApi`
+  - `transitionApplied`
+  - `transitionNoop`
+  - `getNextActionId`
+  - `applyAppendEvents`
+- Space transitions:
+  - `applyCreateSpace`
+  - `tryRemoveSpace`
+  - `tryAddEntityToSpace`
+  - `tryRemoveEntityFromSpace`
+  - `tryMoveEntityAcrossSpaces`
+  - `tryUpdateGridEntityPosition`
+  - `trySwapGridEntities`
+- Entity transitions:
+  - `tryCreateEntity`
+  - `tryPatchEntity`
+  - `tryPatchEntityState`
+  - `applyDeleteEntities`
+- Game/core transitions:
+  - `trySetQuestion`
+  - `trySetPhase`
+  - `applyCompleteQuestion`
+  - `tryAckEvents`
+  - `tryEmitEvents`
 
-**updateEntity(entityId, updates)** — Update entity name, data, or visual
-properties. Merges updates into existing values. Emits ENTITY_UPDATED event.
+Description:
 
-```typescript
-world.updateEntity("router-1", {
-  data: { dhcpEnabled: true, startIp: "192.168.1.10", endIp: "192.168.1.50" },
-});
-```
+- Deterministic transition layer used by reducers and runtime internals.
 
-**updateEntityState(entityId, state)** — Update entity runtime state. Merges
-into existing state. Emits ENTITY_UPDATED event.
+Side effects:
 
-```typescript
-world.updateEntityState("pc-1", { ip: "192.168.1.10", status: "success" });
-```
+- Mutates the provided draft-like state object by design.
+- Emits transition payloads and noop reasons.
 
-**deleteEntities(entityIds)** — Remove entities from state entirely.
+Do:
 
-**addToSpace(entityId, spaceId, position?)** — Add entity to a space. For grid
-spaces, position is required. Pool/Path spaces ignore position. Emits
-ENTITY_ENTERED_SPACE event.
+- Use when implementing engine internals, reducers, or deterministic tests.
 
-**removeFromSpace(entityId, spaceId)** — Remove entity from a space. Emits
-ENTITY_LEFT_SPACE event.
+Don't:
 
-**moveEntity(entityId, toSpaceId, position?)** — Move entity from its current
-space to a new space. Emits ENTITY_MOVED event.
-
-PathSpace note:
-- Moving into a path space emits `ENTITY_MOVED` (to path space).
-- At path midpoint (`progress: 0.5`), PathSpace emits `ENTITY_UPDATED` with
-  `updates.data.pathMidpointTick`.
-- PathSpace engine removes entity when transit completes, which emits
-  `ENTITY_LEFT_SPACE`.
-- Behavior rules should listen to `ENTITY_LEFT_SPACE` with `space` filter set
-  to the path space ID for post-path routing.
-
-**moveEntityToGrid(entityId, spaceId)** — Move entity to the first available
-cell in a grid space. Returns error if grid is full.
-
-### RuntimeApiResult
-
-```typescript
-type RuntimeApiResult =
-  | { ok: true }
-  | { ok: false; error: { message: string } };
-```
-
-All WorldApi methods catch exceptions and return error results instead of
-throwing. Check `result.ok` to detect failures.
+- Do not mix these directly into route-level UI effects unless there is no
+  wrapper alternative.
 
 ---
 
-## ProgressApi
+## 10) Invariants And Domain-Level Helpers
 
-Controls question completion status.
+### Invariants (`@/components/game/domain` or `.../domain/invariants`)
 
-```typescript
-type ProgressApi = {
-  completeQuestion(): RuntimeApiResult;
-  setQuestion(input: { id: string; status?: "in_progress" | "completed" }): RuntimeApiResult;
-};
-```
+- `assertNever`
+- `findOwnershipViolations`
+- `assertSingleSpaceOwnership`
 
-**completeQuestion()** — Marks the question as completed. Emits
-COMPLETE_QUESTION action. After this, `state.question.status === "completed"`.
+Side effects:
 
-**setQuestion(input)** — Update question metadata. Rarely used directly.
+- `assert*` methods throw on violations.
 
-### Usage in Behaviors
+### Question AST helpers (`@/components/game/domain/question`)
 
-```typescript
-{
-  id: "my.terminal-success",
-  on: terminalInput(),
-  handler: ({ terminal, progress }) => {
-    terminal.writeOutput("Success!");
-    terminal.finishEngine();
-    progress.completeQuestion();
-  },
-}
-```
+- `evaluateCondition`
+- `resolvePhase`
+- `resolveVisibility`
 
----
+Side effects:
 
-## InteractionSessionApi
+- none.
 
-Controls modals, phase transitions, and UI state.
+### Validation/sanitize helpers (`@/components/game/domain/validation`)
 
-```typescript
-type InteractionSessionApi = {
-  openModal(modal: ModalInstance): RuntimeApiResult;
-  closeModal(modalId?: string): RuntimeApiResult;
-  requestPhaseTransition(phase: string, source: string): RuntimeApiResult;
-  setTerminalVisible(visible: boolean): RuntimeApiResult;
-  setModalGateOpen(open: boolean): RuntimeApiResult;
-};
-```
+- Pool helpers:
+  - `findPoolItem`
+  - `normalizePoolGroup`
+  - `normalizePoolGroups`
+  - `normalizePoolItems`
+- Sanitize helpers:
+  - `sanitizeConfigValue`
+  - `sanitizeDeviceConfig`
+  - `sanitizeTerminalInput`
+  - `sanitizeTerminalOutput`
+  - `sanitizeText`
 
-**openModal(modal)** — Opens a data-driven modal. Emits MODAL_OPENED event.
-See [types.md](./types.md) for ModalInstance schema.
+Side effects:
 
-```typescript
-interaction.openModal({
-  id: "success",
-  title: "Congratulations!",
-  content: [{ kind: "text", text: "You completed the question!" }],
-  actions: [{ id: "primary", label: "Continue", variant: "primary" }],
-  blocking: true,
-});
-```
-
-**closeModal(modalId?)** — Closes modal visibility through reducer close path.
-- If `modalId` is provided: closes that specific visible modal.
-- If `modalId` is omitted: closes all visible modals.
-- Each closed modal emits `MODAL_CLOSED`.
-
-**requestPhaseTransition(phase, source)** — Request a phase change. The source
-string is for debugging (e.g. `"dhcp.phase_rules"`). Emits PHASE_CHANGED event.
-Validates that the transition is allowed (no same-phase transitions).
-
-**setTerminalVisible(visible)** — Toggle terminal visibility. This is
-React-local state (InteractionSessionState), not in GameState.
-
-**setModalGateOpen(open)** — Toggle modal gate. React-local state.
+- none (pure transformations/sanitization).
 
 ---
 
-## ExecutionFlowApi
+## 11) Low-Level Infrastructure (Optional)
 
-Low-level phase orchestration. Most pages use InteractionSessionApi instead.
+Import path: `@/components/game/infrastructure`.
 
-```typescript
-type ExecutionFlowApi = {
-  requestPhaseTransition(phase: string, source: string): RuntimeApiResult;
-  dispatchIntent(intent: ExecutionFlowIntent): RuntimeApiResult;
-};
-```
+### Geometry methods
 
-**requestPhaseTransition** — Same as InteractionSessionApi.requestPhaseTransition
-but without the wrapper. Use InteractionSessionApi in behaviors.
+- `createPoint`, `createGridCoord`, `pointsEqual`, `gridCoordsEqual`,
+  `distance`, `manhattanDistance`, `addPoints`, `subtractPoints`, `scalePoint`,
+  `snapToGrid`, `snapPointToGrid`, `isInBounds`, `clamp`, `clampPoint`.
 
-**dispatchIntent** — Low-level intent dispatch. Rarely used directly.
+### Grid classes
 
----
+- `GridBase`, `GridCell`, `SquareGrid`, `HexGrid`, `RadialGrid`.
 
-## InteractionSessionState
+Side effects:
 
-React-local ephemeral state returned by `useQuestionRuntime().interactionState`.
+- geometry methods are pure.
+- class usage depends on your instantiation and consumers.
 
-```typescript
-type InteractionSessionState = {
-  terminalVisible: boolean;
-  modalGateOpen: boolean;
-};
-```
+Do:
 
-This state is NOT in GameState. It's managed via React useState and controlled
-by InteractionSessionApi.setTerminalVisible/setModalGateOpen.
+- Use this layer for specialized geometry or custom grid logic.
+
+Don't:
+
+- Do not duplicate these utilities inside question routes.
 
 ---
 
-## Runtime Primitives
-
-The runtime exposes several declarative primitives for building complex
-question behaviors. All are importable from `@/components/game/runtime`.
-
-### Drag-Gating Rules
-
-Declarative rules that control when an entity is draggable from a space.
-Evaluated by the drag system before allowing a drag operation.
-
-```typescript
-import type { DragGatingRule, DragGatingContext } from "@/components/game/runtime";
-import { evaluateDragGating } from "@/components/game/runtime";
-```
-
-**Types:**
-
-```typescript
-type DragGatingRule = {
-  spaceId: string;             // Space this rule applies to ("*" for all)
-  entityType?: string;         // Entity type filter (undefined = all)
-  canDrag: (ctx: DragGatingContext) => boolean;
-};
-
-type DragGatingContext = {
-  readonly entityId: string;
-  readonly entityType: string;
-  readonly spaceId: string;
-  readonly state: GameState;
-};
-```
-
-**Functions:**
-
-- `evaluateDragGating(rules, ctx)` — Returns `true` if drag is allowed,
-  `false` if denied, `undefined` if no rule matches (falls back to
-  `entity.draggable`).
-
-**Usage in a definition:**
-
-```typescript
-const definition: QuestionDefinition = {
-  // ...
-  dragRules: [
-    {
-      spaceId: "board",
-      entityType: "router",
-      canDrag: ({ state }) => state.phase === "setup",
-    },
-    {
-      spaceId: "*",
-      canDrag: ({ state }) => state.question.status !== "completed",
-    },
-  ],
-};
-```
-
----
-
-### PathSpace Checkpoints
-
-Helpers for configuring entity behavior at PathSpace midpoints (pause/resume).
-
-```typescript
-import type { PathCheckpoint } from "@/components/game/runtime";
-import { pathCheckpointData, pathResumeData, isMidpointTick } from "@/components/game/runtime";
-```
-
-**Types:**
-
-```typescript
-type PathCheckpoint = {
-  at?: number;        // Progress point (0-1). Default: 0.5
-  pause: boolean;     // Whether entity pauses at this checkpoint
-  emitEvent?: string; // Optional event name to emit
-};
-```
-
-**Functions:**
-
-- `pathCheckpointData(checkpoint)` — Returns entity data flags
-  (`{ pathPauseAtMidpoint, pathResumeToken }`) to attach when creating entities
-  that travel through PathSpaces.
-- `pathResumeData(currentToken)` — Returns data to bump the resume token,
-  resuming a paused entity.
-- `isMidpointTick(updates)` — Returns `true` if an entity update event
-  represents a midpoint tick.
-
-**Usage in a behavior handler:**
-
-```typescript
-{
-  id: "my.packet-pause",
-  on: whenEntityPlacedInSpace("egress-path"),
-  handler: ({ entity, world }) => {
-    if (!entity) return;
-    // Pause entity at midpoint
-    world.updateEntity(entity.id, {
-      data: pathCheckpointData({ pause: true }),
-    });
-  },
-}
-
-{
-  id: "my.packet-resume",
-  on: entityClicked("packet"),
-  handler: ({ entity, world }) => {
-    if (!entity) return;
-    world.updateEntity(entity.id, {
-      data: pathResumeData(entity.data.pathResumeToken),
-    });
-  },
-}
-```
-
----
-
-### Entity Templates & Spawn Plans
-
-Factory utilities for stamping entities from reusable templates and executing
-spawn plans that create + place entities in a single step.
-
-```typescript
-import type { EntityTemplate, SpawnPlan } from "@/components/game/runtime";
-import { stampTemplate, stampBatch, executeSpawnPlan, executeSpawnPlans } from "@/components/game/runtime";
-```
-
-**Types:**
-
-```typescript
-type EntityTemplate = Omit<ItemDataConfig, "id"> & {
-  idPrefix?: string;    // Optional ID prefix for generated entities
-};
-
-type SpawnPlan = {
-  config: ItemDataConfig;
-  spaceId?: string;
-  position?: Record<string, unknown>;
-};
-```
-
-**Functions:**
-
-- `stampTemplate(template, id, overrides?)` — Produce a concrete
-  `ItemDataConfig` from a template with a specific ID.
-- `stampBatch(template, count, prefix?, perItemOverrides?)` — Stamp multiple
-  entities with sequential IDs (`${prefix}-0`, `${prefix}-1`, …).
-- `executeSpawnPlan(plan, world)` — Create an entity and optionally place it
-  in a space.
-- `executeSpawnPlans(plans, world)` — Execute multiple spawn plans.
-
-**Usage in a behavior handler:**
-
-```typescript
-const PACKET_TEMPLATE: EntityTemplate = {
-  name: "Packet",
-  allowedPlaces: ["inventory", "egress-path"],
-  icon: { icon: "mdi:email" },
-  data: { type: "packet" },
-};
-
-{
-  id: "my.spawn-packets",
-  on: phaseChanged("playing"),
-  handler: ({ world }) => {
-    const plans = stampBatch(PACKET_TEMPLATE, 3, "pkt").map(config => ({
-      config,
-      spaceId: "inventory",
-    }));
-    executeSpawnPlans(plans, world);
-  },
-}
-```
-
----
-
-### Split/Join Operators
-
-Decompose a parent entity into children and track their completion with
-configurable join policies.
-
-```typescript
-import type { SplitDescriptor, JoinPolicy, JoinTracker } from "@/components/game/runtime";
-import { createJoinTracker, markChildComplete, isJoinComplete, joinRemaining } from "@/components/game/runtime";
-```
-
-**Types:**
-
-```typescript
-type SplitDescriptor = {
-  parentId: string;
-  children: Array<{ id: string; data?: Record<string, unknown> }>;
-};
-
-type JoinPolicy = "all" | "any" | { count: number };
-
-type JoinTracker = {
-  parentId: string;
-  childIds: string[];
-  completedIds: string[];
-  policy: JoinPolicy;
-};
-```
-
-**Functions:**
-
-- `createJoinTracker(parentId, childIds, policy?)` — Create a tracker.
-  Default policy is `"all"`.
-- `markChildComplete(tracker, childId)` — Returns a new tracker with the
-  child marked complete (immutable).
-- `isJoinComplete(tracker)` — Returns `true` when the join policy is satisfied.
-- `joinRemaining(tracker)` — Number of children still needed.
-
-**Usage in a behavior handler:**
-
-```typescript
-{
-  id: "my.task-split",
-  on: entityClicked("task"),
-  handler: ({ entity, updateContext }) => {
-    if (!entity) return;
-    const tracker = createJoinTracker(entity.id, ["sub-a", "sub-b", "sub-c"], "all");
-    updateContext(ctx => { ctx.joinTracker = tracker; });
-  },
-}
-
-{
-  id: "my.subtask-done",
-  on: whenEntityArrivedAtSpace("done-zone"),
-  handler: ({ entity, context, updateContext, progress }) => {
-    if (!entity) return;
-    const updated = markChildComplete(context.joinTracker, entity.id);
-    updateContext(ctx => { ctx.joinTracker = updated; });
-    if (isJoinComplete(updated)) {
-      progress.completeQuestion();
-    }
-  },
-}
-```
-
----
-
-### Status/Effect Rules & Timeline Actions
-
-Declarative status badge resolution for entities, plus delayed timeline
-actions for scheduling entity mutations.
-
-```typescript
-import type { StatusRule, StatusBadge, StatusRuleContext, TimelineAction } from "@/components/game/runtime";
-import { evaluateStatusRules, delayedUpdate, delayedDelete, delayedMove } from "@/components/game/runtime";
-```
-
-**Types:**
-
-```typescript
-type StatusBadge = {
-  status: "info" | "warning" | "success" | "error";
-  message: string;
-};
-
-type StatusRule = {
-  id: string;
-  entityType?: string;
-  match: (entity: StatusRuleContext) => boolean;
-  badge: StatusBadge;
-};
-
-type TimelineAction = {
-  key: string;
-  delayMs: number;
-  action: "updateEntity" | "deleteEntity" | "moveEntity" | "custom";
-  entityId?: string;
-  updates?: Record<string, unknown>;
-  toSpaceId?: string;
-};
-```
-
-**Functions:**
-
-- `evaluateStatusRules(rules, ctx)` — First-match badge resolution. Returns
-  `StatusBadge | undefined`.
-- `delayedUpdate(key, entityId, delayMs, updates)` — Create a timeline action
-  for a delayed entity update.
-- `delayedDelete(key, entityId, delayMs)` — Create a timeline action for a
-  delayed entity removal.
-- `delayedMove(key, entityId, toSpaceId, delayMs)` — Create a timeline action
-  for a delayed entity move.
-
-**Usage in a behavior handler:**
-
-```typescript
-// Status rules in getEntityStatus callback
-const STATUS_RULES: StatusRule[] = [
-  {
-    id: "configured",
-    entityType: "router",
-    match: (e) => !!e.data.dhcpEnabled,
-    badge: { status: "success", message: "DHCP enabled" },
-  },
-  {
-    id: "unconfigured",
-    entityType: "router",
-    match: () => true,
-    badge: { status: "warning", message: "Not configured" },
-  },
-];
-
-// Timeline action via schedule
-{
-  id: "my.delayed-cleanup",
-  on: phaseChanged("completed"),
-  handler: ({ schedule, world }) => {
-    const action = delayedDelete("cleanup-temp", "temp-entity", 2000);
-    schedule(action.key, action.delayMs, (sctx) => {
-      sctx.world.deleteEntities([action.entityId!]);
-    });
-  },
-}
-```
-
----
-
-### Workflow / State Machine
-
-Declarative state machine for entity lifecycles with guarded transitions
-and timed auto-transitions.
-
-```typescript
-import type { WorkflowDefinition, WorkflowState, WorkflowTransition, WorkflowInstance } from "@/components/game/runtime/behavior/workflow";
-import { createWorkflow, transitionWorkflow, checkAutoTransition, validateWorkflow } from "@/components/game/runtime/behavior/workflow";
-```
-
-**Types:**
-
-```typescript
-type WorkflowState = {
-  name: string;
-  autoTransitionMs?: number;    // Auto-transition after this many ms
-  autoTransitionTo?: string;    // Target state for auto-transition
-};
-
-type WorkflowTransition = {
-  from: string;
-  to: string;
-  guard?: (ctx: WorkflowTransitionContext) => boolean;
-};
-
-type WorkflowDefinition = {
-  initialState: string;
-  states: WorkflowState[];
-  transitions?: WorkflowTransition[];  // If empty, all transitions allowed
-};
-
-type WorkflowInstance = {
-  currentState: string;
-  enteredAt: number;
-  history: string[];
-};
-```
-
-**Functions:**
-
-- `createWorkflow(definition, nowMs?)` — Create a new workflow instance.
-- `transitionWorkflow(instance, definition, toState, ctx?, nowMs?)` — Attempt
-  a transition. Returns same instance if invalid/guarded.
-- `checkAutoTransition(instance, definition, nowMs?)` — Returns target state
-  name if auto-transition is due, or `undefined`.
-- `validateWorkflow(definition)` — Returns an array of error strings.
-
-**Usage in a behavior handler:**
-
-```typescript
-const ENTITY_WORKFLOW: WorkflowDefinition = {
-  initialState: "idle",
-  states: [
-    { name: "idle" },
-    { name: "processing", autoTransitionMs: 3000, autoTransitionTo: "done" },
-    { name: "done" },
-  ],
-  transitions: [
-    { from: "idle", to: "processing" },
-    { from: "processing", to: "done" },
-  ],
-};
-
-{
-  id: "my.start-processing",
-  on: entityClicked("task"),
-  handler: ({ entity, world, schedule }) => {
-    if (!entity) return;
-    const wf = createWorkflow(ENTITY_WORKFLOW);
-    const next = transitionWorkflow(wf, ENTITY_WORKFLOW, "processing");
-    world.updateEntityState(entity.id, { workflow: next });
-
-    // Check for auto-transition
-    schedule("wf-auto", next.currentState === "processing" ? 3000 : 0, (sctx) => {
-      const target = checkAutoTransition(next, ENTITY_WORKFLOW);
-      if (target) {
-        const final = transitionWorkflow(next, ENTITY_WORKFLOW, target);
-        sctx.world.updateEntityState(entity.id, { workflow: final });
-      }
-    });
-  },
-}
-```
-
----
-
-### Resource Locks
-
-Exclusive and shared lock primitives for managing resource contention
-between entities or tasks.
-
-```typescript
-import type { ResourceLockState, LockRequest, LockMode } from "@/components/game/runtime";
-import { createResourceLock, tryAcquire, releaseLock, isLocked, isHeldBy, waitQueueSize } from "@/components/game/runtime";
-```
-
-**Types:**
-
-```typescript
-type LockMode = "exclusive" | "shared";
-
-type LockRequest = {
-  resourceId: string;
-  requesterId: string;
-  mode: LockMode;
-};
-
-type ResourceLockState = {
-  resourceId: string;
-  holders: string[];
-  mode: LockMode | null;
-  waitQueue: LockRequest[];
-};
-```
-
-**Functions:**
-
-- `createResourceLock(resourceId)` — Create initial lock state.
-- `tryAcquire(lock, request)` — Returns `{ lock, acquired }`. If contention,
-  requester is queued.
-- `releaseLock(lock, requesterId)` — Returns `{ lock, promoted }`. Promotes
-  next waiter if any.
-- `isLocked(lock)` — Check if resource is currently held.
-- `isHeldBy(lock, requesterId)` — Check if a specific requester holds it.
-- `waitQueueSize(lock)` — Number of waiters in queue.
-
-**Usage in a behavior handler:**
-
-```typescript
-{
-  id: "my.acquire-bus",
-  on: whenEntityArrivedAtSpace("bus-stop"),
-  handler: ({ entity, context, updateContext }) => {
-    if (!entity) return;
-    const { lock, acquired } = tryAcquire(context.busLock, {
-      resourceId: "bus",
-      requesterId: entity.id,
-      mode: "exclusive",
-    });
-    updateContext(ctx => { ctx.busLock = lock; });
-    if (!acquired) {
-      // Entity must wait
-    }
-  },
-}
-
-{
-  id: "my.release-bus",
-  on: whenEntityArrivedAtSpace("bus-exit"),
-  handler: ({ entity, context, updateContext }) => {
-    if (!entity) return;
-    const { lock, promoted } = releaseLock(context.busLock, entity.id);
-    updateContext(ctx => { ctx.busLock = lock; });
-    // promoted is the next requester ID, if any
-  },
-}
-```
-
----
-
-### Lane Scheduler
-
-Deterministic lane selection for multi-lane queue/processing flows.
-
-```typescript
-import type { LaneSchedulerInput, LaneSelectionPolicy, LaneSelectionResult } from "@/components/game/runtime";
-import { pickLane, hasFreeLane } from "@/components/game/runtime";
-```
-
-**Types:**
-
-```typescript
-type LaneSelectionPolicy = "first_free" | "round_robin";
-
-type LaneSchedulerInput<TLaneId extends string> = {
-  lanes: TLaneId[];
-  enabledLanes?: TLaneId[];
-  policy: LaneSelectionPolicy;
-  cursor?: number;
-  isOccupied: (laneId: TLaneId) => boolean;
-};
-
-type LaneSelectionResult<TLaneId extends string> = {
-  laneId: TLaneId | null;
-  cursor: number;
-};
-```
-
-**Functions:**
-
-- `pickLane(input)` — Select the next available lane based on policy. Returns
-  `{ laneId, cursor }`. `laneId` is `null` if all lanes are occupied.
-- `hasFreeLane(input)` — Check if any enabled lane is available.
-
-**Usage in a behavior handler:**
-
-```typescript
-{
-  id: "my.dispatch-to-lane",
-  on: whenEntityArrivedAtSpace("dispatch"),
-  handler: ({ entity, context, updateContext, world }) => {
-    if (!entity) return;
-    const result = pickLane({
-      lanes: ["lane-a", "lane-b"],
-      policy: "round_robin",
-      cursor: context.laneCursor,
-      isOccupied: (id) => !!context.laneOccupied[id],
-    });
-    if (result.laneId) {
-      world.moveEntity(entity.id, result.laneId);
-      updateContext(ctx => {
-        ctx.laneCursor = result.cursor;
-        ctx.laneOccupied[result.laneId!] = true;
-      });
-    }
-  },
-}
-```
-
----
-
-### Layout & Shape Rules
-
-Declarative rules for conditional space/section visibility and dynamic
-space configuration changes based on runtime state.
-
-```typescript
-import type { LayoutVisibilityRule, SpaceShapeRule, LayoutRuleContext, SpaceShapeOverrides } from "@/components/game/runtime";
-import { evaluateVisibility, evaluateShapeRules } from "@/components/game/runtime";
-```
-
-**Types:**
-
-```typescript
-type LayoutVisibilityRule = {
-  targetId: string;
-  visible: (ctx: LayoutRuleContext) => boolean;
-};
-
-type SpaceShapeRule = {
-  spaceId: string;
-  compute: (ctx: LayoutRuleContext) => SpaceShapeOverrides | undefined;
-};
-
-type LayoutRuleContext = {
-  readonly state: GameState;
-  readonly phase: string;
-};
-
-type SpaceShapeOverrides = {
-  rows?: number;
-  cols?: number;
-  maxCapacity?: number;
-  speedMultiplier?: number;
-  title?: string;
-};
-```
-
-**Functions:**
-
-- `evaluateVisibility(rules, ctx)` — Returns `Record<string, boolean>` mapping
-  target IDs to visibility.
-- `evaluateShapeRules(rules, ctx)` — Returns `Record<string, SpaceShapeOverrides>`
-  mapping space IDs to overrides.
-
-**Usage in a definition:**
-
-```typescript
-const definition: QuestionDefinition = {
-  // ...
-  layoutRules: [
-    {
-      targetId: "terminal-panel",
-      visible: ({ phase }) => phase === "terminal" || phase === "completed",
-    },
-  ],
-  shapeRules: [
-    {
-      spaceId: "processing-grid",
-      compute: ({ state }) => {
-        const entityCount = Object.keys(state.entities).length;
-        return entityCount > 4 ? { rows: 2, cols: 3 } : undefined;
-      },
-    },
-  ],
-};
-```
-
----
-
-### Behavior Inspector
-
-Development-only debug logging for the behavior system. Provides structured
-traces of rule matching, guard evaluation, and handler execution.
-
-```typescript
-import type { BehaviorInspector, InspectorLogEntry } from "@/components/game/runtime";
-import { createBehaviorInspector, createConsoleInspector, NOOP_INSPECTOR } from "@/components/game/runtime";
-```
-
-**Types:**
-
-```typescript
-type InspectorLogEntry = {
-  timestamp: number;
-  eventType: string;
-  eventId: number;
-  ruleId: string;
-  action: "matched" | "guard-passed" | "guard-failed" | "handler-executed" | "handler-error";
-  entityId?: string;
-  spaceId?: string;
-  detail?: string;
-};
-
-type BehaviorInspector = {
-  log: (entry: InspectorLogEntry) => void;
-  getEntries: () => readonly InspectorLogEntry[];
-  clear: () => void;
-  subscribe: (listener: (entry: InspectorLogEntry) => void) => () => void;
-};
-```
-
-**Functions:**
-
-- `createBehaviorInspector(maxEntries?)` — In-memory inspector with FIFO
-  eviction (default 200 entries).
-- `createConsoleInspector(maxEntries?)` — Wraps the in-memory inspector and
-  also logs to `console.debug` / `console.warn` with formatted output.
-- `NOOP_INSPECTOR` — No-op inspector for production (all methods are no-ops).
-
-**Usage:**
-
-```typescript
-// Development: enable console tracing
-const inspector = import.meta.env.DEV
-  ? createConsoleInspector()
-  : NOOP_INSPECTOR;
-
-// Subscribe to entries programmatically
-const unsub = inspector.subscribe((entry) => {
-  if (entry.action === "handler-error") {
-    console.error("Behavior error:", entry);
-  }
-});
-
-// Read all entries
-const entries = inspector.getEntries();
-```
+## 12) Do And Don't Summary For AI Agents
+
+Do:
+
+1. Start from `useQuestionRuntime` and wrapper APIs.
+2. Keep reads in `domain/read` (`is/get/select`).
+3. Keep mutations in `world/progress/executionFlow/interactionSession`.
+4. Keep event logic in behaviors, not in page mutation effects.
+5. Use ADT constructors for deterministic fixtures/setup.
+
+Don't:
+
+1. Do not import removed legacy helpers.
+2. Do not split gameplay ownership between behavior rules and ad-hoc page loops.
+3. Do not bypass wrapper APIs with direct reducer dispatch unless explicitly
+   required by engine internals.
+4. Do not add untracked async timers when scheduler-based APIs are available.

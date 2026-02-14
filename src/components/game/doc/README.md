@@ -89,7 +89,7 @@ const MyPage = ({ onQuestionComplete }) => {
 | [building-questions.md](./building-questions.md) | Step-by-step guide to creating a new question from scratch |
 | [question-definition.md](./question-definition.md) | QuestionDefinition type reference (spaces, entities, phase rules) |
 | [behavior-system.md](./behavior-system.md) | Behavior rules, event triggers, guards, and EffectContext |
-| [runtime-api.md](./runtime-api.md) | useQuestionRuntime hook and API wrappers (WorldApi, ProgressApi, etc.) |
+| [runtime-api.md](./runtime-api.md) | Canonical flow-ordered API reference for question authors and AI agents (methods, side effects, examples, do/don't) |
 | [adr-adt-read-transformer-effect.md](./adr-adt-read-transformer-effect.md) | Frozen architecture contract for ADT, Read, Transformer, and Effect layers |
 | [components.md](./components.md) | GameProvider, GameBoard, GridSpace, PoolSpace, Modal, Terminal, etc. |
 | [types.md](./types.md) | GameState, EntityData, SpaceData, GameEvent, ModalInstance |
