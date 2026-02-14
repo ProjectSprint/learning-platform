@@ -1,6 +1,8 @@
 # Components — UI Components Reference
 
 This document covers all React components used to render a question game.
+For runtime method contracts and mutation/read guardrails, use
+`runtime-api.md` as canonical.
 
 ## GameProvider
 
@@ -204,46 +206,39 @@ setArrows([{
 
 ## QueueSpace
 
-Declarative FIFO queue renderer. Displays entities in ordered sequence with
-configurable direction.
+Queue spaces are supported in domain/runtime data, but there is currently no
+dedicated `QueueSpace` React component exported from `@/components/game/engine`.
 
-Queue spaces are data-only — entities are managed through the queue operations
-(`world.addToSpace`, `world.removeFromSpace`, `world.moveEntity`) via runtime
-commands/transformers, not through direct page mutation loops.
+Use queue spaces as data model primitives and render them via custom UI
+(`CustomSpace` or question-specific components) while mutating through runtime
+APIs.
 
 **Space definition:**
 
 ```typescript
-{ kind: "queue", config: { id: "ready-queue", name: "Ready Queue", maxDepth: 5, direction: "horizontal" } }
-```
-
-**Runtime data shape (`QueueSpaceData`):**
-
-```typescript
 {
-  kind: "queue";
-  id: string;
-  name?: string;
-  maxDepth?: number;
-  direction: "horizontal" | "vertical";
-  entityIds: string[];    // Ordered FIFO — index 0 is front
+  kind: "queue",
+  config: { id: "ready-queue", name: "Ready Queue", maxDepth: 5, direction: "horizontal" },
 }
 ```
 
-**Queue operations**:
+**Queue operations:**
 
-- Read state through `domain/read` selectors (`getSpaceEntityIds`, `selectSpaceEntityCount`, `selectSpaceIsFull`, `selectSpaceIsEmpty`).
-- Mutate through runtime/world commands (`world.addToSpace`, `world.removeFromSpace`, `world.moveEntity`) or transformer APIs.
+- Read via `domain/read` (`getSpaceEntityIds`, `selectSpaceEntityCount`, `selectSpaceIsFull`, `selectSpaceIsEmpty`).
+- Mutate via runtime wrappers (`world.addToSpace`, `world.removeFromSpace`, `world.moveEntity`).
+
+Do not treat queue spaces as a drag-drop renderer unless you build and own that
+rendering contract explicitly.
 
 ---
 
 ## MeterSpace
 
-Declarative gauge/bar renderer. Displays a numeric value between a min and
-max, with optional color thresholds.
+Meter spaces are also domain/runtime data primitives without a dedicated
+`MeterSpace` React component in `@/components/game/engine`.
 
-Meter spaces do not contain entities — they represent a single numeric value.
-Update the value through state mutations in behavior handlers.
+Use meter spaces to store gauge values in state and render custom visuals in
+`CustomSpace` or route-local components.
 
 **Space definition:**
 
@@ -265,20 +260,10 @@ Update the value through state mutations in behavior handlers.
 }
 ```
 
-**Runtime data shape (`MeterSpaceData`):**
+**Mutation contract:**
 
-```typescript
-{
-  kind: "meter";
-  id: string;
-  name?: string;
-  min: number;
-  max: number;
-  value: number;       // Current value (initialized to min)
-  unit: string;
-  thresholds: Array<{ value: number; color: string }>;
-}
-```
+- Update meter state through runtime mutation APIs in behaviors (`world.updateEntityState` or equivalent modeled operations).
+- Keep meter rendering declarative and read-only from game state.
 
 ---
 

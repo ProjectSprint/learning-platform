@@ -6,6 +6,9 @@ and all wiring needed for a fully functional question.
 
 For real examples, see `src/routes/questions/networking/dhcp/`.
 
+Method-level runtime contracts are canonical in `runtime-api.md`. This file is
+the workflow guide for assembling a question end-to-end.
+
 ## File Structure
 
 Every question follows this organization:
@@ -110,6 +113,11 @@ export const TERMINAL_INTRO_ENTRIES: TerminalEntry[] = [
 
 Create `behaviors.ts` with event-driven interaction handlers. This is where
 all game logic lives.
+
+Naming reminder:
+
+- Inside behavior handlers (`EffectContext`), use `interaction`.
+- In page runtime (`useQuestionRuntime`), use `interactionSession`.
 
 ```typescript
 // -utils/behaviors.ts
@@ -675,6 +683,7 @@ and behavior rules.
 - [ ] Phase rules ordered for resolver semantics: broad/default first, overrides later (last matching `set` wins)
 - [ ] Bootstrap-safe render guard applied if board contains dynamic custom/grid spaces
 - [ ] Gameplay rule mutations are behavior-driven (page effects are orchestration-only)
+- [ ] All imported game methods are documented in `runtime-api.md` (no undocumented helper reliance)
 - [ ] `registerTerminalFinish.current = terminalEngine.finish` wired
 - [ ] `behaviorContext.navigateAway` watched in useEffect
 - [ ] `<Modal />` rendered (outside GameBoard is fine)

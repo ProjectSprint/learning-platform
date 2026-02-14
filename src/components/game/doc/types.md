@@ -2,6 +2,7 @@
 
 All game engine types are plain TypeScript types (not classes) for Immer
 compatibility. State is JSON-serializable.
+Use `runtime-api.md` for method semantics; this file focuses on data shapes.
 
 ## GameState
 
@@ -87,10 +88,17 @@ Type guard: `isItemData(entity)` returns true if entity has `allowedPlaces` and
 
 ## SpaceData
 
-A space where entities live. Discriminated union of GridSpaceData, PoolSpaceData, PathSpaceData, and CustomSpaceData.
+A space where entities live. Discriminated union of GridSpaceData, PoolSpaceData,
+PathSpaceData, CustomSpaceData, QueueSpaceData, and MeterSpaceData.
 
 ```typescript
-type SpaceData = GridSpaceData | PoolSpaceData | PathSpaceData | CustomSpaceData;
+type SpaceData =
+  | GridSpaceData
+  | PoolSpaceData
+  | PathSpaceData
+  | CustomSpaceData
+  | QueueSpaceData
+  | MeterSpaceData;
 ```
 
 ### GridSpaceData
@@ -167,6 +175,42 @@ type PathSpaceData = {
 };
 ```
 
+### QueueSpaceData
+
+A FIFO lane with ordered entity IDs.
+
+```typescript
+type QueueSpaceData = {
+  kind: "queue";
+  id: string;
+  name?: string;
+  maxDepth?: number;                         // Queue-specific capacity bound
+  direction: "horizontal" | "vertical";      // UI orientation hint
+  entityIds: string[];                       // FIFO order (front at index 0)
+  maxCapacity?: number;
+  metadata: Record<string, unknown>;
+};
+```
+
+### MeterSpaceData
+
+A numeric gauge/bar (does not own entity IDs).
+
+```typescript
+type MeterSpaceData = {
+  kind: "meter";
+  id: string;
+  name?: string;
+  min: number;
+  max: number;
+  value: number;                             // Current value
+  unit: string;
+  thresholds: Array<{ value: number; color: string }>;
+  maxCapacity?: number;
+  metadata: Record<string, unknown>;
+};
+```
+
 ### Config Types (for QuestionDefinition)
 
 ```typescript
@@ -206,6 +250,26 @@ type PathSpaceConfig = {
 type CustomSpaceConfig = {
   id: string;
   name?: string;
+  maxCapacity?: number;
+  metadata?: Record<string, unknown>;
+};
+
+type QueueSpaceConfig = {
+  id: string;
+  name?: string;
+  maxDepth?: number;
+  direction?: "horizontal" | "vertical";
+  maxCapacity?: number;
+  metadata?: Record<string, unknown>;
+};
+
+type MeterSpaceConfig = {
+  id: string;
+  name?: string;
+  min: number;
+  max: number;
+  unit?: string;
+  thresholds?: Array<{ value: number; color: string }>;
   maxCapacity?: number;
   metadata?: Record<string, unknown>;
 };

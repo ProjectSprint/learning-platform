@@ -7,6 +7,9 @@ behaviors.
 A question author defines a QuestionDefinition (spaces, entities, behaviors)
 and the runtime handles bootstrap, event dispatch, and behavior execution.
 
+Method-level runtime semantics (side effects, failure behavior, guardrails)
+are canonical in `runtime-api.md`.
+
 ## Import Paths
 
 ```typescript
@@ -89,7 +92,7 @@ const MyPage = ({ onQuestionComplete }) => {
 | [building-questions.md](./building-questions.md) | Step-by-step guide to creating a new question from scratch |
 | [question-definition.md](./question-definition.md) | QuestionDefinition type reference (spaces, entities, phase rules) |
 | [behavior-system.md](./behavior-system.md) | Behavior rules, event triggers, guards, and EffectContext |
-| [runtime-api.md](./runtime-api.md) | Canonical flow-ordered API reference for question authors and AI agents (methods, side effects, examples, do/don't) |
+| [runtime-api.md](./runtime-api.md) | Canonical flow-ordered API reference with per-method side effects, return behavior, examples, and guardrails |
 | [adr-adt-read-transformer-effect.md](./adr-adt-read-transformer-effect.md) | Frozen architecture contract for ADT, Read, Transformer, and Effect layers |
 | [components.md](./components.md) | GameProvider, GameBoard, GridSpace, PoolSpace, Modal, Terminal, etc. |
 | [types.md](./types.md) | GameState, EntityData, SpaceData, GameEvent, ModalInstance |
@@ -116,7 +119,7 @@ Question Page
     ├── useQuestionRuntime(engineId, definition)
     │     ├── bootstrapQuestion()     (side effect: dispatches init actions once)
     │     ├── useBehaviorReactor()    (side effect: processes events, runs handlers)
-    │     └── returns { world, progress, interaction, state, behaviorContext, ... }
+    │     └── returns { world, progress, executionFlow, interactionSession, state, behaviorContext, ... }
     │
     └── Render tree
           GameProvider (context: state + dispatch)
@@ -172,6 +175,9 @@ Practical guidance:
   (drawer registration, terminal visibility, phase-rule resolution, navigation).
 - When you must do imperative logic, treat it as a thin shell around the
   behavior system, not a second source of truth for rules.
+
+For exact method contracts used in this loop, use
+`src/components/game/doc/runtime-api.md`.
 
 ## Design Principles
 

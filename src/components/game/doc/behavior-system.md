@@ -4,6 +4,10 @@ The behavior system provides declarative, event-driven handling of user
 interactions. Instead of writing useEffect loops over events, question authors
 define BehaviorRules that pattern-match on game events and execute handlers.
 
+For exact exported method contracts (side effects, return behavior, and
+guardrails), use `runtime-api.md` as canonical. This document focuses on rule
+modeling and authoring patterns.
+
 ```typescript
 import type {
   BehaviorDefinition,
@@ -15,6 +19,13 @@ import type {
 } from "@/components/game/runtime";
 import { entityClicked, modalSubmitted, terminalInput, whenEntityArrivedAtSpace, whenEntityPlacedInSpace, whenEntityTransferredToSpace, modalClosed, phaseChanged } from "@/components/game/runtime";
 ```
+
+Naming clarification:
+
+- In behavior handlers (`EffectContext`), the API is named `interaction`.
+- In page-level runtime (`useQuestionRuntime`), the API is named
+  `interactionSession`.
+- They represent the same interaction domain surface, but in different contexts.
 
 ## BehaviorDefinition
 
