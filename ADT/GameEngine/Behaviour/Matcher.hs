@@ -6,6 +6,7 @@ import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
 import GameEngine.Types.Behaviour
+import GameEngine.Behaviour.Entity
 import GameEngine.Types.Entity
 import GameEngine.Types.Event
 import GameEngine.Types.State

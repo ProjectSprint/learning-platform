@@ -14,7 +14,7 @@ There is no compatibility layer.
   - item-specific ADTs (`ItemData`, `ItemTooltip`, `IconInfo`, `ItemDataConfig`)
 
 - `ADT/GameEngine/Types/Entity.hs`
-  - entity ADT union and entity-local behaviour (`applyEntityUpdates`, `entityIdOf`, `mapEntityCore`)
+  - entity ADT union and update payload types (`EntityData`, `EntityUpdates`, `EntityUpdatePayload`)
 
 - `ADT/GameEngine/Types/Space.hs`
   - space ADTs and space-local behaviour (`gridCanAccept`, `gridAdd`, `poolAdd`, ...)
@@ -38,6 +38,9 @@ There is no compatibility layer.
   - declarative question ADTs (`QuestionDefinition`, phase/inventory/space rules)
 
 ## Behaviour Modules
+- `ADT/GameEngine/Behaviour/Entity.hs`
+  - entity behaviour functions (`applyEntityUpdates`, `entityIdOf`, `entityTypeOf`, `getEntityCore`, `mapEntityCore`, `mergePatch`)
+
 - `ADT/GameEngine/Behaviour/Matcher.hs`
   - pure trigger matching and event entity resolution
 

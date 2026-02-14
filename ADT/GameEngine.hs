@@ -11,12 +11,14 @@ module GameEngine
     module GameEngine.Types.Behaviour,
     module GameEngine.Types.Question,
     module GameEngine.EventQueue,
+    module GameEngine.Behaviour.Entity,
     module GameEngine.Behaviour.Matcher,
     module GameEngine.Behaviour.Transition,
     module GameEngine.Reducer
   )
 where
 
+import GameEngine.Behaviour.Entity
 import GameEngine.Behaviour.Matcher
 import GameEngine.Behaviour.Transition
 import GameEngine.EventQueue

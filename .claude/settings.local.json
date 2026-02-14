@@ -75,7 +75,8 @@
       "Bash(pnpm exec vitest:*)",
       "Bash(bd dep remove:*)",
       "Bash(git status:*)",
-      "Bash(pnpm vitest run:*)"
+      "Bash(pnpm vitest run:*)",
+      "mcp__gsap__get_gsap_api_expert"
     ]
   }
 }

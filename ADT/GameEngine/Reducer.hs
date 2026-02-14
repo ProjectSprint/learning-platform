@@ -8,6 +8,7 @@ import Data.Map.Strict qualified as Map
 import Data.Maybe (fromMaybe)
 import GameEngine.EventQueue
 import GameEngine.Types.Common
+import GameEngine.Behaviour.Entity
 import GameEngine.Types.Entity
 import GameEngine.Types.Event
 import GameEngine.Types.Modal

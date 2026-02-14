@@ -17,9 +17,9 @@ appendEvents actionId payloads queue@GameEventQueue {queueEvents, queueLastEvent
   | otherwise =
       let (eventsToAppend, nextEventId) =
             foldl'
-              (\(acc, currentEventId) payload ->
-                 let eid = currentEventId + 1
-                  in (acc ++ [GameEvent (EventMeta eid actionId Nothing) payload], eid)
+              ( \(acc, currentEventId) payload ->
+                  let eid = currentEventId + 1
+                   in (acc ++ [GameEvent (EventMeta eid actionId Nothing) payload], eid)
               )
               ([], queueLastEventId)
               payloads

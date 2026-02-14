@@ -23,6 +23,7 @@ import type {
 	PathSpaceConfig,
 	PoolSpaceConfig,
 } from "../../domain/space/space-data";
+import type { DragGatingRule } from "../behavior/drag-rules";
 import type { BehaviorDefinition } from "../behavior/types";
 
 // Re-export condition types for convenience
@@ -76,4 +77,5 @@ export type QuestionDefinition<
 	inventoryRules?: InventoryRule<CK>[];
 	spaceRules?: SpaceRule<CK>[];
 	behaviors?: BehaviorDefinition<TContext>;
+	dragRules?: DragGatingRule[];
 };
