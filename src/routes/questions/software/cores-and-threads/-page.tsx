@@ -60,17 +60,31 @@ export const CoresAndThreadsQuestion = ({
 };
 
 const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
+	// The runtime hook is the "brain" wiring:
+	// 1) validates + bootstraps CORES_THREADS_DEFINITION (spaces/entities),
+	// 2) subscribes to engine events for "cores-and-threads-page",
+	// 3) runs behavior rules from -utils/behaviors.ts,
+	// 4) returns the latest global game state + behavior-only context.
 	const { state, behaviorContext } = useQuestionRuntime<
 		string,
 		CoresBehaviorContext
 	>("cores-and-threads-page", CORES_THREADS_DEFINITION);
+	// Explicit game context object (state + dispatch) passed to engine components.
 	const gameCtx = useGameCtx();
+	// Registers the generic drag engine lifecycle (progress/events for dragging).
+	// No direct return value is used here; this is an initialization side effect.
 	useDragEngine();
+	// Drawer manager API used to register the inventory panel in layout effect.
 	const { registerDrawer } = useDrawerManager();
 
+	// behaviorContext.pipelineState is maintained by behavior rules.
+	// This line maps state -> human hint text.
 	const hint = hintByState[behaviorContext.pipelineState];
+	// Writes hint text into hint store (with delay logic inside hook).
 	useContextualHint(hint);
 
+	// Normalizes optional notice payload from behavior context for rendering.
+	// useMemo avoids object recreation unless relevant fields changed.
 	const notice = useMemo(() => {
 		if (!behaviorContext.noticeMessage) return null;
 		return {
@@ -79,6 +93,8 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 		};
 	}, [behaviorContext.noticeMessage, behaviorContext.noticeTone]);
 
+	// Guard against rendering spaces before runtime bootstrap completes.
+	// If any required space is missing from state.spaces, board UI stays hidden.
 	const boardReady = useMemo(() => {
 		const required = [
 			SPACE_IDS.appPool,
@@ -93,22 +109,32 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 		return required.every((id) => Boolean(state.spaces[id]));
 	}, [state.spaces]);
 
+	// Unlock flag is owned by behavior rules (set after enough opened apps).
 	const showCore2 = behaviorContext.dualCorePromptVisible;
 
+	// Read path-space occupancy directly from global state.
+	// Path spaces keep entityIds as the list currently moving through that lane.
 	const core1Space = state.spaces[SPACE_IDS.core1];
 	const isCore1Occupied =
 		core1Space?.kind === "path" && core1Space.entityIds.length > 0;
 	const core2Space = state.spaces[SPACE_IDS.core2];
 	const isCore2Occupied =
 		core2Space?.kind === "path" && core2Space.entityIds.length > 0;
+	// Drag gate policy:
+	// - before dual-core unlock: only core 1 availability matters,
+	// - after unlock: at least one of core 1/core 2 must be free.
 	const hasAvailableLane = showCore2
 		? !isCore1Occupied || !isCore2Occupied
 		: !isCore1Occupied;
+	// PoolSpace asks this callback before starting drag.
+	// Returning false blocks dragging apps out of the drawer.
 	const canDragAppFromPool = useCallback(
 		(_entity: { id: string }) => hasAvailableLane,
 		[hasAvailableLane],
 	);
 
+	// Presentation mapper: entity runtime data -> UI badge + label in GridSpace cards.
+	// This does not mutate state; it only determines visual status chips.
 	const getEntityStatus = useCallback(
 		(entity: { data: Record<string, unknown> }) => {
 			const appStatus = entity.data.appStatus as string | undefined;
@@ -138,6 +164,8 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 		[],
 	);
 
+	// Register the bottom "Apps" drawer before paint to avoid first-frame flicker.
+	// The drawer content itself is rendered later via <DrawerLayout drawerId=...>.
 	useLayoutEffect(() => {
 		registerDrawer({
 			id: INVENTORY_DRAWER_ID,
@@ -155,9 +183,11 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 		});
 	}, [registerDrawer]);
 
+	// Shared label formatter for all spaces showing entities.
 	const getEntityLabel = (entity: EntityData) => entity.name ?? entity.id;
 
 	return (
+		// Page shell (visual layout only).
 		<Box
 			as="main"
 			display="flex"
@@ -167,6 +197,7 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 			px={{ base: 4, md: 10, lg: 16 }}
 			py={{ base: 4, md: 6 }}
 		>
+			{/* Static question copy from constants. */}
 			<Box mb={4}>
 				<Text
 					fontSize={{ base: "2xl", md: "4xl" }}
@@ -180,7 +211,9 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 				</Text>
 			</Box>
 
+			{/* GameBoard provides board registry + arrow/space coordination contexts. */}
 			<GameBoard>
+				{/* Render board content only after all declared spaces exist in state. */}
 				{boardReady ? (
 					<Grid
 						templateColumns={{
@@ -189,12 +222,14 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 						}}
 						gap={{ base: 3, md: 4 }}
 					>
+						{/* Left column: control-plane style spaces and summary info. */}
 						<GridItem>
 							<InfoCard
 								title="Single Core Simulation"
 								value={`Opened apps: ${behaviorContext.openedCount}`}
 								subtitle="Flow: Open -> RAM -> Execution -> Core 1 -> Opened"
 							/>
+							{/* behaviorContext notice channel (set/cleared by behavior scheduler). */}
 							{notice ? (
 								<Text
 									fontSize="sm"
@@ -204,12 +239,14 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 									{notice.message}
 								</Text>
 							) : null}
+							{/* Secondary prompt toggled by behavior when dual-core is unlocked. */}
 							{behaviorContext.dualCorePromptVisible ? (
 								<Text mt={2} fontSize="sm" color="teal.300">
 									Next lesson prompt: introduce dual-core scheduling now.
 								</Text>
 							) : null}
 							<Box mt={3}>
+								{/* "Open" is the app entry gate where app-arrived behavior triggers. */}
 								<GridSpace
 									ctx={gameCtx}
 									config={OPEN_GRID_CONFIG}
@@ -219,11 +256,13 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 								/>
 							</Box>
 							<Box mt={3}>
+								{/* CustomSpace has no entity placement; it hosts pure custom UI (RamBar). */}
 								<CustomSpace id={SPACE_IDS.ram}>
 									<RamBar usage={behaviorContext.ramUsage} />
 								</CustomSpace>
 							</Box>
 							<Box mt={3}>
+								{/* Execution queue grid for subtask parts created by behavior rules. */}
 								<GridSpace
 									ctx={gameCtx}
 									config={EXECUTION_GRID_CONFIG}
@@ -236,6 +275,7 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 								/>
 							</Box>
 							<Box mt={3}>
+								{/* Storage path represents I/O wait/response round-trip lane. */}
 								<Box
 									bg="gray.900"
 									borderRadius="md"
@@ -264,6 +304,7 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 							</Box>
 						</GridItem>
 
+						{/* Middle column: core-1 path and final opened-app list. */}
 						<GridItem>
 							<Box
 								bg="gray.900"
@@ -292,6 +333,7 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 							</Box>
 
 							<Box mt={3}>
+								{/* Terminal destination for apps once all execution parts finish. */}
 								<GridSpace
 									ctx={gameCtx}
 									config={OPENED_GRID_CONFIG}
@@ -302,6 +344,7 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 							</Box>
 						</GridItem>
 
+						{/* Right column is conditionally mounted after unlock. */}
 						{showCore2 ? (
 							<GridItem>
 								<Box
@@ -334,18 +377,23 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 					</Grid>
 				) : null}
 
+				{/* Renders hint text that useContextualHint writes into hint store. */}
 				<ContextualHint />
+				{/* Visual drag preview while pointer drag is active. */}
 				<DragOverlay getEntityLabel={(entityType) => entityType} />
+				{/* DrawerLayout binds to registered drawer ID and renders pool inside it. */}
 				<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
 					<PoolSpace
 						ctx={gameCtx}
 						config={APP_POOL_CONFIG}
 						title="Apps"
+						// Hard gate from current lane availability.
 						isEntityDraggable={canDragAppFromPool}
 					/>
 				</DrawerLayout>
 			</GameBoard>
 
+			{/* Global modal mount; behavior rules can open/close dialog flows through runtime. */}
 			<Modal />
 		</Box>
 	);
