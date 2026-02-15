@@ -2,7 +2,7 @@
 
 This document covers all React components used to render a question game.
 For runtime method contracts and mutation/read guardrails, use
-`runtime-api.md` as canonical.
+`06-runtime-api.md` as canonical.
 
 ## GameProvider
 

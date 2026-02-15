@@ -31,4 +31,4 @@ The domain layer is split into explicit boundaries:
 - Transformers: `src/components/game/domain/transformers/index.ts`
 - Invariants: `src/components/game/domain/invariants.ts`
 
-See `src/components/game/doc/adr-adt-read-transformer-effect.md` for the frozen contract.
+See `src/components/game/doc/09-adr-adt-read-transformer-effect.md` for the frozen contract.

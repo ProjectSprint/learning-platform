@@ -259,7 +259,7 @@ dragRules: [
 ],
 ```
 
-See [runtime-api.md](./runtime-api.md) section
+See [06-runtime-api.md](./06-runtime-api.md) section
 "5) Behavior Triggers and Rule Helpers" for drag gating method-level contracts.
 
 ### layoutRules
@@ -276,7 +276,7 @@ layoutRules: [
 ],
 ```
 
-See [runtime-api.md](./runtime-api.md) section
+See [06-runtime-api.md](./06-runtime-api.md) section
 "5) Behavior Triggers and Rule Helpers" for layout visibility method-level
 contracts.
 
@@ -297,13 +297,13 @@ shapeRules: [
 ],
 ```
 
-See [runtime-api.md](./runtime-api.md) section
+See [06-runtime-api.md](./06-runtime-api.md) section
 "5) Behavior Triggers and Rule Helpers" for shape rule method-level contracts.
 
 ### behaviors
 
 Optional behavior definition for event-driven interaction handling. See
-[behavior-system.md](./behavior-system.md) for full documentation.
+[05-behavior-system.md](./05-behavior-system.md) for full documentation.
 
 ---
 
