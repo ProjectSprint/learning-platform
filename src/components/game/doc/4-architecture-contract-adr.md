@@ -1,4 +1,4 @@
-# ADR: Game Domain Layer Contract (ADT + Read + Transformer + Effect)
+# 4) ADR: Game Domain Layer Contract (ADT + Read + Transformer + Effect)
 
 ## Status
 Accepted (hard migration baseline)

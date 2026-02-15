@@ -1,16 +1,16 @@
 # Game Docs Index
 
-Primary entry point: [01-README.md](./01-README.md)
+Primary entry point: [1-mental-model-and-loop.md](./1-mental-model-and-loop.md)
 
 Full ordered sequence:
 
-1. [01-README.md](./01-README.md)
-2. [02-principles-and-mental-model.md](./02-principles-and-mental-model.md)
-3. [03-build-a-question-by-copying.md](./03-build-a-question-by-copying.md)
-4. [04-question-definition-options.md](./04-question-definition-options.md)
-5. [05-interactions-and-behaviors.md](./05-interactions-and-behaviors.md)
-6. [06-capability-lookup.md](./06-capability-lookup.md)
-7. [07-runtime-api-reference.md](./07-runtime-api-reference.md)
-8. [08-component-reference.md](./08-component-reference.md)
-9. [09-types-reference.md](./09-types-reference.md)
-10. [10-architecture-contract-adr.md](./10-architecture-contract-adr.md)
+1. [1-mental-model-and-loop.md](./1-mental-model-and-loop.md)
+2. [1.1-principles-and-mental-model.md](./1.1-principles-and-mental-model.md)
+3. [2-build-a-question-by-copying.md](./2-build-a-question-by-copying.md)
+4. [2.1-question-definition-options.md](./2.1-question-definition-options.md)
+5. [2.2-interactions-and-behaviors.md](./2.2-interactions-and-behaviors.md)
+6. [3-capability-lookup.md](./3-capability-lookup.md)
+7. [3.1-runtime-api-reference.md](./3.1-runtime-api-reference.md)
+8. [3.2-component-reference.md](./3.2-component-reference.md)
+9. [3.3-types-reference.md](./3.3-types-reference.md)
+10. [4-architecture-contract-adr.md](./4-architecture-contract-adr.md)
