@@ -1,8 +1,8 @@
-# Types — Game Engine Type Reference
+# Type Reference (Game Engine Data Shapes)
 
 All game engine types are plain TypeScript types (not classes) for Immer
 compatibility. State is JSON-serializable.
-Use `06-runtime-api.md` for method semantics; this file focuses on data shapes.
+Use `07-runtime-api-reference.md` for method semantics; this file focuses on data shapes.
 
 ## GameState
 

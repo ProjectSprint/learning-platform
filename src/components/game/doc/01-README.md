@@ -1,255 +1,73 @@
-# Package game — Interactive Educational Game Engine
+# Game Question Docs (Author Workflow)
 
-Package game provides a React framework for building interactive educational
-games with drag-and-drop, modals, terminal interaction, and event-driven
-behaviors.
+This docs set is organized for the real author loop:
 
-A question author defines a QuestionDefinition (spaces, entities, behaviors)
-and the runtime handles bootstrap, event dispatch, and behavior execution.
+1. Understand the model.
+2. Copy a working question.
+3. Adapt it to your needs.
+4. Hit a limitation.
+5. Look up capabilities/API/types.
+6. Apply changes and repeat.
 
-Method-level runtime semantics (side effects, failure behavior, guardrails)
-are canonical in `06-runtime-api.md`.
+If you only read one file first, read this one.
 
-## Start Here (Task-First Path)
+## The Loop
 
-If your goal is "I need to build a new question", use this path:
+Use this every time you build or modify a question:
 
-1. Read [02-authoring-playbook.md](./02-authoring-playbook.md) for model,
-   principles, options, side effects, examples, and troubleshooting.
-2. Follow [03-building-questions.md](./03-building-questions.md) to scaffold files
-   and wire a working route.
-3. Use [04-question-definition.md](./04-question-definition.md) to finalize
-   definition fields.
-4. Implement rules with [05-behavior-system.md](./05-behavior-system.md).
-5. Verify exact API contracts in [06-runtime-api.md](./06-runtime-api.md).
+1. Orientation: `02-principles-and-mental-model.md`
+2. Copy baseline: `03-build-a-question-by-copying.md`
+3. Adapt structure/options: `04-question-definition-options.md`
+4. Add interactions: `05-interactions-and-behaviors.md`
+5. If blocked, find the right API fast: `06-capability-lookup.md`
+6. Verify exact contracts before coding risky changes: `07-runtime-api-reference.md`
+7. Apply changes in route code, then loop back to step 3/4 as needed.
 
-## Recommended File Order
+## How To Use This In Practice
 
-Use these numbers when someone asks "which file first?":
+### First-time author (new question)
 
-1. `01-README.md` (this file)
-2. `02-authoring-playbook.md`
-3. `03-building-questions.md`
-4. `04-question-definition.md`
-5. `05-behavior-system.md`
-6. `06-runtime-api.md`
-7. `07-components.md`
-8. `08-types.md`
-9. `09-adr-adt-read-transformer-effect.md`
+1. Read `02-principles-and-mental-model.md` (10-15 minutes).
+2. Follow `03-build-a-question-by-copying.md` and make it run once.
+3. Use `04-question-definition-options.md` for spaces/entities/rules shape.
+4. Use `05-interactions-and-behaviors.md` for triggers, guards, handlers.
+5. Use `06-capability-lookup.md` whenever you ask: "Can the engine do X?"
 
-## I Want To...
+### Returning author (change existing question)
 
-| I want to... | Go here first | Then use |
-|--------------|---------------|----------|
-| Understand the engine model and authoring principles | [02-authoring-playbook.md](./02-authoring-playbook.md) | [09-adr-adt-read-transformer-effect.md](./09-adr-adt-read-transformer-effect.md) |
-| Create a new question from zero | [03-building-questions.md](./03-building-questions.md) | [04-question-definition.md](./04-question-definition.md) |
-| Pick space/entity options | [04-question-definition.md](./04-question-definition.md) | [08-types.md](./08-types.md), [07-components.md](./07-components.md) |
-| Add user interaction logic | [05-behavior-system.md](./05-behavior-system.md) | [06-runtime-api.md](./06-runtime-api.md) |
-| Check side effects and failure behavior | [06-runtime-api.md](./06-runtime-api.md) | [02-authoring-playbook.md](./02-authoring-playbook.md) |
-| Troubleshoot common authoring problems | [02-authoring-playbook.md](./02-authoring-playbook.md) | Route examples in `src/routes/questions/networking/` |
+1. Start at `06-capability-lookup.md` to pick APIs quickly.
+2. Confirm method behavior in `07-runtime-api-reference.md`.
+3. Check `09-types-reference.md` if data/event shape is unclear.
+4. Implement and test.
 
-## Import Paths
+## Fast Intent Map
 
-```typescript
-// Runtime (main API for question pages)
-import { useQuestionRuntime, type QuestionDefinition } from "@/components/game/runtime";
-import { entityClicked, modalSubmitted, terminalInput } from "@/components/game/runtime";
-import type { BehaviorDefinition, BehaviorRule, EffectContext, ScheduledEffectContext } from "@/components/game/runtime";
+| If you need to... | Open first | Open second |
+|-------------------|------------|-------------|
+| Understand architecture and ownership | `02-principles-and-mental-model.md` | `10-architecture-contract-adr.md` |
+| Build a question quickly by copying | `03-build-a-question-by-copying.md` | `04-question-definition-options.md` |
+| Decide which space/rule option to use | `04-question-definition-options.md` | `06-capability-lookup.md` |
+| Add interactions (click, modal, terminal, phase) | `05-interactions-and-behaviors.md` | `07-runtime-api-reference.md` |
+| Understand side effects or failure behavior | `07-runtime-api-reference.md` | `02-principles-and-mental-model.md` |
+| Find component prop or rendering limits | `08-component-reference.md` | `06-capability-lookup.md` |
+| Find type/event shape | `09-types-reference.md` | `07-runtime-api-reference.md` |
+| Debug by symptom | `06-capability-lookup.md` | `05-interactions-and-behaviors.md` |
 
-// Provider and hooks
-import { GameProvider, useGameCtx, useGameState } from "@/components/game/game-provider";
-import { useDrawerManager } from "@/components/game/game-provider";
+## Ordered Files
 
-// Engine components (declarative wrappers with state integration)
-import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
+1. `01-README.md`
+2. `02-principles-and-mental-model.md`
+3. `03-build-a-question-by-copying.md`
+4. `04-question-definition-options.md`
+5. `05-interactions-and-behaviors.md`
+6. `06-capability-lookup.md`
+7. `07-runtime-api-reference.md`
+8. `08-component-reference.md`
+9. `09-types-reference.md`
+10. `10-architecture-contract-adr.md`
 
-// Presentation (UI-only, no state logic)
-import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
-import { DrawerLayout } from "@/components/game/presentation/drawer";
-import { Modal } from "@/components/game/presentation/modal";
-import { TerminalLayout, TerminalView, TerminalInput, useTerminalStore, useTerminalInput } from "@/components/game/presentation/terminal";
-import { ContextualHint, useContextualHint } from "@/components/game/presentation/hint";
-import { useBoardArrows } from "@/components/game/presentation/space/arrow";
+## Important Guardrail
 
-// Domain types
-import type { EntityData, ItemData } from "@/components/game/domain/entity/entity-data";
-import type { GridSpaceConfig, PoolSpaceConfig, GridPosition } from "@/components/game/domain/space/space-data";
-
-// Engines (drag tracking, terminal lifecycle)
-import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
-```
-
-## Quick Start
-
-```tsx
-const MY_DEFINITION: QuestionDefinition<MyConditionKey, MyBehaviorContext> = {
-  meta: { id: "my-question", title: "My Question", description: "..." },
-  initialPhase: "setup",
-  spaces: [
-    { kind: "grid", config: { id: "board", rows: 2, cols: 2, metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 } } },
-    { kind: "pool", config: { id: "inventory", name: "Items" } },
-  ],
-  entities: [
-    { config: { id: "item-1", allowedPlaces: ["inventory", "board"], icon: { icon: "twemoji:gear" } }, initialSpace: "inventory" },
-  ],
-  phaseRules: [],
-  behaviors: MY_BEHAVIORS,
-};
-
-export const MyQuestion = ({ onQuestionComplete }) => (
-  <GameProvider>
-    <MyPage onQuestionComplete={onQuestionComplete} />
-  </GameProvider>
-);
-
-const MyPage = ({ onQuestionComplete }) => {
-  const { world, state, behaviorContext } = useQuestionRuntime("my-page", MY_DEFINITION);
-  const gameCtx = useGameCtx();
-
-  useEffect(() => {
-    if (behaviorContext.navigateAway) onQuestionComplete();
-  }, [behaviorContext.navigateAway, onQuestionComplete]);
-
-  return (
-    <GameBoard>
-      <GridSpace ctx={gameCtx} config={BOARD_CONFIG} />
-      <DragOverlay getEntityLabel={(type) => type} />
-      <DrawerLayout drawerId="inventory-drawer">
-        <PoolSpace ctx={gameCtx} config={INVENTORY_CONFIG} />
-      </DrawerLayout>
-      <Modal />
-    </GameBoard>
-  );
-};
-```
-
-## Documentation Index
-
-| Order | Document | Description |
-|-------|----------|-------------|
-| 01 | [01-README.md](./01-README.md) | Navigation hub and task-first entry path |
-| 02 | [02-authoring-playbook.md](./02-authoring-playbook.md) | Task-first authoring guide: mental model, principles, options, side effects, examples, troubleshooting |
-| 03 | [03-building-questions.md](./03-building-questions.md) | Step-by-step guide to creating a new question from scratch |
-| 04 | [04-question-definition.md](./04-question-definition.md) | QuestionDefinition type reference (spaces, entities, phase rules) |
-| 05 | [05-behavior-system.md](./05-behavior-system.md) | Behavior rules, event triggers, guards, and EffectContext |
-| 06 | [06-runtime-api.md](./06-runtime-api.md) | Canonical flow-ordered API reference with per-method side effects, return behavior, examples, and guardrails |
-| 07 | [07-components.md](./07-components.md) | GameProvider, GameBoard, GridSpace, PoolSpace, Modal, Terminal, etc. |
-| 08 | [08-types.md](./08-types.md) | GameState, EntityData, SpaceData, GameEvent, ModalInstance |
-| 09 | [09-adr-adt-read-transformer-effect.md](./09-adr-adt-read-transformer-effect.md) | Frozen architecture contract for ADT, Read, Transformer, and Effect layers |
-
-## Architecture Overview
-
-Boundary contract:
-- ADT: data, constructors, type guards
-- Read: pure `is/get/select` queries
-- Transformer: deterministic `apply/try` transitions with explicit noop
-- Effect: runtime wrappers, hooks, and component orchestration
-
-See `09-adr-adt-read-transformer-effect.md` for the frozen contract and migration rules.
-
-```
-Question Page
-    │
-    ├── QuestionDefinition (declarative config)
-    │     ├── spaces[]        → bootstrap creates GridSpaceData / PoolSpaceData / PathSpaceData
-    │     ├── entities[]      → bootstrap creates ItemData, places in initial spaces
-    │     ├── phaseRules[]    → page resolves phases from condition context
-    │     └── behaviors       → reactor matches events → runs handlers
-    │
-    ├── useQuestionRuntime(engineId, definition)
-    │     ├── bootstrapQuestion()     (side effect: dispatches init actions once)
-    │     ├── useBehaviorReactor()    (side effect: processes events, runs handlers)
-    │     └── returns { world, progress, executionFlow, interactionSession, state, behaviorContext, ... }
-    │
-    └── Render tree
-          GameProvider (context: state + dispatch)
-            └── ArrowProvider → DrawerProvider → HintProvider → TerminalProvider → DragProvider
-                  └── GameBoard (arrow surface)
-                        ├── GridSpace (state-aware grid with drag-drop)
-                        ├── PoolSpace (state-aware inventory)
-                        ├── PathSpace (state-aware transit lane)
-                        ├── DragOverlay (drag preview)
-                        ├── DrawerLayout (responsive drawer panel)
-                        └── Modal (data-driven modal renderer)
-```
-
-## Bootstrap Lifecycle (Practical Timeline)
-
-Use this mental model when wiring a question page:
-
-1. React renders the page component.
-2. `useQuestionRuntime()` validates the `QuestionDefinition`.
-3. Runtime bootstrap dispatches initialization actions once:
-   `SET_QUESTION`, `SET_PHASE`, `SPACE_CREATED` (per space),
-   `ENTITY_CREATED` + `ENTITY_ADDED` (per entity with `initialSpace`).
-4. A subsequent render sees the created spaces/entities in `state`.
-5. Engine components (`GridSpace`, `PoolSpace`, `PathSpace`, `CustomSpace`) can now
-   resolve those spaces normally.
-6. User interactions emit events (`ENTITY_MOVED`, `MODAL_SUBMITTED`, etc.).
-7. Behavior reactor matches and executes the first applicable rule.
-8. `ack()` advances the event cursor after processing.
-
-Important implication:
-- The first render can happen before required spaces are present in state.
-- If you render `CustomSpace`/`GridSpace` immediately, dev warnings may appear.
-- Prefer a small readiness guard (for example, check `state.spaces.<id>` exists)
-  before rendering complex board sections.
-
-## Behavior-Driven Flow (End-to-End Loop)
-
-High-level loop:
-
-```
-User action
-  -> domain event
-  -> trigger match
-  -> guard pass
-  -> handler effect (world/interaction/progress/context)
-  -> new state + follow-up events
-  -> ack
-```
-
-Practical guidance:
-- Keep game rules in behavior handlers.
-- Keep page `useEffect` logic for orchestration concerns only
-  (drawer registration, terminal visibility, phase-rule resolution, navigation).
-- When you must do imperative logic, treat it as a thin shell around the
-  behavior system, not a second source of truth for rules.
-
-For exact method contracts used in this loop, use
-`src/components/game/doc/06-runtime-api.md`.
-
-## Design Principles
-
-1. **Declarative definitions over imperative init.** Questions describe WHAT
-   exists (QuestionDefinition), not HOW to create it.
-2. **Behaviors over event loops.** Questions react to events via BehaviorRule
-   handlers, not useEffect loops over events.
-3. **API wrappers over raw dispatch.** Use `world.updateEntity()` not
-   `dispatch({ type: "ENTITY_UPDATED", ... })`.
-4. **Plain data types, not classes.** All state is JSON-serializable for Immer
-   compatibility.
-5. **First matching rule wins.** Behavior rules are evaluated in order; the
-   first rule whose trigger and guard match handles the event.
-
-## Limitations
-
-- Terminal UI state (history, prompt, visibility) is local to TerminalProvider,
-  NOT in GameState. Access via useTerminalStore().
-- GridSpace/PoolSpace do not create spaces on mount. Spaces are created by
-  bootstrapQuestion() from the QuestionDefinition.
-- Phase transitions require explicit request via interactionSession or setPhase
-  in behaviors. There is no automatic phase advancement.
-- The behavior reactor processes events asynchronously. State reads inside a
-  handler see the latest state at execution time, not at event emission time.
-- Deferred behavior effects should use `schedule`/`cancelSchedule` from
-  `EffectContext` (runtime-managed keyed scheduler), not ad-hoc timers.
-- Event queue is append-only. Events cannot be removed or replayed.
-
-## Real Examples
-
-See `src/routes/questions/networking/` for complete implementations:
-- **DHCP** — Drag-and-drop topology, entity click → modal config, terminal ping
-- **TCP/UDP** — Packet sequencing and delivery modeled via behaviors
-- **SSL** — Certificate issuance modals, curl/openssl terminal commands
-- **Internet** — Complex multi-entity routing with NAT, DNS, PPPoE
+Canonical method-level contracts (side effects, return behavior, failure behavior)
+are in `07-runtime-api-reference.md`. If any guide and API reference conflict,
+trust `07-runtime-api-reference.md`.

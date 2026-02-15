@@ -1,8 +1,8 @@
-# Components — UI Components Reference
+# Component Reference (UI Layer)
 
 This document covers all React components used to render a question game.
 For runtime method contracts and mutation/read guardrails, use
-`06-runtime-api.md` as canonical.
+`07-runtime-api-reference.md` as canonical.
 
 ## GameProvider
 

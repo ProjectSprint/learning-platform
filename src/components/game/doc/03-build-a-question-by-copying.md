@@ -1,13 +1,12 @@
-# Building Questions — Step-by-Step Guide
+# Build a Question by Copying (Step-by-Step)
 
-This guide walks through creating a new interactive question from scratch.
-It covers file structure, constants, definition, behaviors, page component,
-and all wiring needed for a fully functional question.
+This guide is the "copy and run" phase of onboarding.
+Use it to get a working question quickly, then adapt from there.
 
 For real examples, see `src/routes/questions/networking/dhcp/`.
 
-Method-level runtime contracts are canonical in `06-runtime-api.md`. This file is
-the workflow guide for assembling a question end-to-end.
+Method-level runtime contracts are canonical in
+`07-runtime-api-reference.md`. This file is the build workflow guide.
 
 ## File Structure
 
@@ -683,7 +682,7 @@ and behavior rules.
 - [ ] Phase rules ordered for resolver semantics: broad/default first, overrides later (last matching `set` wins)
 - [ ] Bootstrap-safe render guard applied if board contains dynamic custom/grid spaces
 - [ ] Gameplay rule mutations are behavior-driven (page effects are orchestration-only)
-- [ ] All imported game methods are documented in `06-runtime-api.md` (no undocumented helper reliance)
+- [ ] All imported game methods are documented in `07-runtime-api-reference.md` (no undocumented helper reliance)
 - [ ] `registerTerminalFinish.current = terminalEngine.finish` wired
 - [ ] `behaviorContext.navigateAway` watched in useEffect
 - [ ] `<Modal />` rendered (outside GameBoard is fine)

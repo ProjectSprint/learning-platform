@@ -1,0 +1,64 @@
+# Principles and Mental Model
+
+Read this before writing gameplay code. It explains where logic belongs and why.
+
+## One Mental Model
+
+The intended flow is:
+
+1. `QuestionDefinition` declares spaces, entities, phase rules, and behaviors.
+2. Runtime bootstraps state from that definition.
+3. UI renders state.
+4. User actions emit events.
+5. Behavior rules match events and execute effects.
+6. Effects mutate through runtime wrappers (`world`, `interaction`, `progress`, `flow`).
+
+If gameplay decisions are implemented outside this flow (for example page-level
+custom event loops), behavior becomes harder to predict and maintain.
+
+## Authoring Principles
+
+1. Declarative first: define question shape before writing imperative logic.
+2. Behavior first: gameplay decisions belong in behavior rules.
+3. Wrapper first: mutate via runtime APIs, not raw reducer dispatch.
+4. Single ownership: one rule path should own each gameplay decision.
+5. Deterministic effects: use runtime scheduler helpers for delayed actions.
+
+## Ownership Boundaries
+
+### Keep in behavior rules
+
+- Gameplay branching
+- Entity/space mutations
+- Modal decision handling
+- Terminal command outcomes
+- Completion and progression conditions
+
+### Keep in page component
+
+- Layout and rendering composition
+- Non-gameplay orchestration (for example drawer registration)
+- Route handoff/navigation triggered by behavior context signals
+
+## State Placement Rules
+
+- Canonical gameplay state: `GameState` via `world.*`
+- Cross-rule transient state: behavior `context`
+- Purely visual local UI state: component local state
+- Terminal UI history/visibility: terminal provider store
+
+## Lifecycle Facts You Must Remember
+
+1. First render can happen before spaces/entities are bootstrapped.
+2. Behavior rules are first-match-wins for each event.
+3. Reactor processes asynchronously; handler reads latest state at execution.
+4. Terminal UI state is not in `GameState`.
+5. Keyed `schedule`/`cancelSchedule` should replace ad-hoc gameplay timers.
+
+## Read Next
+
+- Build baseline quickly: `03-build-a-question-by-copying.md`
+- Choose question options: `04-question-definition-options.md`
+- Add interactions: `05-interactions-and-behaviors.md`
+- Find APIs by intent: `06-capability-lookup.md`
+- Verify exact contracts: `07-runtime-api-reference.md`

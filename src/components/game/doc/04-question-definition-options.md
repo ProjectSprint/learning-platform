@@ -1,4 +1,4 @@
-# QuestionDefinition — Declarative Question Configuration
+# Question Definition Options (Declarative Configuration)
 
 QuestionDefinition is the entry point for creating a new question. It
 declaratively describes what spaces exist, what entities populate them, what
@@ -259,7 +259,7 @@ dragRules: [
 ],
 ```
 
-See [06-runtime-api.md](./06-runtime-api.md) section
+See [07-runtime-api-reference.md](./07-runtime-api-reference.md) section
 "5) Behavior Triggers and Rule Helpers" for drag gating method-level contracts.
 
 ### layoutRules
@@ -276,7 +276,7 @@ layoutRules: [
 ],
 ```
 
-See [06-runtime-api.md](./06-runtime-api.md) section
+See [07-runtime-api-reference.md](./07-runtime-api-reference.md) section
 "5) Behavior Triggers and Rule Helpers" for layout visibility method-level
 contracts.
 
@@ -297,13 +297,13 @@ shapeRules: [
 ],
 ```
 
-See [06-runtime-api.md](./06-runtime-api.md) section
+See [07-runtime-api-reference.md](./07-runtime-api-reference.md) section
 "5) Behavior Triggers and Rule Helpers" for shape rule method-level contracts.
 
 ### behaviors
 
 Optional behavior definition for event-driven interaction handling. See
-[05-behavior-system.md](./05-behavior-system.md) for full documentation.
+[05-interactions-and-behaviors.md](./05-interactions-and-behaviors.md) for full documentation.
 
 ---
 

@@ -1,11 +1,11 @@
-# BehaviorSystem — Event-Driven Interaction Handling
+# Interactions and Behaviors (Event-Driven Handling)
 
 The behavior system provides declarative, event-driven handling of user
 interactions. Instead of writing useEffect loops over events, question authors
 define BehaviorRules that pattern-match on game events and execute handlers.
 
 For exact exported method contracts (side effects, return behavior, and
-guardrails), use `06-runtime-api.md` as canonical. This document focuses on rule
+guardrails), use `07-runtime-api-reference.md` as canonical. This document focuses on rule
 modeling and authoring patterns.
 
 ```typescript
@@ -242,7 +242,7 @@ type ScheduledEffectContext<TContext> = Omit<
 
 ### Key EffectContext Members
 
-**world** — Mutate entities and spaces. See [06-runtime-api.md](./06-runtime-api.md).
+**world** — Mutate entities and spaces. See [07-runtime-api-reference.md](./07-runtime-api-reference.md).
 ```typescript
 world.updateEntity(entityId, { data: { dhcpEnabled: true } });
 world.updateEntityState(entityId, { ip: "192.168.1.10", status: "success" });
