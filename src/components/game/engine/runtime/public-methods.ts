@@ -1,9 +1,3 @@
-import type { GameState } from "../../internal/application/state/types";
-import type {
-	ConditionContext,
-	PhaseResolution,
-	PhaseRule,
-} from "../../internal/domain/question";
 import { resolvePhase } from "../../internal/domain/question";
 import {
 	getEntity,
@@ -12,16 +6,22 @@ import {
 	isEntityInSpace,
 } from "../../internal/domain/read";
 import {
-	type EventTrigger,
 	entityClicked,
-	type LaneSchedulerInput,
-	type LaneSelectionResult,
 	modalSubmitted,
 	pickLane,
 	terminalInput,
 	whenEntityArrivedAtSpace,
 	whenEntityPlacedInSpace,
 } from "../../internal/runtime/behavior";
+import type {
+	ConditionContext,
+	EventTrigger,
+	GameState,
+	LaneSchedulerInput,
+	LaneSelectionResult,
+	PhaseResolution,
+	PhaseRule,
+} from "./types";
 
 /**
  * Derives the next phase from declarative rules and condition context.
