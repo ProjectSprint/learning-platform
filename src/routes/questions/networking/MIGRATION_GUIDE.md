@@ -34,7 +34,7 @@
 Each networking question must own a dedicated `-utils/definition.ts` file.
 
 ```ts
-import { useQuestionRuntime } from "@/components/game/runtime";
+import { useQuestionRuntime } from "@/components/game/engine/runtime";
 import { MY_DEFINITION } from "./-utils/definition";
 
 const {

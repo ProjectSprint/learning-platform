@@ -9,17 +9,20 @@
 
 import { useBreakpointValue } from "@chakra-ui/react";
 import { memo, useEffect, useMemo } from "react";
-import type { EntityData } from "../../domain/entity/entity-data";
-import { getEntitySpaceId, isEntityPlacementAllowed } from "../../domain/read";
+import type { EntityData } from "../../internal/domain/entity/entity-data";
+import {
+	getEntitySpaceId,
+	isEntityPlacementAllowed,
+} from "../../internal/domain/read";
 import type {
 	GridPosition,
 	GridSpaceConfig,
 	GridSpaceData,
-} from "../../domain/space/space-data";
-import type { GameContextValue } from "../../game-provider";
-import { useGameDispatch, useGameState } from "../../game-provider";
-import type { EntityStatus } from "../../presentation/entity/PlacedEntity";
-import { GridSpaceView } from "../../presentation/space/GridSpaceView";
+} from "../../internal/domain/space/space-data";
+import type { GameContextValue } from "../../internal/game-provider";
+import { useGameDispatch, useGameState } from "../../internal/game-provider";
+import type { EntityStatus } from "../../internal/presentation/entity/PlacedEntity";
+import { GridSpaceView } from "../../internal/presentation/space/GridSpaceView";
 
 /**
  * Responsive grid size configuration.

@@ -5,7 +5,7 @@ import type {
 	ArrowAnchorValue,
 	ArrowBreakpoint,
 	ArrowStyle,
-} from "@/components/game/game-provider";
+} from "@/components/game/internal/game-provider";
 import { useBoardArrows } from "./arrow-context";
 import { useBoardRegistry } from "./board-registry";
 

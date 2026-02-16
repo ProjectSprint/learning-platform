@@ -18,7 +18,7 @@ import type { ReactNode } from "react";
 import {
 	BoardArrowSurface,
 	BoardRegistryProvider,
-} from "../../presentation/space/arrow";
+} from "../../internal/presentation/space/arrow";
 
 export type GameBoardProps = {
 	children: ReactNode;

@@ -1,4 +1,4 @@
-import type { SpaceItemLocation } from "@/components/game/game-provider";
+import type { SpaceItemLocation } from "@/components/game/engine/game-provider";
 import type { DeviceConnection } from "./network-utils";
 
 export interface NetworkState {

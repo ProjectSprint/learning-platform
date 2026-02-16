@@ -4,12 +4,12 @@
 import type {
 	GridSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/domain/space";
+} from "@/components/game/engine/domain/space";
 import type {
 	InventoryGroupConfig,
 	Item,
 	TerminalEntry,
-} from "@/components/game/game-provider";
+} from "@/components/game/engine/game-provider";
 
 export const QUESTION_ID = "internet-gateway";
 export const QUESTION_TITLE = "🌐 Connect to the Internet!";

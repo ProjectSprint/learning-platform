@@ -1,12 +1,12 @@
-import type { EntityEnteredSpaceEvent } from "@/components/game/application/state/types/events";
+import type { EntityEnteredSpaceEvent } from "@/components/game/engine/application/state/types/events";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
-} from "@/components/game/runtime";
+} from "@/components/game/engine/runtime";
 import {
 	modalSubmitted,
 	whenEntityPlacedInSpace,
-} from "@/components/game/runtime";
+} from "@/components/game/engine/runtime";
 import type { UdpClientId } from "./constants";
 import { UDP_CLIENT_IDS } from "./constants";
 import { getFrameDestiny, TOTAL_FRAMES } from "./frame-destiny";

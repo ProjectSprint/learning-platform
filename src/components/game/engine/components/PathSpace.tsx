@@ -1,14 +1,17 @@
 import { useBreakpointValue } from "@chakra-ui/react";
 import { memo, useEffect } from "react";
-import type { EntityData } from "../../domain/entity/entity-data";
-import { getEntitySpaceId, isEntityPlacementAllowed } from "../../domain/read";
+import type { EntityData } from "../../internal/domain/entity/entity-data";
+import {
+	getEntitySpaceId,
+	isEntityPlacementAllowed,
+} from "../../internal/domain/read";
 import type {
 	PathSpaceConfig,
 	PathSpaceData,
-} from "../../domain/space/space-data";
-import type { GameContextValue } from "../../game-provider";
-import { useGameDispatch, useGameState } from "../../game-provider";
-import { PathSpaceView } from "../../presentation/space/PathSpaceView";
+} from "../../internal/domain/space/space-data";
+import type { GameContextValue } from "../../internal/game-provider";
+import { useGameDispatch, useGameState } from "../../internal/game-provider";
+import { PathSpaceView } from "../../internal/presentation/space/PathSpaceView";
 
 type PathSpacePropsBase = {
 	/** Responsive SVG path mapping (Chakra breakpoint -> path d) */

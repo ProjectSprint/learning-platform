@@ -2,11 +2,11 @@ import type {
 	CustomSpaceConfig,
 	GridSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/domain/space";
+} from "@/components/game/engine/domain/space";
 import type {
 	InventoryGroupConfig,
 	Item,
-} from "@/components/game/game-provider";
+} from "@/components/game/engine/game-provider";
 
 export const QUESTION_ID = "udp-video-streaming";
 export const QUESTION_TITLE = "📺 Stream movie.mp4 to 3 viewers";

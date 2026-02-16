@@ -2,7 +2,7 @@ import type {
 	ModalAction,
 	ModalContentBlock,
 	ModalInstance,
-} from "@/components/game/presentation/modal";
+} from "@/components/game/engine/presentation/modal";
 
 const closeAction = (label = "Continue"): ModalAction => ({
 	id: "close",

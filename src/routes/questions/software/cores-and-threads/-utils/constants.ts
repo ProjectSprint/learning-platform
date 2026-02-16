@@ -3,8 +3,8 @@ import type {
 	GridSpaceConfig,
 	PathSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/domain/space";
-import type { Item } from "@/components/game/game-provider";
+} from "@/components/game/engine/domain/space";
+import type { Item } from "@/components/game/engine/game-provider";
 
 import type { AppDefinition, ExecutionStep } from "./types";
 

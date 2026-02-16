@@ -3,14 +3,17 @@ import type {
 	EntityLeftSpaceEvent,
 	EntityMovedEvent,
 	EntityUpdatedEvent,
-} from "@/components/game/application/state/types/events";
-import { getEntitySpaceId } from "@/components/game/domain/read";
+} from "@/components/game/engine/application/state/types/events";
+import { getEntitySpaceId } from "@/components/game/engine/domain/read";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
 	EffectContext,
-} from "@/components/game/runtime";
-import { pickLane, whenEntityArrivedAtSpace } from "@/components/game/runtime";
+} from "@/components/game/engine/runtime";
+import {
+	pickLane,
+	whenEntityArrivedAtSpace,
+} from "@/components/game/engine/runtime";
 
 import {
 	ALLOCATING_MS,

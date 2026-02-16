@@ -4,8 +4,11 @@
 import type {
 	GridSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/domain/space";
-import type { Item, TerminalEntry } from "@/components/game/game-provider";
+} from "@/components/game/engine/domain/space";
+import type {
+	Item,
+	TerminalEntry,
+} from "@/components/game/engine/game-provider";
 
 export const QUESTION_ID = "webserver-ssl";
 export const QUESTION_TITLE = "🔒 Secure Your Website!";

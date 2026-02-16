@@ -6,16 +6,16 @@
  */
 
 import { memo, useCallback, useEffect, useMemo } from "react";
-import type { EntityData } from "../../domain/entity/entity-data";
-import { isItemData } from "../../domain/entity/entity-data";
+import type { EntityData } from "../../internal/domain/entity/entity-data";
+import { isItemData } from "../../internal/domain/entity/entity-data";
 import type {
 	PoolSpaceConfig,
 	PoolSpaceData,
-} from "../../domain/space/space-data";
-import type { GameContextValue } from "../../game-provider";
-import { useGameDispatch, useGameState } from "../../game-provider";
-import { useDragContext } from "../../presentation/interaction/drag/DragContext";
-import { PoolSpaceView } from "../../presentation/space/PoolSpaceView";
+} from "../../internal/domain/space/space-data";
+import type { GameContextValue } from "../../internal/game-provider";
+import { useGameDispatch, useGameState } from "../../internal/game-provider";
+import { useDragContext } from "../../internal/presentation/interaction/drag/DragContext";
+import { PoolSpaceView } from "../../internal/presentation/space/PoolSpaceView";
 
 type PoolSpacePropsBase = {
 	/** ID of the pool space to render (defaults to "inventory") */

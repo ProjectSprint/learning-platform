@@ -4,7 +4,7 @@
 import type {
 	ModalFieldValidator,
 	ModalInstance,
-} from "@/components/game/presentation/modal";
+} from "@/components/game/engine/presentation/modal";
 import { PRIVATE_IP_RANGES } from "./constants";
 
 const validateIpAddress: ModalFieldValidator<string> = (input) => {

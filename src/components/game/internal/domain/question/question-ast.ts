@@ -5,7 +5,7 @@ import type {
 	SpaceConfig,
 	SpaceItemLocation,
 	TerminalState,
-} from "@/components/game/game-provider";
+} from "@/components/game/internal/game-provider";
 
 type QuestionPhase = string;
 

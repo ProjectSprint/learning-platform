@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer } from "react";
-import type { GameEventInput } from "@/components/game/application/state/events";
-import { useGameDispatch } from "@/components/game/game-provider";
+import type { GameEventInput } from "@/components/game/internal/application/state/events";
+import { useGameDispatch } from "@/components/game/internal/game-provider";
 import type {
 	EngineLifecycleCallbacks,
 	EngineProgress,

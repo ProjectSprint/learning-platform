@@ -6,11 +6,6 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import {
-	type ConditionContext,
-	resolvePhase,
-} from "@/components/game/domain/question";
 import {
 	GameBoard,
 	GridSpace,
@@ -18,28 +13,33 @@ import {
 	useDragEngine,
 	useTerminalEngine,
 } from "@/components/game/engine";
+import type { EntityData } from "@/components/game/engine/domain/entity/entity-data";
+import {
+	type ConditionContext,
+	resolvePhase,
+} from "@/components/game/engine/domain/question";
 import {
 	type Arrow,
 	GameProvider,
 	useDrawerManager,
 	useGameCtx,
-} from "@/components/game/game-provider";
-import { DrawerLayout } from "@/components/game/presentation/drawer";
+} from "@/components/game/engine/game-provider";
+import { DrawerLayout } from "@/components/game/engine/presentation/drawer";
 import {
 	ContextualHint,
 	useContextualHint,
-} from "@/components/game/presentation/hint";
-import { DragOverlay } from "@/components/game/presentation/interaction/drag/DragOverlay";
-import { Modal } from "@/components/game/presentation/modal";
-import { useBoardArrows } from "@/components/game/presentation/space/arrow";
+} from "@/components/game/engine/presentation/hint";
+import { DragOverlay } from "@/components/game/engine/presentation/interaction/drag/DragOverlay";
+import { Modal } from "@/components/game/engine/presentation/modal";
+import { useBoardArrows } from "@/components/game/engine/presentation/space/arrow";
 import {
 	TerminalInput,
 	TerminalLayout,
 	TerminalView,
 	useTerminalInput,
 	useTerminalStore,
-} from "@/components/game/presentation/terminal";
-import { useQuestionRuntime } from "@/components/game/runtime";
+} from "@/components/game/engine/presentation/terminal";
+import { useQuestionRuntime } from "@/components/game/engine/runtime";
 import type { QuestionProps } from "@/components/module";
 
 import {

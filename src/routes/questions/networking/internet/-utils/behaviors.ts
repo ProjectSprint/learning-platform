@@ -1,14 +1,14 @@
-import type { GameState } from "@/components/game/application/state/types";
-import type { TerminalInputEvent } from "@/components/game/application/state/types/events";
+import type { GameState } from "@/components/game/engine/application/state/types";
+import type { TerminalInputEvent } from "@/components/game/engine/application/state/types/events";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
-} from "@/components/game/runtime";
+} from "@/components/game/engine/runtime";
 import {
 	entityClicked,
 	modalSubmitted,
 	terminalInput,
-} from "@/components/game/runtime";
+} from "@/components/game/engine/runtime";
 import {
 	GOOGLE_IP,
 	PUBLIC_DNS_SERVERS,

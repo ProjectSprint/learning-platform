@@ -1,7 +1,7 @@
 // Utility functions for the webserver-ssl question
 // Domain-specific helper functions for game logic
 
-import type { SpaceState } from "@/components/game/game-provider";
+import type { SpaceState } from "@/components/game/engine/game-provider";
 import { DEFAULT_DOMAIN } from "./constants";
 
 /**

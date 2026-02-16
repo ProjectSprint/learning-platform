@@ -2,8 +2,8 @@ import { useCallback, useEffect } from "react";
 import {
 	type TerminalEntryType,
 	useEngineEvents,
-} from "@/components/game/game-provider";
-import { useTerminalStore } from "@/components/game/presentation/terminal/terminal-context";
+} from "@/components/game/internal/game-provider";
+import { useTerminalStore } from "@/components/game/internal/presentation/terminal/terminal-context";
 import type { EngineLifecycleCallbacks } from "../types/engine-types";
 import {
 	type EngineController,

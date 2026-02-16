@@ -1,4 +1,4 @@
-import type { SpaceItemLocation } from "@/components/game/game-provider";
+import type { SpaceItemLocation } from "@/components/game/engine/game-provider";
 
 /**
  * Get the status message for a networking item based on its state

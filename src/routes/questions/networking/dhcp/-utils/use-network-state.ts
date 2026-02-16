@@ -4,15 +4,15 @@
  */
 
 import { useEffect, useMemo, useRef } from "react";
-import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import type { GridSpaceData } from "@/components/game/domain/space/space-data";
 import type { DragEngine } from "@/components/game/engine";
+import type { EntityData } from "@/components/game/engine/domain/entity/entity-data";
+import type { GridSpaceData } from "@/components/game/engine/domain/space/space-data";
 import type {
 	BoardItemStatus,
 	SpaceItemLocation,
-} from "@/components/game/game-provider";
-import { useGameState } from "@/components/game/game-provider";
-import type { WorldApi } from "@/components/game/runtime";
+} from "@/components/game/engine/game-provider";
+import { useGameState } from "@/components/game/engine/game-provider";
+import type { WorldApi } from "@/components/game/engine/runtime";
 import { DHCP_SPACE_IDS } from "./constants";
 import {
 	type BoardPlacements,

@@ -1,10 +1,13 @@
-import type { GameState } from "@/components/game/application/state/types";
-import type { TerminalInputEvent } from "@/components/game/application/state/types/events";
+import type { GameState } from "@/components/game/engine/application/state/types";
+import type { TerminalInputEvent } from "@/components/game/engine/application/state/types/events";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
-} from "@/components/game/runtime";
-import { modalSubmitted, terminalInput } from "@/components/game/runtime";
+} from "@/components/game/engine/runtime";
+import {
+	modalSubmitted,
+	terminalInput,
+} from "@/components/game/engine/runtime";
 import { DEFAULT_DOMAIN, INDEX_HTML_CONTENT } from "./constants";
 import { buildSuccessModal } from "./modal-builders";
 

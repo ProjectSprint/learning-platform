@@ -5,7 +5,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import type { Arrow } from "@/components/game/game-provider";
+import type { Arrow } from "@/components/game/internal/game-provider";
 
 type ArrowContextValue = {
 	arrows: Arrow[];

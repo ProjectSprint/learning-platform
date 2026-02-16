@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import { isItemData } from "@/components/game/domain/entity/entity-data";
+import type { EntityData } from "@/components/game/engine/domain/entity/entity-data";
+import { isItemData } from "@/components/game/engine/domain/entity/entity-data";
 import {
 	getEntitySpaceId,
 	getSpaceEntityIds,
-} from "@/components/game/domain/read";
-import type { Item } from "@/components/game/game-provider";
-import { useEngineEvents, useGameState } from "@/components/game/game-provider";
+} from "@/components/game/engine/domain/read";
+import type { Item } from "@/components/game/engine/game-provider";
+import {
+	useEngineEvents,
+	useGameState,
+} from "@/components/game/engine/game-provider";
 import type {
 	InteractionSessionApi,
 	WorldApi,
-} from "@/components/game/runtime";
+} from "@/components/game/engine/runtime";
 
 import {
 	buildReceivedAckPacket,

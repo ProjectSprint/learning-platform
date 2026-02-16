@@ -4,10 +4,10 @@
  */
 
 import { useCallback, useMemo } from "react";
-import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import { isEntityInSpace } from "@/components/game/domain/read";
-import type { GridSpaceData } from "@/components/game/domain/space/space-data";
-import { useGameState } from "@/components/game/game-provider";
+import type { EntityData } from "@/components/game/engine/domain/entity/entity-data";
+import { isEntityInSpace } from "@/components/game/engine/domain/read";
+import type { GridSpaceData } from "@/components/game/engine/domain/space/space-data";
+import { useGameState } from "@/components/game/engine/game-provider";
 import { DEFAULT_DOMAIN } from "./constants";
 
 export const useSslState = () => {

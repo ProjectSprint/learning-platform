@@ -1,8 +1,8 @@
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
-} from "@/components/game/runtime";
-import { modalSubmitted } from "@/components/game/runtime";
+} from "@/components/game/engine/runtime";
+import { modalSubmitted } from "@/components/game/engine/runtime";
 
 export type TcpBehaviorContext = {
 	navigateAway: boolean;

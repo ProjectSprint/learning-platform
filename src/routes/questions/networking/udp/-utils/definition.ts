@@ -1,4 +1,4 @@
-import type { QuestionDefinition } from "@/components/game/runtime";
+import type { QuestionDefinition } from "@/components/game/engine/runtime";
 import type { UdpBehaviorContext } from "./behaviors";
 import { UDP_BEHAVIORS } from "./behaviors";
 import {

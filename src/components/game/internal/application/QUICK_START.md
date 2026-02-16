@@ -3,7 +3,7 @@
 ## 1) Wrap Question With Provider
 
 ```tsx
-import { GameProvider } from "@/components/game/game-provider";
+import { GameProvider } from "@/components/game/engine/game-provider";
 
 export const MyQuestion = ({ onQuestionComplete }) => (
   <GameProvider>
@@ -19,8 +19,8 @@ import {
 	createGridSpaceData,
 	createItemData,
 	createPoolSpaceData,
-} from "@/components/game/domain/adt";
-import type { GameAction } from "@/components/game/game-provider";
+} from "@/components/game/engine/domain/adt";
+import type { GameAction } from "@/components/game/engine/game-provider";
 
 type GameDispatch = (action: GameAction) => void;
 
@@ -60,7 +60,7 @@ export const initializeQuestion = (dispatch: GameDispatch) => {
 
 ```tsx
 import { GridSpace, PoolSpace } from "@/components/game/engine";
-import { useGameCtx } from "@/components/game/game-provider";
+import { useGameCtx } from "@/components/game/engine/game-provider";
 
 const gameCtx = useGameCtx();
 
@@ -75,7 +75,7 @@ return (
 ## 4) React To Events
 
 ```tsx
-import { useEngineEvents } from "@/components/game/game-provider";
+import { useEngineEvents } from "@/components/game/engine/game-provider";
 
 const { events, ack } = useEngineEvents("my-question-page");
 
