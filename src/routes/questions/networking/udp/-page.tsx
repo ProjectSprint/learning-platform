@@ -12,8 +12,8 @@ import {
 	GameBoard,
 	GridSpace,
 	PoolSpace,
+	useDragEngine,
 } from "@/components/game/engine";
-import { useDragEngine } from "@/components/game/engines";
 import {
 	GameProvider,
 	useDrawerManager,

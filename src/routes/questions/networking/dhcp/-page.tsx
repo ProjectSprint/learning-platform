@@ -11,8 +11,13 @@ import {
 	type ConditionContext,
 	resolvePhase,
 } from "@/components/game/domain/question";
-import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
-import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
+import {
+	GameBoard,
+	GridSpace,
+	PoolSpace,
+	useDragEngine,
+	useTerminalEngine,
+} from "@/components/game/engine";
 import {
 	type Arrow,
 	GameProvider,

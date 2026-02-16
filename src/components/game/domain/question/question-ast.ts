@@ -1,4 +1,4 @@
-import type { TerminalCommandHelpers } from "@/components/game/engines";
+import type { TerminalCommandHelpers } from "@/components/game/engine";
 import type {
 	InventoryGroupConfig,
 	QuestionStatus,

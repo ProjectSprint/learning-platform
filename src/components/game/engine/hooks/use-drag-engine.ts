@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/components/game/game-provider";
-import type { EngineLifecycleCallbacks } from "../engine-types";
+import type { EngineLifecycleCallbacks } from "../types/engine-types";
 import {
 	type EngineController,
 	useEngineProgress,
-} from "../use-engine-progress";
+} from "./use-engine-progress";
 
 export interface DragEngineState {
 	primaryGridSpaceId: string | null;

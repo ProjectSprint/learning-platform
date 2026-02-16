@@ -4,11 +4,11 @@ import {
 	useEngineEvents,
 } from "@/components/game/game-provider";
 import { useTerminalStore } from "@/components/game/presentation/terminal/terminal-context";
-import type { EngineLifecycleCallbacks } from "../engine-types";
+import type { EngineLifecycleCallbacks } from "../types/engine-types";
 import {
 	type EngineController,
 	useEngineProgress,
-} from "../use-engine-progress";
+} from "./use-engine-progress";
 
 export type TerminalOutputType = Exclude<TerminalEntryType, "input" | "prompt">;
 

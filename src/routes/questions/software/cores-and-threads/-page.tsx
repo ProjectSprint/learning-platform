@@ -9,7 +9,7 @@ import {
 	PathSpace,
 	PoolSpace,
 } from "@/components/game/engine";
-import { useDragEngine } from "@/components/game/engines";
+import { useDragEngine } from "@/components/game/engine";
 import {
 	GameProvider,
 	useDrawerManager,

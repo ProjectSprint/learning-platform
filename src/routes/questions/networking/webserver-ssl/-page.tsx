@@ -9,8 +9,13 @@ import {
 } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { getEntitySpaceId } from "@/components/game/domain/read";
-import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
-import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
+import {
+	GameBoard,
+	GridSpace,
+	PoolSpace,
+	useDragEngine,
+	useTerminalEngine,
+} from "@/components/game/engine";
 import {
 	type BoardItemStatus,
 	GameProvider,

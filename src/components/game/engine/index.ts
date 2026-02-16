@@ -1,15 +1,8 @@
 /**
  * Game engine layer exports.
- * Provides declarative components for building game questions.
+ * Provides declarative components, hooks, and types for building game questions.
  */
 
-export type { CustomSpaceProps } from "./CustomSpace";
-export { CustomSpace } from "./CustomSpace";
-export type { GameBoardProps } from "./GameBoard";
-export { GameBoard } from "./GameBoard";
-export type { GridSpaceProps, ResponsiveSize } from "./GridSpace";
-export { GridSpace } from "./GridSpace";
-export type { PathSpaceProps } from "./PathSpace";
-export { PathSpace } from "./PathSpace";
-export type { PoolSpaceProps } from "./PoolSpace";
-export { PoolSpace } from "./PoolSpace";
+export * from "./components";
+export * from "./hooks";
+export * from "./types";

@@ -9,28 +9,36 @@ const missingSpaceWarningSuffix =
 
 describe("engine space contract", () => {
 	it("GridSpace has no implicit space-creation dispatch path", () => {
-		const source = readSource("src/components/game/engine/GridSpace.tsx");
+		const source = readSource(
+			"src/components/game/engine/components/GridSpace.tsx",
+		);
 		expect(source).not.toContain("CREATE_SPACE");
 		expect(source).not.toContain('type: "SPACE_CREATED"');
 		expect(source).toContain(missingSpaceWarningSuffix);
 	});
 
 	it("PoolSpace has no implicit space-creation dispatch path", () => {
-		const source = readSource("src/components/game/engine/PoolSpace.tsx");
+		const source = readSource(
+			"src/components/game/engine/components/PoolSpace.tsx",
+		);
 		expect(source).not.toContain("CREATE_SPACE");
 		expect(source).not.toContain('type: "SPACE_CREATED"');
 		expect(source).toContain(missingSpaceWarningSuffix);
 	});
 
 	it("PathSpace has no implicit space-creation dispatch path", () => {
-		const source = readSource("src/components/game/engine/PathSpace.tsx");
+		const source = readSource(
+			"src/components/game/engine/components/PathSpace.tsx",
+		);
 		expect(source).not.toContain("CREATE_SPACE");
 		expect(source).not.toContain('type: "SPACE_CREATED"');
 		expect(source).toContain(missingSpaceWarningSuffix);
 	});
 
 	it("PathSpace dispatches midpoint update contract", () => {
-		const source = readSource("src/components/game/engine/PathSpace.tsx");
+		const source = readSource(
+			"src/components/game/engine/components/PathSpace.tsx",
+		);
 		expect(source).toContain("onEntityMidpoint");
 		expect(source).toContain("pathMidpointTick");
 		expect(source).toContain('type: "ENTITY_UPDATED"');

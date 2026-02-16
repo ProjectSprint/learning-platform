@@ -417,7 +417,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import { type ConditionContext, resolvePhase } from "@/components/game/domain/question";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
-import { useDragEngine, useTerminalEngine } from "@/components/game/engines";
+import { useDragEngine, useTerminalEngine } from "@/components/game/engine";
 import { type Arrow, GameProvider, useDrawerManager, useGameCtx } from "@/components/game/game-provider";
 import { DrawerLayout } from "@/components/game/presentation/drawer";
 import { ContextualHint, useContextualHint } from "@/components/game/presentation/hint";

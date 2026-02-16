@@ -7,8 +7,12 @@ import {
 	useRef,
 } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
-import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
-import { useDragEngine } from "@/components/game/engines";
+import {
+	GameBoard,
+	GridSpace,
+	PoolSpace,
+	useDragEngine,
+} from "@/components/game/engine";
 import {
 	type Arrow,
 	GameProvider,

@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { EntityData } from "@/components/game/domain/entity/entity-data";
 import type { GridSpaceData } from "@/components/game/domain/space/space-data";
-import type { DragEngine } from "@/components/game/engines";
+import type { DragEngine } from "@/components/game/engine";
 import type {
 	BoardItemStatus,
 	SpaceItemLocation,

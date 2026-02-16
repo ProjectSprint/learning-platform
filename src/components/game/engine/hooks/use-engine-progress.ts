@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useReducer } from "react";
+import type { GameEventInput } from "@/components/game/application/state/events";
 import { useGameDispatch } from "@/components/game/game-provider";
-import type { GameEventInput } from "../application/state/events";
 import type {
 	EngineLifecycleCallbacks,
 	EngineProgress,
 	EngineProgressStatus,
-} from "./engine-types";
+} from "../types/engine-types";
 
 type EngineLifecycleEventType = "ENGINE_STARTED" | "ENGINE_FINISHED";
 
