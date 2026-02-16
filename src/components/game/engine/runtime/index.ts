@@ -6,7 +6,18 @@
  * - `internal/*` stays as implementation primitives/interactors.
  */
 
-export * from "./factories";
-export * from "./public-methods";
-export * from "./runtime-lifecycle";
+export { isGridSpace, isItem } from "./factories";
+export {
+	buildEntityArrivedTrigger,
+	buildEntityClickTrigger,
+	buildEntityPlacedTrigger,
+	buildModalSubmitTrigger,
+	buildTerminalInputTrigger,
+	chooseLaneForExecution,
+	deriveQuestionPhase,
+	entityIsInSpace,
+	findEntitySpace,
+	listSpaceEntityIds,
+} from "./public-methods";
+export { bootstrapQuestion, useQuestionRuntime } from "./runtime-lifecycle";
 export * from "./types";

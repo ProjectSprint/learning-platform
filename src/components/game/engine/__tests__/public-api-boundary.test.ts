@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import * as runtimeApi from "../runtime";
 
 const SRC_ROOT = path.resolve(process.cwd(), "src");
 const GAME_ROOT = path.resolve(SRC_ROOT, "components/game");
@@ -74,5 +75,26 @@ describe("game public import boundary", () => {
 		}
 
 		expect(offenders.sort()).toEqual([]);
+	});
+
+	it("engine runtime exports only question-facing value APIs", () => {
+		expect(Object.keys(runtimeApi).sort()).toEqual(
+			[
+				"bootstrapQuestion",
+				"buildEntityArrivedTrigger",
+				"buildEntityClickTrigger",
+				"buildEntityPlacedTrigger",
+				"buildModalSubmitTrigger",
+				"buildTerminalInputTrigger",
+				"chooseLaneForExecution",
+				"deriveQuestionPhase",
+				"entityIsInSpace",
+				"findEntitySpace",
+				"isGridSpace",
+				"isItem",
+				"listSpaceEntityIds",
+				"useQuestionRuntime",
+			].sort(),
+		);
 	});
 });
