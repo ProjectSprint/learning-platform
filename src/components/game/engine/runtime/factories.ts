@@ -81,19 +81,6 @@ export const isQueueSpace = internalIsQueueSpace;
 export const isMeterSpace = internalIsMeterSpace;
 export { isValidGridPosition };
 
-// Compatibility aliases retained for current public API usage.
-export const createEntityData = createEntity;
-export const createItemData = createItem;
-export const createGridSpaceData = createGridSpace;
-export const createPoolSpaceData = createPoolSpace;
-export const createPathSpaceData = createPathSpace;
-export const createCustomSpaceData = createCustomSpace;
-export const createQueueSpaceData = createQueueSpace;
-export const createMeterSpaceData = createMeterSpace;
-export const cloneEntityData = cloneEntity;
-export const cloneItemData = cloneItem;
-export const isItemData = isItem;
-
 // Compatibility ID helpers.
 export {
 	fromEntityId,

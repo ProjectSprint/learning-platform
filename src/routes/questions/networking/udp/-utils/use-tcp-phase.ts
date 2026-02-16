@@ -11,7 +11,7 @@ import type {
 } from "@/components/game/engine/runtime";
 import {
 	findEntitySpace,
-	isItemData,
+	isItem,
 	listSpaceEntityIds,
 } from "@/components/game/engine/runtime";
 
@@ -247,7 +247,7 @@ export const useTcpPhase = ({
 				.map((entityId) => stateRef.current.entities[entityId])
 				.filter((entity): entity is EntityData => entity !== undefined)
 				.map((entity) => {
-					if (isItemData(entity)) {
+					if (isItem(entity)) {
 						return {
 							id: entity.id,
 							type: entity.type,

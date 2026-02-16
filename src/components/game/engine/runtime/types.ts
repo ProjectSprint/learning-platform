@@ -80,8 +80,10 @@ export type EntityMovedEvent = InternalEntityMovedEvent;
 export type EntityUpdatedEvent = InternalEntityUpdatedEvent;
 export type TerminalInputEvent = InternalTerminalInputEvent;
 
-export type Branded<TValue = unknown, TBrand extends string = string> =
-	InternalBranded<TValue, TBrand>;
+export type Branded<
+	TValue = unknown,
+	TBrand extends string = string,
+> = InternalBranded<TValue, TBrand>;
 export type EntityId = InternalEntityId;
 export type PhaseId = InternalPhaseId;
 export type ReadonlyDeep<T = unknown> = InternalReadonlyDeep<T>;
