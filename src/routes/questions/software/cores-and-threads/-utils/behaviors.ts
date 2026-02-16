@@ -1,3 +1,8 @@
+import {
+	buildEntityArrivedTrigger,
+	chooseLaneForExecution,
+	findEntitySpace,
+} from "@/components/game/engine/runtime";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
@@ -6,12 +11,7 @@ import type {
 	EntityLeftSpaceEvent,
 	EntityMovedEvent,
 	EntityUpdatedEvent,
-} from "@/components/game/engine/runtime";
-import {
-	buildEntityArrivedTrigger,
-	chooseLaneForExecution,
-	findEntitySpace,
-} from "@/components/game/engine/runtime";
+} from "@/components/game/engine/runtime/types";
 
 import {
 	ALLOCATING_MS,

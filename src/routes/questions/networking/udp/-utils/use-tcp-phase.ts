@@ -4,16 +4,16 @@ import {
 	useEngineEvents,
 	useGameState,
 } from "@/components/game/engine/game-provider";
-import type {
-	EntityData,
-	InteractionSessionApi,
-	WorldApi,
-} from "@/components/game/engine/runtime";
 import {
 	findEntitySpace,
 	isItem,
 	listSpaceEntityIds,
 } from "@/components/game/engine/runtime";
+import type {
+	EntityData,
+	InteractionSessionApi,
+	WorldApi,
+} from "@/components/game/engine/runtime/types";
 
 import {
 	buildReceivedAckPacket,

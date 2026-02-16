@@ -1,13 +1,13 @@
+import {
+	buildModalSubmitTrigger,
+	buildTerminalInputTrigger,
+} from "@/components/game/engine/runtime";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
 	GameState,
 	TerminalInputEvent,
-} from "@/components/game/engine/runtime";
-import {
-	buildModalSubmitTrigger,
-	buildTerminalInputTrigger,
-} from "@/components/game/engine/runtime";
+} from "@/components/game/engine/runtime/types";
 import { DEFAULT_DOMAIN, INDEX_HTML_CONTENT } from "./constants";
 import { buildSuccessModal } from "./modal-builders";
 

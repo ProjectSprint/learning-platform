@@ -8,13 +8,13 @@ import {
 	useEngineEvents,
 	useGameState,
 } from "@/components/game/engine/game-provider";
+import { findEntitySpace, isGridSpace } from "@/components/game/engine/runtime";
 import type {
 	ExecutionFlowApi,
 	GridSpaceData,
 	InteractionSessionApi,
 	WorldApi,
-} from "@/components/game/engine/runtime";
-import { findEntitySpace, isGridSpace } from "@/components/game/engine/runtime";
+} from "@/components/game/engine/runtime/types";
 import {
 	FILE_ITEM_ID,
 	MESSAGE_PACKET_IDS,

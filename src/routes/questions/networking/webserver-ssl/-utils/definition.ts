@@ -1,4 +1,4 @@
-import type { QuestionDefinition } from "@/components/game/engine/runtime";
+import type { QuestionDefinition } from "@/components/game/engine/runtime/types";
 import { SSL_BEHAVIORS, type SslBehaviorContext } from "./behaviors";
 import {
 	BASIC_INVENTORY_ITEMS,

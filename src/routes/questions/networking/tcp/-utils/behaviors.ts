@@ -1,8 +1,8 @@
+import { buildModalSubmitTrigger } from "@/components/game/engine/runtime";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
-} from "@/components/game/engine/runtime";
-import { buildModalSubmitTrigger } from "@/components/game/engine/runtime";
+} from "@/components/game/engine/runtime/types";
 
 export type TcpBehaviorContext = {
 	navigateAway: boolean;

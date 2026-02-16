@@ -10,6 +10,7 @@ const ALLOWED_GAME_IMPORTS = new Set([
 	"@/components/game/engine",
 	"@/components/game/engine/game-provider",
 	"@/components/game/engine/runtime",
+	"@/components/game/engine/runtime/types",
 ]);
 
 const listCodeFiles = (dir: string): string[] => {

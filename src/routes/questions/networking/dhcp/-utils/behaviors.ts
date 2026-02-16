@@ -1,13 +1,13 @@
-import type {
-	BehaviorDefinition,
-	BehaviorRule,
-	TerminalInputEvent,
-} from "@/components/game/engine/runtime";
 import {
 	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
 	buildTerminalInputTrigger,
 } from "@/components/game/engine/runtime";
+import type {
+	BehaviorDefinition,
+	BehaviorRule,
+	TerminalInputEvent,
+} from "@/components/game/engine/runtime/types";
 import {
 	buildPcConfigModal,
 	buildRouterConfigModal,

@@ -1,12 +1,12 @@
-import type {
-	BehaviorDefinition,
-	BehaviorRule,
-	EntityEnteredSpaceEvent,
-} from "@/components/game/engine/runtime";
 import {
 	buildEntityPlacedTrigger,
 	buildModalSubmitTrigger,
 } from "@/components/game/engine/runtime";
+import type {
+	BehaviorDefinition,
+	BehaviorRule,
+	EntityEnteredSpaceEvent,
+} from "@/components/game/engine/runtime/types";
 import type { UdpClientId } from "./constants";
 import { UDP_CLIENT_IDS } from "./constants";
 import { getFrameDestiny, TOTAL_FRAMES } from "./frame-destiny";

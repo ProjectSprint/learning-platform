@@ -8,7 +8,7 @@ import type {
 import type {
 	GridSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/engine/runtime";
+} from "@/components/game/engine/runtime/types";
 
 export const QUESTION_ID = "webserver-ssl";
 export const QUESTION_TITLE = "🔒 Secure Your Website!";

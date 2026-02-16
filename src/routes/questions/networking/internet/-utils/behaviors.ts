@@ -1,14 +1,14 @@
-import type {
-	BehaviorDefinition,
-	BehaviorRule,
-	GameState,
-	TerminalInputEvent,
-} from "@/components/game/engine/runtime";
 import {
 	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
 	buildTerminalInputTrigger,
 } from "@/components/game/engine/runtime";
+import type {
+	BehaviorDefinition,
+	BehaviorRule,
+	GameState,
+	TerminalInputEvent,
+} from "@/components/game/engine/runtime/types";
 import {
 	GOOGLE_IP,
 	PUBLIC_DNS_SERVERS,

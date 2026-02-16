@@ -31,11 +31,11 @@ import {
 	useDrawerManager,
 	useGameCtx,
 } from "@/components/game/engine/game-provider";
-import type { EntityData } from "@/components/game/engine/runtime";
 import {
 	findEntitySpace,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
+import type { EntityData } from "@/components/game/engine/runtime/types";
 import type { QuestionProps } from "@/components/module";
 
 import {

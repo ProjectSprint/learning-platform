@@ -14,7 +14,7 @@ import type {
 	EntityData,
 	GridSpaceData,
 	WorldApi,
-} from "@/components/game/engine/runtime";
+} from "@/components/game/engine/runtime/types";
 import {
 	GOOGLE_IP,
 	type InternetSpaceKey,
