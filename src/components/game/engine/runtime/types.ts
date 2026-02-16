@@ -1,155 +1,160 @@
-import type { Action as InternalAction } from "../../internal/application/state/actions";
-import type { GameState as InternalGameState } from "../../internal/application/state/types";
+import type { Action as __Action } from "../../internal/application/state/actions";
+import type { GameState as __GameState } from "../../internal/application/state/types";
 import type {
-	EntityEnteredSpaceEvent as InternalEntityEnteredSpaceEvent,
-	EntityLeftSpaceEvent as InternalEntityLeftSpaceEvent,
-	EntityMovedEvent as InternalEntityMovedEvent,
-	EntityUpdatedEvent as InternalEntityUpdatedEvent,
-	TerminalInputEvent as InternalTerminalInputEvent,
+	EntityEnteredSpaceEvent as __EntityEnteredSpaceEvent,
+	EntityLeftSpaceEvent as __EntityLeftSpaceEvent,
+	EntityMovedEvent as __EntityMovedEvent,
+	EntityUpdatedEvent as __EntityUpdatedEvent,
+	TerminalInputEvent as __TerminalInputEvent,
 } from "../../internal/application/state/types/events";
 import type {
-	Branded as InternalBranded,
-	EntityId as InternalEntityId,
-	PhaseId as InternalPhaseId,
-	ReadonlyDeep as InternalReadonlyDeep,
-	SpaceId as InternalSpaceId,
+	Branded as __Branded,
+	EntityId as __EntityId,
+	PhaseId as __PhaseId,
+	ReadonlyDeep as __ReadonlyDeep,
+	SpaceId as __SpaceId,
 } from "../../internal/domain/adt";
 import type {
-	EntityData as InternalEntityData,
-	EntityDataConfig as InternalEntityDataConfig,
-	ItemData as InternalItemData,
-	ItemDataConfig as InternalItemDataConfig,
+	EntityData as __EntityData,
+	EntityDataConfig as __EntityDataConfig,
+	ItemData as __ItemData,
+	ItemDataConfig as __ItemDataConfig,
 } from "../../internal/domain/entity/entity-data";
 import type {
-	ConditionContext as InternalConditionContext,
-	PhaseResolution as InternalPhaseResolution,
+	ConditionContext as __ConditionContext,
+	PhaseResolution as __PhaseResolution,
 } from "../../internal/domain/question";
 import type {
-	CustomSpaceConfig as InternalCustomSpaceConfig,
-	CustomSpaceData as InternalCustomSpaceData,
-	GridPosition as InternalGridPosition,
-	GridSpaceConfig as InternalGridSpaceConfig,
-	GridSpaceData as InternalGridSpaceData,
-	MeterSpaceConfig as InternalMeterSpaceConfig,
-	MeterSpaceData as InternalMeterSpaceData,
-	PathSpaceConfig as InternalPathSpaceConfig,
-	PathSpaceData as InternalPathSpaceData,
-	PoolSpaceConfig as InternalPoolSpaceConfig,
-	PoolSpaceData as InternalPoolSpaceData,
-	QueueSpaceConfig as InternalQueueSpaceConfig,
-	QueueSpaceData as InternalQueueSpaceData,
-	SpaceData as InternalSpaceData,
+	CustomSpaceConfig as __CustomSpaceConfig,
+	CustomSpaceData as __CustomSpaceData,
+	GridPosition as __GridPosition,
+	GridSpaceConfig as __GridSpaceConfig,
+	GridSpaceData as __GridSpaceData,
+	MeterSpaceConfig as __MeterSpaceConfig,
+	MeterSpaceData as __MeterSpaceData,
+	PathSpaceConfig as __PathSpaceConfig,
+	PathSpaceData as __PathSpaceData,
+	PoolSpaceConfig as __PoolSpaceConfig,
+	PoolSpaceData as __PoolSpaceData,
+	QueueSpaceConfig as __QueueSpaceConfig,
+	QueueSpaceData as __QueueSpaceData,
+	SpaceData as __SpaceData,
 } from "../../internal/domain/space";
 import type {
-	BehaviorDefinition as InternalBehaviorDefinition,
-	BehaviorRule as InternalBehaviorRule,
-	EffectContext as InternalEffectContext,
-	EventTrigger as InternalEventTrigger,
-	LaneSchedulerInput as InternalLaneSchedulerInput,
-	LaneSelectionPolicy as InternalLaneSelectionPolicy,
-	LaneSelectionResult as InternalLaneSelectionResult,
+	BehaviorDefinition as __BehaviorDefinition,
+	BehaviorRule as __BehaviorRule,
+	EffectContext as __EffectContext,
+	EventTrigger as __EventTrigger,
+	LaneSchedulerInput as __LaneSchedulerInput,
+	LaneSelectionPolicy as __LaneSelectionPolicy,
+	LaneSelectionResult as __LaneSelectionResult,
 } from "../../internal/runtime/behavior";
-import type { QuestionRuntime as InternalQuestionRuntime } from "../../internal/runtime/context/use-question-runtime";
+import type { QuestionRuntime as __QuestionRuntime } from "../../internal/runtime/context/use-question-runtime";
 import type {
-	Condition as InternalCondition,
-	EntityDefinition as InternalEntityDefinition,
-	InventoryRule as InternalInventoryRule,
-	PhaseRule as InternalPhaseRule,
-	QuestionDefinition as InternalQuestionDefinition,
-	QuestionMeta as InternalQuestionMeta,
-	SpaceDefinition as InternalSpaceDefinition,
-	SpaceRule as InternalSpaceRule,
+	Condition as __Condition,
+	EntityDefinition as __EntityDefinition,
+	InventoryRule as __InventoryRule,
+	PhaseRule as __PhaseRule,
+	QuestionDefinition as __QuestionDefinition,
+	QuestionMeta as __QuestionMeta,
+	SpaceDefinition as __SpaceDefinition,
+	SpaceRule as __SpaceRule,
 } from "../../internal/runtime/definition/types";
-import type { ValidationError as InternalValidationError } from "../../internal/runtime/definition/validate";
+import type { ValidationError as __ValidationError } from "../../internal/runtime/definition/validate";
 import type {
-	ExecutionFlowApi as InternalExecutionFlowApi,
-	InteractionSessionApi as InternalInteractionSessionApi,
-	InteractionSessionState as InternalInteractionSessionState,
-	ProgressApi as InternalProgressApi,
-	RuntimeApiFailure as InternalRuntimeApiFailure,
-	RuntimeApiResult as InternalRuntimeApiResult,
-	RuntimeApiSuccess as InternalRuntimeApiSuccess,
-	WorldApi as InternalWorldApi,
+	ExecutionFlowApi as __ExecutionFlowApi,
+	InteractionSessionApi as __InteractionSessionApi,
+	InteractionSessionState as __InteractionSessionState,
+	ProgressApi as __ProgressApi,
+	RuntimeApiFailure as __RuntimeApiFailure,
+	RuntimeApiResult as __RuntimeApiResult,
+	RuntimeApiSuccess as __RuntimeApiSuccess,
+	WorldApi as __WorldApi,
 } from "../../internal/runtime/wrappers";
 
-export type Action = InternalAction;
-export type GameState = InternalGameState;
-export type EntityEnteredSpaceEvent = InternalEntityEnteredSpaceEvent;
-export type EntityLeftSpaceEvent = InternalEntityLeftSpaceEvent;
-export type EntityMovedEvent = InternalEntityMovedEvent;
-export type EntityUpdatedEvent = InternalEntityUpdatedEvent;
-export type TerminalInputEvent = InternalTerminalInputEvent;
+/**
+ * Runtime type naming convention:
+ * - `TypeName`: shared across internal + engine + question authoring.
+ * - `_TypeName`: internal + engine scope only (still publicly exported for visibility).
+ */
+export type Action = __Action;
+export type GameState = __GameState;
+export type EntityEnteredSpaceEvent = __EntityEnteredSpaceEvent;
+export type EntityLeftSpaceEvent = __EntityLeftSpaceEvent;
+export type EntityMovedEvent = __EntityMovedEvent;
+export type EntityUpdatedEvent = __EntityUpdatedEvent;
+export type TerminalInputEvent = __TerminalInputEvent;
 
-export type Branded<
+export type _Branded<
 	TValue = unknown,
 	TBrand extends string = string,
-> = InternalBranded<TValue, TBrand>;
-export type EntityId = InternalEntityId;
-export type PhaseId = InternalPhaseId;
-export type ReadonlyDeep<T = unknown> = InternalReadonlyDeep<T>;
-export type SpaceId = InternalSpaceId;
+> = __Branded<TValue, TBrand>;
+export type _EntityId = __EntityId;
+export type _PhaseId = __PhaseId;
+export type _ReadonlyDeep<T = unknown> = __ReadonlyDeep<T>;
+export type _SpaceId = __SpaceId;
 
-export type EntityData = InternalEntityData;
-export type EntityDataConfig = InternalEntityDataConfig;
-export type ItemData = InternalItemData;
-export type ItemDataConfig = InternalItemDataConfig;
+export type EntityData = __EntityData;
+export type _EntityDataConfig = __EntityDataConfig;
+export type ItemData = __ItemData;
+export type _ItemDataConfig = __ItemDataConfig;
 
 export type ConditionContext<ConditionKey extends string = string> =
-	InternalConditionContext<ConditionKey>;
-export type PhaseResolution = InternalPhaseResolution;
+	__ConditionContext<ConditionKey>;
+export type PhaseResolution = __PhaseResolution;
 
-export type GridPosition = InternalGridPosition;
-export type CustomSpaceConfig = InternalCustomSpaceConfig;
-export type CustomSpaceData = InternalCustomSpaceData;
-export type GridSpaceConfig = InternalGridSpaceConfig;
-export type GridSpaceData = InternalGridSpaceData;
-export type MeterSpaceConfig = InternalMeterSpaceConfig;
-export type MeterSpaceData = InternalMeterSpaceData;
-export type PathSpaceConfig = InternalPathSpaceConfig;
-export type PathSpaceData = InternalPathSpaceData;
-export type PoolSpaceConfig = InternalPoolSpaceConfig;
-export type PoolSpaceData = InternalPoolSpaceData;
-export type QueueSpaceConfig = InternalQueueSpaceConfig;
-export type QueueSpaceData = InternalQueueSpaceData;
-export type SpaceData = InternalSpaceData;
+export type GridPosition = __GridPosition;
+export type CustomSpaceConfig = __CustomSpaceConfig;
+export type _CustomSpaceData = __CustomSpaceData;
+export type GridSpaceConfig = __GridSpaceConfig;
+export type GridSpaceData = __GridSpaceData;
+export type _MeterSpaceConfig = __MeterSpaceConfig;
+export type _MeterSpaceData = __MeterSpaceData;
+export type PathSpaceConfig = __PathSpaceConfig;
+export type _PathSpaceData = __PathSpaceData;
+export type PoolSpaceConfig = __PoolSpaceConfig;
+export type _PoolSpaceData = __PoolSpaceData;
+export type _QueueSpaceConfig = __QueueSpaceConfig;
+export type _QueueSpaceData = __QueueSpaceData;
+export type SpaceData = __SpaceData;
 
 export type BehaviorDefinition<TContext = Record<string, never>> =
-	InternalBehaviorDefinition<TContext>;
+	__BehaviorDefinition<TContext>;
 export type BehaviorRule<TContext = Record<string, never>> =
-	InternalBehaviorRule<TContext>;
+	__BehaviorRule<TContext>;
 export type EffectContext<TContext = Record<string, never>> =
-	InternalEffectContext<TContext>;
-export type EventTrigger = InternalEventTrigger;
+	__EffectContext<TContext>;
+export type EventTrigger = __EventTrigger;
 export type LaneSchedulerInput<TLaneId extends string = string> =
-	InternalLaneSchedulerInput<TLaneId>;
-export type LaneSelectionPolicy = InternalLaneSelectionPolicy;
+	__LaneSchedulerInput<TLaneId>;
+export type _LaneSelectionPolicy = __LaneSelectionPolicy;
 export type LaneSelectionResult<TLaneId extends string = string> =
-	InternalLaneSelectionResult<TLaneId>;
+	__LaneSelectionResult<TLaneId>;
 
 export type QuestionRuntime<TContext = Record<string, never>> =
-	InternalQuestionRuntime<TContext>;
-export type Condition<ConditionKey extends string = string> =
-	InternalCondition<ConditionKey>;
-export type EntityDefinition = InternalEntityDefinition;
-export type InventoryRule<ConditionKey extends string = string> =
-	InternalInventoryRule<ConditionKey>;
+	__QuestionRuntime<TContext>;
+export type _Condition<ConditionKey extends string = string> =
+	__Condition<ConditionKey>;
+export type _EntityDefinition = __EntityDefinition;
+export type _InventoryRule<ConditionKey extends string = string> =
+	__InventoryRule<ConditionKey>;
 export type PhaseRule<ConditionKey extends string = string> =
-	InternalPhaseRule<ConditionKey>;
+	__PhaseRule<ConditionKey>;
 export type QuestionDefinition<
 	ConditionKey extends string = string,
 	TContext = Record<string, never>,
-> = InternalQuestionDefinition<ConditionKey, TContext>;
-export type QuestionMeta = InternalQuestionMeta;
-export type SpaceDefinition = InternalSpaceDefinition;
-export type SpaceRule<ConditionKey extends string = string> =
-	InternalSpaceRule<ConditionKey>;
-export type ValidationError = InternalValidationError;
+> = __QuestionDefinition<ConditionKey, TContext>;
+export type _QuestionMeta = __QuestionMeta;
+export type _SpaceDefinition = __SpaceDefinition;
+export type _SpaceRule<ConditionKey extends string = string> =
+	__SpaceRule<ConditionKey>;
+export type _ValidationError = __ValidationError;
 
-export type ExecutionFlowApi = InternalExecutionFlowApi;
-export type InteractionSessionApi = InternalInteractionSessionApi;
-export type InteractionSessionState = InternalInteractionSessionState;
-export type ProgressApi = InternalProgressApi;
-export type RuntimeApiFailure = InternalRuntimeApiFailure;
-export type RuntimeApiResult = InternalRuntimeApiResult;
-export type RuntimeApiSuccess = InternalRuntimeApiSuccess;
-export type WorldApi = InternalWorldApi;
+export type ExecutionFlowApi = __ExecutionFlowApi;
+export type InteractionSessionApi = __InteractionSessionApi;
+export type _InteractionSessionState = __InteractionSessionState;
+export type ProgressApi = __ProgressApi;
+export type RuntimeApiFailure = __RuntimeApiFailure;
+export type RuntimeApiResult = __RuntimeApiResult;
+export type RuntimeApiSuccess = __RuntimeApiSuccess;
+export type WorldApi = __WorldApi;
