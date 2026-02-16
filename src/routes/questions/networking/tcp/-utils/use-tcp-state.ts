@@ -14,10 +14,7 @@ import type {
 	InteractionSessionApi,
 	WorldApi,
 } from "@/components/game/engine/runtime";
-import {
-	getEntitySpaceId,
-	isGridSpace,
-} from "@/components/game/engine/runtime";
+import { findEntitySpace, isGridSpace } from "@/components/game/engine/runtime";
 import {
 	FILE_ITEM_ID,
 	MESSAGE_PACKET_IDS,
@@ -202,8 +199,8 @@ export const useTcpState = ({
 	}, [lossScenarioActive]);
 
 	useEffect(() => {
-		const messageFileSpaceId = getEntitySpaceId(state, FILE_ITEM_ID);
-		const notesFileSpaceId = getEntitySpaceId(state, NOTES_FILE_ITEM_ID);
+		const messageFileSpaceId = findEntitySpace(state, FILE_ITEM_ID);
+		const notesFileSpaceId = findEntitySpace(state, NOTES_FILE_ITEM_ID);
 		const shouldShowMessageSplitter =
 			messageSplitterUnlocked && Boolean(messageFileSpaceId);
 		const shouldShowSplitter =
@@ -298,7 +295,7 @@ export const useTcpState = ({
 			position?: { row: number; col: number },
 		) => {
 			const currentState = stateRef.current;
-			const fromSpaceId = getEntitySpaceId(currentState, entityId);
+			const fromSpaceId = findEntitySpace(currentState, entityId);
 			if (fromSpaceId === spaceId) {
 				return true;
 			}

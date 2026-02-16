@@ -10,9 +10,9 @@ import type {
 	WorldApi,
 } from "@/components/game/engine/runtime";
 import {
-	getEntitySpaceId,
-	getSpaceEntityIds,
+	findEntitySpace,
 	isItemData,
+	listSpaceEntityIds,
 } from "@/components/game/engine/runtime";
 
 import {
@@ -97,7 +97,7 @@ export const useTcpPhase = ({
 	const spaces = useMemo<Record<string, TcpSpaceSnapshot>>(() => {
 		const result: Record<string, TcpSpaceSnapshot> = {};
 		for (const [spaceId] of Object.entries(state.spaces)) {
-			const entityIds = getSpaceEntityIds(state, spaceId);
+			const entityIds = listSpaceEntityIds(state, spaceId);
 			const placedItems = entityIds
 				.map((entityId) => state.entities[entityId])
 				.filter((entity): entity is EntityData => entity !== undefined)
@@ -296,7 +296,7 @@ export const useTcpPhase = ({
 						continue;
 					}
 
-					const currentSpaceId = getEntitySpaceId(stateRef.current, item.id);
+					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
 					if (currentSpaceId === targetPoolId) {
 						world.removeFromSpace(item.id, targetPoolId);
 					}
@@ -316,7 +316,7 @@ export const useTcpPhase = ({
 						});
 					}
 
-					const currentSpaceId = getEntitySpaceId(stateRef.current, item.id);
+					const currentSpaceId = findEntitySpace(stateRef.current, item.id);
 					if (!currentSpaceId) {
 						world.addToSpace(item.id, targetPoolId);
 						continue;

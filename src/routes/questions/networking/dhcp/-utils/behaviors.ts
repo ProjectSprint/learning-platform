@@ -4,9 +4,9 @@ import type {
 	TerminalInputEvent,
 } from "@/components/game/engine/runtime";
 import {
-	entityClicked,
-	modalSubmitted,
-	terminalInput,
+	buildEntityClickTrigger,
+	buildModalSubmitTrigger,
+	buildTerminalInputTrigger,
 } from "@/components/game/engine/runtime";
 import {
 	buildPcConfigModal,
@@ -22,7 +22,7 @@ type DhcpBehaviorContext = {
 const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 	{
 		id: "dhcp.router-click",
-		on: entityClicked("router"),
+		on: buildEntityClickTrigger("router"),
 		handler: ({ entity, interaction }) => {
 			if (!entity) return;
 			interaction.openModal(
@@ -32,7 +32,7 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 	},
 	{
 		id: "dhcp.pc-click",
-		on: entityClicked("pc"),
+		on: buildEntityClickTrigger("pc"),
 		handler: ({ entity, state, interaction }) => {
 			if (!entity) return;
 			const currentData = {
@@ -44,7 +44,7 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 	},
 	{
 		id: "dhcp.router-config-save",
-		on: modalSubmitted(undefined, "save"),
+		on: buildModalSubmitTrigger(undefined, "save"),
 		guard: ({ event }) =>
 			event.type === "MODAL_SUBMITTED" &&
 			event.modalId.startsWith("router-config-"),
@@ -66,7 +66,7 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 	},
 	{
 		id: "dhcp.success-modal-navigate",
-		on: modalSubmitted("success", "primary"),
+		on: buildModalSubmitTrigger("success", "primary"),
 		handler: ({ updateContext }) => {
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
@@ -75,7 +75,7 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 	},
 	{
 		id: "dhcp.terminal-command",
-		on: terminalInput(),
+		on: buildTerminalInputTrigger(),
 		guard: ({ phase, state }) =>
 			phase === "terminal" && state.question.status !== "completed",
 		handler: ({ event, state, terminal, interaction, progress }) => {
@@ -156,7 +156,7 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 	},
 	{
 		id: "dhcp.terminal-not-ready",
-		on: terminalInput(),
+		on: buildTerminalInputTrigger(),
 		guard: ({ phase }) => phase !== "terminal",
 		handler: ({ terminal }) => {
 			terminal.writeOutput("Error: Terminal is not ready yet.", "error");

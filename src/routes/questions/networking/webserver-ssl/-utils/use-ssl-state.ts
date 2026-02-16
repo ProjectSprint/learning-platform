@@ -9,7 +9,7 @@ import type {
 	EntityData,
 	GridSpaceData,
 } from "@/components/game/engine/runtime";
-import { isEntityInSpace } from "@/components/game/engine/runtime";
+import { entityIsInSpace } from "@/components/game/engine/runtime";
 import { DEFAULT_DOMAIN } from "./constants";
 
 export const useSslState = () => {
@@ -37,7 +37,7 @@ export const useSslState = () => {
 			if (!space) return [];
 			const entities: EntityData[] = [];
 			for (const entity of Object.values(state.entities)) {
-				if (isEntityInSpace(state, entity.id, space.id)) {
+				if (entityIsInSpace(state, entity.id, space.id)) {
 					entities.push(entity);
 				}
 			}

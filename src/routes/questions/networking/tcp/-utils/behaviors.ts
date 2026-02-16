@@ -2,7 +2,7 @@ import type {
 	BehaviorDefinition,
 	BehaviorRule,
 } from "@/components/game/engine/runtime";
-import { modalSubmitted } from "@/components/game/engine/runtime";
+import { buildModalSubmitTrigger } from "@/components/game/engine/runtime";
 
 export type TcpBehaviorContext = {
 	navigateAway: boolean;
@@ -11,7 +11,7 @@ export type TcpBehaviorContext = {
 const rules: BehaviorRule<TcpBehaviorContext>[] = [
 	{
 		id: "tcp.success-modal-navigate",
-		on: modalSubmitted("tcp-success", "primary"),
+		on: buildModalSubmitTrigger("tcp-success", "primary"),
 		handler: ({ updateContext }) => {
 			updateContext((ctx) => {
 				ctx.navigateAway = true;

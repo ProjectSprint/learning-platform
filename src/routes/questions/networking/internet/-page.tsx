@@ -33,7 +33,7 @@ import {
 import type { EntityData } from "@/components/game/engine/runtime";
 import {
 	type ConditionContext,
-	resolvePhase,
+	deriveQuestionPhase,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
 import type { QuestionProps } from "@/components/module";
@@ -152,7 +152,7 @@ const InternetGame = ({
 			allDevicesPlaced: internetState.allDevicesPlaced,
 		};
 
-		const resolved = resolvePhase(
+		const resolved = deriveQuestionPhase(
 			INTERNET_DEFINITION.phaseRules,
 			context,
 			state.phase,

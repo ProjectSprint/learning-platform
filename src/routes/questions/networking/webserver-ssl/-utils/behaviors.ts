@@ -5,8 +5,8 @@ import type {
 	TerminalInputEvent,
 } from "@/components/game/engine/runtime";
 import {
-	modalSubmitted,
-	terminalInput,
+	buildModalSubmitTrigger,
+	buildTerminalInputTrigger,
 } from "@/components/game/engine/runtime";
 import { DEFAULT_DOMAIN, INDEX_HTML_CONTENT } from "./constants";
 import { buildSuccessModal } from "./modal-builders";
@@ -72,7 +72,7 @@ function deriveSslStatus(state: GameState) {
 const rules: BehaviorRule<SslBehaviorContext>[] = [
 	{
 		id: "ssl.certificate-issue",
-		on: modalSubmitted(undefined, "issue"),
+		on: buildModalSubmitTrigger(undefined, "issue"),
 		guard: ({ event }) =>
 			event.type === "MODAL_SUBMITTED" &&
 			event.modalId.startsWith("certificate-request-"),
@@ -98,7 +98,7 @@ const rules: BehaviorRule<SslBehaviorContext>[] = [
 	},
 	{
 		id: "ssl.success-modal-navigate",
-		on: modalSubmitted("success", "primary"),
+		on: buildModalSubmitTrigger("success", "primary"),
 		handler: ({ updateContext }) => {
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
@@ -109,7 +109,7 @@ const rules: BehaviorRule<SslBehaviorContext>[] = [
 	// --- Terminal commands ---
 	{
 		id: "ssl.terminal-command",
-		on: terminalInput(),
+		on: buildTerminalInputTrigger(),
 		guard: ({ state }) => state.question.status !== "completed",
 		handler: ({ event, state, context, terminal, interaction, progress }) => {
 			const rawInput = (event as TerminalInputEvent).input.trim();

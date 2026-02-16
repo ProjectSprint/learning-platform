@@ -5,9 +5,9 @@ import type {
 	TerminalInputEvent,
 } from "@/components/game/engine/runtime";
 import {
-	entityClicked,
-	modalSubmitted,
-	terminalInput,
+	buildEntityClickTrigger,
+	buildModalSubmitTrigger,
+	buildTerminalInputTrigger,
 } from "@/components/game/engine/runtime";
 import {
 	GOOGLE_IP,
@@ -95,7 +95,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	// --- Entity click handlers ---
 	{
 		id: "internet.router-lan-click",
-		on: entityClicked("router-lan"),
+		on: buildEntityClickTrigger("router-lan"),
 		handler: ({ entity, interaction }) => {
 			if (!entity) return;
 			interaction.openModal(
@@ -105,7 +105,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 	{
 		id: "internet.router-nat-click",
-		on: entityClicked("router-nat"),
+		on: buildEntityClickTrigger("router-nat"),
 		handler: ({ entity, interaction }) => {
 			if (!entity) return;
 			interaction.openModal(
@@ -115,7 +115,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 	{
 		id: "internet.router-wan-click",
-		on: entityClicked("router-wan"),
+		on: buildEntityClickTrigger("router-wan"),
 		handler: ({ entity, interaction }) => {
 			if (!entity) return;
 			interaction.openModal(
@@ -125,7 +125,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 	{
 		id: "internet.pc-click",
-		on: entityClicked("pc"),
+		on: buildEntityClickTrigger("pc"),
 		handler: ({ entity, state, interaction }) => {
 			if (!entity) return;
 			const status = deriveStatus(state);
@@ -141,7 +141,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 	{
 		id: "internet.igw-click",
-		on: entityClicked("igw"),
+		on: buildEntityClickTrigger("igw"),
 		handler: ({ entity, state, interaction }) => {
 			if (!entity) return;
 			const status = deriveStatus(state);
@@ -156,7 +156,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 	{
 		id: "internet.dns-click",
-		on: entityClicked("dns"),
+		on: buildEntityClickTrigger("dns"),
 		handler: ({ entity, state, interaction }) => {
 			if (!entity) return;
 			const status = deriveStatus(state);
@@ -170,7 +170,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 	{
 		id: "internet.google-click",
-		on: entityClicked("google"),
+		on: buildEntityClickTrigger("google"),
 		handler: ({ entity, state, interaction }) => {
 			if (!entity) return;
 			const status = deriveStatus(state);
@@ -196,7 +196,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	// --- Modal submit save handlers ---
 	{
 		id: "internet.router-lan-save",
-		on: modalSubmitted(undefined, "save"),
+		on: buildModalSubmitTrigger(undefined, "save"),
 		guard: ({ event }) =>
 			event.type === "MODAL_SUBMITTED" &&
 			event.modalId.startsWith("router-lan-config-"),
@@ -215,7 +215,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 	{
 		id: "internet.router-nat-save",
-		on: modalSubmitted(undefined, "save"),
+		on: buildModalSubmitTrigger(undefined, "save"),
 		guard: ({ event }) =>
 			event.type === "MODAL_SUBMITTED" &&
 			event.modalId.startsWith("router-nat-config-"),
@@ -229,7 +229,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 	{
 		id: "internet.router-wan-save",
-		on: modalSubmitted(undefined, "save"),
+		on: buildModalSubmitTrigger(undefined, "save"),
 		guard: ({ event }) =>
 			event.type === "MODAL_SUBMITTED" &&
 			event.modalId.startsWith("router-wan-config-"),
@@ -248,7 +248,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	// --- Success modal navigation ---
 	{
 		id: "internet.success-modal-navigate",
-		on: modalSubmitted("success", "primary"),
+		on: buildModalSubmitTrigger("success", "primary"),
 		handler: ({ updateContext }) => {
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
@@ -259,7 +259,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	// --- Terminal commands ---
 	{
 		id: "internet.terminal-command",
-		on: terminalInput(),
+		on: buildTerminalInputTrigger(),
 		guard: ({ phase, state }) =>
 			phase === "terminal" && state.question.status !== "completed",
 		handler: ({ event, state, terminal, interaction, progress }) => {
@@ -402,7 +402,7 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 	{
 		id: "internet.terminal-not-ready",
-		on: terminalInput(),
+		on: buildTerminalInputTrigger(),
 		guard: ({ phase }) => phase !== "terminal",
 		handler: ({ terminal }) => {
 			terminal.writeOutput("Error: Terminal is not ready yet.", "error");

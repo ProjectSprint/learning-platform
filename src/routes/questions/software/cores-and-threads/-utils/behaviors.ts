@@ -8,9 +8,9 @@ import type {
 	EntityUpdatedEvent,
 } from "@/components/game/engine/runtime";
 import {
-	getEntitySpaceId,
-	pickLane,
-	whenEntityArrivedAtSpace,
+	buildEntityArrivedTrigger,
+	chooseLaneForExecution,
+	findEntitySpace,
 } from "@/components/game/engine/runtime";
 
 import {
@@ -131,7 +131,7 @@ function selectAvailableLane(
 	ctx: Pick<Ctx, "context" | "updateContext">,
 ): CoreLaneId | null {
 	const enabledLanes = isDualCoreUnlocked(ctx) ? CORE_LANES : [SPACE_IDS.core1];
-	const selection = pickLane({
+	const selection = chooseLaneForExecution({
 		lanes: CORE_LANES,
 		enabledLanes,
 		policy: isDualCoreUnlocked(ctx) ? "round_robin" : "first_free",
@@ -217,7 +217,7 @@ function createExecutionParts(
 				pathResumeToken: 0,
 			},
 		});
-		const currentSpaceId = getEntitySpaceId(ctx.state, partId);
+		const currentSpaceId = findEntitySpace(ctx.state, partId);
 		if (currentSpaceId) {
 			ctx.world.removeFromSpace(partId, currentSpaceId);
 		}
@@ -250,7 +250,7 @@ function moveNextPartToCore(
 	const partId = partIds[partIndex];
 
 	if (!partId) {
-		const currentSpaceId = getEntitySpaceId(ctx.state, app.appId);
+		const currentSpaceId = findEntitySpace(ctx.state, app.appId);
 		if (currentSpaceId) {
 			ctx.world.removeFromSpace(app.appId, currentSpaceId);
 		}
@@ -304,7 +304,7 @@ function beginExecution(
 	ctx.world.updateEntity(appId, { data: { appStatus: "allocating" } });
 	createExecutionParts(ctx, appId, appKey, laneId);
 
-	const currentSpaceId = getEntitySpaceId(ctx.state, appId);
+	const currentSpaceId = findEntitySpace(ctx.state, appId);
 	if (currentSpaceId) {
 		ctx.world.removeFromSpace(appId, currentSpaceId);
 	}
@@ -329,7 +329,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 	const appStatus = appEntity.data.appStatus;
 	if (appStatus !== "ready") return;
 
-	const currentSpaceId = getEntitySpaceId(ctx.state, appId);
+	const currentSpaceId = findEntitySpace(ctx.state, appId);
 	if (currentSpaceId !== SPACE_IDS.open) return;
 
 	const laneId = selectAvailableLane(ctx);
@@ -370,7 +370,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 const rules: BehaviorRule<CoresBehaviorContext>[] = [
 	{
 		id: "cores.app-arrived-open",
-		on: whenEntityArrivedAtSpace(SPACE_IDS.open, "app"),
+		on: buildEntityArrivedTrigger(SPACE_IDS.open, "app"),
 		handler: (ctx) => {
 			const event = ctx.event as EntityEnteredSpaceEvent | EntityMovedEvent;
 			handleAppEnteredOpen(ctx, event.entityId);

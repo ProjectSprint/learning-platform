@@ -1,10 +1,12 @@
+/**
+ * Public game runtime contract.
+ *
+ * This module exposes business-focused methods that compose internal interactors.
+ * Internal modules own React/DOM/browser wiring and atomic primitives.
+ */
+
+// Core runtime/business types
 export type { Action } from "../../internal/application/state/actions";
-export {
-	applicationReducer,
-	createDefaultState,
-	entityReducer,
-	spaceReducer,
-} from "../../internal/application/state/reducers";
 export type { GameState } from "../../internal/application/state/types";
 export type {
 	EntityEnteredSpaceEvent,
@@ -13,6 +15,7 @@ export type {
 	EntityUpdatedEvent,
 	TerminalInputEvent,
 } from "../../internal/application/state/types/events";
+// Domain and type utilities
 export type {
 	Branded,
 	EntityId,
@@ -43,28 +46,10 @@ export type {
 	ItemData,
 } from "../../internal/domain/entity/entity-data";
 export { isItemData } from "../../internal/domain/entity/entity-data";
-export type { ConditionContext } from "../../internal/domain/question";
-export {
-	evaluateCondition,
-	resolvePhase,
-	resolveVisibility,
+export type {
+	ConditionContext,
+	PhaseResolution,
 } from "../../internal/domain/question";
-export {
-	getEntity,
-	getEntitySpaceId,
-	getGridEntityPosition,
-	getSpace,
-	getSpaceEntityIds,
-	isEntityInSpace,
-	isEntityKnown,
-	isEntityPlacementAllowed,
-	isSpaceKnown,
-	readApi,
-	selectGridEmptyPositions,
-	selectSpaceEntityCount,
-	selectSpaceIsEmpty,
-	selectSpaceIsFull,
-} from "../../internal/domain/read";
 export type {
 	CustomSpaceConfig,
 	GridSpaceConfig,
@@ -82,35 +67,59 @@ export {
 	isValidGridPosition,
 } from "../../internal/domain/space";
 export type {
-	EventBase,
-	EventInput,
-	EventQueue,
-	TransformApi,
-	TransitionApplied,
-	TransitionNoop,
-	TransitionResult,
-} from "../../internal/domain/transformers";
+	BehaviorDefinition,
+	BehaviorRule,
+	EffectContext,
+	EventTrigger,
+	LaneSchedulerInput,
+	LaneSelectionPolicy,
+	LaneSelectionResult,
+} from "../../internal/runtime/behavior";
+// Runtime lifecycle
+export { bootstrapQuestion } from "../../internal/runtime/bootstrap/bootstrap";
+export type { QuestionRuntime } from "../../internal/runtime/context/use-question-runtime";
+export { useQuestionRuntime } from "../../internal/runtime/context/use-question-runtime";
+// Question definition contract
+export type {
+	Condition,
+	EntityDefinition,
+	InventoryRule,
+	PhaseRule,
+	QuestionDefinition,
+	QuestionMeta,
+	SpaceDefinition,
+	SpaceRule,
+} from "../../internal/runtime/definition/types";
+export type { ValidationError } from "../../internal/runtime/definition/validate";
+export { validateDefinition } from "../../internal/runtime/definition/validate";
+// Runtime wrappers used by route business logic
+export type {
+	ExecutionFlowApi,
+	InteractionSessionApi,
+	InteractionSessionState,
+	ProgressApi,
+	RuntimeApiFailure,
+	RuntimeApiResult,
+	RuntimeApiSuccess,
+	WorldApi,
+} from "../../internal/runtime/wrappers";
 export {
-	applyAppendEvents,
-	applyCompleteQuestion,
-	applyCreateSpace,
-	applyDeleteEntities,
-	getNextActionId,
-	transformApi,
-	transitionApplied,
-	transitionNoop,
-	tryAckEvents,
-	tryAddEntityToSpace,
-	tryCreateEntity,
-	tryEmitEvents,
-	tryMoveEntityAcrossSpaces,
-	tryPatchEntity,
-	tryPatchEntityState,
-	tryRemoveEntityFromSpace,
-	tryRemoveSpace,
-	trySetPhase,
-	trySetQuestion,
-	trySwapGridEntities,
-	tryUpdateGridEntityPosition,
-} from "../../internal/domain/transformers";
-export * from "../../internal/runtime";
+	createExecutionFlowApi,
+	createInteractionSessionApi,
+	createProgressApi,
+	createWorldApi,
+} from "../../internal/runtime/wrappers";
+
+// Public business methods (compose internal interactors)
+export {
+	buildEntityArrivedTrigger,
+	buildEntityClickTrigger,
+	buildEntityPlacedTrigger,
+	buildModalSubmitTrigger,
+	buildTerminalInputTrigger,
+	chooseLaneForExecution,
+	deriveQuestionPhase,
+	entityIsInSpace,
+	findEntitySpace,
+	listSpaceEntityIds,
+} from "./public-methods";

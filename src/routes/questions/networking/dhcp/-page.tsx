@@ -33,7 +33,7 @@ import {
 import type { EntityData } from "@/components/game/engine/runtime";
 import {
 	type ConditionContext,
-	resolvePhase,
+	deriveQuestionPhase,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
 import type { QuestionProps } from "@/components/module";
@@ -179,7 +179,7 @@ const NetworkingGame = ({
 			dragStatus: dragEngine.progress.status,
 			questionStatus: state.question.status,
 		};
-		const resolved = resolvePhase(
+		const resolved = deriveQuestionPhase(
 			DHCP_DEFINITION.phaseRules,
 			context,
 			state.phase,

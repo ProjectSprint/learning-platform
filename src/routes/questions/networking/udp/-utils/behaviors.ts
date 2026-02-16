@@ -4,8 +4,8 @@ import type {
 	EntityEnteredSpaceEvent,
 } from "@/components/game/engine/runtime";
 import {
-	modalSubmitted,
-	whenEntityPlacedInSpace,
+	buildEntityPlacedTrigger,
+	buildModalSubmitTrigger,
 } from "@/components/game/engine/runtime";
 import type { UdpClientId } from "./constants";
 import { UDP_CLIENT_IDS } from "./constants";
@@ -48,7 +48,7 @@ const getClientFramesKey = (
 const rules: BehaviorRule<UdpBehaviorContext>[] = [
 	{
 		id: "udp.frame-entered-internet",
-		on: whenEntityPlacedInSpace("internet", "frame"),
+		on: buildEntityPlacedTrigger("internet", "frame"),
 		guard: ({ context }) => context.udpPhase === "streaming",
 		handler: (ctx) => {
 			const { event, entity, world, context, updateContext, schedule } = ctx;
@@ -115,7 +115,7 @@ const rules: BehaviorRule<UdpBehaviorContext>[] = [
 	},
 	{
 		id: "udp.success-navigate",
-		on: modalSubmitted("udp-success", "complete"),
+		on: buildModalSubmitTrigger("udp-success", "complete"),
 		handler: ({ updateContext }) => {
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
