@@ -13,7 +13,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { DrawerInstance } from "../../core/types";
+import type { DrawerInstance } from "@/components/game/types/core";
 import { useDragContext } from "../interaction/drag/DragContext";
 import { useDrawerStore } from "./drawer-context";
 import { FloatingActionButton } from "./FloatingActionButton";
@@ -21,11 +21,10 @@ import { FloatingActionButton } from "./FloatingActionButton";
 const TITLEBAR_HEIGHT = "48px";
 const MOUSE_DEBOUNCE_MS = 0;
 
-export type DrawerPanelProps = {
+export interface DrawerPanelProps {
 	drawer: DrawerInstance;
 	children?: ReactNode;
-};
-
+}
 export const DrawerPanel = ({ drawer, children }: DrawerPanelProps) => {
 	const { openDrawer, closeDrawer, toggleDrawer } = useDrawerStore();
 	const { activeDrag } = useDragContext();

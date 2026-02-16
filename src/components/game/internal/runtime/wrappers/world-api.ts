@@ -1,48 +1,13 @@
-import type { ItemDataConfig } from "../../domain/entity/entity-data";
-import type { GridPosition } from "../../domain/space/space-data";
-import type { Commands } from "../commands/types";
-import {
-	type RuntimeApiResult,
-	runtimeError,
-	runtimeOk,
-	toRuntimeErrorMessage,
-} from "./result";
-
-export type WorldApi = {
-	createEntity: (config: ItemDataConfig) => RuntimeApiResult;
-	updateEntity: (
-		entityId: string,
-		updates: {
-			name?: string;
-			data?: Record<string, unknown>;
-			visual?: Record<string, unknown>;
-		},
-	) => RuntimeApiResult;
-	updateEntityState: (
-		entityId: string,
-		state: Record<string, unknown>,
-	) => RuntimeApiResult;
-	deleteEntities: (entityIds: string[]) => RuntimeApiResult;
-	addToSpace: (
-		entityId: string,
-		spaceId: string,
-		position?: GridPosition,
-	) => RuntimeApiResult;
-	removeFromSpace: (entityId: string, spaceId: string) => RuntimeApiResult;
-	moveEntity: (
-		entityId: string,
-		toSpaceId: string,
-		position?: GridPosition,
-	) => RuntimeApiResult;
-	moveEntityToGrid: (entityId: string, spaceId: string) => RuntimeApiResult;
-};
+import type { _ItemDataConfig } from "@/components/game/types/entity";
+import type { _Commands, _WorldApi } from "@/components/game/types/runtime";
+import { runtimeError, runtimeOk, toRuntimeErrorMessage } from "./result";
 
 type WorldApiDeps = {
-	commands: Commands;
+	commands: _Commands;
 };
 
-export const createWorldApi = ({ commands }: WorldApiDeps): WorldApi => ({
-	createEntity(config) {
+export const createWorldApi = ({ commands }: WorldApiDeps): _WorldApi => ({
+	createEntity(config: _ItemDataConfig) {
 		try {
 			commands.createEntity(config);
 			return runtimeOk();

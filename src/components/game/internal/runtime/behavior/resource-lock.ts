@@ -3,31 +3,10 @@
  * Manages exclusive and shared access to named resources.
  */
 
-/**
- * Lock mode for a resource.
- * - "exclusive": only one holder at a time
- * - "shared": multiple readers, exclusive writer (read-write lock)
- */
-export type LockMode = "exclusive" | "shared";
-
-/**
- * A lock request from an entity/task.
- */
-export type LockRequest = {
-	resourceId: string;
-	requesterId: string;
-	mode: LockMode;
-};
-
-/**
- * State of a single resource lock.
- */
-export type ResourceLockState = {
-	resourceId: string;
-	holders: string[];
-	mode: LockMode | null;
-	waitQueue: LockRequest[];
-};
+import type {
+	LockRequest,
+	ResourceLockState,
+} from "@/components/game/types/behavior";
 
 /**
  * Create initial lock state for a resource.

@@ -126,7 +126,7 @@ import { entityClicked, modalSubmitted, terminalInput, whenEntityPlacedInSpace }
 import { buildConfigModal, buildSuccessModal } from "./modal-builders";
 
 // Context type — tracks cross-rule state
-export type MyBehaviorContext = {
+type MyBehaviorContext = {
   navigateAway: boolean;          // Signals page to call onQuestionComplete
   lastConfiguredId: string | null; // Track last configured entity
 };
@@ -253,7 +253,7 @@ import {
   SPACE_CONFIGS,
 } from "./constants";
 
-export type MyConditionKey = "dragStatus" | "questionStatus";
+type MyConditionKey = "dragStatus" | "questionStatus";
 
 export const MY_DEFINITION: QuestionDefinition<MyConditionKey, MyBehaviorContext> = {
   meta: {

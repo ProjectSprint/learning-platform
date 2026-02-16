@@ -13,8 +13,8 @@ import type {
 	ExecutionFlowApi,
 	InteractionSessionApi,
 	WorldApi,
-} from "@/components/game/engine/types/runtime";
-import type { GridSpaceData } from "@/components/game/engine/types/space";
+} from "@/components/game/types/runtime";
+import type { GridSpaceData } from "@/components/game/types/space";
 import {
 	FILE_ITEM_ID,
 	MESSAGE_PACKET_IDS,

@@ -1,4 +1,4 @@
-import type { QuestionDefinition } from "@/components/game/engine/types/question";
+import type { QuestionDefinition } from "@/components/game/types/question";
 import { INTERNET_BEHAVIORS, type InternetBehaviorContext } from "./behaviors";
 import {
 	INVENTORY_ITEMS,

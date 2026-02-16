@@ -15,11 +15,10 @@ import { useDragContext } from "./DragContext";
 /**
  * Props for the DragOverlay component.
  */
-export type DragOverlayProps = {
+export interface DragOverlayProps {
 	/** Function to get display label for an entity type */
 	getEntityLabel?: (entityType: string) => string;
-};
-
+}
 /**
  * Default label formatter.
  */

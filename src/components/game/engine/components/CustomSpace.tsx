@@ -7,11 +7,11 @@
 
 import { Box } from "@chakra-ui/react";
 import { memo, useCallback } from "react";
-import type { CustomSpaceData } from "../../internal/domain/space/space-data";
+import type { CustomSpaceData } from "@/components/game/types/space";
 import { useGameState } from "../../internal/game-provider";
 import { useBoardRegistry } from "../../internal/presentation/space/arrow";
 
-export type CustomSpaceProps = {
+type CustomSpaceProps = {
 	/** Space ID — must match a custom space defined in QuestionDefinition */
 	id: string;
 	/** Content to render inside the custom space */

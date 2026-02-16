@@ -1,5 +1,5 @@
+export type { GameReadState, ReadApi } from "@/components/game/types/read";
 export { readApi } from "./contracts";
-
 export {
 	getEntity,
 	getEntitySpaceId,
@@ -22,4 +22,3 @@ export {
 	selectSpaceIsEmpty,
 	selectSpaceIsFull,
 } from "./select";
-export type { GameReadState, ReadApi } from "./types";

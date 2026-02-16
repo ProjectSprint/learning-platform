@@ -4,7 +4,7 @@ import type {
 	LayoutRuleContext,
 	LayoutVisibilityRule,
 	SpaceShapeRule,
-} from "../behavior/layout-rules";
+} from "@/components/game/types/question";
 import {
 	evaluateShapeRules,
 	evaluateVisibility,

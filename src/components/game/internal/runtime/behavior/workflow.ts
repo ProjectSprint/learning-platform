@@ -3,53 +3,11 @@
  * Defines states, transitions, guards, and timed auto-transitions.
  */
 
-/**
- * A single state in the workflow.
- */
-export type WorkflowState = {
-	/** Unique state name */
-	name: string;
-	/** Optional: automatically transition after this many ms */
-	autoTransitionMs?: number;
-	/** Where to auto-transition to */
-	autoTransitionTo?: string;
-};
-
-/**
- * A transition between states.
- */
-export type WorkflowTransition = {
-	from: string;
-	to: string;
-	/** Optional guard: return true to allow this transition */
-	guard?: (ctx: WorkflowTransitionContext) => boolean;
-};
-
-export type WorkflowTransitionContext = {
-	readonly currentState: string;
-	readonly entityData: Record<string, unknown>;
-};
-
-/**
- * Complete workflow definition.
- */
-export type WorkflowDefinition = {
-	/** Initial state name */
-	initialState: string;
-	/** All possible states */
-	states: WorkflowState[];
-	/** Allowed transitions (if empty, all transitions are allowed) */
-	transitions?: WorkflowTransition[];
-};
-
-/**
- * Runtime state of a workflow instance.
- */
-export type WorkflowInstance = {
-	currentState: string;
-	enteredAt: number;
-	history: string[];
-};
+import type {
+	WorkflowDefinition,
+	WorkflowInstance,
+	WorkflowTransitionContext,
+} from "@/components/game/types/behavior";
 
 /**
  * Create a new workflow instance.

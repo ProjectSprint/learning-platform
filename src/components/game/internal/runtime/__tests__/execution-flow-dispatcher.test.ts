@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Action } from "../../application/state/actions";
+import type { Action } from "@/components/game/types/state";
 import {
 	applicationReducer,
 	createDefaultState,

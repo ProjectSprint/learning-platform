@@ -3,7 +3,8 @@
  * Provides access to entities by ID from the game state.
  */
 
-import type { EntityData, ItemData } from "../../domain/entity/entity-data";
+import type { EntityData, ItemData } from "@/components/game/types/entity";
+import type { SpaceData } from "@/components/game/types/space";
 import { isItemData } from "../../domain/entity/entity-data";
 import {
 	getEntitySpaceId,
@@ -11,7 +12,6 @@ import {
 	selectEntitiesByType,
 	selectEntityStateValue,
 } from "../../domain/read";
-import type { SpaceData } from "../../domain/space/space-data";
 import { useGameState } from "../../game-provider";
 
 /**

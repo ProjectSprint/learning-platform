@@ -22,7 +22,7 @@ import {
 	tryUpdateGridEntityPosition,
 } from "./space";
 
-export type TransformApi = {
+export interface TransformApi {
 	applyAppendEvents: typeof applyAppendEvents;
 	getNextActionId: typeof getNextActionId;
 	applyCreateSpace: typeof applyCreateSpace;
@@ -41,8 +41,7 @@ export type TransformApi = {
 	applyCompleteQuestion: typeof applyCompleteQuestion;
 	tryAckEvents: typeof tryAckEvents;
 	tryEmitEvents: typeof tryEmitEvents;
-};
-
+}
 export const transformApi = {
 	applyAppendEvents,
 	getNextActionId,

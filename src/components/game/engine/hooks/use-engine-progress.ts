@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useReducer } from "react";
-import type { GameEventInput } from "@/components/game/internal/application/state/events";
 import { useGameDispatch } from "@/components/game/internal/game-provider";
 import type {
-	EngineLifecycleCallbacks,
-	EngineProgress,
-	EngineProgressStatus,
-} from "../types/engine";
+	_EngineLifecycleCallbacks,
+	_EngineProgress,
+	_EngineProgressStatus,
+} from "@/components/game/types/engine";
+import type { GameEventInput } from "@/components/game/types/state";
 
 type EngineLifecycleEventType = "ENGINE_STARTED" | "ENGINE_FINISHED";
 
 type EngineProgressState = {
-	progress: EngineProgress;
+	progress: _EngineProgress;
 	pendingEvents: EngineLifecycleEventType[];
 };
 
@@ -21,7 +21,7 @@ type EngineProgressAction =
 	| { type: "ACK_EVENTS" };
 
 const createInitialState = (
-	initialStatus: EngineProgressStatus,
+	initialStatus: _EngineProgressStatus,
 ): EngineProgressState => ({
 	progress: { status: initialStatus },
 	pendingEvents: [],
@@ -72,14 +72,14 @@ const progressReducer = (
 };
 
 interface UseEngineProgressOptions<TContext>
-	extends EngineLifecycleCallbacks<TContext> {
+	extends _EngineLifecycleCallbacks<TContext> {
 	context?: TContext;
-	initialStatus?: EngineProgressStatus;
+	initialStatus?: _EngineProgressStatus;
 	engineId?: string;
 }
 
 export interface EngineController<TContext = unknown> {
-	progress: EngineProgress;
+	progress: _EngineProgress;
 	start: () => void;
 	finish: () => void;
 	reset: () => void;

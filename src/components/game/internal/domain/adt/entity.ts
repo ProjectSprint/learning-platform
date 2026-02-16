@@ -3,7 +3,7 @@ import type {
 	EntityDataConfig,
 	ItemData,
 	ItemDataConfig,
-} from "../entity/entity-data";
+} from "@/components/game/types/entity";
 
 export const createEntityData = (config: EntityDataConfig): EntityData => {
 	return {

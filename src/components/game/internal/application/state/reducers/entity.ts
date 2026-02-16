@@ -5,15 +5,14 @@
  */
 
 import { produce } from "immer";
+import type { EntityAction, GameState } from "@/components/game/types/state";
 import {
 	applyDeleteEntities,
 	tryCreateEntity,
 	tryPatchEntity,
 	tryPatchEntityState,
 } from "../../../domain/transformers/entity";
-import type { EntityAction } from "../actions/entity";
 import { appendEvents, getNextActionId } from "../events";
-import type { GameState } from "../types";
 
 /**
  * Reduces entity-related actions to update the game state.

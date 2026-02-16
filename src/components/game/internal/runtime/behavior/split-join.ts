@@ -5,36 +5,7 @@
  * Join: track completion of children and signal when a policy is met.
  */
 
-/**
- * Describes how to split a parent entity into children.
- */
-export type SplitDescriptor = {
-	/** ID of the parent entity being split */
-	parentId: string;
-	/** Child definitions: id + metadata for each child */
-	children: Array<{
-		id: string;
-		data?: Record<string, unknown>;
-	}>;
-};
-
-/**
- * Join completion policy.
- * - "all": wait for all children to complete
- * - "any": complete when any child completes
- * - { count: N }: complete when N children finish
- */
-export type JoinPolicy = "all" | "any" | { count: number };
-
-/**
- * Tracks the completion state of a split/join operation.
- */
-export type JoinTracker = {
-	parentId: string;
-	childIds: string[];
-	completedIds: string[];
-	policy: JoinPolicy;
-};
+import type { JoinPolicy, JoinTracker } from "@/components/game/types/behavior";
 
 /**
  * Create a new join tracker for a split operation.

@@ -1,17 +1,5 @@
 export {
-	type Condition,
-	type ConditionContext,
 	evaluateCondition,
-	type Handlers,
-	type InitSpec,
-	type InventoryRule,
-	type Labels,
-	type Meta,
-	type MultiInitPayload,
-	type PhaseResolution,
-	type PhaseRule,
-	type QuestionSpec,
 	resolvePhase,
 	resolveVisibility,
-	type SpaceRule,
 } from "./question-ast";

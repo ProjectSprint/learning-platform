@@ -12,21 +12,30 @@
  *      = useQuestionRuntime("...", DEFINITION);
  */
 
-import { type MutableRefObject, useEffect, useRef, useState } from "react";
-import type { GameEvent } from "../../application/state/types";
+import { useEffect, useRef, useState } from "react";
+import type {
+	_BehaviorDefinition,
+	TerminalBridge,
+} from "@/components/game/types/behavior";
+import type { _QuestionDefinition } from "@/components/game/types/question";
+import type {
+	_ExecutionFlowApi,
+	_InteractionSessionApi,
+	_InteractionSessionState,
+	_ProgressApi,
+	_QuestionRuntime,
+	_WorldApi,
+} from "@/components/game/types/runtime";
 import {
 	useEngineEvents,
 	useGameDispatch,
 	useGameState,
 } from "../../game-provider";
 import { useTerminalStore } from "../../presentation/terminal";
-import type { TerminalBridge } from "../behavior/reactor";
 import { useBehaviorReactor } from "../behavior/reactor";
 import { QuestionScheduler } from "../behavior/scheduler";
-import type { BehaviorDefinition } from "../behavior/types";
 import { bootstrapQuestion } from "../bootstrap/bootstrap";
 import { createCommands } from "../commands/create-commands";
-import type { QuestionDefinition } from "../definition/types";
 import { validateDefinition } from "../definition/validate";
 import { createExecutionFlowDispatcher } from "../execution-flow/dispatcher";
 import { emitRuntimeWarning } from "../execution-flow/warning";
@@ -35,39 +44,7 @@ import {
 	createInteractionSessionApi,
 	createProgressApi,
 	createWorldApi,
-	type ExecutionFlowApi,
-	type InteractionSessionApi,
-	type InteractionSessionState,
-	type ProgressApi,
-	type WorldApi,
 } from "../wrappers";
-
-export type QuestionRuntime<TContext = Record<string, never>> = {
-	/** World domain wrappers (spaces/entities). */
-	world: WorldApi;
-	/** Progress domain wrappers (question progression). */
-	progress: ProgressApi;
-	/** executionFlow domain wrappers (phase orchestration owner). */
-	executionFlow: ExecutionFlowApi;
-	/** interactionSession wrappers for modal/terminal flow and progression handoff. */
-	interactionSession: InteractionSessionApi;
-	/** React-local ephemeral interaction state. */
-	interactionState: InteractionSessionState;
-	/** Current game state (read-only snapshot) */
-	state: ReturnType<typeof useGameState>;
-	/** Current game phase */
-	phase: string;
-	/** Whether the question is completed */
-	isCompleted: boolean;
-	/** Pending events for this engine */
-	events: GameEvent[];
-	/** Acknowledge processed events */
-	ack: () => void;
-	/** Behavior context (populated when definition has behaviors) */
-	behaviorContext: TContext;
-	/** Ref to register the terminal engine's finish callback for behavior access */
-	registerTerminalFinish: MutableRefObject<(() => void) | null>;
-};
 
 /**
  * Hook that provides the full runtime context for a question page.
@@ -80,8 +57,8 @@ export function useQuestionRuntime<
 	TContext extends Record<string, unknown> = Record<string, never>,
 >(
 	engineId: string,
-	definition?: QuestionDefinition<CK, TContext>,
-): QuestionRuntime<TContext> {
+	definition?: _QuestionDefinition<CK, TContext>,
+): _QuestionRuntime<TContext> {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const { events, ack } = useEngineEvents(engineId);
@@ -89,7 +66,7 @@ export function useQuestionRuntime<
 	const stateRef = useRef(state);
 	stateRef.current = state;
 	const [interactionState, setInteractionState] =
-		useState<InteractionSessionState>({
+		useState<_InteractionSessionState>({
 			terminalVisible: false,
 			modalGateOpen: false,
 		});
@@ -146,19 +123,19 @@ export function useQuestionRuntime<
 		});
 	}
 
-	const executionFlowRef = useRef<ExecutionFlowApi | null>(null);
+	const executionFlowRef = useRef<_ExecutionFlowApi | null>(null);
 	if (!executionFlowRef.current) {
 		executionFlowRef.current = createExecutionFlowApi({
 			dispatcher: dispatcherRef.current,
 		});
 	}
 
-	const worldRef = useRef<WorldApi | null>(null);
+	const worldRef = useRef<_WorldApi | null>(null);
 	if (!worldRef.current) {
 		worldRef.current = createWorldApi({ commands: commandsRef.current });
 	}
 
-	const progressRef = useRef<ProgressApi | null>(null);
+	const progressRef = useRef<_ProgressApi | null>(null);
 	if (!progressRef.current) {
 		progressRef.current = createProgressApi({
 			commands: commandsRef.current,
@@ -166,7 +143,7 @@ export function useQuestionRuntime<
 		});
 	}
 
-	const interactionSessionRef = useRef<InteractionSessionApi | null>(null);
+	const interactionSessionRef = useRef<_InteractionSessionApi | null>(null);
 	if (!interactionSessionRef.current) {
 		interactionSessionRef.current = createInteractionSessionApi({
 			commands: commandsRef.current,
@@ -199,7 +176,7 @@ export function useQuestionRuntime<
 	}
 
 	const behaviorResult = useBehaviorReactor<TContext>(
-		definition?.behaviors as BehaviorDefinition<TContext> | undefined,
+		definition?.behaviors as _BehaviorDefinition<TContext> | undefined,
 		{
 			state,
 			events,

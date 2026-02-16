@@ -6,7 +6,7 @@ import type {
 	SpaceSize,
 	SpaceSizeValue,
 	SpaceState,
-} from "../types";
+} from "@/components/game/types/core";
 
 /**
  * @internal Inlined from legacy grid for cleanup

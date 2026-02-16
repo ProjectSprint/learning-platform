@@ -1,5 +1,9 @@
-export type { TransformApi } from "./contracts";
-export { transformApi } from "./contracts";
+export type {
+	TransitionApplied,
+	TransitionNoop,
+	TransitionResult,
+} from "@/components/game/types/transformer";
+export { type TransformApi, transformApi } from "./contracts";
 export {
 	applyDeleteEntities,
 	tryCreateEntity,
@@ -9,7 +13,6 @@ export {
 export {
 	applyAppendEvents,
 	type EventBase,
-	type EventInput,
 	type EventQueue,
 	getNextActionId,
 } from "./event-queue";
@@ -29,9 +32,4 @@ export {
 	trySwapGridEntities,
 	tryUpdateGridEntityPosition,
 } from "./space";
-export type {
-	TransitionApplied,
-	TransitionNoop,
-	TransitionResult,
-} from "./types";
 export { transitionApplied, transitionNoop } from "./types";

@@ -1,4 +1,4 @@
-import type { QuestionDefinition } from "@/components/game/engine/types/question";
+import type { QuestionDefinition } from "@/components/game/types/question";
 
 import { CORES_BEHAVIORS, type CoresBehaviorContext } from "./behaviors";
 import {

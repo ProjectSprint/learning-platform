@@ -13,7 +13,7 @@ import { memo } from "react";
 /**
  * Props for the GridCell component.
  */
-export type GridCellProps = {
+export interface GridCellProps {
 	/** Border color for the cell */
 	borderColor: string;
 	/** Whether to show the border */
@@ -22,8 +22,7 @@ export type GridCellProps = {
 	isOccupied: boolean;
 	/** Height of the cell in pixels */
 	height: number;
-};
-
+}
 /**
  * GridCell component.
  * Renders a single cell in a grid with customizable appearance.

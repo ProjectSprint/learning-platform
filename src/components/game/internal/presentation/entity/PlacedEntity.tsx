@@ -10,17 +10,13 @@
 import { Box, Text } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { memo, type RefCallback } from "react";
-import type { EntityData, ItemData } from "../../domain/entity/entity-data";
-
-/**
- * Status type for placed entities.
- */
-export type EntityStatus = "success" | "warning" | "error" | "info" | undefined;
+import type { EntityStatus } from "@/components/game/types/core";
+import type { EntityData, ItemData } from "@/components/game/types/entity";
 
 /**
  * Props for the PlacedEntity component.
  */
-export type PlacedEntityProps = {
+export interface PlacedEntityProps {
 	/** The entity to render */
 	entity: EntityData;
 	/** X position in pixels */
@@ -41,8 +37,7 @@ export type PlacedEntityProps = {
 	onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void;
 	/** Ref callback for the entity element */
 	entityRef?: RefCallback<HTMLDivElement>;
-};
-
+}
 /**
  * Gets the badge background color for a status.
  */
@@ -53,7 +48,6 @@ const getStatusBadgeColor = (status?: EntityStatus): string => {
 	if (status === "info") return "blue.600";
 	return "gray.600";
 };
-
 /**
  * Gets the border color for a status.
  */

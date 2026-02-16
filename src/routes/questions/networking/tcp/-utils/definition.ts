@@ -1,4 +1,4 @@
-import type { QuestionDefinition } from "@/components/game/engine/types/question";
+import type { QuestionDefinition } from "@/components/game/types/question";
 import { TCP_BEHAVIORS, type TcpBehaviorContext } from "./behaviors";
 import {
 	FILE_INVENTORY_ITEMS,

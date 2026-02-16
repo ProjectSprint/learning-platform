@@ -1,9 +1,14 @@
+import type {
+	LegacyGameAction as GameAction,
+	GameState,
+	InventoryGroup,
+	Item,
+	SpaceState,
+} from "@/components/game/types/core";
 import {
 	normalizePoolGroup,
 	normalizePoolItems,
 } from "../../domain/validation/pool";
-import type { GameAction } from "../actions";
-import type { GameState, InventoryGroup, Item, SpaceState } from "../types";
 import { updateBlock } from "./legacy-utils";
 
 const removeInventoryItems = (

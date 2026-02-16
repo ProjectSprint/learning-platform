@@ -8,7 +8,10 @@ import {
 	useReducer,
 	useState,
 } from "react";
-import type { DrawerConfig, DrawerInstance } from "../../core/types";
+import type {
+	DrawerConfig,
+	DrawerInstance,
+} from "@/components/game/types/core";
 
 type DrawerEventType =
 	| "DRAWER_OPEN"
@@ -19,12 +22,12 @@ type DrawerEventType =
 	| "DRAWER_EXPANDED"
 	| "DRAWER_FOLDED";
 
-export type DrawerEvent = {
+export interface DrawerEvent {
 	type: DrawerEventType;
 	drawerId: string;
 	eventId: number;
 	timestamp?: number;
-};
+}
 
 type DrawerStoreState = {
 	drawers: Record<string, DrawerInstance>;
@@ -274,12 +277,11 @@ export const useDrawerStore = () => {
 	return ctx;
 };
 
-export type DrawerEventBatch = {
+export interface DrawerEventBatch {
 	events: DrawerEvent[];
 	cursor: number;
 	ack: () => void;
-};
-
+}
 export const useDrawerEvents = (drawerId?: string): DrawerEventBatch => {
 	const { events } = useDrawerStore();
 	const [cursor, setCursor] = useState(0);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { QuestionDefinition } from "../definition/types";
+import type { QuestionDefinition } from "@/components/game/types/question";
 import { validateDefinition } from "../definition/validate";
 
 const baseDefinition: QuestionDefinition = {

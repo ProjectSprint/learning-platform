@@ -5,12 +5,8 @@
  * letting them silently produce broken state.
  */
 
-import type { QuestionDefinition } from "./types";
-
-export type ValidationError = {
-	field: string;
-	message: string;
-};
+import type { QuestionDefinition } from "@/components/game/types/question";
+import type { _ValidationError } from "@/components/game/types/runtime";
 
 /**
  * Validates a QuestionDefinition and returns any errors found.
@@ -22,8 +18,8 @@ export type ValidationError = {
  */
 export function validateDefinition<CK extends string = string, TC = unknown>(
 	def: QuestionDefinition<CK, TC>,
-): ValidationError[] {
-	const errors: ValidationError[] = [];
+): _ValidationError[] {
+	const errors: _ValidationError[] = [];
 
 	// meta.id must be non-empty
 	if (!def.meta.id || def.meta.id.trim().length === 0) {

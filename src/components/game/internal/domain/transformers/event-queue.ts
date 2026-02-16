@@ -1,20 +1,19 @@
-export type EventBase = {
+export interface EventBase {
 	eventId: number;
 	actionId: number;
 	timestamp?: number;
-};
+}
 
-export type EventQueue<TEvent extends EventBase> = {
+export interface EventQueue<TEvent extends EventBase> {
 	events: TEvent[];
 	lastEventId: number;
 	lastActionId: number;
-};
+}
 
-export type EventInput<TEvent extends EventBase> = Omit<
+type EventInput<TEvent extends EventBase> = Omit<
 	TEvent,
 	"eventId" | "actionId" | "timestamp"
 >;
-
 const ensureQueue = <TEvent extends EventBase>(
 	queue?: EventQueue<TEvent>,
 ): EventQueue<TEvent> => {

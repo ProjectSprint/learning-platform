@@ -1,9 +1,6 @@
-import type { QuestionStatus } from "../../core/types";
-import {
-	type TransitionResult,
-	transitionApplied,
-	transitionNoop,
-} from "./types";
+import type { QuestionStatus } from "@/components/game/types/state";
+import type { TransitionResult } from "@/components/game/types/transformer";
+import { transitionApplied, transitionNoop } from "./types";
 
 type GameStateSlice = {
 	phase: string;
@@ -12,13 +9,13 @@ type GameStateSlice = {
 	eventCursors: Record<string, number>;
 };
 
-export type GameTransitionEvent = {
+type GameTransitionEvent = {
 	type: "PHASE_CHANGED";
 	from: string;
 	to: string;
 };
 
-export type GameTransitionPayload = {
+type GameTransitionPayload = {
 	events: GameTransitionEvent[];
 };
 

@@ -12,13 +12,13 @@ import type {
 	EntityData,
 	ItemData,
 	ItemTooltip,
-} from "../../domain/entity/entity-data";
+} from "@/components/game/types/entity";
 import { InfoTooltip } from "../../ui/help";
 
 /**
  * Props for the EntityCard component.
  */
-export type EntityCardProps = {
+export interface EntityCardProps {
 	/** The entity to render */
 	entity: EntityData;
 	/** Whether the entity is currently being dragged */
@@ -33,8 +33,7 @@ export type EntityCardProps = {
 	onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void;
 	/** Ref callback for the card element */
 	cardRef?: React.RefCallback<HTMLDivElement>;
-};
-
+}
 /**
  * EntityCard component.
  * Renders an entity as a card with icon, name, and optional tooltip.

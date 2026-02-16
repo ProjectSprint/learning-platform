@@ -1,7 +1,7 @@
 import { Button, Flex, Text } from "@chakra-ui/react";
 import { Package } from "lucide-react";
 
-export type FloatingActionButtonProps = {
+type FloatingActionButtonProps = {
 	label: string;
 	onClick: () => void;
 };

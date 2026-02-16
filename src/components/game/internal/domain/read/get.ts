@@ -1,13 +1,13 @@
-import type { EntityData } from "../entity/entity-data";
-import type { GridPosition, SpaceData } from "../space/space-data";
+import type { EntityData } from "@/components/game/types/entity";
+import type { GameReadState } from "@/components/game/types/read";
+import type { GridPosition, SpaceData } from "@/components/game/types/space";
 import {
 	isGridSpace,
 	isPathSpace,
 	isPoolSpace,
 	isQueueSpace,
-} from "../space/space-data";
+} from "@/components/game/types/space";
 import { isEntityInSpace } from "./guards";
-import type { GameReadState } from "./types";
 
 export const getEntity = (
 	state: GameReadState,

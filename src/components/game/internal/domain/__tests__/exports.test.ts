@@ -27,22 +27,6 @@ describe("Domain Exports", () => {
 		expect(adtModule.createCustomSpaceData).toBeDefined();
 	});
 
-	it("should keep space module focused on data contracts", async () => {
-		const spaceModule = await import("../space");
-
-		// Type guards
-		expect(spaceModule.isGridSpace).toBeDefined();
-		expect(spaceModule.isPathSpace).toBeDefined();
-		expect(spaceModule.isPoolSpace).toBeDefined();
-		expect(spaceModule.isQueueSpace).toBeDefined();
-		expect(spaceModule.isMeterSpace).toBeDefined();
-		expect(spaceModule.isValidGridPosition).toBeDefined();
-
-		expect("createGridSpaceData" in spaceModule).toBe(false);
-		expect("gridContains" in spaceModule).toBe(false);
-		expect("spaceContains" in spaceModule).toBe(false);
-	});
-
 	it("should keep entity module focused on data contracts", async () => {
 		const entityModule = await import("../entity");
 

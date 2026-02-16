@@ -3,10 +3,13 @@
  * Provides a convenient API for registering and controlling drawers.
  */
 
-import type { DrawerConfig, DrawerInstance } from "../../core/types";
+import type {
+	DrawerConfig,
+	DrawerInstance,
+} from "@/components/game/types/core";
 import { useDrawerStore } from "../../presentation/drawer/drawer-context";
 
-export type DrawerManager = {
+type DrawerManager = {
 	registerDrawer: (config: DrawerConfig) => void;
 	openDrawer: (drawerId: string) => void;
 	closeDrawer: (drawerId: string) => void;

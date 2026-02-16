@@ -3,8 +3,8 @@
  * Filters drawer-local events emitted by the DrawerProvider.
  */
 
-export type {
-	DrawerEvent,
-	DrawerEventBatch,
+export {
+	type DrawerEvent,
+	type DrawerEventBatch,
+	useDrawerEvents,
 } from "../../presentation/drawer/drawer-context";
-export { useDrawerEvents } from "../../presentation/drawer/drawer-context";

@@ -10,7 +10,8 @@
  * This replaces per-question init-spaces.ts files.
  */
 
-import type { Action } from "../../application/state/actions";
+import type { _QuestionDefinition } from "@/components/game/types/question";
+import type { Action } from "@/components/game/types/state";
 import {
 	createCustomSpaceData,
 	createGridSpaceData,
@@ -20,7 +21,6 @@ import {
 	createPoolSpaceData,
 	createQueueSpaceData,
 } from "../../domain/adt";
-import type { QuestionDefinition } from "../definition/types";
 
 type Dispatch = (action: Action) => void;
 
@@ -31,7 +31,7 @@ type Dispatch = (action: Action) => void;
  * useQuestionRuntime).
  */
 export function bootstrapQuestion<CK extends string = string, TC = unknown>(
-	definition: QuestionDefinition<CK, TC>,
+	definition: _QuestionDefinition<CK, TC>,
 	dispatch: Dispatch,
 ): void {
 	// 1. Set question metadata

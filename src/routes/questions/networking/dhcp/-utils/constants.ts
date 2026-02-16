@@ -9,7 +9,7 @@ import type {
 import type {
 	GridSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/engine/types/space";
+} from "@/components/game/types/space";
 
 export const QUESTION_ID = "networking";
 export const QUESTION_TITLE = "🏡 Setup your home connection!";

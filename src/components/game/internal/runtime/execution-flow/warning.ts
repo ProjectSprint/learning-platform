@@ -1,4 +1,4 @@
-import type { Action } from "../../application/state/actions";
+import type { Action } from "@/components/game/types/state";
 
 type RuntimeWarningDeps = {
 	engineId: string;

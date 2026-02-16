@@ -1,15 +1,4 @@
-/**
- * Declarative checkpoint configuration for PathSpace.
- * Defines what happens when an entity reaches the midpoint (progress 0.5) of a path.
- */
-export type PathCheckpoint = {
-	/** At what progress point (0-1) to trigger. Default: 0.5 */
-	at?: number;
-	/** Whether the entity pauses at this checkpoint */
-	pause: boolean;
-	/** Optional event name to emit at checkpoint */
-	emitEvent?: string;
-};
+import type { PathCheckpoint } from "@/components/game/types/behavior";
 
 /**
  * Helper to create entity data flags for path checkpoint behavior.

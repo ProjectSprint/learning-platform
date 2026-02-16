@@ -19,36 +19,13 @@
  * - Clock-like layouts
  */
 
+import type {
+	PolarCoordinate,
+	RadialGridConfig,
+} from "@/components/game/types/grid";
 import type { GridCoordinate, Point2D } from "../../geometry/coordinates";
-import type { GridMetrics } from "../core/GridBase";
 import { GridBase } from "../core/GridBase";
 import type { GridCell } from "../core/GridCell";
-
-/**
- * Polar coordinates for radial grids.
- */
-export type PolarCoordinate = {
-	/** Ring index (0 = center) */
-	ring: number;
-	/** Sector/angle index */
-	sector: number;
-};
-
-/**
- * Configuration for radial grids.
- */
-export type RadialGridConfig<T> = {
-	/** Number of concentric rings */
-	rings: number;
-	/** Number of angular sectors per ring */
-	sectorsPerRing: number | number[];
-	metrics: GridMetrics;
-	/** Radius of the center cell */
-	centerRadius?: number;
-	/** Spacing between rings */
-	ringSpacing?: number;
-	initializer?: (ring: number, sector: number) => T | null;
-};
 
 /**
  * Radial/polar grid implementation (STUB - To be implemented).

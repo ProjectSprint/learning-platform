@@ -1,3 +1,4 @@
+import type { ReadApi } from "@/components/game/types/read";
 import { fromEntityId, fromSpaceId } from "../adt/ids";
 import {
 	getEntity,
@@ -21,7 +22,6 @@ import {
 	selectSpaceIsEmpty,
 	selectSpaceIsFull,
 } from "./select";
-import type { ReadApi } from "./types";
 
 export const readApi = {
 	isEntityKnown: (state, entityId) =>

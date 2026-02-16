@@ -7,7 +7,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { EntityStatus } from "@/components/game/engine";
 import {
 	ContextualHint,
 	DragOverlay,
@@ -35,7 +34,8 @@ import {
 	findEntitySpace,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
-import type { EntityData } from "@/components/game/engine/types/entity";
+import type { EntityStatus } from "@/components/game/types/core";
+import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
 
 import {

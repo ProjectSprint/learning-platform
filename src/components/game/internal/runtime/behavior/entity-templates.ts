@@ -1,13 +1,8 @@
-import type { ItemDataConfig } from "../../domain/entity/entity-data";
-
-/**
- * An entity template is a partial ItemDataConfig that can be stamped
- * to produce concrete entities with unique IDs.
- */
-export type EntityTemplate = Omit<ItemDataConfig, "id"> & {
-	/** Optional ID prefix for generated entities */
-	idPrefix?: string;
-};
+import type {
+	EntityTemplate,
+	SpawnPlan,
+} from "@/components/game/types/behavior";
+import type { ItemDataConfig } from "@/components/game/types/entity";
 
 /**
  * Stamp a template to produce a concrete ItemDataConfig with a unique ID.
@@ -44,16 +39,6 @@ export const stampBatch = (
 		const overrides = perItemOverrides?.(i);
 		return stampTemplate(template, id, overrides);
 	});
-};
-
-/**
- * Create a spawn plan: template + placement instructions.
- * Used to declaratively describe entity creation in behavior handlers.
- */
-export type SpawnPlan = {
-	config: ItemDataConfig;
-	spaceId?: string;
-	position?: Record<string, unknown>;
 };
 
 /**

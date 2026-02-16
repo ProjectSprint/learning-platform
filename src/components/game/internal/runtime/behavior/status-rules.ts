@@ -3,35 +3,12 @@
  * Maps entity state predicates to status badges and visual effects.
  */
 
-/**
- * Status badge that can be shown on an entity.
- */
-export type StatusBadge = {
-	status: "info" | "warning" | "success" | "error";
-	message: string;
-};
-
-/**
- * A single status rule: when predicate matches, apply this badge.
- * Rules are evaluated in order; first match wins.
- */
-export type StatusRule = {
-	/** Unique identifier for debugging */
-	id: string;
-	/** Optional entity type filter */
-	entityType?: string;
-	/** Predicate: return true if this rule should apply */
-	match: (entity: StatusRuleContext) => boolean;
-	/** The badge to apply when matched */
-	badge: StatusBadge;
-};
-
-export type StatusRuleContext = {
-	readonly id: string;
-	readonly type: string;
-	readonly data: Record<string, unknown>;
-	readonly state: Record<string, unknown>;
-};
+import type {
+	StatusBadge,
+	StatusRule,
+	StatusRuleContext,
+	TimelineAction,
+} from "@/components/game/types/behavior";
 
 /**
  * Evaluate status rules for an entity. Returns the first matching badge, or undefined.
@@ -46,24 +23,6 @@ export function evaluateStatusRules(
 	}
 	return undefined;
 }
-
-/**
- * Timeline action: a delayed mutation or effect.
- */
-export type TimelineAction = {
-	/** Unique key for this timeline (used for cancellation) */
-	key: string;
-	/** Delay in ms before execution */
-	delayMs: number;
-	/** Action to perform */
-	action: "updateEntity" | "deleteEntity" | "moveEntity" | "custom";
-	/** Target entity ID */
-	entityId?: string;
-	/** Updates to apply (for updateEntity) */
-	updates?: Record<string, unknown>;
-	/** Target space (for moveEntity) */
-	toSpaceId?: string;
-};
 
 /**
  * Create a timeline action that updates entity data after a delay.

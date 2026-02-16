@@ -17,7 +17,7 @@ import {
 /**
  * Data about the entity being dragged.
  */
-export type DragData = {
+type DragData = {
 	/** ID of the entity being dragged */
 	entityId: string;
 	/** Type of the entity */
@@ -36,12 +36,12 @@ export type DragData = {
 /**
  * Source of the drag operation.
  */
-export type DragSource = "pool" | "grid" | "queue" | "path";
+type DragSource = "pool" | "grid" | "queue" | "path";
 
 /**
  * Active drag state.
  */
-export type ActiveDrag = {
+type ActiveDrag = {
 	/** Source type of the drag */
 	source: DragSource;
 	/** Data about what's being dragged */
@@ -59,7 +59,7 @@ export type ActiveDrag = {
 /**
  * Result of a drag and drop operation.
  */
-export type DragDropResult = {
+type DragDropResult = {
 	/** Source of the drag */
 	source: DragSource;
 	/** Whether the entity was successfully placed */
@@ -69,7 +69,7 @@ export type DragDropResult = {
 /**
  * Animation target for drop animation.
  */
-export type DropAnimationTarget = {
+type DropAnimationTarget = {
 	/** Entity ID being animated */
 	entityId: string;
 	/** Grid row position */
@@ -126,7 +126,7 @@ const DragContext = createContext<DragContextValue | null>(null);
  * </DragProvider>
  * ```
  */
-export type DragProviderProps = {
+type DragProviderProps = {
 	children: React.ReactNode;
 };
 
@@ -190,11 +190,3 @@ export function useDragContext() {
 	}
 	return context;
 }
-
-/**
- * Type for drag handle refs (used for cleanup).
- */
-export type DragHandle = {
-	/** Cleanup function */
-	cleanup: () => void;
-};

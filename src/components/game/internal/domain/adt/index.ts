@@ -1,15 +1,15 @@
+export type {
+	Branded,
+	EntityId,
+	PhaseId,
+	SpaceId,
+} from "@/components/game/types/ids";
 export {
 	cloneEntityData,
 	cloneItemData,
 	createEntityData,
 	createItemData,
 } from "./entity";
-export type {
-	Branded,
-	EntityId,
-	PhaseId,
-	SpaceId,
-} from "./ids";
 export {
 	fromEntityId,
 	fromPhaseId,
@@ -18,7 +18,6 @@ export {
 	toPhaseId,
 	toSpaceId,
 } from "./ids";
-export type { ReadonlyDeep } from "./readonly";
 export {
 	createCustomSpaceData,
 	createGridSpaceData,

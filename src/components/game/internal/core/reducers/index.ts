@@ -1,5 +1,7 @@
-import type { GameAction } from "../actions";
-import type { GameState } from "../types";
+import type {
+	LegacyGameAction as GameAction,
+	GameState,
+} from "@/components/game/types/core";
 import { arrowsReducer } from "./arrows";
 import { coreReducer } from "./core";
 import { hintReducer } from "./hint";

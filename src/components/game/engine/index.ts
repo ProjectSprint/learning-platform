@@ -9,7 +9,6 @@
  */
 export * from "../internal/presentation/drawer";
 export {
-	type EntityStatus,
 	PlacedEntity,
 	type PlacedEntityProps,
 } from "../internal/presentation/entity/PlacedEntity";

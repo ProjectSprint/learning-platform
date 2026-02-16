@@ -4,29 +4,10 @@
  * for rule matching, guard evaluation, and handler execution.
  */
 
-export type InspectorLogEntry = {
-	timestamp: number;
-	eventType: string;
-	eventId: number;
-	ruleId: string;
-	action:
-		| "matched"
-		| "guard-passed"
-		| "guard-failed"
-		| "handler-executed"
-		| "handler-error";
-	entityId?: string;
-	spaceId?: string;
-	detail?: string;
-};
-
-export type BehaviorInspector = {
-	log: (entry: InspectorLogEntry) => void;
-	getEntries: () => readonly InspectorLogEntry[];
-	clear: () => void;
-	/** Subscribe to new entries */
-	subscribe: (listener: (entry: InspectorLogEntry) => void) => () => void;
-};
+import type {
+	BehaviorInspector,
+	InspectorLogEntry,
+} from "@/components/game/types/behavior";
 
 /**
  * Create a behavior inspector that stores entries in memory.

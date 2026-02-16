@@ -1,4 +1,4 @@
-import type { QuestionDefinition } from "@/components/game/engine/types/question";
+import type { QuestionDefinition } from "@/components/game/types/question";
 import { DHCP_BEHAVIORS, type DhcpBehaviorContext } from "./behaviors";
 import {
 	INVENTORY_ITEMS,

@@ -1,5 +1,4 @@
-export type PaperclipPose = "idle" | "idea" | "success" | "error" | "warning";
-
+type PaperclipPose = "idle" | "idea" | "success" | "error" | "warning";
 /**
  * SVG path data for each pose — all designed for viewBox "0 0 64 80".
  * Each is a single open path that GSAP MorphSVG can interpolate between.

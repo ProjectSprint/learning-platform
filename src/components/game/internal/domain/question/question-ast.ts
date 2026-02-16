@@ -1,88 +1,11 @@
-import type { TerminalCommandHelpers } from "@/components/game/engine";
 import type {
-	InventoryGroupConfig,
-	QuestionStatus,
-	SpaceConfig,
-	SpaceItemLocation,
-	TerminalState,
-} from "@/components/game/internal/game-provider";
-
-type QuestionPhase = string;
-
-export type QuestionSpec<ConditionKey extends string = string> = {
-	meta: Meta;
-	init: InitSpec;
-	phaseRules: PhaseRule<ConditionKey>[];
-	inventoryRules?: InventoryRule<ConditionKey>[];
-	spaceRules?: SpaceRule<ConditionKey>[];
-	labels: Labels;
-	handlers: Handlers;
-};
-
-export type Meta = {
-	id: string;
-	title: string;
-	description: string;
-};
-
-export type InitSpec = { kind: "multi"; payload: MultiInitPayload };
-
-export type MultiInitPayload = {
-	questionId: string;
-	spaces: Record<string, SpaceConfig>;
-	inventoryGroups?: InventoryGroupConfig[];
-	terminal?: Partial<TerminalState>;
-	phase?: QuestionPhase;
-	questionStatus?: QuestionStatus;
-};
-
-export type PhaseRule<ConditionKey extends string = string> =
-	| { kind: "set"; when: Condition<ConditionKey>; to: QuestionPhase }
-	| { kind: "retain"; when: Condition<ConditionKey> };
-
-export type InventoryRule<ConditionKey extends string = string> =
-	| { kind: "show-group"; when: Condition<ConditionKey>; groupId: string }
-	| { kind: "hide-group"; when: Condition<ConditionKey>; groupId: string };
-
-export type SpaceRule<ConditionKey extends string = string> =
-	| { kind: "show"; when: Condition<ConditionKey>; spaceId: string }
-	| { kind: "hide"; when: Condition<ConditionKey>; spaceId: string };
-
-export type Labels = {
-	getItemLabel: (itemType: string) => string;
-	getStatusMessage: (item: SpaceItemLocation) => string | null;
-};
-
-export type Handlers = {
-	onCommand: (input: string, helpers: TerminalCommandHelpers) => void;
-	onItemClickByType: Record<
-		string,
-		(args: { item: SpaceItemLocation }) => void
-	>;
-	isItemClickableByType: Record<string, boolean>;
-};
-
-export type Condition<ConditionKey extends string = string> =
-	| { kind: "and"; all: Condition<ConditionKey>[] }
-	| { kind: "or"; any: Condition<ConditionKey>[] }
-	| { kind: "not"; value: Condition<ConditionKey> }
-	| { kind: "flag"; key: ConditionKey; is: boolean }
-	| {
-			kind: "eq";
-			key: ConditionKey;
-			value: string | number | boolean | null;
-	  }
-	| { kind: "in"; key: ConditionKey; values: Array<string | number> };
-
-export type ConditionContext<ConditionKey extends string = string> = Record<
-	ConditionKey,
-	string | number | boolean | null | undefined
->;
-
-export type PhaseResolution = {
-	nextPhase: QuestionPhase;
-	shouldRetain: boolean;
-};
+	Condition,
+	ConditionContext,
+	InventoryRule,
+	PhaseResolution,
+	PhaseRule,
+	SpaceRule,
+} from "@/components/game/types/question";
 
 export const evaluateCondition = <ConditionKey extends string>(
 	condition: Condition<ConditionKey>,
@@ -114,8 +37,8 @@ export const evaluateCondition = <ConditionKey extends string>(
 export const resolvePhase = <ConditionKey extends string>(
 	rules: PhaseRule<ConditionKey>[],
 	context: ConditionContext<ConditionKey>,
-	currentPhase: QuestionPhase,
-	fallbackPhase: QuestionPhase,
+	currentPhase: string,
+	fallbackPhase: string,
 ): PhaseResolution => {
 	let nextPhase = fallbackPhase;
 

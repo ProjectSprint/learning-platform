@@ -9,8 +9,8 @@
 
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EntityData } from "../../domain/entity/entity-data";
-import type { PoolSpaceData } from "../../domain/space/space-data";
+import type { EntityData } from "@/components/game/types/entity";
+import type { PoolSpaceData } from "@/components/game/types/space";
 import { EntityCard } from "../entity/EntityCard";
 import { useDragContext } from "../interaction/drag/DragContext";
 import { useEntityCardSize } from "../interaction/drag/DragOverlay";
@@ -18,7 +18,7 @@ import { useEntityCardSize } from "../interaction/drag/DragOverlay";
 /**
  * Props for the PoolSpaceView component.
  */
-export type PoolSpaceViewProps = {
+export interface PoolSpaceViewProps {
 	/** The pool space to render */
 	space: PoolSpaceData;
 	/** Entities currently in this space */
@@ -31,8 +31,7 @@ export type PoolSpaceViewProps = {
 	onEntityDragStart?: (entity: EntityData, event: React.PointerEvent) => void;
 	/** Callback when an entity is returned to the pool */
 	onEntityReturn?: (entityId: string) => boolean;
-};
-
+}
 /**
  * PoolSpaceView component.
  * Renders entities in a pool space with drag and drop support.

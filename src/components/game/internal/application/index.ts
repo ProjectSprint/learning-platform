@@ -3,6 +3,26 @@
  * Provides access to the new domain-driven state management system.
  */
 
+export type {
+	Action,
+	ApplicationAction,
+	EntitiesDeletedAction,
+	EntitiesSwappedAction,
+	EntityAction,
+	EntityAddedAction,
+	EntityCreatedAction,
+	EntityMovedAction,
+	EntityPlacement,
+	EntityPositionUpdatedAction,
+	EntityRemovedAction,
+	EntityStateUpdatedAction,
+	EntityTransfer,
+	EntityUpdatedAction,
+	GameState,
+	SpaceAction,
+	SpaceCreatedAction,
+	SpaceRemovedAction,
+} from "@/components/game/types/state";
 // Hooks
 export {
 	useEntities,
@@ -20,28 +40,6 @@ export {
 	useSpaceIsFull,
 	useSpaces,
 } from "./hooks";
-
-// Actions
-export type {
-	Action,
-	// Combined actions
-	ApplicationAction,
-	EntitiesDeletedAction,
-	EntitiesSwappedAction,
-	EntityAction,
-	EntityAddedAction,
-	// Entity actions
-	EntityCreatedAction,
-	EntityMovedAction,
-	EntityPositionUpdatedAction,
-	EntityRemovedAction,
-	EntityStateUpdatedAction,
-	EntityUpdatedAction,
-	SpaceAction,
-	// Space actions
-	SpaceCreatedAction,
-	SpaceRemovedAction,
-} from "./state/actions";
 // Reducers
 export {
 	applicationReducer,
@@ -49,5 +47,3 @@ export {
 	entityReducer,
 	spaceReducer,
 } from "./state/reducers";
-// Types
-export type { EntityPlacement, EntityTransfer, GameState } from "./state/types";

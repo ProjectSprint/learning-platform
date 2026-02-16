@@ -15,36 +15,13 @@
  * Reference: https://www.redblobgames.com/grids/hexagons/
  */
 
+import type {
+	CubeCoordinate,
+	HexGridConfig,
+} from "@/components/game/types/grid";
 import type { GridCoordinate, Point2D } from "../../geometry/coordinates";
-import type { GridMetrics } from "../core/GridBase";
 import { GridBase } from "../core/GridBase";
 import type { GridCell } from "../core/GridCell";
-
-/**
- * Hexagonal grid orientation.
- */
-export type HexOrientation = "flat-top" | "pointy-top";
-
-/**
- * Cube coordinates for hexagonal grids.
- * More convenient for hex math than axial coordinates.
- */
-export type CubeCoordinate = {
-	q: number;
-	r: number;
-	s: number;
-};
-
-/**
- * Configuration for hexagonal grids.
- */
-export type HexGridConfig<T> = {
-	rows: number;
-	cols: number;
-	metrics: GridMetrics;
-	orientation?: HexOrientation;
-	initializer?: (row: number, col: number) => T | null;
-};
 
 /**
  * Hexagonal grid implementation (STUB - To be implemented).

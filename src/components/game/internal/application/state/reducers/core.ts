@@ -3,6 +3,11 @@
  */
 
 import { produce } from "immer";
+import type {
+	CoreAction,
+	GameEventInput,
+	GameState,
+} from "@/components/game/types/state";
 import {
 	applyCompleteQuestion,
 	tryAckEvents,
@@ -10,10 +15,7 @@ import {
 	trySetPhase,
 	trySetQuestion,
 } from "../../../domain/transformers/game";
-import type { CoreAction } from "../actions/core";
-import type { GameEventInput } from "../events";
 import { appendEvents, getNextActionId } from "../events";
-import type { GameState } from "../types";
 
 const appendTransitionEvents = (
 	state: GameState,

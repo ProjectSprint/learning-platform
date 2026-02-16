@@ -3,36 +3,10 @@
  * Provides the foundation for different grid types (square, hex, radial, etc.)
  */
 
+import type { GridMetrics } from "@/components/game/types/grid";
 import type { GridCoordinate, Point2D } from "../../geometry/coordinates";
 import { isInBounds, manhattanDistance } from "../../geometry/coordinates";
 import type { GridCell } from "./GridCell";
-
-/**
- * Configuration options for grid metrics.
- */
-export type GridMetrics = {
-	/** Width of a single cell in pixels */
-	cellWidth: number;
-	/** Height of a single cell in pixels */
-	cellHeight: number;
-	/** Horizontal gap between cells in pixels */
-	gapX?: number;
-	/** Vertical gap between cells in pixels */
-	gapY?: number;
-};
-
-/**
- * Direction for grid neighbor traversal.
- */
-export type GridDirection =
-	| "north"
-	| "south"
-	| "east"
-	| "west"
-	| "northeast"
-	| "northwest"
-	| "southeast"
-	| "southwest";
 
 /**
  * Abstract base class for grid implementations.

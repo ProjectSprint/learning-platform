@@ -6,12 +6,12 @@
  */
 
 import { memo, useCallback, useEffect, useMemo } from "react";
-import type { EntityData } from "../../internal/domain/entity/entity-data";
-import { isItemData } from "../../internal/domain/entity/entity-data";
+import type { EntityData } from "@/components/game/types/entity";
 import type {
 	PoolSpaceConfig,
 	PoolSpaceData,
-} from "../../internal/domain/space/space-data";
+} from "@/components/game/types/space";
+import { isItemData } from "../../internal/domain/entity/entity-data";
 import type { GameContextValue } from "../../internal/game-provider";
 import { useGameDispatch, useGameState } from "../../internal/game-provider";
 import { useDragContext } from "../../internal/presentation/interaction/drag/DragContext";
@@ -30,7 +30,7 @@ type PoolSpacePropsBase = {
 	isEntityDraggable?: (entity: EntityData) => boolean;
 };
 
-export type PoolSpaceProps =
+type PoolSpaceProps =
 	| (PoolSpacePropsBase & { id: string; config?: PoolSpaceConfig })
 	| (PoolSpacePropsBase & { id?: string; config: PoolSpaceConfig });
 

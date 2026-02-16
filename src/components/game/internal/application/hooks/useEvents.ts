@@ -4,10 +4,10 @@
  */
 
 import { useCallback, useEffect, useMemo } from "react";
+import type { GameEvent } from "@/components/game/types/state";
 import { useGameDispatch, useGameState } from "../../game-provider";
-import type { GameEvent } from "../state/types";
 
-export type EngineEventBatch = {
+type EngineEventBatch = {
 	events: GameEvent[];
 	cursor: number;
 	ack: () => void;

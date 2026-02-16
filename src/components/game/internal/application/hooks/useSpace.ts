@@ -3,6 +3,7 @@
  * Provides access to a space by ID from the game state.
  */
 
+import type { GridPosition, SpaceData } from "@/components/game/types/space";
 import {
 	getGridEntityPosition,
 	getSpaceEntityIds,
@@ -10,7 +11,6 @@ import {
 	selectSpaceIsEmpty,
 	selectSpaceIsFull,
 } from "../../domain/read";
-import type { GridPosition, SpaceData } from "../../domain/space/space-data";
 import { useGameState } from "../../game-provider";
 
 /**

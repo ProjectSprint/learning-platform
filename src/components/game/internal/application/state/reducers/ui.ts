@@ -2,10 +2,13 @@
  * UI reducers for modals.
  * These handle the UI-related state that doesn't fit into the Space/Entity model.
  */
-import type { UIAction } from "../actions/ui";
-import type { GameEventInput } from "../events";
+
+import type {
+	GameEventInput,
+	GameState,
+	UIAction,
+} from "@/components/game/types/state";
 import { appendEvents, getNextActionId } from "../events";
-import type { GameState } from "../types";
 
 /**
  * UI reducer handling modal actions.

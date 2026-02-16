@@ -30,7 +30,7 @@ import {
 	useGameCtx,
 } from "@/components/game/engine/game-provider";
 import { useQuestionRuntime } from "@/components/game/engine/runtime";
-import type { EntityData } from "@/components/game/engine/types/entity";
+import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
 
 import { ProgressBar } from "./-components/ProgressBar";

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import type { Commands } from "@/components/game/types/runtime";
 import { createItemData } from "../../domain/adt";
-import type { Commands } from "../commands/types";
 import {
 	createInteractionSessionApi,
 	createWorldApi,

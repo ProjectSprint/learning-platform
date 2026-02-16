@@ -1,14 +1,7 @@
-export type TransitionApplied<T = void> = {
-	status: "applied";
-	value: T;
-};
-
-export type TransitionNoop = {
-	status: "noop";
-	reason: string;
-};
-
-export type TransitionResult<T = void> = TransitionApplied<T> | TransitionNoop;
+import type {
+	TransitionApplied,
+	TransitionNoop,
+} from "@/components/game/types/transformer";
 
 export const transitionApplied = <T>(value: T): TransitionApplied<T> => ({
 	status: "applied",

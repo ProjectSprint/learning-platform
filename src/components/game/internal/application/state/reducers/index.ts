@@ -3,9 +3,8 @@
  * Combines all reducers for the new domain-driven architecture.
  */
 
+import type { Action, GameState } from "@/components/game/types/state";
 import { assertSingleSpaceOwnership } from "../../../domain/invariants";
-import type { Action } from "../actions";
-import type { GameState } from "../types";
 import { coreReducer as appCoreReducer } from "./core";
 import { entityReducer } from "./entity";
 import { spaceReducer } from "./space";

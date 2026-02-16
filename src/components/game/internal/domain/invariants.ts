@@ -1,7 +1,7 @@
 import type { GameReadState } from "./read";
 import { getSpaceEntityIds } from "./read";
 
-export type OwnershipViolation = {
+type OwnershipViolation = {
 	entityId: string;
 	firstSpaceId: string;
 	duplicateSpaceId: string;

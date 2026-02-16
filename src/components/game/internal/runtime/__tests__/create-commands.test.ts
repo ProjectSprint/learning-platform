@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Action } from "../../application/state/actions";
+import { isGridSpace, isPoolSpace } from "@/components/game/types/space";
+import type { Action } from "@/components/game/types/state";
 import {
 	applicationReducer,
 	createDefaultState,
@@ -10,7 +11,6 @@ import {
 	createPoolSpaceData,
 } from "../../domain/adt";
 import { isEntityInSpace } from "../../domain/read";
-import { isGridSpace, isPoolSpace } from "../../domain/space/space-data";
 import { createCommands } from "../commands/create-commands";
 
 describe("createCommands", () => {

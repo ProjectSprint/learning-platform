@@ -5,6 +5,7 @@
  */
 
 import { produce } from "immer";
+import type { GameState, SpaceAction } from "@/components/game/types/state";
 import {
 	applyCreateSpace,
 	tryAddEntityToSpace,
@@ -14,9 +15,7 @@ import {
 	trySwapGridEntities,
 	tryUpdateGridEntityPosition,
 } from "../../../domain/transformers/space";
-import type { SpaceAction } from "../actions/space";
 import { appendEvents, getNextActionId } from "../events";
-import type { GameState } from "../types";
 
 /**
  * Reduces space-related actions to update the game state.

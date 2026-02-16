@@ -20,7 +20,7 @@ import {
 	BoardRegistryProvider,
 } from "../../internal/presentation/space/arrow";
 
-export type GameBoardProps = {
+type GameBoardProps = {
 	children: ReactNode;
 };
 

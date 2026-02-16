@@ -1,24 +1,21 @@
-import type { EntityData } from "../entity/entity-data";
-import type { GridPosition, SpaceData } from "../space/space-data";
+import type { EntityData } from "@/components/game/types/entity";
+import type { GridPosition, SpaceData } from "@/components/game/types/space";
 import {
 	isGridSpace,
 	isPathSpace,
 	isPoolSpace,
 	isQueueSpace,
 	isValidGridPosition,
-} from "../space/space-data";
-import {
-	type TransitionResult,
-	transitionApplied,
-	transitionNoop,
-} from "./types";
+} from "@/components/game/types/space";
+import type { TransitionResult } from "@/components/game/types/transformer";
+import { transitionApplied, transitionNoop } from "./types";
 
 type SpaceState = {
 	spaces: Record<string, SpaceData>;
 	entities: Record<string, EntityData>;
 };
 
-export type SpaceTransitionEvent =
+type SpaceTransitionEvent =
 	| {
 			type: "ENTITY_ENTERED_SPACE";
 			entityId: string;
@@ -40,7 +37,7 @@ export type SpaceTransitionEvent =
 			toPosition?: Record<string, unknown>;
 	  };
 
-export type SpaceTransitionPayload = {
+type SpaceTransitionPayload = {
 	events: SpaceTransitionEvent[];
 };
 

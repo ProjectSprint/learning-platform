@@ -2,7 +2,9 @@ import { Box } from "@chakra-ui/react";
 import { gsap } from "gsap";
 import { useEffect, useRef } from "react";
 import { ensureSvgPlugins } from "@/lib/gsap-plugins";
-import { type PaperclipPose, POSE_PATHS } from "./paperclip-paths";
+import { POSE_PATHS } from "./paperclip-paths";
+
+type PaperclipPose = keyof typeof POSE_PATHS;
 
 type PaperclipCharacterProps = {
 	pose: PaperclipPose;

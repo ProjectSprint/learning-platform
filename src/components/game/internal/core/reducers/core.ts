@@ -1,17 +1,17 @@
+import type {
+	LegacyGameAction as GameAction,
+	GameState,
+	InventoryGroup,
+	SpaceConfig,
+	SpaceItemLocation,
+	SpaceState,
+} from "@/components/game/types/core";
 import {
 	DEFAULT_POOL_GROUP_ID,
 	DEFAULT_POOL_TITLE,
 	findPoolItem,
 	normalizePoolGroups,
 } from "../../domain/validation/pool";
-import type { GameAction } from "../actions";
-import type {
-	GameState,
-	InventoryGroup,
-	SpaceConfig,
-	SpaceItemLocation,
-	SpaceState,
-} from "../types";
 import { updateBlock } from "./legacy-utils";
 import { createSpaceState } from "./puzzle-state";
 

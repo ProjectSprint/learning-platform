@@ -1,12 +1,12 @@
-import {
-	type ConditionContext,
-	type PhaseResolution,
-	type PhaseRule,
-	resolvePhase,
-} from "../question/question-ast";
-import { isGridSpace } from "../space/space-data";
+import type {
+	ConditionContext,
+	PhaseResolution,
+	PhaseRule,
+} from "@/components/game/types/question";
+import type { GameReadState } from "@/components/game/types/read";
+import { isGridSpace } from "@/components/game/types/space";
+import { resolvePhase } from "../question/question-ast";
 import { getEntity, getSpace, getSpaceEntityIds } from "./get";
-import type { GameReadState } from "./types";
 
 export const selectEntitiesByType = (state: GameReadState, type: string) => {
 	return Object.values(state.entities).filter((entity) => entity.type === type);

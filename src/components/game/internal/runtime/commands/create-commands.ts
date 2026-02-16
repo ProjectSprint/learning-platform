@@ -9,23 +9,19 @@
  * so it is testable without React.
  */
 
-import type { Action } from "../../application/state/actions";
-import type { GameState } from "../../application/state/types";
+import type { ItemDataConfig } from "@/components/game/types/entity";
+import type {
+	_CommandContext,
+	_Commands,
+} from "@/components/game/types/runtime";
+import { isGridSpace } from "@/components/game/types/space";
 import { createItemData } from "../../domain/adt";
-import type { ItemDataConfig } from "../../domain/entity/entity-data";
 import { getEntitySpaceId, selectGridEmptyPositions } from "../../domain/read";
-import { isGridSpace } from "../../domain/space/space-data";
-import type { Commands } from "./types";
-
-export type CommandContext = {
-	dispatch: (action: Action) => void;
-	getState: () => GameState;
-};
 
 /**
  * Create a Commands object backed by dispatch + getState.
  */
-export function createCommands(ctx: CommandContext): Commands {
+export function createCommands(ctx: _CommandContext): _Commands {
 	const { dispatch, getState } = ctx;
 
 	const moveEntityInternal = (

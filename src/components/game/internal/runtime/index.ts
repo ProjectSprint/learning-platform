@@ -3,7 +3,7 @@
  *
  * Question pages import runtime values and types from engine barrels:
  *   import { useQuestionRuntime } from "@/components/game/engine/runtime";
- *   import type { QuestionDefinition } from "@/components/game/engine/types/question";
+ *   import type { QuestionDefinition } from "@/components/game/types/question";
  */
 
 // Selectors
@@ -13,33 +13,6 @@ export {
 	selectEntitiesByType,
 	selectEntityStateValue,
 } from "../domain/read";
-export type {
-	BehaviorDefinition,
-	BehaviorInspector,
-	BehaviorRule,
-	DragGatingContext,
-	DragGatingRule,
-	EffectContext,
-	EventProvenance,
-	EventTrigger,
-	GuardContext,
-	InspectorLogEntry,
-	JoinPolicy,
-	JoinTracker,
-	LaneSchedulerInput,
-	LaneSelectionPolicy,
-	LaneSelectionResult,
-	LayoutRuleContext,
-	LayoutVisibilityRule,
-	LockMode,
-	LockRequest,
-	PathCheckpoint,
-	ResourceLockState,
-	ScheduledEffectContext,
-	SpaceShapeOverrides,
-	SpaceShapeRule,
-	SplitDescriptor,
-} from "./behavior";
 export {
 	createBehaviorInspector,
 	createConsoleInspector,
@@ -73,42 +46,19 @@ export {
 } from "./behavior";
 // Bootstrap
 export { bootstrapQuestion } from "./bootstrap/bootstrap";
-export type { CommandContext } from "./commands/create-commands";
 // Commands
 export { createCommands } from "./commands/create-commands";
-export type { Commands } from "./commands/types";
-export type { QuestionRuntime } from "./context/use-question-runtime";
 // Context hook
 export { useQuestionRuntime } from "./context/use-question-runtime";
-// Definition types
-export type {
-	Condition,
-	EntityDefinition,
-	InventoryRule,
-	PhaseRule,
-	QuestionDefinition,
-	QuestionMeta,
-	SpaceDefinition,
-	SpaceRule,
-} from "./definition/types";
-export type { ValidationError } from "./definition/validate";
 // Definition validation
 export { validateDefinition } from "./definition/validate";
-export type { ExecutionFlowIntent } from "./intents/execution-flow";
-export type { InteractionSessionIntent } from "./intents/interaction-session";
-export type { ProgressIntent } from "./intents/progress";
-export type { WorldIntent } from "./intents/world";
 export {
 	createExecutionFlowApi,
 	createInteractionSessionApi,
 	createProgressApi,
 	createWorldApi,
-	type ExecutionFlowApi,
-	type InteractionSessionApi,
-	type InteractionSessionState,
-	type ProgressApi,
-	type RuntimeApiFailure,
-	type RuntimeApiResult,
-	type RuntimeApiSuccess,
-	type WorldApi,
+	runtimeError,
+	runtimeOk,
+	toRuntimeErrorMessage,
+	wrapRuntimeErrorMessage,
 } from "./wrappers";

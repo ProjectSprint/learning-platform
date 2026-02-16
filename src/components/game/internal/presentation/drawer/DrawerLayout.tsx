@@ -1,18 +1,17 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef } from "react";
+import type { GameEvent } from "@/components/game/types/state";
 import { useEngineEvents } from "../../application/hooks/useEvents";
-import type { GameEvent } from "../../application/state/types";
 import { useDragContext } from "../interaction/drag/DragContext";
 import { DrawerPanel } from "./DrawerPanel";
 import { useDrawerStore } from "./drawer-context";
 
-export type DrawerLayoutProps = {
+export interface DrawerLayoutProps {
 	drawerId: string;
 	children?: ReactNode;
 	onOpenEvents?: GameEvent["type"][];
 	onCloseEvents?: GameEvent["type"][];
-};
-
+}
 export const DrawerLayout = ({
 	drawerId,
 	children,

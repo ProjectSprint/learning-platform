@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-	createBehaviorInspector,
-	type InspectorLogEntry,
-	NOOP_INSPECTOR,
-} from "../behavior/inspector";
+import type { InspectorLogEntry } from "@/components/game/types/behavior";
+import { createBehaviorInspector, NOOP_INSPECTOR } from "../behavior/inspector";
 
 function makeEntry(
 	overrides: Partial<InspectorLogEntry> = {},

@@ -6,27 +6,26 @@
 /**
  * Represents a position in 2D space with x and y coordinates.
  */
-export type Point2D = {
+export interface Point2D {
 	x: number;
 	y: number;
-};
+}
 
 /**
  * Represents a grid coordinate with integer indices.
  */
-export type GridCoordinate = {
+export interface GridCoordinate {
 	row: number;
 	col: number;
-};
+}
 
 /**
  * Represents a size with width and height.
  */
-export type Dimensions = {
+export interface Dimensions {
 	width: number;
 	height: number;
-};
-
+}
 /**
  * Creates a Point2D from x and y coordinates.
  */

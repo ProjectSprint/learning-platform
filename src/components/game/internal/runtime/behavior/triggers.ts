@@ -1,4 +1,4 @@
-import type { EventTrigger } from "./types";
+import type { EventTrigger } from "@/components/game/types/behavior";
 
 export const whenEntityPlacedInSpace = (
 	space?: string,

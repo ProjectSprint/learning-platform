@@ -9,19 +9,19 @@
 
 import { useBreakpointValue } from "@chakra-ui/react";
 import { memo, useEffect, useMemo } from "react";
-import type { EntityData } from "../../internal/domain/entity/entity-data";
-import {
-	getEntitySpaceId,
-	isEntityPlacementAllowed,
-} from "../../internal/domain/read";
+import type { EntityStatus } from "@/components/game/types/core";
+import type { EntityData } from "@/components/game/types/entity";
 import type {
 	GridPosition,
 	GridSpaceConfig,
 	GridSpaceData,
-} from "../../internal/domain/space/space-data";
+} from "@/components/game/types/space";
+import {
+	getEntitySpaceId,
+	isEntityPlacementAllowed,
+} from "../../internal/domain/read";
 import type { GameContextValue } from "../../internal/game-provider";
 import { useGameDispatch, useGameState } from "../../internal/game-provider";
-import type { EntityStatus } from "../../internal/presentation/entity/PlacedEntity";
 import { GridSpaceView } from "../../internal/presentation/space/GridSpaceView";
 
 /**
@@ -29,7 +29,7 @@ import { GridSpaceView } from "../../internal/presentation/space/GridSpaceView";
  * Keys are Chakra UI breakpoint names, values are [cols, rows] tuples.
  * The data model keeps the largest grid; the view layer remaps positions.
  */
-export type ResponsiveSize = Record<string, [cols: number, rows: number]>;
+type ResponsiveSize = Record<string, [cols: number, rows: number]>;
 
 // Position remapping helpers for responsive grids
 const toLinearIndex = (pos: GridPosition, cols: number) =>
@@ -84,7 +84,7 @@ type GridSpacePropsBase = {
 	};
 };
 
-export type GridSpaceProps =
+type GridSpaceProps =
 	| (GridSpacePropsBase & { id: string; config?: GridSpaceConfig })
 	| (GridSpacePropsBase & { id?: string; config: GridSpaceConfig });
 

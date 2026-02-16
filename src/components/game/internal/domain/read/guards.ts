@@ -1,13 +1,13 @@
-import { isItemData } from "../entity/entity-data";
-import type { GridPosition } from "../space/space-data";
+import type { GameReadState } from "@/components/game/types/read";
+import type { GridPosition } from "@/components/game/types/space";
 import {
 	isGridSpace,
 	isPathSpace,
 	isPoolSpace,
 	isQueueSpace,
 	isValidGridPosition,
-} from "../space/space-data";
-import type { GameReadState } from "./types";
+} from "@/components/game/types/space";
+import { isItemData } from "../entity/entity-data";
 
 const isCellOccupiedByAnotherEntity = (
 	space: {

@@ -10,6 +10,4 @@ export * from "./adt";
 export * from "./entity";
 export * from "./invariants";
 export * from "./read";
-// Space exports
-export * from "./space";
 export * from "./transformers";

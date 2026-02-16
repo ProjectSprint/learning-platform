@@ -1,3 +1,14 @@
+import type {
+	_EventTrigger,
+	_LaneSchedulerInput,
+	_LaneSelectionResult,
+} from "@/components/game/types/behavior";
+import type {
+	_ConditionContext,
+	_PhaseResolution,
+	_PhaseRule,
+} from "@/components/game/types/question";
+import type { GameState } from "@/components/game/types/state";
 import { resolvePhase } from "../../internal/domain/question";
 import {
 	getEntity,
@@ -13,28 +24,17 @@ import {
 	whenEntityArrivedAtSpace,
 	whenEntityPlacedInSpace,
 } from "../../internal/runtime/behavior";
-import type {
-	EventTrigger,
-	LaneSchedulerInput,
-	LaneSelectionResult,
-} from "../types/behavior";
-import type {
-	ConditionContext,
-	PhaseResolution,
-	PhaseRule,
-} from "../types/question";
-import type { GameState } from "../types/state";
 
 /**
  * Derives the next phase from declarative rules and condition context.
  * Public business entrypoint for question phase transitions.
  */
 export const deriveQuestionPhase = <ConditionKey extends string>(
-	rules: PhaseRule<ConditionKey>[],
-	context: ConditionContext<ConditionKey>,
+	rules: _PhaseRule<ConditionKey>[],
+	context: _ConditionContext<ConditionKey>,
 	currentPhase: string,
 	fallbackPhase = currentPhase,
-): PhaseResolution => {
+): _PhaseResolution => {
 	return resolvePhase(rules, context, currentPhase, fallbackPhase);
 };
 
@@ -83,7 +83,7 @@ export const entityIsInSpace = (
 export const buildEntityClickTrigger = (
 	entityType?: string,
 	spaceId?: string,
-): EventTrigger => entityClicked(entityType, spaceId);
+): _EventTrigger => entityClicked(entityType, spaceId);
 
 /**
  * Builds a behavior trigger for modal submit events.
@@ -91,14 +91,14 @@ export const buildEntityClickTrigger = (
 export const buildModalSubmitTrigger = (
 	modalId?: string,
 	modalActionId?: string,
-): EventTrigger => modalSubmitted(modalId, modalActionId);
+): _EventTrigger => modalSubmitted(modalId, modalActionId);
 
 /**
  * Builds a behavior trigger for terminal command input.
  */
 export const buildTerminalInputTrigger = (
 	match?: string | RegExp,
-): EventTrigger => terminalInput(match);
+): _EventTrigger => terminalInput(match);
 
 /**
  * Builds a behavior trigger for entity placement into a space.
@@ -106,7 +106,7 @@ export const buildTerminalInputTrigger = (
 export const buildEntityPlacedTrigger = (
 	spaceId?: string,
 	entityType?: string,
-): EventTrigger => whenEntityPlacedInSpace(spaceId, entityType);
+): _EventTrigger => whenEntityPlacedInSpace(spaceId, entityType);
 
 /**
  * Builds a behavior trigger for entity arrival events.
@@ -114,11 +114,11 @@ export const buildEntityPlacedTrigger = (
 export const buildEntityArrivedTrigger = (
 	spaceId?: string,
 	entityType?: string,
-): EventTrigger => whenEntityArrivedAtSpace(spaceId, entityType);
+): _EventTrigger => whenEntityArrivedAtSpace(spaceId, entityType);
 
 /**
  * Chooses a lane using the runtime lane scheduler policy.
  */
 export const chooseLaneForExecution = <TLaneId extends string>(
-	input: LaneSchedulerInput<TLaneId>,
-): LaneSelectionResult<TLaneId> => pickLane(input);
+	input: _LaneSchedulerInput<TLaneId>,
+): _LaneSelectionResult<TLaneId> => pickLane(input);

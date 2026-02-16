@@ -5,22 +5,19 @@
  * @module infrastructure/geometry
  */
 
-export type {
-	Dimensions,
-	GridCoordinate,
-	Point2D,
-} from "./coordinates";
-
 export {
 	addPoints,
 	clamp,
 	clampPoint,
 	createGridCoord,
 	createPoint,
+	type Dimensions,
 	distance,
+	type GridCoordinate,
 	gridCoordsEqual,
 	isInBounds,
 	manhattanDistance,
+	type Point2D,
 	pointsEqual,
 	scalePoint,
 	snapPointToGrid,

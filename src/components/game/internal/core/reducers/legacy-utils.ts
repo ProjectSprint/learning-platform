@@ -4,7 +4,7 @@
  * @internal These will be removed once legacy reducers are deprecated.
  */
 
-import type { Block } from "../types";
+import type { Block } from "@/components/game/types/core";
 
 /**
  * Update a single block in a 2D block grid immutably.

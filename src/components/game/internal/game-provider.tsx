@@ -6,23 +6,26 @@ import {
 	useReducer,
 } from "react";
 
-// ============================================================================
-// Type Exports
-// ============================================================================
-
-export type { Action as GameAction } from "./application/state/actions";
-// Core game state (new architecture)
-export type {
-	GameEvent,
-	GameEventQueue,
-	GameState,
-	ModalCloseReason,
-} from "./application/state/types";
-export type GameContextValue = {
+export interface GameContextValue {
 	state: GameState;
 	dispatch: Dispatch<Action>;
-};
-// Legacy types still used by UI components
+}
+
+// ============================================================================
+// Imports
+// ============================================================================
+
+import type { Action, GameState } from "@/components/game/types/state";
+import {
+	applicationReducer,
+	createDefaultState,
+} from "./application/state/reducers";
+import { DrawerProvider } from "./presentation/drawer";
+import { HintProvider } from "./presentation/hint";
+import { DragProvider } from "./presentation/interaction/drag/DragContext";
+import { ArrowProvider } from "./presentation/space/arrow";
+import { TerminalProvider } from "./presentation/terminal";
+
 export type {
 	Arrow,
 	ArrowAnchor,
@@ -56,31 +59,21 @@ export type {
 	TerminalEntry,
 	TerminalEntryType,
 	TerminalState,
-} from "./core/types";
-// New domain data types
-export type { EntityData, ItemData } from "./domain/entity/entity-data";
+} from "@/components/game/types/core";
+export type { EntityData, ItemData } from "@/components/game/types/entity";
 export type {
 	GridSpaceData,
 	PathSpaceData,
 	PoolSpaceData,
 	SpaceData,
-} from "./domain/space/space-data";
-
-// ============================================================================
-// Imports
-// ============================================================================
-
-import type { Action } from "./application/state/actions";
-import {
-	applicationReducer,
-	createDefaultState,
-} from "./application/state/reducers";
-import type { GameState } from "./application/state/types";
-import { DrawerProvider } from "./presentation/drawer";
-import { HintProvider } from "./presentation/hint";
-import { DragProvider } from "./presentation/interaction/drag/DragContext";
-import { ArrowProvider } from "./presentation/space/arrow";
-import { TerminalProvider } from "./presentation/terminal";
+} from "@/components/game/types/space";
+export type {
+	Action as GameAction,
+	GameEvent,
+	GameEventQueue,
+	GameState,
+	ModalCloseReason,
+} from "@/components/game/types/state";
 
 // ============================================================================
 // Hook Exports
@@ -125,11 +118,10 @@ const GameDispatchContext = createContext<Dispatch<Action> | null>(null);
 // Provider Component
 // ============================================================================
 
-export type GameProviderProps = {
+export interface GameProviderProps {
 	children: ReactNode;
 	initialState?: GameState;
-};
-
+}
 export const GameProvider = ({ children, initialState }: GameProviderProps) => {
 	const [state, dispatch] = useReducer(
 		applicationReducer,

@@ -1,7 +1,5 @@
-export type { DrawerLayoutProps } from "./DrawerLayout";
-export { DrawerLayout } from "./DrawerLayout";
-export type { DrawerPanelProps } from "./DrawerPanel";
-export { DrawerPanel } from "./DrawerPanel";
+export { DrawerLayout, type DrawerLayoutProps } from "./DrawerLayout";
+export { DrawerPanel, type DrawerPanelProps } from "./DrawerPanel";
 export {
 	DrawerProvider,
 	useDrawerEvents,

@@ -1,34 +1,20 @@
-import type { Action } from "../../application/state/actions";
-import type { GameState } from "../../application/state/types";
-import type { ExecutionFlowIntent } from "../intents/execution-flow";
-import {
-	type RuntimeApiResult,
-	runtimeError,
-	runtimeOk,
-} from "../wrappers/result";
+import type {
+	_ExecutionFlowDispatcher,
+	_ExecutionFlowDispatcherDeps,
+	_ExecutionFlowIntent,
+	_RuntimeApiResult,
+} from "@/components/game/types/runtime";
+import { runtimeError, runtimeOk } from "../wrappers/result";
 
 const RAPID_INTENT_THRESHOLD_MS = 100;
 
-export type ExecutionFlowWarningEmitter = (message: string) => void;
-
-export type ExecutionFlowDispatcher = {
-	dispatchIntent: (intent: ExecutionFlowIntent) => RuntimeApiResult;
-};
-
-export type ExecutionFlowDispatcherDeps = {
-	dispatch: (action: Action) => void;
-	getState: () => GameState;
-	nowMs: () => number;
-	warn: ExecutionFlowWarningEmitter;
-};
-
 export const createExecutionFlowDispatcher = (
-	deps: ExecutionFlowDispatcherDeps,
-): ExecutionFlowDispatcher => {
+	deps: _ExecutionFlowDispatcherDeps,
+): _ExecutionFlowDispatcher => {
 	const { dispatch, getState, nowMs, warn } = deps;
-	const lastIntentAtByType = new Map<ExecutionFlowIntent["type"], number>();
+	const lastIntentAtByType = new Map<_ExecutionFlowIntent["type"], number>();
 
-	const dispatchIntent = (intent: ExecutionFlowIntent): RuntimeApiResult => {
+	const dispatchIntent = (intent: _ExecutionFlowIntent): _RuntimeApiResult => {
 		const now = nowMs();
 		const lastSeen = lastIntentAtByType.get(intent.type);
 		if (

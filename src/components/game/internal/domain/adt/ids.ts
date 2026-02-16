@@ -1,10 +1,4 @@
-export type Branded<TValue, TBrand extends string> = TValue & {
-	readonly __brand: TBrand;
-};
-
-export type EntityId = Branded<string, "EntityId">;
-export type SpaceId = Branded<string, "SpaceId">;
-export type PhaseId = Branded<string, "PhaseId">;
+import type { EntityId, PhaseId, SpaceId } from "@/components/game/types/ids";
 
 export const toEntityId = (value: string): EntityId => value as EntityId;
 export const toSpaceId = (value: string): SpaceId => value as SpaceId;

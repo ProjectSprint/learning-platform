@@ -1,5 +1,8 @@
-import type { GameAction } from "../actions";
-import type { Arrow, GameState } from "../types";
+import type {
+	Arrow,
+	LegacyGameAction as GameAction,
+	GameState,
+} from "@/components/game/types/core";
 
 const mergeArrow = (arrow: Arrow, updates: Partial<Arrow>): Arrow => {
 	return {

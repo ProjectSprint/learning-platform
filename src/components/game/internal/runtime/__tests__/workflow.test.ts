@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type {
 	WorkflowDefinition,
 	WorkflowTransitionContext,
-} from "../behavior/workflow";
+} from "@/components/game/types/behavior";
 import {
 	checkAutoTransition,
 	createWorkflow,

@@ -34,8 +34,8 @@ import {
 	deriveQuestionPhase,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
-import type { EntityData } from "@/components/game/engine/types/entity";
-import type { ConditionContext } from "@/components/game/engine/types/question";
+import type { EntityData } from "@/components/game/types/entity";
+import type { ConditionContext } from "@/components/game/types/question";
 import type { QuestionProps } from "@/components/module";
 
 import {

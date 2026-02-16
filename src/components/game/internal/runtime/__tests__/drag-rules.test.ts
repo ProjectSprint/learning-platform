@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import {
-	type DragGatingContext,
-	type DragGatingRule,
-	evaluateDragGating,
-} from "../behavior/drag-rules";
+import type {
+	DragGatingContext,
+	DragGatingRule,
+} from "@/components/game/types/question";
+import { evaluateDragGating } from "../behavior/drag-rules";
 
 const stubCtx = (
 	overrides: Partial<DragGatingContext> = {},

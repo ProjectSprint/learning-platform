@@ -3,21 +3,14 @@
  * The most common grid type with axis-aligned cells arranged in rows and columns.
  */
 
+import type {
+	GridMetrics,
+	SquareGridConfig,
+} from "@/components/game/types/grid";
 import type { GridCoordinate, Point2D } from "../../geometry/coordinates";
 import { createGridCoord } from "../../geometry/coordinates";
-import type { GridMetrics } from "../core/GridBase";
 import { GridBase } from "../core/GridBase";
 import { GridCell } from "../core/GridCell";
-
-/**
- * Configuration for creating a square grid from data.
- */
-export type SquareGridConfig<T> = {
-	rows: number;
-	cols: number;
-	metrics: GridMetrics;
-	initializer?: (row: number, col: number) => T | null;
-};
 
 /**
  * A square/rectangular grid implementation.

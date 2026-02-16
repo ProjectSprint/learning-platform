@@ -66,7 +66,7 @@ describe("game public import boundary", () => {
 
 			for (const importPath of imports) {
 				const isAllowedTypeModuleImport = importPath.startsWith(
-					"@/components/game/engine/types/",
+					"@/components/game/types/",
 				);
 				if (ALLOWED_GAME_IMPORTS.has(importPath) || isAllowedTypeModuleImport) {
 					continue;

@@ -1,28 +1,25 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useLayoutEffect, useMemo } from "react";
-
-import type { EntityData } from "@/components/game/engine/types/entity";
 import {
+	ContextualHint,
 	CustomSpace,
+	DragOverlay,
+	DrawerLayout,
 	GameBoard,
 	GridSpace,
+	Modal,
 	PathSpace,
 	PoolSpace,
+	useContextualHint,
+	useDragEngine,
 } from "@/components/game/engine";
-import { useDragEngine } from "@/components/game/engine";
 import {
 	GameProvider,
 	useDrawerManager,
 	useGameCtx,
 } from "@/components/game/engine/game-provider";
-import { DrawerLayout } from "@/components/game/engine";
-import {
-	ContextualHint,
-	useContextualHint,
-} from "@/components/game/engine";
-import { DragOverlay } from "@/components/game/engine";
-import { Modal } from "@/components/game/engine";
 import { useQuestionRuntime } from "@/components/game/engine/runtime";
+import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
 
 import type { CoresBehaviorContext } from "./-utils/behaviors";
@@ -218,7 +215,7 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 					<Grid
 						templateColumns={{
 							base: "1fr",
-							lg: showCore2 ? "1.2fr 1fr 1fr" : "1.2fr 1fr",
+							lg: "1.2fr 1fr",
 						}}
 						gap={{ base: 3, md: 4 }}
 					>
@@ -274,6 +271,64 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 									getEntityStatus={getEntityStatus}
 								/>
 							</Box>
+						</GridItem>
+
+						<GridItem>
+							<Box
+								bg="gray.900"
+								borderRadius="md"
+								border="1px solid"
+								borderColor="gray.800"
+								p={3}
+							>
+								<Text
+									fontSize="sm"
+									fontWeight="semibold"
+									color="gray.100"
+									mb={2}
+								>
+									Core 1 Queue
+								</Text>
+								<Text fontSize="xs" color="gray.400" mb={3}>
+									Each execution part takes 6 seconds and runs sequentially.
+								</Text>
+								<PathSpace
+									ctx={gameCtx}
+									config={CORE1_PATH_CONFIG}
+									title="Core 1"
+									speedMultiplier={1}
+								/>
+							</Box>
+
+							{showCore2 ? (
+								<Box
+									mt={3}
+									bg="gray.900"
+									borderRadius="md"
+									border="1px solid"
+									borderColor="gray.800"
+									p={3}
+								>
+									<Text
+										fontSize="sm"
+										fontWeight="semibold"
+										color="gray.100"
+										mb={2}
+									>
+										Core 2 Queue
+									</Text>
+									<Text fontSize="xs" color="gray.400" mb={3}>
+										Dual-core lane is now visible for the next lesson.
+									</Text>
+									<PathSpace
+										ctx={gameCtx}
+										config={CORE2_PATH_CONFIG}
+										title="Core 2"
+										speedMultiplier={1}
+									/>
+								</Box>
+							) : null}
+
 							<Box mt={3}>
 								{/* Storage path represents I/O wait/response round-trip lane. */}
 								<Box
@@ -302,35 +357,6 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 									/>
 								</Box>
 							</Box>
-						</GridItem>
-
-						{/* Middle column: core-1 path and final opened-app list. */}
-						<GridItem>
-							<Box
-								bg="gray.900"
-								borderRadius="md"
-								border="1px solid"
-								borderColor="gray.800"
-								p={3}
-							>
-								<Text
-									fontSize="sm"
-									fontWeight="semibold"
-									color="gray.100"
-									mb={2}
-								>
-									Core 1 Queue
-								</Text>
-								<Text fontSize="xs" color="gray.400" mb={3}>
-									Each execution part takes 6 seconds and runs sequentially.
-								</Text>
-								<PathSpace
-									ctx={gameCtx}
-									config={CORE1_PATH_CONFIG}
-									title="Core 1"
-									speedMultiplier={1}
-								/>
-							</Box>
 
 							<Box mt={3}>
 								{/* Terminal destination for apps once all execution parts finish. */}
@@ -343,37 +369,6 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 								/>
 							</Box>
 						</GridItem>
-
-						{/* Right column is conditionally mounted after unlock. */}
-						{showCore2 ? (
-							<GridItem>
-								<Box
-									bg="gray.900"
-									borderRadius="md"
-									border="1px solid"
-									borderColor="gray.800"
-									p={3}
-								>
-									<Text
-										fontSize="sm"
-										fontWeight="semibold"
-										color="gray.100"
-										mb={2}
-									>
-										Core 2 Queue
-									</Text>
-									<Text fontSize="xs" color="gray.400" mb={3}>
-										Dual-core lane is now visible for the next lesson.
-									</Text>
-									<PathSpace
-										ctx={gameCtx}
-										config={CORE2_PATH_CONFIG}
-										title="Core 2"
-										speedMultiplier={1}
-									/>
-								</Box>
-							</GridItem>
-						) : null}
 					</Grid>
 				) : null}
 

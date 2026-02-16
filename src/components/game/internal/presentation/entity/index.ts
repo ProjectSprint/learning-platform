@@ -5,7 +5,6 @@
 
 export { EntityCard, type EntityCardProps } from "./EntityCard";
 export {
-	type EntityStatus,
 	PlacedEntity,
 	type PlacedEntityProps,
 } from "./PlacedEntity";

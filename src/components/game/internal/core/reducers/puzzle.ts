@@ -1,12 +1,12 @@
-import { findPoolItem } from "../../domain/validation/pool";
-import { sanitizeDeviceConfig } from "../../domain/validation/sanitize";
-import type { GameAction } from "../actions";
 import type {
 	BoardItemStatus,
+	LegacyGameAction as GameAction,
 	GameState,
 	SpaceItemLocation,
 	SpaceState,
-} from "../types";
+} from "@/components/game/types/core";
+import { findPoolItem } from "../../domain/validation/pool";
+import { sanitizeDeviceConfig } from "../../domain/validation/sanitize";
 import { updateBlock } from "./legacy-utils";
 import { resolveSpaceState, updateSpaceState } from "./puzzle-state";
 

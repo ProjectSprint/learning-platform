@@ -1,14 +1,14 @@
 import { useBreakpointValue } from "@chakra-ui/react";
 import { memo, useEffect } from "react";
-import type { EntityData } from "../../internal/domain/entity/entity-data";
+import type { EntityData } from "@/components/game/types/entity";
+import type {
+	PathSpaceConfig,
+	PathSpaceData,
+} from "@/components/game/types/space";
 import {
 	getEntitySpaceId,
 	isEntityPlacementAllowed,
 } from "../../internal/domain/read";
-import type {
-	PathSpaceConfig,
-	PathSpaceData,
-} from "../../internal/domain/space/space-data";
 import type { GameContextValue } from "../../internal/game-provider";
 import { useGameDispatch, useGameState } from "../../internal/game-provider";
 import { PathSpaceView } from "../../internal/presentation/space/PathSpaceView";
@@ -27,7 +27,7 @@ type PathSpacePropsBase = {
 	speedMultiplier?: number;
 };
 
-export type PathSpaceProps =
+type PathSpaceProps =
 	| (PathSpacePropsBase & { id: string; config?: PathSpaceConfig })
 	| (PathSpacePropsBase & { id?: string; config: PathSpaceConfig });
 

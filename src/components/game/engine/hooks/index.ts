@@ -12,6 +12,5 @@ export {
 	type TerminalCommandHelpers,
 	type TerminalEngine,
 	type TerminalEngineConfig,
-	type TerminalOutputType,
 	useTerminalEngine,
 } from "./use-terminal-engine";

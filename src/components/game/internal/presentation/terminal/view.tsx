@@ -37,15 +37,14 @@ const TerminalEntryRow = memo(
 	},
 );
 
-export type TerminalViewProps = {
+export interface TerminalViewProps {
 	history: TerminalEntry[];
 	prompt?: string;
 	isCompleted?: boolean;
 	completionMessage?: string;
 	entryPrefix?: string;
 	containerProps?: BoxProps;
-};
-
+}
 export const TerminalView = ({
 	history,
 	prompt,

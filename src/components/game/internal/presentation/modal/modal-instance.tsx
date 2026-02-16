@@ -8,15 +8,14 @@ import {
 	Textarea,
 } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
-
-import { useGameDispatch } from "../../game-provider";
-import { HelpLink } from "../../ui/help";
 import type {
 	ModalAction,
 	ModalContentBlock,
 	ModalField,
 	ModalInstance,
-} from "./types";
+} from "@/components/game/types/modal";
+import { useGameDispatch } from "../../game-provider";
+import { HelpLink } from "../../ui/help";
 
 type ModalInstanceViewProps = {
 	modalId: string;

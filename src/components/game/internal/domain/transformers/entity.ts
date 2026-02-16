@@ -1,18 +1,15 @@
-import type { EntityData } from "../entity/entity-data";
+import type { EntityData } from "@/components/game/types/entity";
+import type { SpaceData } from "@/components/game/types/space";
+import type { TransitionResult } from "@/components/game/types/transformer";
 import { isItemData } from "../entity/entity-data";
-import type { SpaceData } from "../space/space-data";
-import {
-	type TransitionResult,
-	transitionApplied,
-	transitionNoop,
-} from "./types";
+import { transitionApplied, transitionNoop } from "./types";
 
 type EntityState = {
 	entities: Record<string, EntityData>;
 	spaces: Record<string, SpaceData>;
 };
 
-export type EntityTransitionEvent = {
+type EntityTransitionEvent = {
 	type: "ENTITY_UPDATED";
 	entityId: string;
 	updates: {
@@ -24,11 +21,11 @@ export type EntityTransitionEvent = {
 	};
 };
 
-export type EntityTransitionPayload = {
+type EntityTransitionPayload = {
 	events: EntityTransitionEvent[];
 };
 
-export type EntityPatchInput = {
+type EntityPatchInput = {
 	entityId: string;
 	updates: {
 		name?: EntityData["name"];

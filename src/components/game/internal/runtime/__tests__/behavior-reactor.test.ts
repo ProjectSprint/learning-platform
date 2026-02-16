@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import type { GameEvent, GameState } from "../../application/state/types";
+import type {
+	InteractionSessionApi,
+	RuntimeApiResult,
+	WorldApi,
+} from "@/components/game/types/runtime";
+import type { GameEvent, GameState } from "@/components/game/types/state";
 import {
 	buildEventProvenance,
 	createBehaviorConvenience,
 	matchesEventTrigger,
 } from "../behavior/reactor";
-import type {
-	InteractionSessionApi,
-	RuntimeApiResult,
-	WorldApi,
-} from "../wrappers";
 
 const ok = (): RuntimeApiResult => ({ ok: true });
 

@@ -1,17 +1,7 @@
-export type LaneSelectionPolicy = "first_free" | "round_robin";
-
-export type LaneSchedulerInput<TLaneId extends string> = {
-	lanes: TLaneId[];
-	enabledLanes?: TLaneId[];
-	policy: LaneSelectionPolicy;
-	cursor?: number;
-	isOccupied: (laneId: TLaneId) => boolean;
-};
-
-export type LaneSelectionResult<TLaneId extends string> = {
-	laneId: TLaneId | null;
-	cursor: number;
-};
+import type {
+	LaneSchedulerInput,
+	LaneSelectionResult,
+} from "@/components/game/types/behavior";
 
 const clampCursor = (cursor: number | undefined, laneCount: number): number => {
 	if (laneCount <= 0) return -1;

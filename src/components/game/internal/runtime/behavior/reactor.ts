@@ -6,56 +6,30 @@
  */
 
 import { useEffect, useRef } from "react";
-import type { GameEvent, GameState } from "../../application/state/types";
-import type {
-	EntityClickedEvent,
-	EntityEnteredSpaceEvent,
-	EntityLeftSpaceEvent,
-	EntityMovedEvent,
-	ModalClosedEvent,
-	ModalOpenedEvent,
-	ModalSubmittedEvent,
-	PhaseChangedEvent,
-	TerminalInputEvent,
-} from "../../application/state/types/events";
-import type { EntityData } from "../../domain/entity/entity-data";
-import type {
-	ExecutionFlowApi,
-	InteractionSessionApi,
-	ProgressApi,
-	WorldApi,
-} from "../wrappers";
-import type { QuestionScheduler } from "./scheduler";
 import type {
 	BehaviorDefinition,
+	BehaviorReactorDeps,
+	BehaviorReactorResult,
 	EffectContext,
 	EventProvenance,
 	EventTrigger,
 	GuardContext,
 	ScheduledEffectContext,
-} from "./types";
-
-export type TerminalBridge = {
-	writeOutput: (content: string, type?: "output" | "error") => void;
-	clearHistory: () => void;
-	finishEngine: () => void;
-};
-
-export type BehaviorReactorDeps = {
-	state: GameState;
-	events: GameEvent[];
-	ack: () => void;
-	world: WorldApi;
-	interaction: InteractionSessionApi;
-	flow: ExecutionFlowApi;
-	progress: ProgressApi;
-	terminal?: TerminalBridge;
-	scheduler?: QuestionScheduler;
-};
-
-export type BehaviorReactorResult<TContext> = {
-	context: TContext;
-};
+} from "@/components/game/types/behavior";
+import type { EntityData } from "@/components/game/types/entity";
+import type {
+	EntityClickedEvent,
+	EntityEnteredSpaceEvent,
+	EntityLeftSpaceEvent,
+	EntityMovedEvent,
+	GameEvent,
+	GameState,
+	ModalClosedEvent,
+	ModalOpenedEvent,
+	ModalSubmittedEvent,
+	PhaseChangedEvent,
+	TerminalInputEvent,
+} from "@/components/game/types/state";
 
 type BehaviorConvenienceHelpers = Pick<
 	EffectContext<Record<string, unknown>>,

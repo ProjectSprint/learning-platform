@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { StatusRule, StatusRuleContext } from "../behavior/status-rules";
+import type {
+	StatusRule,
+	StatusRuleContext,
+} from "@/components/game/types/behavior";
 import {
 	delayedDelete,
 	delayedMove,

@@ -11,7 +11,7 @@ import type {
 	PoolSpaceData,
 	QueueSpaceConfig,
 	QueueSpaceData,
-} from "../space/space-data";
+} from "@/components/game/types/space";
 
 export const createGridSpaceData = (config: GridSpaceConfig): GridSpaceData => {
 	return {

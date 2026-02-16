@@ -9,13 +9,15 @@
 
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type EntityData, isItemData } from "../../domain/entity/entity-data";
+import type { EntityStatus } from "@/components/game/types/core";
+import type { EntityData } from "@/components/game/types/entity";
 import type {
 	GridPosition,
 	GridSpaceData,
-} from "../../domain/space/space-data";
+} from "@/components/game/types/space";
+import { isItemData } from "../../domain/entity/entity-data";
 import { useGameDispatch } from "../../game-provider";
-import { type EntityStatus, PlacedEntity } from "../entity/PlacedEntity";
+import { PlacedEntity } from "../entity/PlacedEntity";
 import { useDragContext } from "../interaction/drag/DragContext";
 import { useBoardRegistry } from "./arrow";
 import { GridCell } from "./GridCell";
@@ -38,7 +40,7 @@ type DragPreview = {
 /**
  * Props for the GridSpaceView component.
  */
-export type GridSpaceViewProps = {
+export interface GridSpaceViewProps {
 	/** The grid space to render */
 	space: GridSpaceData;
 	/** Entities positioned in this space */
@@ -74,8 +76,7 @@ export type GridSpaceViewProps = {
 		fromPosition: GridPosition | null,
 		toPosition: GridPosition,
 	) => boolean;
-};
-
+}
 const defaultGetEntityLabel = (entity: EntityData) =>
 	entity.name ?? entity.type;
 const defaultGetEntityStatus = () => ({});

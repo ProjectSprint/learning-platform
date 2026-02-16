@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ItemDataConfig } from "../../domain/entity/entity-data";
-import type { EntityTemplate, SpawnPlan } from "../behavior/entity-templates";
+import type {
+	EntityTemplate,
+	SpawnPlan,
+} from "@/components/game/types/behavior";
+import type { ItemDataConfig } from "@/components/game/types/entity";
 import {
 	executeSpawnPlan,
 	executeSpawnPlans,

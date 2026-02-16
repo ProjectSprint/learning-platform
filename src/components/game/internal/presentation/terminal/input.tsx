@@ -1,7 +1,7 @@
 import { Input, type InputProps } from "@chakra-ui/react";
 import type { KeyboardEvent, RefObject } from "react";
 
-export type TerminalInputProps = {
+export interface TerminalInputProps {
 	value: string;
 	onChange: (value: string) => void;
 	onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
@@ -9,8 +9,7 @@ export type TerminalInputProps = {
 	disabled?: boolean;
 	inputRef?: RefObject<HTMLInputElement | null>;
 	inputProps?: InputProps;
-};
-
+}
 export const TerminalInput = ({
 	value,
 	onChange,

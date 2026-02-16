@@ -1,8 +1,8 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { gsap } from "gsap";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EntityData } from "../../domain/entity/entity-data";
-import type { PathSpaceData } from "../../domain/space/space-data";
+import type { EntityData } from "@/components/game/types/entity";
+import type { PathSpaceData } from "@/components/game/types/space";
 import { useDragContext } from "../interaction/drag/DragContext";
 import { useEntityCardSize } from "../interaction/drag/DragOverlay";
 
@@ -29,7 +29,7 @@ const parseViewBox = (viewBox: string): PathViewBox => {
 	return { width, height };
 };
 
-export type PathSpaceViewProps = {
+export interface PathSpaceViewProps {
 	space: PathSpaceData;
 	/** Optional rendered path override (e.g., responsive breakpoint path) */
 	path?: string;
@@ -40,8 +40,7 @@ export type PathSpaceViewProps = {
 	onDropEntity?: (entityId: string) => boolean;
 	onEntityPathMidpoint?: (entityId: string) => void;
 	onEntityPathComplete?: (entityId: string) => void;
-};
-
+}
 export const PathSpaceView = ({
 	space,
 	path,
