@@ -7,7 +7,7 @@ import type {
 	BehaviorRule,
 	GameState,
 	TerminalInputEvent,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 import { DEFAULT_DOMAIN, INDEX_HTML_CONTENT } from "./constants";
 import { buildSuccessModal } from "./modal-builders";
 

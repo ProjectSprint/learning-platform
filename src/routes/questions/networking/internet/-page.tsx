@@ -37,7 +37,7 @@ import {
 import type {
 	ConditionContext,
 	EntityData,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 import type { QuestionProps } from "@/components/module";
 
 import {

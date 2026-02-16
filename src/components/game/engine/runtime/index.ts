@@ -20,4 +20,3 @@ export {
 	listSpaceEntityIds,
 } from "./public-methods";
 export { bootstrapQuestion, useQuestionRuntime } from "./runtime-lifecycle";
-export * from "./types";

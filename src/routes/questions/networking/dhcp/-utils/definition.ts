@@ -5,7 +5,7 @@
  * INVENTORY_ITEMS) into a QuestionDefinition that bootstrapQuestion() can use.
  */
 
-import type { QuestionDefinition } from "@/components/game/engine/runtime/types";
+import type { QuestionDefinition } from "@/components/game/engine/types";
 import { DHCP_BEHAVIORS, type DhcpBehaviorContext } from "./behaviors";
 import {
 	INVENTORY_ITEMS,

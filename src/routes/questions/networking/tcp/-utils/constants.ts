@@ -2,7 +2,7 @@ import type { Item } from "@/components/game/engine/game-provider";
 import type {
 	GridSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 
 export const QUESTION_ID = "tcp-fragmentation";
 export const QUESTION_TITLE = "📄 Deliver message.txt";

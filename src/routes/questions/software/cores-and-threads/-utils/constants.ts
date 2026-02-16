@@ -4,7 +4,7 @@ import type {
 	GridSpaceConfig,
 	PathSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 
 import type { AppDefinition, ExecutionStep } from "./types";
 

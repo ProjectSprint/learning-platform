@@ -6,7 +6,7 @@ import type {
 	CustomSpaceConfig,
 	GridSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 
 export const QUESTION_ID = "udp-video-streaming";
 export const QUESTION_TITLE = "📺 Stream movie.mp4 to 3 viewers";

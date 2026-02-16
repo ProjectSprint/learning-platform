@@ -8,7 +8,7 @@ import type {
 	BehaviorRule,
 	GameState,
 	TerminalInputEvent,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 import {
 	GOOGLE_IP,
 	PUBLIC_DNS_SERVERS,

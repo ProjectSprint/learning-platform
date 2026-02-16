@@ -14,7 +14,7 @@ import type {
 	GridSpaceData,
 	InteractionSessionApi,
 	WorldApi,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 import {
 	FILE_ITEM_ID,
 	MESSAGE_PACKET_IDS,

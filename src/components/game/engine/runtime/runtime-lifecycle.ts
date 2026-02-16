@@ -1,6 +1,6 @@
 import { bootstrapQuestion as internalBootstrapQuestion } from "../../internal/runtime/bootstrap/bootstrap";
 import { useQuestionRuntime as internalUseQuestionRuntime } from "../../internal/runtime/context/use-question-runtime";
-import type { Action, QuestionDefinition } from "./types";
+import type { Action, QuestionDefinition } from "../types";
 
 /**
  * Initializes question state deterministically from definition data.

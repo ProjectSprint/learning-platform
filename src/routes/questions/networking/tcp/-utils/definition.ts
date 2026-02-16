@@ -7,7 +7,7 @@
  * placement rules.
  */
 
-import type { QuestionDefinition } from "@/components/game/engine/runtime/types";
+import type { QuestionDefinition } from "@/components/game/engine/types";
 import { TCP_BEHAVIORS, type TcpBehaviorContext } from "./behaviors";
 import {
 	FILE_INVENTORY_ITEMS,

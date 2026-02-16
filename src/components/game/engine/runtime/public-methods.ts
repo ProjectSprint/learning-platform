@@ -21,7 +21,7 @@ import type {
 	LaneSelectionResult,
 	PhaseResolution,
 	PhaseRule,
-} from "./types";
+} from "../types";
 
 /**
  * Derives the next phase from declarative rules and condition context.

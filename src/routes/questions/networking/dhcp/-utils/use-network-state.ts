@@ -14,7 +14,7 @@ import type {
 	EntityData,
 	GridSpaceData,
 	WorldApi,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 import { DHCP_SPACE_IDS } from "./constants";
 import {
 	type BoardPlacements,

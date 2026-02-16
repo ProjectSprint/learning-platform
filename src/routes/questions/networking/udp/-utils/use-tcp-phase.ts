@@ -13,7 +13,7 @@ import type {
 	EntityData,
 	InteractionSessionApi,
 	WorldApi,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 
 import {
 	buildReceivedAckPacket,

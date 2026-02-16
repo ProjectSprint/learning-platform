@@ -11,7 +11,7 @@ import type {
 	EntityLeftSpaceEvent,
 	EntityMovedEvent,
 	EntityUpdatedEvent,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 
 import {
 	ALLOCATING_MS,

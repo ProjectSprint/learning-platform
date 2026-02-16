@@ -1,8 +1,9 @@
 /**
  * Runtime module — public API for the declarative question runtime.
  *
- * Question pages import from this barrel to get everything they need:
- *   import { useQuestionRuntime, type QuestionDefinition } from "@/components/game/engine/runtime";
+ * Question pages import runtime values and types from engine barrels:
+ *   import { useQuestionRuntime } from "@/components/game/engine/runtime";
+ *   import type { QuestionDefinition } from "@/components/game/engine/types";
  */
 
 // Selectors

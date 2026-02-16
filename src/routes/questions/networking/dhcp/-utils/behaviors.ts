@@ -7,7 +7,7 @@ import type {
 	BehaviorDefinition,
 	BehaviorRule,
 	TerminalInputEvent,
-} from "@/components/game/engine/runtime/types";
+} from "@/components/game/engine/types";
 import {
 	buildPcConfigModal,
 	buildRouterConfigModal,
