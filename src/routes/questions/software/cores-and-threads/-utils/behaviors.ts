@@ -7,11 +7,13 @@ import type {
 	BehaviorDefinition,
 	BehaviorRule,
 	EffectContext,
+} from "@/components/game/engine/types/behavior";
+import type {
 	EntityEnteredSpaceEvent,
 	EntityLeftSpaceEvent,
 	EntityMovedEvent,
 	EntityUpdatedEvent,
-} from "@/components/game/engine/types";
+} from "@/components/game/engine/types/state";
 
 import {
 	ALLOCATING_MS,

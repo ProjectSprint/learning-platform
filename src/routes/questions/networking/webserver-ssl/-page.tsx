@@ -35,7 +35,7 @@ import {
 	findEntitySpace,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
-import type { EntityData } from "@/components/game/engine/types";
+import type { EntityData } from "@/components/game/engine/types/entity";
 import type { QuestionProps } from "@/components/module";
 
 import {

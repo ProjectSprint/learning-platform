@@ -1,7 +1,7 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useLayoutEffect, useMemo } from "react";
 
-import type { EntityData } from "@/components/game/engine/types";
+import type { EntityData } from "@/components/game/engine/types/entity";
 import {
 	CustomSpace,
 	GameBoard,

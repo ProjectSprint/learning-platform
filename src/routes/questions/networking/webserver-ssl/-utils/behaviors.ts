@@ -5,9 +5,11 @@ import {
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
+} from "@/components/game/engine/types/behavior";
+import type {
 	GameState,
 	TerminalInputEvent,
-} from "@/components/game/engine/types";
+} from "@/components/game/engine/types/state";
 import { DEFAULT_DOMAIN, INDEX_HTML_CONTENT } from "./constants";
 import { buildSuccessModal } from "./modal-builders";
 

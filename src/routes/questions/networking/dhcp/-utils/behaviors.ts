@@ -6,8 +6,8 @@ import {
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
-	TerminalInputEvent,
-} from "@/components/game/engine/types";
+} from "@/components/game/engine/types/behavior";
+import type { TerminalInputEvent } from "@/components/game/engine/types/state";
 import {
 	buildPcConfigModal,
 	buildRouterConfigModal,

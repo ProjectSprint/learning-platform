@@ -10,7 +10,6 @@ const ALLOWED_GAME_IMPORTS = new Set([
 	"@/components/game/engine",
 	"@/components/game/engine/game-provider",
 	"@/components/game/engine/runtime",
-	"@/components/game/engine/types",
 ]);
 
 const listCodeFiles = (dir: string): string[] => {
@@ -66,7 +65,10 @@ describe("game public import boundary", () => {
 			const imports = readGameImports(source);
 
 			for (const importPath of imports) {
-				if (ALLOWED_GAME_IMPORTS.has(importPath)) {
+				const isAllowedTypeModuleImport = importPath.startsWith(
+					"@/components/game/engine/types/",
+				);
+				if (ALLOWED_GAME_IMPORTS.has(importPath) || isAllowedTypeModuleImport) {
 					continue;
 				}
 				offenders.push(

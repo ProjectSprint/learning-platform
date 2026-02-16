@@ -20,4 +20,3 @@ export * from "../internal/presentation/space/arrow";
 export * from "../internal/presentation/terminal";
 export * from "./components";
 export * from "./hooks";
-export * from "./types";

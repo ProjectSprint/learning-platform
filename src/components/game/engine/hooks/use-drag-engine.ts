@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/components/game/internal/game-provider";
-import type { EngineLifecycleCallbacks } from "../types/engine-types";
+import type { EngineLifecycleCallbacks } from "../types/engine";
 import {
 	type EngineController,
 	useEngineProgress,

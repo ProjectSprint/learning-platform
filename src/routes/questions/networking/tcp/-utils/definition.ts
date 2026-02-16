@@ -1,13 +1,4 @@
-/**
- * TCP QuestionDefinition — declarative config for the TCP question.
- *
- * Converts existing constants into a QuestionDefinition.
- * TCP has more entity groups than DHCP (file items, system packets,
- * TCP tools, message packets, notes packets) with different initial
- * placement rules.
- */
-
-import type { QuestionDefinition } from "@/components/game/engine/types";
+import type { QuestionDefinition } from "@/components/game/engine/types/question";
 import { TCP_BEHAVIORS, type TcpBehaviorContext } from "./behaviors";
 import {
 	FILE_INVENTORY_ITEMS,

@@ -3,7 +3,7 @@
  *
  * Question pages import runtime values and types from engine barrels:
  *   import { useQuestionRuntime } from "@/components/game/engine/runtime";
- *   import type { QuestionDefinition } from "@/components/game/engine/types";
+ *   import type { QuestionDefinition } from "@/components/game/engine/types/question";
  */
 
 // Selectors

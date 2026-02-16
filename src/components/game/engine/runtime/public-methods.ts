@@ -14,14 +14,16 @@ import {
 	whenEntityPlacedInSpace,
 } from "../../internal/runtime/behavior";
 import type {
-	ConditionContext,
 	EventTrigger,
-	GameState,
 	LaneSchedulerInput,
 	LaneSelectionResult,
+} from "../types/behavior";
+import type {
+	ConditionContext,
 	PhaseResolution,
 	PhaseRule,
-} from "../types";
+} from "../types/question";
+import type { GameState } from "../types/state";
 
 /**
  * Derives the next phase from declarative rules and condition context.

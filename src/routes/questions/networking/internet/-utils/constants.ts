@@ -9,7 +9,7 @@ import type {
 import type {
 	GridSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/engine/types";
+} from "@/components/game/engine/types/space";
 
 export const QUESTION_ID = "internet-gateway";
 export const QUESTION_TITLE = "🌐 Connect to the Internet!";

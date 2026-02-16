@@ -10,11 +10,9 @@ import type {
 	SpaceItemLocation,
 } from "@/components/game/engine/game-provider";
 import { useGameState } from "@/components/game/engine/game-provider";
-import type {
-	EntityData,
-	GridSpaceData,
-	WorldApi,
-} from "@/components/game/engine/types";
+import type { EntityData } from "@/components/game/engine/types/entity";
+import type { WorldApi } from "@/components/game/engine/types/runtime";
+import type { GridSpaceData } from "@/components/game/engine/types/space";
 import { DHCP_SPACE_IDS } from "./constants";
 import {
 	type BoardPlacements,

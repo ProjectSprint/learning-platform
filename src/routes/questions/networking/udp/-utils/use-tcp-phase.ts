@@ -9,11 +9,11 @@ import {
 	isItem,
 	listSpaceEntityIds,
 } from "@/components/game/engine/runtime";
+import type { EntityData } from "@/components/game/engine/types/entity";
 import type {
-	EntityData,
 	InteractionSessionApi,
 	WorldApi,
-} from "@/components/game/engine/types";
+} from "@/components/game/engine/types/runtime";
 
 import {
 	buildReceivedAckPacket,

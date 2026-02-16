@@ -6,9 +6,11 @@ import {
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
+} from "@/components/game/engine/types/behavior";
+import type {
 	GameState,
 	TerminalInputEvent,
-} from "@/components/game/engine/types";
+} from "@/components/game/engine/types/state";
 import {
 	GOOGLE_IP,
 	PUBLIC_DNS_SERVERS,

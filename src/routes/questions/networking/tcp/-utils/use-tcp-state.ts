@@ -11,10 +11,10 @@ import {
 import { findEntitySpace, isGridSpace } from "@/components/game/engine/runtime";
 import type {
 	ExecutionFlowApi,
-	GridSpaceData,
 	InteractionSessionApi,
 	WorldApi,
-} from "@/components/game/engine/types";
+} from "@/components/game/engine/types/runtime";
+import type { GridSpaceData } from "@/components/game/engine/types/space";
 import {
 	FILE_ITEM_ID,
 	MESSAGE_PACKET_IDS,

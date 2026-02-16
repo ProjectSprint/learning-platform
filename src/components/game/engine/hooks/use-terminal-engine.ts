@@ -4,7 +4,7 @@ import {
 	useEngineEvents,
 } from "@/components/game/internal/game-provider";
 import { useTerminalStore } from "@/components/game/internal/presentation/terminal/terminal-context";
-import type { EngineLifecycleCallbacks } from "../types/engine-types";
+import type { EngineLifecycleCallbacks } from "../types/engine";
 import {
 	type EngineController,
 	useEngineProgress,

@@ -6,7 +6,8 @@
 import { useCallback, useMemo } from "react";
 import { useGameState } from "@/components/game/engine/game-provider";
 import { entityIsInSpace } from "@/components/game/engine/runtime";
-import type { EntityData, GridSpaceData } from "@/components/game/engine/types";
+import type { EntityData } from "@/components/game/engine/types/entity";
+import type { GridSpaceData } from "@/components/game/engine/types/space";
 import { DEFAULT_DOMAIN } from "./constants";
 
 export const useSslState = () => {

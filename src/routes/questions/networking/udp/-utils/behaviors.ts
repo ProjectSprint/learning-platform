@@ -5,8 +5,8 @@ import {
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
-	EntityEnteredSpaceEvent,
-} from "@/components/game/engine/types";
+} from "@/components/game/engine/types/behavior";
+import type { EntityEnteredSpaceEvent } from "@/components/game/engine/types/state";
 import type { UdpClientId } from "./constants";
 import { UDP_CLIENT_IDS } from "./constants";
 import { getFrameDestiny, TOTAL_FRAMES } from "./frame-destiny";

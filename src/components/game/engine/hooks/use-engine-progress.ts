@@ -5,7 +5,7 @@ import type {
 	EngineLifecycleCallbacks,
 	EngineProgress,
 	EngineProgressStatus,
-} from "../types/engine-types";
+} from "../types/engine";
 
 type EngineLifecycleEventType = "ENGINE_STARTED" | "ENGINE_FINISHED";
 
