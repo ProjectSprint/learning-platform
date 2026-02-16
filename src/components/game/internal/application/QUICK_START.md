@@ -19,7 +19,7 @@ import {
 	createGridSpaceData,
 	createItemData,
 	createPoolSpaceData,
-} from "@/components/game/engine/domain/adt";
+} from "@/components/game/engine/runtime";
 import type { GameAction } from "@/components/game/engine/game-provider";
 
 type GameDispatch = (action: GameAction) => void;

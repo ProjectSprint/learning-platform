@@ -1,8 +1,8 @@
-import type { GameState } from "@/components/game/engine/application/state/types";
-import type { TerminalInputEvent } from "@/components/game/engine/application/state/types/events";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
+	GameState,
+	TerminalInputEvent,
 } from "@/components/game/engine/runtime";
 import {
 	modalSubmitted,

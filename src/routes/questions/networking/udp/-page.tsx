@@ -7,33 +7,29 @@ import {
 	useState,
 } from "react";
 import {
+	ContextualHint,
 	CustomSpace,
+	DragOverlay,
+	DrawerLayout,
 	GameBoard,
 	GridSpace,
+	Modal,
 	PoolSpace,
+	TerminalInput,
+	TerminalLayout,
+	TerminalView,
+	useBoardArrows,
+	useContextualHint,
 	useDragEngine,
+	useTerminalInput,
+	useTerminalStore,
 } from "@/components/game/engine";
-import type { EntityData } from "@/components/game/engine/domain/entity/entity-data";
 import {
 	GameProvider,
 	useDrawerManager,
 	useGameCtx,
 } from "@/components/game/engine/game-provider";
-import { DrawerLayout } from "@/components/game/engine/presentation/drawer";
-import {
-	ContextualHint,
-	useContextualHint,
-} from "@/components/game/engine/presentation/hint";
-import { DragOverlay } from "@/components/game/engine/presentation/interaction/drag/DragOverlay";
-import { Modal } from "@/components/game/engine/presentation/modal";
-import { useBoardArrows } from "@/components/game/engine/presentation/space/arrow";
-import {
-	TerminalInput,
-	TerminalLayout,
-	TerminalView,
-	useTerminalInput,
-	useTerminalStore,
-} from "@/components/game/engine/presentation/terminal";
+import type { EntityData } from "@/components/game/engine/runtime";
 import { useQuestionRuntime } from "@/components/game/engine/runtime";
 import type { QuestionProps } from "@/components/module";
 

@@ -1,16 +1,14 @@
 import type {
+	BehaviorDefinition,
+	BehaviorRule,
+	EffectContext,
 	EntityEnteredSpaceEvent,
 	EntityLeftSpaceEvent,
 	EntityMovedEvent,
 	EntityUpdatedEvent,
-} from "@/components/game/engine/application/state/types/events";
-import { getEntitySpaceId } from "@/components/game/engine/domain/read";
-import type {
-	BehaviorDefinition,
-	BehaviorRule,
-	EffectContext,
 } from "@/components/game/engine/runtime";
 import {
+	getEntitySpaceId,
 	pickLane,
 	whenEntityArrivedAtSpace,
 } from "@/components/game/engine/runtime";

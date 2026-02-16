@@ -2,14 +2,14 @@
 // Contains all static configuration like inventory items, space setup, and question metadata
 
 import type {
-	GridSpaceConfig,
-	PoolSpaceConfig,
-} from "@/components/game/engine/domain/space";
-import type {
 	InventoryGroupConfig,
 	Item,
 	TerminalEntry,
 } from "@/components/game/engine/game-provider";
+import type {
+	GridSpaceConfig,
+	PoolSpaceConfig,
+} from "@/components/game/engine/runtime";
 
 export const QUESTION_ID = "networking";
 export const QUESTION_TITLE = "🏡 Setup your home connection!";

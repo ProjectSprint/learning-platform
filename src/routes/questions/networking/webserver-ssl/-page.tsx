@@ -7,37 +7,35 @@ import {
 	useRef,
 	useState,
 } from "react";
+import type { EntityStatus } from "@/components/game/engine";
 import {
+	ContextualHint,
+	DragOverlay,
+	DrawerLayout,
 	GameBoard,
 	GridSpace,
+	Modal,
 	PoolSpace,
+	TerminalInput,
+	TerminalLayout,
+	TerminalView,
+	useContextualHint,
 	useDragEngine,
 	useTerminalEngine,
+	useTerminalInput,
+	useTerminalStore,
 } from "@/components/game/engine";
-import type { EntityData } from "@/components/game/engine/domain/entity/entity-data";
-import { getEntitySpaceId } from "@/components/game/engine/domain/read";
 import {
 	type BoardItemStatus,
 	GameProvider,
 	useDrawerManager,
 	useGameCtx,
 } from "@/components/game/engine/game-provider";
-import { DrawerLayout } from "@/components/game/engine/presentation/drawer";
-import type { EntityStatus } from "@/components/game/engine/presentation/entity/PlacedEntity";
+import type { EntityData } from "@/components/game/engine/runtime";
 import {
-	ContextualHint,
-	useContextualHint,
-} from "@/components/game/engine/presentation/hint";
-import { DragOverlay } from "@/components/game/engine/presentation/interaction/drag/DragOverlay";
-import { Modal } from "@/components/game/engine/presentation/modal";
-import {
-	TerminalInput,
-	TerminalLayout,
-	TerminalView,
-	useTerminalInput,
-	useTerminalStore,
-} from "@/components/game/engine/presentation/terminal";
-import { useQuestionRuntime } from "@/components/game/engine/runtime";
+	getEntitySpaceId,
+	useQuestionRuntime,
+} from "@/components/game/engine/runtime";
 import type { QuestionProps } from "@/components/module";
 
 import {

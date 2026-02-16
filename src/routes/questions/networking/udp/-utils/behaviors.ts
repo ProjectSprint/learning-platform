@@ -1,7 +1,7 @@
-import type { EntityEnteredSpaceEvent } from "@/components/game/engine/application/state/types/events";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
+	EntityEnteredSpaceEvent,
 } from "@/components/game/engine/runtime";
 import {
 	modalSubmitted,

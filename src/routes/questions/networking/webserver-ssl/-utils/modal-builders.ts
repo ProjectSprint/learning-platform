@@ -7,7 +7,7 @@ import type {
 	ModalField,
 	ModalFieldValidator,
 	ModalInstance,
-} from "@/components/game/engine/presentation/modal";
+} from "@/components/game/engine";
 import {
 	DEFAULT_DOMAIN,
 	INDEX_HTML_CONTENT,

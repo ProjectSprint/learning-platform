@@ -2,7 +2,7 @@ import type {
 	ModalAction,
 	ModalContentBlock,
 	ModalInstance,
-} from "@/components/game/engine/presentation/modal";
+} from "@/components/game/engine";
 import { MODAL_IDS } from "./constants";
 
 const text = (value: string): ModalContentBlock => ({

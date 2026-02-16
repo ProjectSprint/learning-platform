@@ -1,10 +1,10 @@
+import type { Item } from "@/components/game/engine/game-provider";
 import type {
 	CustomSpaceConfig,
 	GridSpaceConfig,
 	PathSpaceConfig,
 	PoolSpaceConfig,
-} from "@/components/game/engine/domain/space";
-import type { Item } from "@/components/game/engine/game-provider";
+} from "@/components/game/engine/runtime";
 
 import type { AppDefinition, ExecutionStep } from "./types";
 

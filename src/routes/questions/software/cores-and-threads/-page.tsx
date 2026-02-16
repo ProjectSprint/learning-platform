@@ -1,7 +1,7 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useLayoutEffect, useMemo } from "react";
 
-import type { EntityData } from "@/components/game/engine/domain/entity/entity-data";
+import type { EntityData } from "@/components/game/engine/runtime";
 import {
 	CustomSpace,
 	GameBoard,
@@ -15,13 +15,13 @@ import {
 	useDrawerManager,
 	useGameCtx,
 } from "@/components/game/engine/game-provider";
-import { DrawerLayout } from "@/components/game/engine/presentation/drawer";
+import { DrawerLayout } from "@/components/game/engine";
 import {
 	ContextualHint,
 	useContextualHint,
-} from "@/components/game/engine/presentation/hint";
-import { DragOverlay } from "@/components/game/engine/presentation/interaction/drag/DragOverlay";
-import { Modal } from "@/components/game/engine/presentation/modal";
+} from "@/components/game/engine";
+import { DragOverlay } from "@/components/game/engine";
+import { Modal } from "@/components/game/engine";
 import { useQuestionRuntime } from "@/components/game/engine/runtime";
 import type { QuestionProps } from "@/components/module";
 

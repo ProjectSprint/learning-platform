@@ -1,7 +1,7 @@
-import type { TerminalInputEvent } from "@/components/game/engine/application/state/types/events";
 import type {
 	BehaviorDefinition,
 	BehaviorRule,
+	TerminalInputEvent,
 } from "@/components/game/engine/runtime";
 import {
 	entityClicked,

@@ -36,7 +36,7 @@ dependencies and is imported by both definition and page.
 
 ```typescript
 // -utils/constants.ts
-import type { GridSpaceConfig, PoolSpaceConfig } from "@/components/game/engine/domain/space";
+import type { GridSpaceConfig, PoolSpaceConfig } from "@/components/game/engine/runtime";
 import type { Item, TerminalEntry } from "@/components/game/engine/game-provider";
 
 export const QUESTION_ID = "my-question";
@@ -120,7 +120,7 @@ Naming reminder:
 
 ```typescript
 // -utils/behaviors.ts
-import type { TerminalInputEvent } from "@/components/game/engine/application/state/types/events";
+import type { TerminalInputEvent } from "@/components/game/engine/runtime";
 import type { BehaviorDefinition, BehaviorRule } from "@/components/game/engine/runtime";
 import { entityClicked, modalSubmitted, terminalInput, whenEntityPlacedInSpace } from "@/components/game/engine/runtime";
 import { buildConfigModal, buildSuccessModal } from "./modal-builders";
@@ -300,7 +300,7 @@ Create `modal-builders.ts` with factory functions for each modal type.
 
 ```typescript
 // -utils/modal-builders.ts
-import type { ModalInstance } from "@/components/game/engine/presentation/modal";
+import type { ModalInstance } from "@/components/game/engine";
 
 export const buildConfigModal = (
   entityId: string,
@@ -414,20 +414,20 @@ logic lives in behaviors.
 // -page.tsx
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import type { EntityData } from "@/components/game/engine/domain/entity/entity-data";
-import { type ConditionContext, resolvePhase } from "@/components/game/engine/domain/question";
+import type { EntityData } from "@/components/game/engine/runtime";
+import { type ConditionContext, resolvePhase } from "@/components/game/engine/runtime";
 import { GameBoard, GridSpace, PoolSpace } from "@/components/game/engine";
 import { useDragEngine, useTerminalEngine } from "@/components/game/engine";
 import { type Arrow, GameProvider, useDrawerManager, useGameCtx } from "@/components/game/engine/game-provider";
-import { DrawerLayout } from "@/components/game/engine/presentation/drawer";
-import { ContextualHint, useContextualHint } from "@/components/game/engine/presentation/hint";
-import { DragOverlay } from "@/components/game/engine/presentation/interaction/drag/DragOverlay";
-import { Modal } from "@/components/game/engine/presentation/modal";
-import { useBoardArrows } from "@/components/game/engine/presentation/space/arrow";
+import { DrawerLayout } from "@/components/game/engine";
+import { ContextualHint, useContextualHint } from "@/components/game/engine";
+import { DragOverlay } from "@/components/game/engine";
+import { Modal } from "@/components/game/engine";
+import { useBoardArrows } from "@/components/game/engine";
 import {
   TerminalInput, TerminalLayout, TerminalView,
   useTerminalInput, useTerminalStore,
-} from "@/components/game/engine/presentation/terminal";
+} from "@/components/game/engine";
 import { useQuestionRuntime } from "@/components/game/engine/runtime";
 import type { QuestionProps } from "@/components/module";
 import { MY_DEFINITION, type MyConditionKey } from "./-utils/definition";

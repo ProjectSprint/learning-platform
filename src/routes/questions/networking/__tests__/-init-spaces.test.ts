@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Action as GameAction } from "@/components/game/engine/application/state/actions";
+import type { Action as GameAction } from "@/components/game/engine/runtime";
 import { bootstrapQuestion } from "@/components/game/engine/runtime";
 import {
 	INVENTORY_POOL_CONFIG as DHCP_INVENTORY_POOL_CONFIG,

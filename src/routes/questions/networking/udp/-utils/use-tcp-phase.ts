@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EntityData } from "@/components/game/engine/domain/entity/entity-data";
-import { isItemData } from "@/components/game/engine/domain/entity/entity-data";
-import {
-	getEntitySpaceId,
-	getSpaceEntityIds,
-} from "@/components/game/engine/domain/read";
 import type { Item } from "@/components/game/engine/game-provider";
 import {
 	useEngineEvents,
 	useGameState,
 } from "@/components/game/engine/game-provider";
 import type {
+	EntityData,
 	InteractionSessionApi,
 	WorldApi,
+} from "@/components/game/engine/runtime";
+import {
+	getEntitySpaceId,
+	getSpaceEntityIds,
+	isItemData,
 } from "@/components/game/engine/runtime";
 
 import {

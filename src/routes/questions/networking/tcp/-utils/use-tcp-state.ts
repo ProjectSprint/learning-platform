@@ -4,17 +4,19 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getEntitySpaceId } from "@/components/game/engine/domain/read";
-import { isGridSpace } from "@/components/game/engine/domain/space";
-import type { GridSpaceData } from "@/components/game/engine/domain/space/space-data";
 import {
 	useEngineEvents,
 	useGameState,
 } from "@/components/game/engine/game-provider";
 import type {
 	ExecutionFlowApi,
+	GridSpaceData,
 	InteractionSessionApi,
 	WorldApi,
+} from "@/components/game/engine/runtime";
+import {
+	getEntitySpaceId,
+	isGridSpace,
 } from "@/components/game/engine/runtime";
 import {
 	FILE_ITEM_ID,

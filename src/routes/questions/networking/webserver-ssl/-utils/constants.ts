@@ -2,13 +2,13 @@
 // Contains all static configuration: items, spaces, inventory groups
 
 import type {
-	GridSpaceConfig,
-	PoolSpaceConfig,
-} from "@/components/game/engine/domain/space";
-import type {
 	Item,
 	TerminalEntry,
 } from "@/components/game/engine/game-provider";
+import type {
+	GridSpaceConfig,
+	PoolSpaceConfig,
+} from "@/components/game/engine/runtime";
 
 export const QUESTION_ID = "webserver-ssl";
 export const QUESTION_TITLE = "🔒 Secure Your Website!";
