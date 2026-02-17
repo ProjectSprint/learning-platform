@@ -11,7 +11,8 @@ import { Box, Text } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { memo, type RefCallback } from "react";
 import type { EntityStatus } from "@/components/game/types/core";
-import type { EntityData, ItemData } from "@/components/game/types/entity";
+import type { EntityData } from "@/components/game/types/entity";
+import { isItemData } from "../../domain/entity/entity-data";
 
 /**
  * Props for the PlacedEntity component.
@@ -96,8 +97,7 @@ export const PlacedEntity = memo(
 		const displayName = entity.name ?? entity.type;
 
 		// Check if this is an Item entity
-		const isItem = "icon" in entity && entity.icon !== undefined;
-		const item = isItem ? (entity as ItemData) : null;
+		const item = isItemData(entity) ? entity : null;
 		const iconInfo = item?.icon ?? entity.visual.icon;
 
 		return (

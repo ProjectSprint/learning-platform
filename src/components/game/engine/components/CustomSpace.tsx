@@ -8,6 +8,7 @@
 import { Box } from "@chakra-ui/react";
 import { memo, useCallback } from "react";
 import type { CustomSpaceData } from "@/components/game/types/space";
+import { isCustomSpace } from "@/components/game/types/space";
 import { useGameState } from "../../internal/game-provider";
 import { useBoardRegistry } from "../../internal/presentation/space/arrow";
 
@@ -21,7 +22,11 @@ type CustomSpaceProps = {
 export const CustomSpace = memo(({ id, children }: CustomSpaceProps) => {
 	const state = useGameState();
 	const { registerBoard } = useBoardRegistry();
-	const space = state.spaces[id] as CustomSpaceData | undefined;
+	const candidateSpace = state.spaces[id];
+	const space: CustomSpaceData | undefined =
+		candidateSpace && isCustomSpace(candidateSpace)
+			? candidateSpace
+			: undefined;
 
 	const callbackRef = useCallback(
 		(node: HTMLDivElement | null) => {
@@ -30,7 +35,7 @@ export const CustomSpace = memo(({ id, children }: CustomSpaceProps) => {
 		[id, registerBoard],
 	);
 
-	if (!space || space.kind !== "custom") {
+	if (!space) {
 		if (process.env.NODE_ENV === "development") {
 			console.warn(
 				`[CustomSpace] Space "${id}" not found or not a custom space.`,

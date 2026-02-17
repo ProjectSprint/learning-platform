@@ -5,26 +5,87 @@ import type {
 	ProgressApi,
 	WorldApi,
 } from "./runtime";
+import type { SpacePosition } from "./space";
 import type { GameEvent, GameState } from "./state";
 
-export type EventTrigger =
-	| { event: "ENTITY_PLACED_IN_SPACE"; space?: string; entityType?: string }
+export type EventTrigger<
+	TSpaceId extends string = string,
+	TEntityType extends string = string,
+	TModalId extends string = string,
+	TModalActionId extends string = string,
+	TPhase extends string = string,
+> =
+	| {
+			event: "ENTITY_PLACED_IN_SPACE";
+			space?: TSpaceId;
+			entityType?: TEntityType;
+	  }
 	| {
 			event: "ENTITY_TRANSFERRED_TO_SPACE";
-			space?: string;
-			entityType?: string;
+			space?: TSpaceId;
+			entityType?: TEntityType;
 	  }
-	| { event: "ENTITY_ARRIVED_AT_SPACE"; space?: string; entityType?: string }
-	| { event: "ENTITY_LEFT_SPACE"; space?: string; entityType?: string }
-	| { event: "ENTITY_CLICKED"; entityType?: string; space?: string }
-	| { event: "ENTITY_UPDATED"; entityType?: string }
-	| { event: "MODAL_OPENED"; modalId?: string }
-	| { event: "MODAL_CLOSED"; modalId?: string }
-	| { event: "MODAL_SUBMITTED"; modalId?: string; modalActionId?: string }
+	| {
+			event: "ENTITY_ARRIVED_AT_SPACE";
+			space?: TSpaceId;
+			entityType?: TEntityType;
+	  }
+	| { event: "ENTITY_LEFT_SPACE"; space?: TSpaceId; entityType?: TEntityType }
+	| { event: "ENTITY_CLICKED"; entityType?: TEntityType; space?: TSpaceId }
+	| { event: "ENTITY_UPDATED"; entityType?: TEntityType }
+	| { event: "MODAL_OPENED"; modalId?: TModalId }
+	| { event: "MODAL_CLOSED"; modalId?: TModalId }
+	| {
+			event: "MODAL_SUBMITTED";
+			modalId?: TModalId;
+			modalActionId?: TModalActionId;
+	  }
 	| { event: "TERMINAL_INPUT"; match?: string | RegExp }
-	| { event: "PHASE_CHANGED"; from?: string; to?: string }
+	| { event: "PHASE_CHANGED"; from?: TPhase; to?: TPhase }
 	| { event: "ENGINE_STARTED" }
 	| { event: "ENGINE_FINISHED" };
+
+export type TriggerSpec = {
+	spaceId: string;
+	entityType: string;
+	modalId: string;
+	modalActionId: string;
+	phase: string;
+};
+
+export type TriggerFor<TSpec extends TriggerSpec> = EventTrigger<
+	TSpec["spaceId"],
+	TSpec["entityType"],
+	TSpec["modalId"],
+	TSpec["modalActionId"],
+	TSpec["phase"]
+>;
+
+export type EntityEventTrigger<
+	TSpaceId extends string = never,
+	TEntityType extends string = never,
+> = EventTrigger<TSpaceId, TEntityType, never, never, never>;
+
+export type ModalEventTrigger<
+	TModalId extends string = never,
+	TModalActionId extends string = never,
+> = EventTrigger<never, never, TModalId, TModalActionId, never>;
+
+export type PhaseEventTrigger<TPhase extends string = never> = EventTrigger<
+	never,
+	never,
+	never,
+	never,
+	TPhase
+>;
+
+export type TerminalEventTrigger = EventTrigger<
+	never,
+	never,
+	never,
+	never,
+	never
+>;
 
 export type EventProvenance = {
 	eventId: number;
@@ -89,17 +150,33 @@ export type ScheduledEffectContext<TContext> = Omit<
 	readonly phase: string;
 };
 
-export type BehaviorRule<TContext> = {
+export type BehaviorRule<
+	TContext,
+	TTrigger extends EventTrigger = EventTrigger,
+> = {
 	id: string;
-	on: EventTrigger;
+	on: TTrigger;
 	guard?: (ctx: GuardContext<TContext>) => boolean;
 	handler: (ctx: EffectContext<TContext>) => void | Promise<void>;
 };
 
-export type BehaviorDefinition<TContext = Record<string, never>> = {
+export type BehaviorDefinition<
+	TContext = Record<string, never>,
+	TTrigger extends EventTrigger = EventTrigger,
+> = {
 	initialContext: TContext;
-	rules: BehaviorRule<TContext>[];
+	rules: BehaviorRule<TContext, TTrigger>[];
 };
+
+export type BehaviorRuleFor<TContext, TSpec extends TriggerSpec> = BehaviorRule<
+	TContext,
+	TriggerFor<TSpec>
+>;
+
+export type BehaviorDefinitionFor<
+	TContext = Record<string, never>,
+	TSpec extends TriggerSpec = TriggerSpec,
+> = BehaviorDefinition<TContext, TriggerFor<TSpec>>;
 
 export type LaneSchedulerInput<TLaneId extends string = string> = {
 	lanes: TLaneId[];
@@ -129,7 +206,7 @@ export type EntityTemplate = Omit<ItemDataConfig, "id"> & {
 export type SpawnPlan = {
 	config: ItemDataConfig;
 	spaceId?: string;
-	position?: Record<string, unknown>;
+	position?: SpacePosition;
 };
 
 export type InspectorAction =

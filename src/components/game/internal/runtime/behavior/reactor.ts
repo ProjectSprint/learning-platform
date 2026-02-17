@@ -134,7 +134,6 @@ export function useBehaviorReactor<
 
 type TriggerMatcherContext = {
 	event: GameEvent;
-	trigger: EventTrigger;
 	entityType: string | undefined;
 };
 
@@ -147,114 +146,104 @@ const matchSpaceAndEntity = (
 	(triggerSpace === undefined || spaceId === triggerSpace) &&
 	(triggerEntityType === undefined || ctx.entityType === triggerEntityType);
 
-const TRIGGER_MATCHERS: Record<
-	EventTrigger["event"],
-	(ctx: TriggerMatcherContext) => boolean
-> = {
-	ENTITY_PLACED_IN_SPACE: (ctx) => {
-		if (ctx.event.type !== "ENTITY_ENTERED_SPACE") return false;
-		const t = ctx.trigger as Extract<
-			EventTrigger,
-			{ event: "ENTITY_PLACED_IN_SPACE" }
-		>;
-		return matchSpaceAndEntity(ctx, ctx.event.spaceId, t.space, t.entityType);
-	},
-	ENTITY_TRANSFERRED_TO_SPACE: (ctx) => {
-		if (ctx.event.type !== "ENTITY_MOVED") return false;
-		const t = ctx.trigger as Extract<
-			EventTrigger,
-			{ event: "ENTITY_TRANSFERRED_TO_SPACE" }
-		>;
-		return matchSpaceAndEntity(ctx, ctx.event.toSpaceId, t.space, t.entityType);
-	},
-	ENTITY_ARRIVED_AT_SPACE: (ctx) => {
-		if (
-			ctx.event.type !== "ENTITY_ENTERED_SPACE" &&
-			ctx.event.type !== "ENTITY_MOVED"
-		)
-			return false;
-		const t = ctx.trigger as Extract<
-			EventTrigger,
-			{ event: "ENTITY_ARRIVED_AT_SPACE" }
-		>;
-		const spaceId =
-			ctx.event.type === "ENTITY_ENTERED_SPACE"
-				? ctx.event.spaceId
-				: ctx.event.toSpaceId;
-		return matchSpaceAndEntity(ctx, spaceId, t.space, t.entityType);
-	},
-	ENTITY_LEFT_SPACE: (ctx) => {
-		if (ctx.event.type !== "ENTITY_LEFT_SPACE") return false;
-		const t = ctx.trigger as Extract<
-			EventTrigger,
-			{ event: "ENTITY_LEFT_SPACE" }
-		>;
-		return matchSpaceAndEntity(ctx, ctx.event.spaceId, t.space, t.entityType);
-	},
-	ENTITY_CLICKED: (ctx) => {
-		if (ctx.event.type !== "ENTITY_CLICKED") return false;
-		const t = ctx.trigger as Extract<EventTrigger, { event: "ENTITY_CLICKED" }>;
-		return matchSpaceAndEntity(ctx, ctx.event.spaceId, t.space, t.entityType);
-	},
-	ENTITY_UPDATED: (ctx) => {
-		if (ctx.event.type !== "ENTITY_UPDATED") return false;
-		const t = ctx.trigger as Extract<EventTrigger, { event: "ENTITY_UPDATED" }>;
-		return t.entityType === undefined || ctx.entityType === t.entityType;
-	},
-	MODAL_OPENED: (ctx) => {
-		if (ctx.event.type !== "MODAL_OPENED") return false;
-		const t = ctx.trigger as Extract<EventTrigger, { event: "MODAL_OPENED" }>;
-		return t.modalId === undefined || ctx.event.modalId === t.modalId;
-	},
-	MODAL_CLOSED: (ctx) => {
-		if (ctx.event.type !== "MODAL_CLOSED") return false;
-		const t = ctx.trigger as Extract<EventTrigger, { event: "MODAL_CLOSED" }>;
-		return t.modalId === undefined || ctx.event.modalId === t.modalId;
-	},
-	MODAL_SUBMITTED: (ctx) => {
-		if (ctx.event.type !== "MODAL_SUBMITTED") return false;
-		const t = ctx.trigger as Extract<
-			EventTrigger,
-			{ event: "MODAL_SUBMITTED" }
-		>;
-		return (
-			(t.modalId === undefined || ctx.event.modalId === t.modalId) &&
-			(t.modalActionId === undefined ||
-				ctx.event.modalActionId === t.modalActionId)
-		);
-	},
-	TERMINAL_INPUT: (ctx) => {
-		if (ctx.event.type !== "TERMINAL_INPUT") return false;
-		const t = ctx.trigger as Extract<EventTrigger, { event: "TERMINAL_INPUT" }>;
-		if (t.match === undefined) return true;
-		if (typeof t.match === "string") return ctx.event.input === t.match;
-		if (t.match instanceof RegExp) return t.match.test(ctx.event.input);
-		return false;
-	},
-	PHASE_CHANGED: (ctx) => {
-		if (ctx.event.type !== "PHASE_CHANGED") return false;
-		const t = ctx.trigger as Extract<EventTrigger, { event: "PHASE_CHANGED" }>;
-		return (
-			(t.from === undefined || ctx.event.from === t.from) &&
-			(t.to === undefined || ctx.event.to === t.to)
-		);
-	},
-	ENGINE_STARTED: (ctx) => ctx.event.type === "ENGINE_STARTED",
-	ENGINE_FINISHED: (ctx) => ctx.event.type === "ENGINE_FINISHED",
-};
-
 export function matchesEventTrigger(
 	event: GameEvent,
 	trigger: EventTrigger,
 	state: GameState,
 ): boolean {
 	const entityType =
-		"entityId" in event
-			? state.entities[(event as { entityId: string }).entityId]?.type
-			: undefined;
+		"entityId" in event ? state.entities[event.entityId]?.type : undefined;
+	const ctx: TriggerMatcherContext = { event, entityType };
 
-	const matcher = TRIGGER_MATCHERS[trigger.event];
-	return matcher ? matcher({ event, trigger, entityType }) : false;
+	switch (trigger.event) {
+		case "ENTITY_PLACED_IN_SPACE":
+			if (event.type !== "ENTITY_ENTERED_SPACE") return false;
+			return matchSpaceAndEntity(
+				ctx,
+				event.spaceId,
+				trigger.space,
+				trigger.entityType,
+			);
+		case "ENTITY_TRANSFERRED_TO_SPACE":
+			if (event.type !== "ENTITY_MOVED") return false;
+			return matchSpaceAndEntity(
+				ctx,
+				event.toSpaceId,
+				trigger.space,
+				trigger.entityType,
+			);
+		case "ENTITY_ARRIVED_AT_SPACE": {
+			if (
+				event.type !== "ENTITY_ENTERED_SPACE" &&
+				event.type !== "ENTITY_MOVED"
+			) {
+				return false;
+			}
+			const spaceId =
+				event.type === "ENTITY_ENTERED_SPACE" ? event.spaceId : event.toSpaceId;
+			return matchSpaceAndEntity(
+				ctx,
+				spaceId,
+				trigger.space,
+				trigger.entityType,
+			);
+		}
+		case "ENTITY_LEFT_SPACE":
+			if (event.type !== "ENTITY_LEFT_SPACE") return false;
+			return matchSpaceAndEntity(
+				ctx,
+				event.spaceId,
+				trigger.space,
+				trigger.entityType,
+			);
+		case "ENTITY_CLICKED":
+			if (event.type !== "ENTITY_CLICKED") return false;
+			return matchSpaceAndEntity(
+				ctx,
+				event.spaceId,
+				trigger.space,
+				trigger.entityType,
+			);
+		case "ENTITY_UPDATED":
+			if (event.type !== "ENTITY_UPDATED") return false;
+			return (
+				trigger.entityType === undefined ||
+				ctx.entityType === trigger.entityType
+			);
+		case "MODAL_OPENED":
+			if (event.type !== "MODAL_OPENED") return false;
+			return trigger.modalId === undefined || event.modalId === trigger.modalId;
+		case "MODAL_CLOSED":
+			if (event.type !== "MODAL_CLOSED") return false;
+			return trigger.modalId === undefined || event.modalId === trigger.modalId;
+		case "MODAL_SUBMITTED":
+			if (event.type !== "MODAL_SUBMITTED") return false;
+			return (
+				(trigger.modalId === undefined || event.modalId === trigger.modalId) &&
+				(trigger.modalActionId === undefined ||
+					event.modalActionId === trigger.modalActionId)
+			);
+		case "TERMINAL_INPUT":
+			if (event.type !== "TERMINAL_INPUT") return false;
+			if (trigger.match === undefined) return true;
+			if (typeof trigger.match === "string")
+				return event.input === trigger.match;
+			if (trigger.match instanceof RegExp)
+				return trigger.match.test(event.input);
+			return false;
+		case "PHASE_CHANGED":
+			if (event.type !== "PHASE_CHANGED") return false;
+			return (
+				(trigger.from === undefined || event.from === trigger.from) &&
+				(trigger.to === undefined || event.to === trigger.to)
+			);
+		case "ENGINE_STARTED":
+			return event.type === "ENGINE_STARTED";
+		case "ENGINE_FINISHED":
+			return event.type === "ENGINE_FINISHED";
+		default:
+			return false;
+	}
 }
 
 function resolveEntity(
@@ -262,7 +251,7 @@ function resolveEntity(
 	state: GameState,
 ): EntityData | undefined {
 	if ("entityId" in event) {
-		return state.entities[(event as { entityId: string }).entityId];
+		return state.entities[event.entityId];
 	}
 	return undefined;
 }

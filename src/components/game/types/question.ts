@@ -1,4 +1,4 @@
-import type { BehaviorDefinition } from "./behavior";
+import type { BehaviorDefinition, EventTrigger } from "./behavior";
 import type { ItemDataConfig } from "./entity";
 import type {
 	CustomSpaceConfig,
@@ -11,37 +11,74 @@ import type {
 } from "./space";
 import type { GameState } from "./state";
 
-export type Condition<ConditionKey extends string = string> =
-	| { kind: "and"; all: Condition<ConditionKey>[] }
-	| { kind: "or"; any: Condition<ConditionKey>[] }
-	| { kind: "not"; value: Condition<ConditionKey> }
+export type ConditionValue = string | number | boolean | null;
+
+export type Condition<
+	ConditionKey extends string = string,
+	TValue extends ConditionValue = ConditionValue,
+> =
+	| { kind: "and"; all: Condition<ConditionKey, TValue>[] }
+	| { kind: "or"; any: Condition<ConditionKey, TValue>[] }
+	| { kind: "not"; value: Condition<ConditionKey, TValue> }
 	| { kind: "flag"; key: ConditionKey; is: boolean }
 	| {
 			kind: "eq";
 			key: ConditionKey;
-			value: string | number | boolean | null;
+			value: TValue;
 	  }
-	| { kind: "in"; key: ConditionKey; values: Array<string | number> };
+	| {
+			kind: "in";
+			key: ConditionKey;
+			values: Array<Extract<TValue, string | number>>;
+	  };
 
-export type ConditionContext<ConditionKey extends string = string> = Record<
-	ConditionKey,
-	string | number | boolean | null | undefined
->;
+export type ConditionContext<
+	ConditionKey extends string = string,
+	TValue extends ConditionValue = ConditionValue,
+> = Record<ConditionKey, TValue | undefined>;
 
-export type PhaseRule<ConditionKey extends string = string> =
-	| { kind: "set"; when: Condition<ConditionKey>; to: string }
-	| { kind: "retain"; when: Condition<ConditionKey> };
+export type PhaseRule<
+	ConditionKey extends string = string,
+	TPhase extends string = string,
+	TValue extends ConditionValue = ConditionValue,
+> =
+	| { kind: "set"; when: Condition<ConditionKey, TValue>; to: TPhase }
+	| { kind: "retain"; when: Condition<ConditionKey, TValue> };
 
-export type InventoryRule<ConditionKey extends string = string> =
-	| { kind: "show-group"; when: Condition<ConditionKey>; groupId: string }
-	| { kind: "hide-group"; when: Condition<ConditionKey>; groupId: string };
+export type InventoryRule<
+	ConditionKey extends string = string,
+	TGroupId extends string = string,
+	TValue extends ConditionValue = ConditionValue,
+> =
+	| {
+			kind: "show-group";
+			when: Condition<ConditionKey, TValue>;
+			groupId: TGroupId;
+	  }
+	| {
+			kind: "hide-group";
+			when: Condition<ConditionKey, TValue>;
+			groupId: TGroupId;
+	  };
 
-export type SpaceRule<ConditionKey extends string = string> =
-	| { kind: "show"; when: Condition<ConditionKey>; spaceId: string }
-	| { kind: "hide"; when: Condition<ConditionKey>; spaceId: string };
+export type SpaceRule<
+	ConditionKey extends string = string,
+	TSpaceId extends string = string,
+	TValue extends ConditionValue = ConditionValue,
+> =
+	| {
+			kind: "show";
+			when: Condition<ConditionKey, TValue>;
+			spaceId: TSpaceId;
+	  }
+	| {
+			kind: "hide";
+			when: Condition<ConditionKey, TValue>;
+			spaceId: TSpaceId;
+	  };
 
-export type PhaseResolution = {
-	nextPhase: string;
+export type PhaseResolution<TPhase extends string = string> = {
+	nextPhase: TPhase;
 	shouldRetain: boolean;
 };
 
@@ -89,14 +126,17 @@ export type SpaceDefinition =
 	| { kind: "queue"; config: QueueSpaceConfig }
 	| { kind: "meter"; config: MeterSpaceConfig };
 
-export type EntityDefinition = {
-	config: ItemDataConfig;
-	initialSpace?: string;
+export type EntityDefinition<
+	TConfig extends ItemDataConfig = ItemDataConfig,
+	TSpaceId extends string = string,
+> = {
+	config: TConfig;
+	initialSpace?: TSpaceId;
 	initialPosition?: GridPosition;
 };
 
-export type QuestionMeta = {
-	id: string;
+export type QuestionMeta<TQuestionId extends string = string> = {
+	id: TQuestionId;
 	title: string;
 	description: string;
 };
@@ -104,16 +144,45 @@ export type QuestionMeta = {
 export type QuestionDefinition<
 	ConditionKey extends string = string,
 	TContext = Record<string, never>,
+	TPhase extends string = string,
+	TSpaceId extends string = string,
+	TEntityType extends string = string,
+	TQuestionId extends string = string,
+	TConditionValue extends ConditionValue = ConditionValue,
 > = {
-	meta: QuestionMeta;
-	initialPhase: string;
+	meta: QuestionMeta<TQuestionId>;
+	initialPhase: TPhase;
 	spaces: SpaceDefinition[];
-	entities: EntityDefinition[];
-	phaseRules: PhaseRule<ConditionKey>[];
-	inventoryRules?: InventoryRule<ConditionKey>[];
-	spaceRules?: SpaceRule<ConditionKey>[];
-	behaviors?: BehaviorDefinition<TContext>;
+	entities: EntityDefinition<ItemDataConfig, TSpaceId>[];
+	phaseRules: PhaseRule<ConditionKey, TPhase, TConditionValue>[];
+	inventoryRules?: InventoryRule<ConditionKey, string, TConditionValue>[];
+	spaceRules?: SpaceRule<ConditionKey, TSpaceId, TConditionValue>[];
+	behaviors?: BehaviorDefinition<
+		TContext,
+		EventTrigger<TSpaceId, TEntityType, string, string, TPhase>
+	>;
 	dragRules?: DragGatingRule[];
 	layoutRules?: LayoutVisibilityRule[];
 	shapeRules?: SpaceShapeRule[];
 };
+
+export type QuestionTypeSpec = {
+	conditionKey: string;
+	context: unknown;
+	phase: string;
+	spaceId: string;
+	entityType: string;
+	questionId: string;
+	conditionValue: ConditionValue;
+};
+
+export type QuestionDefinitionFor<TSpec extends QuestionTypeSpec> =
+	QuestionDefinition<
+		TSpec["conditionKey"],
+		TSpec["context"],
+		TSpec["phase"],
+		TSpec["spaceId"],
+		TSpec["entityType"],
+		TSpec["questionId"],
+		TSpec["conditionValue"]
+	>;

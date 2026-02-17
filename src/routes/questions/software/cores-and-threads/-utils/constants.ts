@@ -1,6 +1,5 @@
 import type { Item } from "@/components/game/engine/game-provider";
 import type {
-	CustomSpaceConfig,
 	GridSpaceConfig,
 	PathSpaceConfig,
 	PoolSpaceConfig,
@@ -11,12 +10,11 @@ import type { AppDefinition, ExecutionStep } from "./types";
 export const QUESTION_ID = "parallel-multicore";
 export const QUESTION_TITLE = "🖥️ Open Apps on a Single Core";
 export const QUESTION_DESCRIPTION =
-	"Open apps, watch RAM fill, and see how one core processes execution work in sequence.";
+	"Open apps and see how one core processes execution work in sequence.";
 
 export const SPACE_IDS = {
 	appPool: "app-pool",
 	open: "open",
-	ram: "ram",
 	execution: "execution",
 	core1: "core-1",
 	core2: "core-2",
@@ -87,11 +85,6 @@ export const STORAGE_PATH_CONFIG: PathSpaceConfig = {
 	duration: 2.4,
 	speedMultiplier: 1,
 	showDropzone: false,
-};
-
-export const RAM_CUSTOM_CONFIG: CustomSpaceConfig = {
-	id: SPACE_IDS.ram,
-	name: "RAM",
 };
 
 export const APPS: AppDefinition[] = [
@@ -180,7 +173,6 @@ export const EXECUTION_PARTS: Array<{
 
 export const PARSING_MS = 1000;
 export const ALLOCATING_MS = 1200;
-export const RAM_HOLD_MS = 1000;
 export const NOTICE_MS = 1800;
 export const CORE_STEP_DURATION_SECONDS = 6;
 export const OPENED_APPS_FOR_DUAL_CORE_PROMPT = 2;

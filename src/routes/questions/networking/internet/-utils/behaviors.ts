@@ -2,17 +2,20 @@ import {
 	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
 	buildTerminalInputTrigger,
+	createEntityPayloadWriter,
+	type ModalSubmissionContract,
+	parseModalSubmission,
+	parseTerminalInput,
+	type TerminalInputContract,
 } from "@/components/game/engine/runtime";
 import type {
-	BehaviorDefinition,
-	BehaviorRule,
+	BehaviorDefinitionFor,
+	BehaviorRuleFor,
 } from "@/components/game/types/behavior";
-import type {
-	GameState,
-	TerminalInputEvent,
-} from "@/components/game/types/state";
+import type { GameState } from "@/components/game/types/state";
 import {
 	GOOGLE_IP,
+	type InternetSpaceKey,
 	PUBLIC_DNS_SERVERS,
 	VALID_PPPOE_CREDENTIALS,
 } from "./constants";
@@ -30,6 +33,188 @@ import { isPrivateIp, isPublicIp, isValidIp } from "./network-utils";
 
 export type InternetBehaviorContext = {
 	navigateAway: boolean;
+};
+
+export type InternetPhase =
+	| "setup"
+	| "playing"
+	| "configuring"
+	| "terminal"
+	| "completed";
+export type InternetSpaceId = InternetSpaceKey | "inventory";
+export type InternetEntityType =
+	| "cable"
+	| "fiber"
+	| "pc"
+	| "router-lan"
+	| "router-nat"
+	| "router-wan"
+	| "igw"
+	| "dns"
+	| "google";
+type InternetModalId = string;
+type InternetModalActionId = "save" | "primary";
+
+type InternetTriggerSpec = {
+	spaceId: InternetSpaceId;
+	entityType: InternetEntityType;
+	modalId: InternetModalId;
+	modalActionId: InternetModalActionId;
+	phase: InternetPhase;
+};
+
+type RouterLanConfigSubmission = {
+	deviceId: string;
+	dhcpEnabled: boolean;
+	startIp: string;
+	endIp: string;
+	dnsServer: string;
+};
+
+type RouterNatConfigSubmission = {
+	deviceId: string;
+	natEnabled: boolean;
+};
+
+type RouterWanConfigSubmission = {
+	deviceId: string;
+	username: string;
+	password: string;
+};
+
+type InternetEntityDataByType = {
+	"router-lan": {
+		dhcpEnabled: boolean;
+		startIp: string;
+		endIp: string;
+		dnsServer: string;
+	};
+	"router-nat": {
+		natEnabled: boolean;
+	};
+	"router-wan": {
+		username: string;
+		password: string;
+	};
+};
+
+type InternetTerminalCommand =
+	| { kind: "help" }
+	| { kind: "ifconfig" }
+	| { kind: "nslookup"; domain?: string; rawDomain?: string }
+	| { kind: "curl"; target?: string; rawTarget?: string }
+	| { kind: "unknown" };
+
+const INTERNET_TERMINAL_COMMAND_CONTRACT: TerminalInputContract<InternetTerminalCommand> =
+	{
+		parse: (input) => {
+			const raw = input.trim();
+			if (!raw) {
+				return { ok: false, errors: ["empty command"] };
+			}
+
+			const parts = raw.split(/\s+/);
+			const command = parts[0]?.toLowerCase();
+			switch (command) {
+				case "help":
+					return { ok: true, value: { kind: "help" } };
+				case "ifconfig":
+					return { ok: true, value: { kind: "ifconfig" } };
+				case "nslookup":
+					return {
+						ok: true,
+						value: {
+							kind: "nslookup",
+							domain: parts[1]?.toLowerCase(),
+							rawDomain: parts[1],
+						},
+					};
+				case "curl":
+					return {
+						ok: true,
+						value: {
+							kind: "curl",
+							target: parts[1]?.toLowerCase(),
+							rawTarget: parts[1],
+						},
+					};
+				default:
+					return { ok: true, value: { kind: "unknown" } };
+			}
+		},
+	};
+
+const ROUTER_LAN_SAVE_CONTRACT: ModalSubmissionContract<RouterLanConfigSubmission> =
+	{
+		actionId: "save",
+		modalIdStartsWith: "router-lan-config-",
+		parse: (values, event) => {
+			const deviceId = event.modalId.replace("router-lan-config-", "");
+			if (!deviceId) {
+				return {
+					ok: false,
+					errors: ["router lan modal must include device id"],
+				};
+			}
+			return {
+				ok: true,
+				value: {
+					deviceId,
+					dhcpEnabled: values.dhcpEnabled === true,
+					startIp: String(values.startIp ?? ""),
+					endIp: String(values.endIp ?? ""),
+					dnsServer: String(values.dnsServer ?? ""),
+				},
+			};
+		},
+	};
+
+const ROUTER_NAT_SAVE_CONTRACT: ModalSubmissionContract<RouterNatConfigSubmission> =
+	{
+		actionId: "save",
+		modalIdStartsWith: "router-nat-config-",
+		parse: (values, event) => {
+			const deviceId = event.modalId.replace("router-nat-config-", "");
+			if (!deviceId) {
+				return {
+					ok: false,
+					errors: ["router nat modal must include device id"],
+				};
+			}
+			return {
+				ok: true,
+				value: { deviceId, natEnabled: values.natEnabled === true },
+			};
+		},
+	};
+
+const ROUTER_WAN_SAVE_CONTRACT: ModalSubmissionContract<RouterWanConfigSubmission> =
+	{
+		actionId: "save",
+		modalIdStartsWith: "router-wan-config-",
+		parse: (values, event) => {
+			const deviceId = event.modalId.replace("router-wan-config-", "");
+			if (!deviceId) {
+				return {
+					ok: false,
+					errors: ["router wan modal must include device id"],
+				};
+			}
+			return {
+				ok: true,
+				value: {
+					deviceId,
+					username: String(values.username ?? ""),
+					password: String(values.password ?? ""),
+				},
+			};
+		},
+	};
+
+const INTERNET_SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
+	actionId: "primary",
+	modalId: "success",
+	parse: () => ({ ok: true, value: null }),
 };
 
 /** Derive internet connectivity status from current game state. */
@@ -93,7 +278,7 @@ function deriveStatus(state: GameState) {
 	};
 }
 
-const rules: BehaviorRule<InternetBehaviorContext>[] = [
+const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 	// --- Entity click handlers ---
 	{
 		id: "internet.router-lan-click",
@@ -199,50 +384,58 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	{
 		id: "internet.router-lan-save",
 		on: buildModalSubmitTrigger(undefined, "save"),
-		guard: ({ event }) =>
-			event.type === "MODAL_SUBMITTED" &&
-			event.modalId.startsWith("router-lan-config-"),
 		handler: ({ event, world }) => {
-			if (event.type !== "MODAL_SUBMITTED") return;
-			const deviceId = event.modalId.replace("router-lan-config-", "");
-			world.updateEntity(deviceId, {
-				data: {
-					dhcpEnabled: !!event.values.dhcpEnabled,
-					startIp: String(event.values.startIp ?? ""),
-					endIp: String(event.values.endIp ?? ""),
-					dnsServer: String(event.values.dnsServer ?? ""),
-				},
+			const parsed = parseModalSubmission(event, ROUTER_LAN_SAVE_CONTRACT);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
+			const { deviceId, dhcpEnabled, startIp, endIp, dnsServer } = parsed.value;
+			const payloadWriter = createEntityPayloadWriter<
+				InternetEntityDataByType,
+				Record<string, never>
+			>(world);
+			payloadWriter.updateData(deviceId, "router-lan", {
+				dhcpEnabled,
+				startIp,
+				endIp,
+				dnsServer,
 			});
 		},
 	},
 	{
 		id: "internet.router-nat-save",
 		on: buildModalSubmitTrigger(undefined, "save"),
-		guard: ({ event }) =>
-			event.type === "MODAL_SUBMITTED" &&
-			event.modalId.startsWith("router-nat-config-"),
 		handler: ({ event, world }) => {
-			if (event.type !== "MODAL_SUBMITTED") return;
-			const deviceId = event.modalId.replace("router-nat-config-", "");
-			world.updateEntity(deviceId, {
-				data: { natEnabled: !!event.values.natEnabled },
+			const parsed = parseModalSubmission(event, ROUTER_NAT_SAVE_CONTRACT);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
+			const { deviceId, natEnabled } = parsed.value;
+			const payloadWriter = createEntityPayloadWriter<
+				InternetEntityDataByType,
+				Record<string, never>
+			>(world);
+			payloadWriter.updateData(deviceId, "router-nat", {
+				natEnabled,
 			});
 		},
 	},
 	{
 		id: "internet.router-wan-save",
 		on: buildModalSubmitTrigger(undefined, "save"),
-		guard: ({ event }) =>
-			event.type === "MODAL_SUBMITTED" &&
-			event.modalId.startsWith("router-wan-config-"),
 		handler: ({ event, world }) => {
-			if (event.type !== "MODAL_SUBMITTED") return;
-			const deviceId = event.modalId.replace("router-wan-config-", "");
-			world.updateEntity(deviceId, {
-				data: {
-					username: String(event.values.username ?? ""),
-					password: String(event.values.password ?? ""),
-				},
+			const parsed = parseModalSubmission(event, ROUTER_WAN_SAVE_CONTRACT);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
+			const { deviceId, username, password } = parsed.value;
+			const payloadWriter = createEntityPayloadWriter<
+				InternetEntityDataByType,
+				Record<string, never>
+			>(world);
+			payloadWriter.updateData(deviceId, "router-wan", {
+				username,
+				password,
 			});
 		},
 	},
@@ -251,7 +444,14 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	{
 		id: "internet.success-modal-navigate",
 		on: buildModalSubmitTrigger("success", "primary"),
-		handler: ({ updateContext }) => {
+		handler: ({ event, updateContext }) => {
+			const parsed = parseModalSubmission(
+				event,
+				INTERNET_SUCCESS_NAVIGATION_CONTRACT,
+			);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
 			});
@@ -313,14 +513,18 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 		guard: ({ phase, state }) =>
 			phase === "terminal" && state.question.status !== "completed",
 		handler: ({ event, state, terminal, interaction, progress }) => {
-			const rawInput = (event as TerminalInputEvent).input.trim();
-			if (!rawInput) return;
+			const parsed = parseTerminalInput(
+				event,
+				INTERNET_TERMINAL_COMMAND_CONTRACT,
+			);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
 
-			const parts = rawInput.split(/\s+/);
-			const command = parts[0]?.toLowerCase();
+			const command = parsed.value;
 			const status = deriveStatus(state);
 
-			if (command === "help") {
+			if (command.kind === "help") {
 				const lines = [
 					"Terminal - Network diagnostic and testing utility",
 					"",
@@ -355,22 +559,22 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 				return;
 			}
 
-			if (command === "ifconfig") {
+			if (command.kind === "ifconfig") {
 				terminal.writeOutput(
 					status.pcIp ? `eth0: ${status.pcIp}` : "eth0: No IP assigned",
 				);
 				return;
 			}
 
-			if (command === "nslookup") {
-				if (parts.length < 2) {
+			if (command.kind === "nslookup") {
+				if (!command.domain) {
 					terminal.writeOutput(
 						"Error: Missing domain. Usage: nslookup <domain>",
 						"error",
 					);
 					return;
 				}
-				const domain = parts[1].toLowerCase();
+				const domain = command.domain;
 				if (!status.hasValidDnsServer) {
 					terminal.writeOutput(
 						"Error: Could not resolve hostname. DNS server not configured.",
@@ -381,25 +585,31 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 				if (domain === "google.com") {
 					terminal.writeOutput(`google.com → ${GOOGLE_IP}`);
 				} else {
-					terminal.writeOutput(`Error: Unknown host "${parts[1]}".`, "error");
+					terminal.writeOutput(
+						`Error: Unknown host "${command.rawDomain ?? domain}".`,
+						"error",
+					);
 				}
 				return;
 			}
 
-			if (command === "curl") {
-				if (parts.length < 2) {
+			if (command.kind === "curl") {
+				if (!command.target) {
 					terminal.writeOutput(
 						"Error: Missing target. Usage: curl <hostname or IP>",
 						"error",
 					);
 					return;
 				}
-				const target = parts[1].toLowerCase();
+				const target = command.target;
 				const isDomainTarget = target === "google.com";
 				const isIpTarget = target === GOOGLE_IP.toLowerCase();
 
 				if (!isDomainTarget && !isIpTarget) {
-					terminal.writeOutput(`Error: Unknown host "${parts[1]}".`, "error");
+					terminal.writeOutput(
+						`Error: Unknown host "${command.rawTarget ?? target}".`,
+						"error",
+					);
 					return;
 				}
 				if (!status.wanConnected) {
@@ -460,7 +670,10 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 	},
 ];
 
-export const INTERNET_BEHAVIORS: BehaviorDefinition<InternetBehaviorContext> = {
+export const INTERNET_BEHAVIORS: BehaviorDefinitionFor<
+	InternetBehaviorContext,
+	InternetTriggerSpec
+> = {
 	initialContext: { navigateAway: false },
 	rules,
 };

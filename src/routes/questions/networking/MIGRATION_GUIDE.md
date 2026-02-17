@@ -1,6 +1,6 @@
 # Networking Migration Guide (Hard-Cut)
 
-> Canonical architecture rules are defined in `src/components/game/doc/1-mental-model-and-loop.md`.
+> Canonical architecture and authoring rules are defined in `src/components/game/doc/README.md` (sections 1 and 4).
 > This guide is the execution playbook for networking routes.
 
 ## Non-Negotiable Rules

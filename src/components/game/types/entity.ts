@@ -1,5 +1,7 @@
 import type { IconInfo } from "./icon";
 
+type DynamicPayload = Record<string, unknown>;
+
 export type EntityVisual = {
 	icon?: string;
 	color?: string;
@@ -13,27 +15,38 @@ export type ItemTooltip = {
 	seeMoreHref?: string;
 };
 
-export type EntityDataConfig = {
+export type EntityDataConfig<
+	TType extends string = string,
+	TData extends DynamicPayload = DynamicPayload,
+	TState extends DynamicPayload = DynamicPayload,
+> = {
 	id: string;
-	type: string;
+	type: TType;
 	name?: string;
 	visual?: EntityVisual;
-	data?: Record<string, unknown>;
-	state?: Record<string, unknown>;
+	data?: TData;
+	state?: TState;
 	behaviorIds?: string[];
 };
 
-export type EntityData = {
+export type EntityData<
+	TType extends string = string,
+	TData extends DynamicPayload = DynamicPayload,
+	TState extends DynamicPayload = DynamicPayload,
+> = {
 	id: string;
-	type: string;
+	type: TType;
 	name?: string;
 	visual: EntityVisual;
-	data: Record<string, unknown>;
-	state: Record<string, unknown>;
+	data: TData;
+	state: TState;
 	behaviorIds: string[];
 };
 
-export type ItemDataConfig = Omit<EntityDataConfig, "type"> & {
+export type ItemDataConfig<
+	TData extends DynamicPayload = DynamicPayload,
+	TState extends DynamicPayload = DynamicPayload,
+> = Omit<EntityDataConfig<string, TData, TState>, "type"> & {
 	allowedPlaces: string[];
 	icon?: IconInfo;
 	tooltip?: ItemTooltip;
@@ -41,7 +54,11 @@ export type ItemDataConfig = Omit<EntityDataConfig, "type"> & {
 	category?: string;
 };
 
-export type ItemData = EntityData & {
+export type ItemData<
+	TType extends string = string,
+	TData extends DynamicPayload = DynamicPayload,
+	TState extends DynamicPayload = DynamicPayload,
+> = EntityData<TType, TData, TState> & {
 	allowedPlaces: string[];
 	icon?: IconInfo;
 	tooltip?: ItemTooltip;

@@ -1,14 +1,21 @@
 import {
 	buildEntityPlacedTrigger,
 	buildModalSubmitTrigger,
+	createEntityPayloadWriter,
+	type ModalSubmissionContract,
+	parseModalSubmission,
 } from "@/components/game/engine/runtime";
 import type {
-	BehaviorDefinition,
-	BehaviorRule,
+	BehaviorDefinitionFor,
+	BehaviorRuleFor,
 } from "@/components/game/types/behavior";
 import type { EntityEnteredSpaceEvent } from "@/components/game/types/state";
 import type { UdpClientId } from "./constants";
-import { UDP_CLIENT_IDS } from "./constants";
+import {
+	type CustomSpaceKey,
+	type GridSpaceKey,
+	UDP_CLIENT_IDS,
+} from "./constants";
 import { getFrameDestiny, TOTAL_FRAMES } from "./frame-destiny";
 import { buildUdpSuccessModal } from "./modal-builders";
 
@@ -27,7 +34,43 @@ export type UdpBehaviorContext = {
 	clientFramesC: string;
 };
 
+export type UdpPhaseId = "setup";
+export type UdpSpaceId =
+	| GridSpaceKey
+	| CustomSpaceKey
+	| "inventory"
+	| "received";
+export type UdpEntityType =
+	| "syn-packet"
+	| "syn-ack-packet"
+	| "ack-packet"
+	| "data-packet"
+	| "frame";
+type UdpModalId = "udp-success";
+type UdpModalActionId = "complete";
+
+type UdpTriggerSpec = {
+	spaceId: UdpSpaceId;
+	entityType: UdpEntityType;
+	modalId: UdpModalId;
+	modalActionId: UdpModalActionId;
+	phase: UdpPhaseId;
+};
+
 const INITIAL_CLIENT_FRAMES = "0".repeat(TOTAL_FRAMES);
+
+type UdpEntityDataByType = {
+	frame: {
+		status: "error" | "warning";
+		state: "rejected" | "sending";
+	};
+};
+
+const UDP_SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
+	actionId: "complete",
+	modalId: "udp-success",
+	parse: () => ({ ok: true, value: null }),
+};
 
 const getClientFramesKey = (
 	clientId: UdpClientId,
@@ -45,7 +88,7 @@ const getClientFramesKey = (
 	}
 };
 
-const rules: BehaviorRule<UdpBehaviorContext>[] = [
+const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
 	{
 		id: "udp.frame-entered-internet",
 		on: buildEntityPlacedTrigger("internet", "frame"),
@@ -53,6 +96,10 @@ const rules: BehaviorRule<UdpBehaviorContext>[] = [
 		handler: (ctx) => {
 			const { event, entity, world, context, updateContext, schedule } = ctx;
 			if (!entity) return;
+			const payloadWriter = createEntityPayloadWriter<
+				UdpEntityDataByType,
+				Record<string, never>
+			>(world);
 			const e = event as EntityEnteredSpaceEvent;
 			const entityId = e.entityId;
 			const frameNumber =
@@ -62,8 +109,9 @@ const rules: BehaviorRule<UdpBehaviorContext>[] = [
 			const expectedFrame = context.lastSentFrame + 1;
 
 			if (frameNumber !== expectedFrame) {
-				world.updateEntity(entityId, {
-					data: { status: "error", state: "rejected" },
+				payloadWriter.updateData(entityId, "frame", {
+					status: "error",
+					state: "rejected",
 				});
 				updateContext((c) => {
 					c.noticeMessage = `Send Frame ${expectedFrame} first.`;
@@ -81,8 +129,9 @@ const rules: BehaviorRule<UdpBehaviorContext>[] = [
 				return;
 			}
 
-			world.updateEntity(entityId, {
-				data: { status: "warning", state: "sending" },
+			payloadWriter.updateData(entityId, "frame", {
+				status: "warning",
+				state: "sending",
 			});
 
 			schedule(`udp:send:${entityId}`, FRAME_SEND_MS, (sCtx) => {
@@ -116,7 +165,14 @@ const rules: BehaviorRule<UdpBehaviorContext>[] = [
 	{
 		id: "udp.success-navigate",
 		on: buildModalSubmitTrigger("udp-success", "complete"),
-		handler: ({ updateContext }) => {
+		handler: ({ event, updateContext }) => {
+			const parsed = parseModalSubmission(
+				event,
+				UDP_SUCCESS_NAVIGATION_CONTRACT,
+			);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
 			});
@@ -124,7 +180,10 @@ const rules: BehaviorRule<UdpBehaviorContext>[] = [
 	},
 ];
 
-export const UDP_BEHAVIORS: BehaviorDefinition<UdpBehaviorContext> = {
+export const UDP_BEHAVIORS: BehaviorDefinitionFor<
+	UdpBehaviorContext,
+	UdpTriggerSpec
+> = {
 	initialContext: {
 		navigateAway: false,
 		udpPhase: "streaming",

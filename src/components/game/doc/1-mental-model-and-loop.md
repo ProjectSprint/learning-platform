@@ -2,6 +2,8 @@
 
 This doc is the top-level map.
 
+Canonical question-author contract now lives in `README.md` in this directory.
+
 The structure is grouped to match how you actually work:
 
 - `1` + `1.1`: understand model and principles

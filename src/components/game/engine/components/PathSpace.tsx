@@ -5,6 +5,7 @@ import type {
 	PathSpaceConfig,
 	PathSpaceData,
 } from "@/components/game/types/space";
+import { isPathSpace } from "@/components/game/types/space";
 import {
 	getEntitySpaceId,
 	isEntityPlacementAllowed,
@@ -50,9 +51,9 @@ export const PathSpace = memo(
 		const dispatch = ctx?.dispatch ?? contextDispatch;
 		const resolvedId = config?.id ?? id;
 
-		const resolvedPath = useBreakpointValue(
+		const resolvedPath = useBreakpointValue<string>(
 			responsivePath ?? EMPTY_BREAKPOINTS,
-		) as string | undefined;
+		);
 
 		useEffect(() => {
 			if (!resolvedId) return;
@@ -63,11 +64,13 @@ export const PathSpace = memo(
 			}
 		}, [resolvedId, state.spaces]);
 
-		const space = resolvedId
-			? (state.spaces[resolvedId] as PathSpaceData | undefined)
-			: undefined;
+		const candidateSpace = resolvedId ? state.spaces[resolvedId] : undefined;
+		const space: PathSpaceData | undefined =
+			candidateSpace && isPathSpace(candidateSpace)
+				? candidateSpace
+				: undefined;
 
-		if (!space || space.kind !== "path") {
+		if (!space) {
 			return null;
 		}
 

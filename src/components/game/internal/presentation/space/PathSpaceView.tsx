@@ -11,6 +11,18 @@ type PathViewBox = { width: number; height: number };
 type EntityRenderSize = { width: number; height: number };
 const DROPZONE_CELL_WIDTH = 64;
 const DROPZONE_CELL_HEIGHT = 60;
+const MIN_FLOW_SEGMENT_LENGTH = 24;
+const MAX_FLOW_SEGMENT_LENGTH = 140;
+const INITIAL_FLOW_GAP = 10000;
+const FLOW_HEAD_TRAVEL_SECONDS = 2.4;
+const BASE_PATH_STROKE = "#4B5563";
+const BASE_PATH_STROKE_WIDTH = 4;
+const FLOW_STROKE_WIDTH = 6;
+const FLOW_LAYER_CONFIG = [
+	{ opacity: 0.24, tailScale: 1.6 },
+	{ opacity: 0.52, tailScale: 1.2 },
+	{ opacity: 1, tailScale: 0.78 },
+] as const;
 
 const parseViewBox = (viewBox: string): PathViewBox => {
 	const [minX, minY, width, height] = viewBox
@@ -45,7 +57,6 @@ export const PathSpaceView = ({
 	space,
 	path,
 	entities,
-	title,
 	speedMultiplier,
 	showDropzone = true,
 	onDropEntity,
@@ -63,6 +74,8 @@ export const PathSpaceView = ({
 	const dropzoneRef = useRef<HTMLDivElement | null>(null);
 	const trackRef = useRef<HTMLDivElement | null>(null);
 	const pathRef = useRef<SVGPathElement | null>(null);
+	const flowLayerRefs = useRef<Array<SVGPathElement | null>>([]);
+	const flowAnimationRef = useRef<gsap.core.Timeline | null>(null);
 	const timelinesRef = useRef<Map<string, gsap.core.Animation>>(new Map());
 	const pausedAtMidpointRef = useRef<Set<string>>(new Set());
 	const midpointNotifiedRef = useRef<Set<string>>(new Set());
@@ -103,6 +116,94 @@ export const PathSpaceView = ({
 		}
 		const pathStart = pathElement.getPointAtLength(0);
 		setPathStartPoint({ x: pathStart.x, y: pathStart.y });
+	}, [renderedPath]);
+
+	useEffect(() => {
+		void renderedPath;
+		const flowLayerElements: SVGPathElement[] = [];
+		for (let i = 0; i < FLOW_LAYER_CONFIG.length; i += 1) {
+			const flowLayerElement = flowLayerRefs.current[i];
+			if (!flowLayerElement) {
+				return;
+			}
+			flowLayerElements.push(flowLayerElement);
+		}
+
+		flowAnimationRef.current?.kill();
+
+		const pathLength = flowLayerElements[0].getTotalLength();
+		const baseSegmentLength = Math.max(
+			MIN_FLOW_SEGMENT_LENGTH,
+			Math.min(MAX_FLOW_SEGMENT_LENGTH, pathLength * 0.2),
+		);
+		const layerSegmentLengths = FLOW_LAYER_CONFIG.map((layer) =>
+			Math.max(
+				MIN_FLOW_SEGMENT_LENGTH,
+				Math.min(MAX_FLOW_SEGMENT_LENGTH, baseSegmentLength * layer.tailScale),
+			),
+		);
+		const longestSegmentLength = Math.max(...layerSegmentLengths);
+		const travelLength = pathLength + longestSegmentLength;
+		const cycleDurationSeconds =
+			FLOW_HEAD_TRAVEL_SECONDS * (travelLength / pathLength);
+		const flowState = { progress: 0 };
+
+		const applyFlowSegment = () => {
+			const progress = Math.max(0, Math.min(1, flowState.progress));
+			const distance = progress * travelLength;
+			const head = Math.min(distance, pathLength);
+			for (const [index, flowLayerElement] of flowLayerElements.entries()) {
+				const layerSegmentLength = layerSegmentLengths[index];
+				const layerOpacity = FLOW_LAYER_CONFIG[index].opacity;
+				const tail = Math.max(0, distance - layerSegmentLength);
+				const visibleLength = Math.max(0, head - tail);
+
+				if (visibleLength <= 0.0001) {
+					flowLayerElement.setAttribute("stroke-dasharray", `0 ${pathLength}`);
+					flowLayerElement.setAttribute("stroke-dashoffset", "0");
+					flowLayerElement.setAttribute("stroke-linecap", "butt");
+					flowLayerElement.setAttribute("stroke-opacity", "0");
+					continue;
+				}
+
+				flowLayerElement.setAttribute(
+					"stroke-dasharray",
+					`${visibleLength} ${pathLength}`,
+				);
+				flowLayerElement.setAttribute("stroke-dashoffset", `${-tail}`);
+				flowLayerElement.setAttribute("stroke-linecap", "round");
+				flowLayerElement.setAttribute("stroke-opacity", `${layerOpacity}`);
+			}
+		};
+
+		applyFlowSegment();
+
+		const flowTimeline = gsap.timeline({
+			repeat: -1,
+			onRepeat: () => {
+				flowState.progress = 0;
+				applyFlowSegment();
+			},
+		});
+		flowTimeline.to(
+			flowState,
+			{
+				progress: 1,
+				duration: cycleDurationSeconds,
+				ease: "none",
+				onUpdate: applyFlowSegment,
+			},
+			0,
+		);
+
+		flowAnimationRef.current = flowTimeline;
+
+		return () => {
+			flowTimeline.kill();
+			if (flowAnimationRef.current === flowTimeline) {
+				flowAnimationRef.current = null;
+			}
+		};
 	}, [renderedPath]);
 
 	useEffect(() => {
@@ -383,6 +484,11 @@ export const PathSpaceView = ({
 	}, [entities, getResumeToken]);
 
 	useEffect(() => {
+		const clampedSpeed = Math.max(0.25, Math.min(speedMultiplier, 3));
+		flowAnimationRef.current?.timeScale(clampedSpeed);
+	}, [speedMultiplier]);
+
+	useEffect(() => {
 		for (const animation of timelinesRef.current.values()) {
 			animation.timeScale(speedMultiplier);
 		}
@@ -390,6 +496,8 @@ export const PathSpaceView = ({
 
 	useEffect(() => {
 		return () => {
+			flowAnimationRef.current?.kill();
+			flowAnimationRef.current = null;
 			for (const animation of timelinesRef.current.values()) {
 				animation.kill();
 			}
@@ -406,35 +514,44 @@ export const PathSpaceView = ({
 			ref={containerRef}
 			className="path-space-view"
 			data-space-id={space.id}
-			bg="gray.950"
-			borderRadius="md"
-			border="1px solid"
-			borderColor="gray.800"
-			p={{ base: 2, md: 3 }}
+			position="relative"
 		>
-			{title && (
-				<Text fontSize="sm" fontWeight="bold" mb={3} color="gray.200">
-					{title}
-				</Text>
-			)}
-
-			<Flex direction="column" gap={3}>
-				<Box ref={trackRef} position="relative" h="120px">
-					<svg
-						viewBox={space.viewBox}
-						width="100%"
-						height="100%"
-						preserveAspectRatio="none"
-					>
+			<Flex direction="column">
+				<Box ref={trackRef} position="relative" h="120px" overflow="visible">
+					<svg viewBox={space.viewBox} width="100%" height="100%">
 						<title>{`Path for ${space.name ?? space.id}`}</title>
+						<path
+							d={renderedPath}
+							fill="none"
+							stroke={BASE_PATH_STROKE}
+							strokeWidth={BASE_PATH_STROKE_WIDTH}
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						/>
+						{FLOW_LAYER_CONFIG.map((layer, index) => (
+							<path
+								key={`flow-layer-${layer.opacity}-${layer.tailScale}`}
+								ref={(node) => {
+									flowLayerRefs.current[index] = node;
+								}}
+								d={renderedPath}
+								fill="none"
+								stroke="#CBD5E1"
+								strokeOpacity={layer.opacity}
+								strokeWidth={FLOW_STROKE_WIDTH}
+								strokeLinecap="butt"
+								strokeLinejoin="round"
+								strokeDasharray={`0 ${INITIAL_FLOW_GAP}`}
+								strokeDashoffset="0"
+							/>
+						))}
 						<path
 							ref={pathRef}
 							d={renderedPath}
 							fill="none"
-							stroke="#38bdf8"
-							strokeWidth="4"
-							strokeLinecap="round"
-							strokeLinejoin="round"
+							stroke="transparent"
+							strokeWidth="1"
+							pointerEvents="none"
 						/>
 					</svg>
 					{showDropzone ? (

@@ -72,9 +72,7 @@ export function useQuestionRuntime<
 		});
 
 	if (definition) {
-		const schemaResult = validateQuestionDefinition(
-			definition as QuestionDefinition,
-		);
+		const schemaResult = validateQuestionDefinition(definition);
 		if (!schemaResult.ok) {
 			const formatted = schemaResult.errors
 				.map((error) => `${error.field}: ${error.message}`)
@@ -195,20 +193,19 @@ export function useQuestionRuntime<
 		throw new Error("[runtime] Failed to initialize runtime APIs");
 	}
 
-	const behaviorResult = useBehaviorReactor<TContext>(
-		definition?.behaviors as BehaviorDefinition<TContext> | undefined,
-		{
-			state,
-			events,
-			ack,
-			world: worldApi,
-			interaction: interactionSessionApi,
-			flow: executionFlowApi,
-			progress: progressApi,
-			terminal: terminalBridge,
-			scheduler,
-		},
-	);
+	const behaviorDefinition: BehaviorDefinition<TContext> | undefined =
+		definition?.behaviors;
+	const behaviorResult = useBehaviorReactor<TContext>(behaviorDefinition, {
+		state,
+		events,
+		ack,
+		world: worldApi,
+		interaction: interactionSessionApi,
+		flow: executionFlowApi,
+		progress: progressApi,
+		terminal: terminalBridge,
+		scheduler,
+	});
 
 	return {
 		world: worldApi,

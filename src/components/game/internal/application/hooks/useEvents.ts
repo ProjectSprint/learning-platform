@@ -23,9 +23,9 @@ export const useEngineEvents = (engineId: string): EngineEventBatch => {
 	};
 	const cursor = state.eventCursors?.[engineId] ?? 0;
 
-	const events = useMemo(() => {
+	const events = useMemo<GameEvent[]>(() => {
 		if (queue.events.length === 0) {
-			return [] as GameEvent[];
+			return [];
 		}
 		return queue.events.filter((event) => event.eventId > cursor);
 	}, [cursor, queue.events]);

@@ -97,13 +97,13 @@ describe("executeSpawnPlan", () => {
 		const plan: SpawnPlan = {
 			config: { ...baseTemplate, id: "e-1" } as ItemDataConfig,
 			spaceId: "board",
-			position: { x: 0, y: 1 },
+			position: { row: 0, col: 1 },
 		};
 		executeSpawnPlan(plan, world);
 		expect(world.createEntity).toHaveBeenCalledWith(plan.config);
 		expect(world.addToSpace).toHaveBeenCalledWith("e-1", "board", {
-			x: 0,
-			y: 1,
+			row: 0,
+			col: 1,
 		});
 	});
 

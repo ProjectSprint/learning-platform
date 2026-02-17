@@ -9,19 +9,23 @@ import type { QuestionDefinition } from "@/components/game/types/question";
 import type { ValidationError } from "@/components/game/types/runtime";
 import { validateDefinition } from "./validate";
 
-export type SchemaValidationResult =
+export type SchemaValidationResult<
+	CK extends string = string,
+	TC = Record<string, never>,
+> =
 	| {
 			ok: true;
-			definition: QuestionDefinition;
+			definition: QuestionDefinition<CK, TC>;
 	  }
 	| {
 			ok: false;
 			errors: ValidationError[];
 	  };
 
-export function validateQuestionDefinition(
-	def: QuestionDefinition,
-): SchemaValidationResult {
+export function validateQuestionDefinition<
+	CK extends string = string,
+	TC = Record<string, never>,
+>(def: QuestionDefinition<CK, TC>): SchemaValidationResult<CK, TC> {
 	const errors = validateDefinition(def);
 
 	if (errors.length > 0) {

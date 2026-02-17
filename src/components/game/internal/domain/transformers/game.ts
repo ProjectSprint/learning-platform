@@ -1,4 +1,7 @@
-import type { QuestionStatus } from "@/components/game/types/state";
+import type {
+	GameEventInput,
+	QuestionStatus,
+} from "@/components/game/types/state";
 import type { TransitionResult } from "@/components/game/types/transformer";
 import { transitionApplied, transitionNoop } from "./types";
 
@@ -17,6 +20,10 @@ type GameTransitionEvent = {
 
 type GameTransitionPayload = {
 	events: GameTransitionEvent[];
+};
+
+type CoreTransitionPayload = {
+	events: GameEventInput[];
 };
 
 export const trySetQuestion = (
@@ -40,7 +47,7 @@ export const trySetQuestion = (
 export const trySetPhase = (
 	state: GameStateSlice,
 	input: { phase: string },
-): TransitionResult<GameTransitionPayload> => {
+): TransitionResult<CoreTransitionPayload> => {
 	if (state.phase === input.phase) {
 		return transitionNoop(`phase:${input.phase}:already_active`);
 	}
@@ -84,9 +91,9 @@ export const tryAckEvents = (
 	return transitionApplied({ events: [] });
 };
 
-export const tryEmitEvents = <TEvent extends { type: string }>(
-	_events: TEvent[],
-): TransitionResult<{ events: TEvent[] }> => {
+export const tryEmitEvents = (
+	_events: GameEventInput[],
+): TransitionResult<{ events: GameEventInput[] }> => {
 	if (_events.length === 0) {
 		return transitionNoop("events:empty_payload");
 	}

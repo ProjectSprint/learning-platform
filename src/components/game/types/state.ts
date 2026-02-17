@@ -1,6 +1,6 @@
 import type { EntityData } from "./entity";
 import type { ModalInstance, OverlayState } from "./modal";
-import type { SpaceData } from "./space";
+import type { SpaceData, SpacePosition } from "./space";
 
 export type QuestionStatus = "in_progress" | "completed";
 
@@ -14,14 +14,14 @@ export type EntityEnteredSpaceEvent = GameEventBase & {
 	type: "ENTITY_ENTERED_SPACE";
 	entityId: string;
 	spaceId: string;
-	position?: Record<string, unknown>;
+	position?: SpacePosition;
 };
 
 export type EntityLeftSpaceEvent = GameEventBase & {
 	type: "ENTITY_LEFT_SPACE";
 	entityId: string;
 	spaceId: string;
-	position?: Record<string, unknown>;
+	position?: SpacePosition;
 };
 
 export type EntityMovedEvent = GameEventBase & {
@@ -29,8 +29,8 @@ export type EntityMovedEvent = GameEventBase & {
 	entityId: string;
 	fromSpaceId: string;
 	toSpaceId: string;
-	fromPosition?: Record<string, unknown>;
-	toPosition?: Record<string, unknown>;
+	fromPosition?: SpacePosition;
+	toPosition?: SpacePosition;
 };
 
 export type EntityUpdatePayload = {
@@ -100,7 +100,7 @@ export type EntityClickedEvent = GameEventBase & {
 	type: "ENTITY_CLICKED";
 	entityId: string;
 	spaceId: string;
-	position?: Record<string, unknown>;
+	position?: SpacePosition;
 };
 
 export type RuntimeWarningEvent = GameEventBase & {
@@ -148,15 +148,15 @@ export type GameState = {
 export type EntityPlacement = {
 	entityId: string;
 	spaceId: string;
-	position?: Record<string, unknown>;
+	position?: SpacePosition;
 };
 
 export type EntityTransfer = {
 	entityId: string;
 	fromSpaceId: string;
 	toSpaceId: string;
-	fromPosition?: Record<string, unknown>;
-	toPosition?: Record<string, unknown>;
+	fromPosition?: SpacePosition;
+	toPosition?: SpacePosition;
 };
 
 export type CoreAction =
@@ -232,7 +232,7 @@ export type EntityAddedAction = {
 	payload: {
 		entityId: string;
 		spaceId: string;
-		position?: Record<string, unknown>;
+		position?: SpacePosition;
 	};
 };
 
@@ -250,8 +250,8 @@ export type EntityMovedAction = {
 		entityId: string;
 		fromSpaceId: string;
 		toSpaceId: string;
-		fromPosition?: Record<string, unknown>;
-		toPosition?: Record<string, unknown>;
+		fromPosition?: SpacePosition;
+		toPosition?: SpacePosition;
 	};
 };
 
@@ -260,7 +260,7 @@ export type EntityPositionUpdatedAction = {
 	payload: {
 		entityId: string;
 		spaceId: string;
-		position: Record<string, unknown>;
+		position: SpacePosition;
 	};
 };
 

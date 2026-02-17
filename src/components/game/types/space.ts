@@ -3,6 +3,12 @@ export type GridPosition = {
 	col: number;
 };
 
+export type ListPosition = {
+	index: number;
+};
+
+export type SpacePosition = GridPosition | ListPosition;
+
 export type GridMetrics = {
 	cellWidth: number;
 	cellHeight: number;
@@ -138,16 +144,39 @@ export const isMeterSpace = (space: SpaceData): space is MeterSpaceData => {
 	return space.kind === "meter";
 };
 
+const hasNumberField = (value: object, key: string): boolean => {
+	const candidate = Reflect.get(value, key);
+	return typeof candidate === "number";
+};
+
 export const isValidGridPosition = (
 	position: unknown,
 ): position is GridPosition => {
-	return (
-		position !== undefined &&
-		typeof position === "object" &&
-		position !== null &&
-		"row" in position &&
-		"col" in position &&
-		typeof (position as { row: unknown }).row === "number" &&
-		typeof (position as { col: unknown }).col === "number"
-	);
+	if (
+		position === undefined ||
+		typeof position !== "object" ||
+		position === null
+	) {
+		return false;
+	}
+	if (!("row" in position) || !("col" in position)) {
+		return false;
+	}
+	return hasNumberField(position, "row") && hasNumberField(position, "col");
+};
+
+export const isValidListPosition = (
+	position: unknown,
+): position is ListPosition => {
+	if (
+		position === undefined ||
+		typeof position !== "object" ||
+		position === null
+	) {
+		return false;
+	}
+	if (!("index" in position)) {
+		return false;
+	}
+	return hasNumberField(position, "index");
 };

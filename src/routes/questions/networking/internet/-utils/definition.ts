@@ -1,8 +1,17 @@
-import type { QuestionDefinition } from "@/components/game/types/question";
-import { INTERNET_BEHAVIORS, type InternetBehaviorContext } from "./behaviors";
+import type {
+	QuestionDefinitionFor,
+	QuestionTypeSpec,
+} from "@/components/game/types/question";
+import {
+	INTERNET_BEHAVIORS,
+	type InternetBehaviorContext,
+	type InternetEntityType,
+	type InternetPhase,
+} from "./behaviors";
 import {
 	INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
+	type InternetSpaceKey,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
@@ -14,55 +23,63 @@ export type InternetConditionKey =
 	| "dragStatus"
 	| "allDevicesPlaced";
 
-export const INTERNET_DEFINITION: QuestionDefinition<
-	InternetConditionKey,
-	InternetBehaviorContext
-> = {
-	meta: {
-		id: QUESTION_ID,
-		title: QUESTION_TITLE,
-		description: QUESTION_DESCRIPTION,
-	},
-	initialPhase: "setup",
-	spaces: [
-		...Object.values(SPACE_CONFIGS).map((config) => ({
-			kind: "grid" as const,
-			config,
-		})),
-		{ kind: "pool" as const, config: INVENTORY_POOL_CONFIG },
-	],
-	entities: INVENTORY_ITEMS.map((item) => ({
-		config: {
-			id: item.id,
-			name: item.name,
-			icon: item.icon,
-			tooltip: item.tooltip,
-			allowedPlaces: item.allowedPlaces,
-			data: { ...item.data, type: item.type },
-		},
-		initialSpace: "inventory",
-	})),
-	phaseRules: [
-		{
-			kind: "set",
-			when: { kind: "eq", key: "allDevicesPlaced", value: true },
-			to: "configuring",
-		},
-		{
-			kind: "set",
-			when: { kind: "eq", key: "dragStatus", value: "started" },
-			to: "playing",
-		},
-		{
-			kind: "set",
-			when: { kind: "eq", key: "dragStatus", value: "finished" },
-			to: "terminal",
-		},
-		{
-			kind: "set",
-			when: { kind: "eq", key: "questionStatus", value: "completed" },
-			to: "completed",
-		},
-	],
-	behaviors: INTERNET_BEHAVIORS,
+type InternetQuestionSpec = QuestionTypeSpec & {
+	conditionKey: InternetConditionKey;
+	context: InternetBehaviorContext;
+	phase: InternetPhase;
+	spaceId: InternetSpaceKey | "inventory";
+	entityType: InternetEntityType;
+	questionId: typeof QUESTION_ID;
+	conditionValue: string | boolean;
 };
+
+export const INTERNET_DEFINITION: QuestionDefinitionFor<InternetQuestionSpec> =
+	{
+		meta: {
+			id: QUESTION_ID,
+			title: QUESTION_TITLE,
+			description: QUESTION_DESCRIPTION,
+		},
+		initialPhase: "setup",
+		spaces: [
+			...Object.values(SPACE_CONFIGS).map((config) => ({
+				kind: "grid" as const,
+				config,
+			})),
+			{ kind: "pool" as const, config: INVENTORY_POOL_CONFIG },
+		],
+		entities: INVENTORY_ITEMS.map((item) => ({
+			config: {
+				id: item.id,
+				name: item.name,
+				icon: item.icon,
+				tooltip: item.tooltip,
+				allowedPlaces: item.allowedPlaces,
+				data: { ...item.data, type: item.type },
+			},
+			initialSpace: "inventory",
+		})),
+		phaseRules: [
+			{
+				kind: "set",
+				when: { kind: "eq", key: "allDevicesPlaced", value: true },
+				to: "configuring",
+			},
+			{
+				kind: "set",
+				when: { kind: "eq", key: "dragStatus", value: "started" },
+				to: "playing",
+			},
+			{
+				kind: "set",
+				when: { kind: "eq", key: "dragStatus", value: "finished" },
+				to: "terminal",
+			},
+			{
+				kind: "set",
+				when: { kind: "eq", key: "questionStatus", value: "completed" },
+				to: "completed",
+			},
+		],
+		behaviors: INTERNET_BEHAVIORS,
+	};

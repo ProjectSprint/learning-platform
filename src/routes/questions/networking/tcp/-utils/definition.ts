@@ -1,5 +1,13 @@
-import type { QuestionDefinition } from "@/components/game/types/question";
-import { TCP_BEHAVIORS, type TcpBehaviorContext } from "./behaviors";
+import type {
+	QuestionDefinitionFor,
+	QuestionTypeSpec,
+} from "@/components/game/types/question";
+import {
+	TCP_BEHAVIORS,
+	type TcpBehaviorContext,
+	type TcpEntityType,
+	type TcpPhase,
+} from "./behaviors";
 import {
 	FILE_INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
@@ -13,9 +21,20 @@ import {
 	SPACE_CONFIGS,
 	SYSTEM_PACKET_ITEMS,
 	TCP_TOOL_ITEMS,
+	type TcpSpaceKey,
 } from "./constants";
 
-export const TCP_DEFINITION: QuestionDefinition<string, TcpBehaviorContext> = {
+type TcpQuestionSpec = QuestionTypeSpec & {
+	conditionKey: never;
+	context: TcpBehaviorContext;
+	phase: TcpPhase;
+	spaceId: TcpSpaceKey | "inventory" | "received";
+	entityType: TcpEntityType;
+	questionId: typeof QUESTION_ID;
+	conditionValue: never;
+};
+
+export const TCP_DEFINITION: QuestionDefinitionFor<TcpQuestionSpec> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,

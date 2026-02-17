@@ -1,5 +1,13 @@
-import type { QuestionDefinition } from "@/components/game/types/question";
-import { SSL_BEHAVIORS, type SslBehaviorContext } from "./behaviors";
+import type {
+	QuestionDefinitionFor,
+	QuestionTypeSpec,
+} from "@/components/game/types/question";
+import {
+	SSL_BEHAVIORS,
+	type SslBehaviorContext,
+	type SslEntityType,
+	type SslPhase,
+} from "./behaviors";
 import {
 	BASIC_INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
@@ -12,9 +20,20 @@ import {
 	SSL_POOL_IDS,
 	SSL_SETUP_INVENTORY_ITEMS,
 	SSL_SETUP_POOL_CONFIG,
+	type WebSslSpaceKey,
 } from "./constants";
 
-export const SSL_DEFINITION: QuestionDefinition<string, SslBehaviorContext> = {
+type SslQuestionSpec = QuestionTypeSpec & {
+	conditionKey: never;
+	context: SslBehaviorContext;
+	phase: SslPhase;
+	spaceId: WebSslSpaceKey | (typeof SSL_POOL_IDS)[keyof typeof SSL_POOL_IDS];
+	entityType: SslEntityType;
+	questionId: typeof QUESTION_ID;
+	conditionValue: never;
+};
+
+export const SSL_DEFINITION: QuestionDefinitionFor<SslQuestionSpec> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -40,7 +59,7 @@ export const SSL_DEFINITION: QuestionDefinition<string, SslBehaviorContext> = {
 				allowedPlaces: item.allowedPlaces,
 				data: { ...item.data, type: item.type },
 			},
-			initialSpace: "inventory",
+			initialSpace: "inventory" as const,
 		})),
 		...SSL_SETUP_INVENTORY_ITEMS.map((item) => ({
 			config: {
@@ -51,7 +70,7 @@ export const SSL_DEFINITION: QuestionDefinition<string, SslBehaviorContext> = {
 				allowedPlaces: item.allowedPlaces,
 				data: { ...item.data, type: item.type },
 			},
-			initialSpace: SSL_POOL_IDS.setup,
+			initialSpace: SSL_POOL_IDS.setup as (typeof SSL_POOL_IDS)["setup"],
 		})),
 		...SSL_ITEMS_INVENTORY.map((item) => ({
 			config: {
@@ -62,7 +81,8 @@ export const SSL_DEFINITION: QuestionDefinition<string, SslBehaviorContext> = {
 				allowedPlaces: item.allowedPlaces,
 				data: { ...item.data, type: item.type },
 			},
-			initialSpace: SSL_POOL_IDS.certificates,
+			initialSpace:
+				SSL_POOL_IDS.certificates as (typeof SSL_POOL_IDS)["certificates"],
 		})),
 	],
 	phaseRules: [],

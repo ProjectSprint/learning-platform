@@ -1,11 +1,17 @@
 import type { EntityData } from "@/components/game/types/entity";
-import type { GridPosition, SpaceData } from "@/components/game/types/space";
+import type {
+	GridPosition,
+	ListPosition,
+	SpaceData,
+	SpacePosition,
+} from "@/components/game/types/space";
 import {
 	isGridSpace,
 	isPathSpace,
 	isPoolSpace,
 	isQueueSpace,
 	isValidGridPosition,
+	isValidListPosition,
 } from "@/components/game/types/space";
 import type { TransitionResult } from "@/components/game/types/transformer";
 import { transitionApplied, transitionNoop } from "./types";
@@ -20,21 +26,21 @@ type SpaceTransitionEvent =
 			type: "ENTITY_ENTERED_SPACE";
 			entityId: string;
 			spaceId: string;
-			position?: Record<string, unknown>;
+			position?: SpacePosition;
 	  }
 	| {
 			type: "ENTITY_LEFT_SPACE";
 			entityId: string;
 			spaceId: string;
-			position?: Record<string, unknown>;
+			position?: SpacePosition;
 	  }
 	| {
 			type: "ENTITY_MOVED";
 			entityId: string;
 			fromSpaceId: string;
 			toSpaceId: string;
-			fromPosition?: Record<string, unknown>;
-			toPosition?: Record<string, unknown>;
+			fromPosition?: SpacePosition;
+			toPosition?: SpacePosition;
 	  };
 
 type SpaceTransitionPayload = {
@@ -44,20 +50,20 @@ type SpaceTransitionPayload = {
 type SpacePlacementInput = {
 	entityId: string;
 	spaceId: string;
-	position?: Record<string, unknown>;
+	position?: SpacePosition;
 };
 
 type SpaceMoveInput = {
 	entityId: string;
 	fromSpaceId: string;
 	toSpaceId: string;
-	toPosition?: Record<string, unknown>;
+	toPosition?: SpacePosition;
 };
 
 type GridPositionInput = {
 	entityId: string;
 	spaceId: string;
-	position: Record<string, unknown>;
+	position: SpacePosition;
 };
 
 type SpaceSwapInput = {
@@ -68,9 +74,9 @@ type SpaceSwapInput = {
 };
 
 const listIndexFromPosition = (
-	position?: Record<string, unknown>,
+	position?: SpacePosition,
 ): number | undefined => {
-	if (!position || !("index" in position)) {
+	if (!position || !isValidListPosition(position)) {
 		return undefined;
 	}
 	const candidate = position.index;
@@ -149,14 +155,15 @@ const spaceContainsEntity = (space: SpaceData, entityId: string): boolean => {
 const getEntityPositionInSpace = (
 	space: SpaceData,
 	entityId: string,
-): Record<string, unknown> | undefined => {
+): SpacePosition | undefined => {
 	if (isGridSpace(space)) {
 		const position = space.entityPositions[entityId];
 		return position ? { ...position } : undefined;
 	}
 	if (isPoolSpace(space) || isQueueSpace(space)) {
 		const index = space.entityIds.indexOf(entityId);
-		return index >= 0 ? { index } : undefined;
+		const position: ListPosition = { index };
+		return index >= 0 ? position : undefined;
 	}
 	if (isPathSpace(space)) {
 		return space.entityIds.includes(entityId) ? undefined : undefined;
@@ -169,7 +176,7 @@ const removeFromSpace = (
 	entityId: string,
 ): {
 	removed: boolean;
-	position?: Record<string, unknown>;
+	position?: SpacePosition;
 } => {
 	if (isGridSpace(space)) {
 		const position = space.entityPositions[entityId];
@@ -189,7 +196,8 @@ const removeFromSpace = (
 		if (isPathSpace(space)) {
 			return { removed: true };
 		}
-		return { removed: true, position: { index } };
+		const position: ListPosition = { index };
+		return { removed: true, position };
 	}
 
 	return { removed: false };
@@ -198,10 +206,10 @@ const removeFromSpace = (
 const addToSpace = (
 	space: SpaceData,
 	entityId: string,
-	position?: Record<string, unknown>,
+	position?: SpacePosition,
 ): {
 	added: boolean;
-	position?: Record<string, unknown>;
+	position?: SpacePosition;
 } => {
 	if (isGridSpace(space)) {
 		if (!position || !isValidGridPosition(position)) {
@@ -240,7 +248,8 @@ const addToSpace = (
 				? space.entityIds.length
 				: Math.max(0, Math.min(requestedIndex, space.entityIds.length));
 		space.entityIds.splice(nextIndex, 0, entityId);
-		return { added: true, position: { index: nextIndex } };
+		const nextPosition: ListPosition = { index: nextIndex };
+		return { added: true, position: nextPosition };
 	}
 
 	if (isPathSpace(space)) {
@@ -264,7 +273,8 @@ const addToSpace = (
 			space.entityIds.splice(existingIndex, 1);
 		}
 		space.entityIds.push(entityId);
-		return { added: true, position: { index: space.entityIds.length - 1 } };
+		const nextPosition: ListPosition = { index: space.entityIds.length - 1 };
+		return { added: true, position: nextPosition };
 	}
 
 	return { added: false };
@@ -356,7 +366,7 @@ export const tryRemoveEntityFromSpace = (
 const rollbackMove = (
 	fromSpace: SpaceData,
 	entityId: string,
-	fromPosition?: Record<string, unknown>,
+	fromPosition?: SpacePosition,
 ) => {
 	addToSpace(fromSpace, entityId, fromPosition);
 };

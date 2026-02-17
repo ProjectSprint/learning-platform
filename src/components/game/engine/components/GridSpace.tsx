@@ -16,6 +16,7 @@ import type {
 	GridSpaceConfig,
 	GridSpaceData,
 } from "@/components/game/types/space";
+import { isGridSpace } from "@/components/game/types/space";
 import {
 	getEntitySpaceId,
 	isEntityPlacementAllowed,
@@ -134,14 +135,16 @@ export const GridSpace = memo(
 		}, [resolvedId, state.spaces]);
 
 		// Resolve responsive breakpoint to [viewCols, viewRows] (or undefined)
-		const resolvedSize = useBreakpointValue(
+		const resolvedSize = useBreakpointValue<[number, number]>(
 			responsiveSize ?? EMPTY_BREAKPOINTS,
-		) as [number, number] | undefined;
+		);
 
 		// Get space data
-		const space = resolvedId
-			? (state.spaces[resolvedId] as GridSpaceData | undefined)
-			: undefined;
+		const candidateSpace = resolvedId ? state.spaces[resolvedId] : undefined;
+		const space: GridSpaceData | undefined =
+			candidateSpace && isGridSpace(candidateSpace)
+				? candidateSpace
+				: undefined;
 
 		// Derive view dimensions and whether remapping is active
 		const dataCols = space?.cols ?? 0;
@@ -232,7 +235,7 @@ export const GridSpace = memo(
 					payload: {
 						entityId,
 						spaceId: toSpaceId,
-						position: dataToPosition as unknown as Record<string, unknown>,
+						position: dataToPosition,
 					},
 				});
 				return true;
@@ -246,7 +249,7 @@ export const GridSpace = memo(
 						entityId,
 						fromSpaceId,
 						toSpaceId,
-						toPosition: dataToPosition as unknown as Record<string, unknown>,
+						toPosition: dataToPosition,
 					},
 				});
 				return true;
@@ -259,7 +262,7 @@ export const GridSpace = memo(
 					payload: {
 						entityId,
 						spaceId: toSpaceId,
-						position: dataToPosition as unknown as Record<string, unknown>,
+						position: dataToPosition,
 					},
 				});
 				return true;

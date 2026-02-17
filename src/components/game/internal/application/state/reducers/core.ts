@@ -73,10 +73,7 @@ export const coreReducer = (
 			if (transition.status !== "applied") {
 				return state;
 			}
-			return appendTransitionEvents(
-				state,
-				transition.value.events as GameEventInput[],
-			);
+			return appendTransitionEvents(state, transition.value.events);
 		}
 		default:
 			return state;

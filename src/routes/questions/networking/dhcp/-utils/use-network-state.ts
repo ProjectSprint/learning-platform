@@ -10,6 +10,7 @@ import type {
 	SpaceItemLocation,
 } from "@/components/game/engine/game-provider";
 import { useGameState } from "@/components/game/engine/game-provider";
+import { createEntityPayloadWriter } from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { WorldApi } from "@/components/game/types/runtime";
 import type { GridSpaceData } from "@/components/game/types/space";
@@ -27,6 +28,26 @@ interface UseNetworkStateArgs {
 	dragEngine: DragEngine | null;
 	world: WorldApi;
 }
+
+type DhcpEntityStateByType = {
+	router: {
+		status: BoardItemStatus;
+	};
+	cable: {
+		status: BoardItemStatus;
+	};
+	pc: {
+		ip: string | null;
+		status: BoardItemStatus;
+	};
+};
+
+const toBoardItemStatus = (value: unknown): BoardItemStatus => {
+	if (value === "success" || value === "error" || value === "warning") {
+		return value;
+	}
+	return "normal";
+};
 
 /**
  * Convert Entity with position to SpaceItemLocation for compatibility with network-utils
@@ -46,7 +67,7 @@ const entityToBoardItem = (
 		type: entity.type,
 		blockX: position.col,
 		blockY: position.row,
-		status: (entity.state.status as BoardItemStatus | undefined) ?? "normal",
+		status: toBoardItemStatus(entity.state.status),
 		data: entity.data,
 	};
 };
@@ -57,6 +78,13 @@ const entityToBoardItem = (
  */
 export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 	const state = useGameState();
+	const payloadWriter = useMemo(
+		() =>
+			createEntityPayloadWriter<Record<string, never>, DhcpEntityStateByType>(
+				world,
+			),
+		[world],
+	);
 	const stateRef = useRef(state);
 	stateRef.current = state;
 
@@ -143,7 +171,9 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 		network.pc2 && state.entities[network.pc2.id]?.state.ip,
 	);
 	const pc2Ip = network.pc2
-		? ((state.entities[network.pc2.id]?.state.ip as string | null) ?? null)
+		? typeof state.entities[network.pc2.id]?.state.ip === "string"
+			? state.entities[network.pc2.id]?.state.ip
+			: null
 		: null;
 
 	const routerSettingsOpen = Object.values(state.overlay.modals).some(
@@ -183,7 +213,7 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 			const desiredRouterStatus = routerConfigured ? "success" : "error";
 			const entity = stateRef.current.entities[network.router.id];
 			if (entity && entity.state.status !== desiredRouterStatus) {
-				world.updateEntityState(network.router.id, {
+				payloadWriter.updateState(network.router.id, "router", {
 					status: desiredRouterStatus,
 				});
 			}
@@ -195,7 +225,7 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 			const desiredStatus = isConnected ? "success" : "warning";
 			const entity = stateRef.current.entities[cable.id];
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(cable.id, {
+				payloadWriter.updateState(cable.id, "cable", {
 					status: desiredStatus,
 				});
 			}
@@ -216,13 +246,13 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 			const currentStatus = entity.state.status;
 
 			if (currentIp !== desiredIp || currentStatus !== desiredStatus) {
-				world.updateEntityState(pc.id, {
+				payloadWriter.updateState(pc.id, "pc", {
 					ip: desiredIp,
 					status: desiredStatus,
 				});
 			}
 		}
-	}, [questionStatus, network, routerConfigured, startIp, world]);
+	}, [network, payloadWriter, questionStatus, routerConfigured, startIp]);
 
 	// Manage drag engine progress
 	useEffect(() => {

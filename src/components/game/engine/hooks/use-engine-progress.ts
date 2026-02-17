@@ -134,10 +134,14 @@ export const useEngineProgress = <TContext = unknown>(
 
 		for (const eventType of state.pendingEvents) {
 			if (eventType === "ENGINE_STARTED") {
-				onStarted?.(context as TContext);
+				if (context !== undefined) {
+					onStarted?.(context);
+				}
 			}
 			if (eventType === "ENGINE_FINISHED") {
-				onFinished?.(context as TContext);
+				if (context !== undefined) {
+					onFinished?.(context);
+				}
 			}
 		}
 

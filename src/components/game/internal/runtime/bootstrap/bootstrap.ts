@@ -39,6 +39,25 @@ const SPACE_CREATORS: {
 	custom: createCustomSpaceData,
 };
 
+const createSpaceData = (spaceDef: SpaceDefinition): SpaceData => {
+	switch (spaceDef.kind) {
+		case "grid":
+			return SPACE_CREATORS.grid(spaceDef.config);
+		case "pool":
+			return SPACE_CREATORS.pool(spaceDef.config);
+		case "path":
+			return SPACE_CREATORS.path(spaceDef.config);
+		case "queue":
+			return SPACE_CREATORS.queue(spaceDef.config);
+		case "meter":
+			return SPACE_CREATORS.meter(spaceDef.config);
+		case "custom":
+			return SPACE_CREATORS.custom(spaceDef.config);
+		default:
+			throw new Error("[runtime] Unknown space kind");
+	}
+};
+
 type Dispatch = (action: Action) => void;
 
 /**
@@ -68,8 +87,7 @@ export function bootstrapQuestion<CK extends string = string, TC = unknown>(
 
 	// 3. Create spaces
 	for (const spaceDef of definition.spaces) {
-		const createSpace = SPACE_CREATORS[spaceDef.kind];
-		const space = createSpace(spaceDef.config as never);
+		const space = createSpaceData(spaceDef);
 
 		dispatch({
 			type: "SPACE_CREATED",
@@ -92,9 +110,7 @@ export function bootstrapQuestion<CK extends string = string, TC = unknown>(
 				payload: {
 					entityId: entity.id,
 					spaceId: entityDef.initialSpace,
-					position: entityDef.initialPosition as
-						| Record<string, unknown>
-						| undefined,
+					position: entityDef.initialPosition,
 				},
 			});
 		}

@@ -11,6 +11,7 @@ import type {
 	PoolSpaceConfig,
 	PoolSpaceData,
 } from "@/components/game/types/space";
+import { isPoolSpace } from "@/components/game/types/space";
 import { isItemData } from "../../internal/domain/entity/entity-data";
 import type { GameContextValue } from "../../internal/game-provider";
 import { useGameDispatch, useGameState } from "../../internal/game-provider";
@@ -70,9 +71,11 @@ export const PoolSpace = memo(
 		}, [resolvedId, state.spaces]);
 
 		// Get pool space data
-		const pool = resolvedId
-			? (state.spaces[resolvedId] as PoolSpaceData | undefined)
-			: undefined;
+		const candidateSpace = resolvedId ? state.spaces[resolvedId] : undefined;
+		const pool: PoolSpaceData | undefined =
+			candidateSpace && isPoolSpace(candidateSpace)
+				? candidateSpace
+				: undefined;
 
 		// Get entities in this pool
 		const poolEntityIds = pool?.entityIds ?? [];
@@ -109,7 +112,10 @@ export const PoolSpace = memo(
 		}, [state.entities, state.spaces, pool?.entityIds, resolvedId]);
 
 		// Handle drag start from pool
-		const handleDragStart = (entity: EntityData, event: React.PointerEvent) => {
+		const handleDragStart = (
+			entity: EntityData,
+			event: React.PointerEvent<HTMLDivElement>,
+		) => {
 			if (!pool) {
 				return;
 			}
@@ -128,7 +134,7 @@ export const PoolSpace = memo(
 			}
 
 			event.preventDefault();
-			const target = event.currentTarget as HTMLElement;
+			const target = event.currentTarget;
 			const rect = target.getBoundingClientRect();
 
 			setLastDropResult(null);

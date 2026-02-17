@@ -1,4 +1,4 @@
-import { Box, type BoxProps, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, type FlexProps, Text } from "@chakra-ui/react";
 import { memo } from "react";
 import { useHintStore } from "./hint-context";
 import { PaperclipCharacter } from "./paperclip-character";
@@ -22,7 +22,7 @@ HintKeyframes.displayName = "HintKeyframes";
 /*  Chat-bubble hint                                                  */
 /* ------------------------------------------------------------------ */
 type ContextualHintProps = {
-	containerProps?: BoxProps;
+	containerProps?: FlexProps;
 };
 
 export const ContextualHint = ({ containerProps }: ContextualHintProps) => {
@@ -45,7 +45,7 @@ export const ContextualHint = ({ containerProps }: ContextualHintProps) => {
 				gap={3}
 				mb={4}
 				style={{ animation: "hint-appear 0.3s ease-out" }}
-				{...(containerProps as Record<string, unknown>)}
+				{...containerProps}
 			>
 				<PaperclipCharacter pose={pose} />
 

@@ -75,7 +75,7 @@ export const ModalInstanceView = ({
 			const value = values[field.id];
 
 			if (field.kind === "text" || field.kind === "textarea") {
-				const v = (value ?? "") as string;
+				const v = typeof value === "string" ? value : "";
 				if (field.validate) {
 					const error = field.validate(v, values);
 					if (error) {
@@ -83,7 +83,7 @@ export const ModalInstanceView = ({
 					}
 				}
 			} else if (field.kind === "select") {
-				const v = (value ?? "") as string;
+				const v = typeof value === "string" ? value : "";
 				if (field.validate) {
 					const error = field.validate(v, values);
 					if (error) {
@@ -124,7 +124,8 @@ export const ModalInstanceView = ({
 	const renderField = (field: ModalField) => {
 		switch (field.kind) {
 			case "text": {
-				const value = (values[field.id] ?? "") as string;
+				const rawValue = values[field.id];
+				const value = typeof rawValue === "string" ? rawValue : "";
 				const error = errors[field.id] ?? null;
 
 				return (
@@ -163,7 +164,8 @@ export const ModalInstanceView = ({
 				);
 			}
 			case "textarea": {
-				const value = (values[field.id] ?? "") as string;
+				const rawValue = values[field.id];
+				const value = typeof rawValue === "string" ? rawValue : "";
 				const error = errors[field.id] ?? null;
 
 				return (

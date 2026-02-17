@@ -1,6 +1,15 @@
-import type { QuestionDefinition } from "@/components/game/types/question";
-import { DHCP_BEHAVIORS, type DhcpBehaviorContext } from "./behaviors";
+import type {
+	QuestionDefinitionFor,
+	QuestionTypeSpec,
+} from "@/components/game/types/question";
 import {
+	DHCP_BEHAVIORS,
+	type DhcpBehaviorContext,
+	type DhcpEntityType,
+	type DhcpPhase,
+} from "./behaviors";
+import {
+	type DhcpSpaceKey,
 	INVENTORY_ITEMS,
 	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
@@ -11,10 +20,17 @@ import {
 
 export type DhcpConditionKey = "dragStatus" | "questionStatus";
 
-export const DHCP_DEFINITION: QuestionDefinition<
-	DhcpConditionKey,
-	DhcpBehaviorContext
-> = {
+type DhcpQuestionSpec = QuestionTypeSpec & {
+	conditionKey: DhcpConditionKey;
+	context: DhcpBehaviorContext;
+	phase: DhcpPhase;
+	spaceId: DhcpSpaceKey | "inventory";
+	entityType: DhcpEntityType;
+	questionId: typeof QUESTION_ID;
+	conditionValue: string | boolean;
+};
+
+export const DHCP_DEFINITION: QuestionDefinitionFor<DhcpQuestionSpec> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,

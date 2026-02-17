@@ -11,6 +11,7 @@
 
 import type { ItemDataConfig } from "@/components/game/types/entity";
 import type { CommandContext, Commands } from "@/components/game/types/runtime";
+import type { SpacePosition } from "@/components/game/types/space";
 import { isGridSpace } from "@/components/game/types/space";
 import { createItemData } from "../../domain/adt";
 import { getEntitySpaceId, selectGridEmptyPositions } from "../../domain/read";
@@ -24,7 +25,7 @@ export function createCommands(ctx: CommandContext): Commands {
 	const moveEntityInternal = (
 		entityId: string,
 		toSpaceId: string,
-		position?: Record<string, unknown>,
+		position?: SpacePosition,
 	) => {
 		const state = getState();
 		const fromSpaceId = getEntitySpaceId(state, entityId);
@@ -89,7 +90,7 @@ export function createCommands(ctx: CommandContext): Commands {
 				payload: {
 					entityId,
 					spaceId,
-					position: position as Record<string, unknown> | undefined,
+					position,
 				},
 			});
 		},
@@ -102,11 +103,7 @@ export function createCommands(ctx: CommandContext): Commands {
 		},
 
 		moveEntity(entityId, toSpaceId, position) {
-			moveEntityInternal(
-				entityId,
-				toSpaceId,
-				position as Record<string, unknown> | undefined,
-			);
+			moveEntityInternal(entityId, toSpaceId, position);
 		},
 
 		moveEntityToGrid(entityId, spaceId) {

@@ -8,6 +8,6 @@ export interface EngineProgress {
 }
 
 export interface EngineLifecycleCallbacks<TContext = unknown> {
-	onStarted?: (ctx: TContext) => void;
-	onFinished?: (ctx: TContext) => void;
+	onStarted?: (ctx: TContext | undefined) => void;
+	onFinished?: (ctx: TContext | undefined) => void;
 }

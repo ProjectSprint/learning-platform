@@ -10,6 +10,7 @@ import type {
 	SpaceItemLocation,
 } from "@/components/game/engine/game-provider";
 import { useGameState } from "@/components/game/engine/game-provider";
+import { createEntityPayloadWriter } from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { WorldApi } from "@/components/game/types/runtime";
 import type { GridSpaceData } from "@/components/game/types/space";
@@ -30,6 +31,28 @@ interface UseInternetStateArgs {
 	dragEngine: DragEngine | null;
 	world: WorldApi;
 }
+
+type InternetEntityStateByType = {
+	pc: {
+		ip?: string | null;
+		status?: BoardItemStatus;
+	};
+	"router-lan": { status: BoardItemStatus };
+	"router-nat": { status: BoardItemStatus };
+	"router-wan": { status: BoardItemStatus };
+	igw: { status: BoardItemStatus };
+	dns: { status: BoardItemStatus };
+	google: { status: BoardItemStatus };
+	cable: { status: BoardItemStatus };
+	fiber: { status: BoardItemStatus };
+};
+
+const toBoardItemStatus = (value: unknown): BoardItemStatus => {
+	if (value === "success" || value === "error" || value === "warning") {
+		return value;
+	}
+	return "normal";
+};
 
 const SPACE_IDS: InternetSpaceKey[] = [
 	"local",
@@ -59,7 +82,7 @@ const entityToBoardItem = (
 		type: entity.type,
 		blockX: position.col,
 		blockY: position.row,
-		status: (entity.state.status as BoardItemStatus | undefined) ?? "normal",
+		status: toBoardItemStatus(entity.state.status),
 		data: entity.data,
 	};
 };
@@ -72,6 +95,14 @@ export const useInternetState = ({
 	world,
 }: UseInternetStateArgs) => {
 	const state = useGameState();
+	const payloadWriter = useMemo(
+		() =>
+			createEntityPayloadWriter<
+				Record<string, never>,
+				InternetEntityStateByType
+			>(world),
+		[world],
+	);
 	const stateRef = useRef(state);
 	stateRef.current = state;
 
@@ -245,7 +276,7 @@ export const useInternetState = ({
 			const currentIp = entity?.state.ip ?? null;
 
 			if (currentIp !== desiredIp) {
-				world.updateEntityState(network.pc.id, { ip: desiredIp });
+				payloadWriter.updateState(network.pc.id, "pc", { ip: desiredIp });
 			}
 		} else if (
 			network.pc &&
@@ -254,10 +285,10 @@ export const useInternetState = ({
 			const entity = stateRef.current.entities[network.pc.id];
 			const currentIp = entity?.state.ip ?? null;
 			if (currentIp !== null) {
-				world.updateEntityState(network.pc.id, { ip: null });
+				payloadWriter.updateState(network.pc.id, "pc", { ip: null });
 			}
 		}
-	}, [questionStatus, network, routerLanConfigured, startIp, world]);
+	}, [network, payloadWriter, questionStatus, routerLanConfigured, startIp]);
 
 	// Update device statuses based on network state
 	useEffect(() => {
@@ -282,7 +313,9 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(network.pc.id, { status: desiredStatus });
+				payloadWriter.updateState(network.pc.id, "pc", {
+					status: desiredStatus,
+				});
 			}
 		}
 
@@ -298,7 +331,7 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(network.routerLan.id, {
+				payloadWriter.updateState(network.routerLan.id, "router-lan", {
 					status: desiredStatus,
 				});
 			}
@@ -309,7 +342,7 @@ export const useInternetState = ({
 			const entity = stateRef.current.entities[network.routerNat.id];
 			const desiredStatus = natEnabled ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(network.routerNat.id, {
+				payloadWriter.updateState(network.routerNat.id, "router-nat", {
 					status: desiredStatus,
 				});
 			}
@@ -325,7 +358,7 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(network.routerWan.id, {
+				payloadWriter.updateState(network.routerWan.id, "router-wan", {
 					status: desiredStatus,
 				});
 			}
@@ -336,7 +369,9 @@ export const useInternetState = ({
 			const entity = stateRef.current.entities[network.igw.id];
 			const desiredStatus = hasValidPppoeCredentials ? "success" : "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(network.igw.id, { status: desiredStatus });
+				payloadWriter.updateState(network.igw.id, "igw", {
+					status: desiredStatus,
+				});
 			}
 		}
 
@@ -345,7 +380,9 @@ export const useInternetState = ({
 			const entity = stateRef.current.entities[network.dns.id];
 			const desiredStatus = hasValidDnsServer ? "success" : "error";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(network.dns.id, { status: desiredStatus });
+				payloadWriter.updateState(network.dns.id, "dns", {
+					status: desiredStatus,
+				});
 			}
 		}
 
@@ -361,7 +398,9 @@ export const useInternetState = ({
 				desiredStatus = "success";
 			}
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(network.google.id, { status: desiredStatus });
+				payloadWriter.updateState(network.google.id, "google", {
+					status: desiredStatus,
+				});
 			}
 		}
 
@@ -372,7 +411,9 @@ export const useInternetState = ({
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(network.cable.id, { status: desiredStatus });
+				payloadWriter.updateState(network.cable.id, "cable", {
+					status: desiredStatus,
+				});
 			}
 		}
 
@@ -383,7 +424,9 @@ export const useInternetState = ({
 				? "success"
 				: "warning";
 			if (entity && entity.state.status !== desiredStatus) {
-				world.updateEntityState(network.fiber.id, { status: desiredStatus });
+				payloadWriter.updateState(network.fiber.id, "fiber", {
+					status: desiredStatus,
+				});
 			}
 		}
 	}, [
@@ -398,7 +441,7 @@ export const useInternetState = ({
 		googleReachable,
 		username,
 		password,
-		world,
+		payloadWriter,
 	]);
 
 	// Drag engine progress management

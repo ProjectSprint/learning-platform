@@ -3,6 +3,7 @@ import type {
 	SpawnPlan,
 } from "@/components/game/types/behavior";
 import type { ItemDataConfig } from "@/components/game/types/entity";
+import type { SpacePosition } from "@/components/game/types/space";
 
 /**
  * Stamp a template to produce a concrete ItemDataConfig with a unique ID.
@@ -51,7 +52,7 @@ export const executeSpawnPlan = (
 		addToSpace: (
 			entityId: string,
 			spaceId: string,
-			position?: Record<string, unknown>,
+			position?: SpacePosition,
 		) => unknown;
 	},
 ): void => {
@@ -71,7 +72,7 @@ export const executeSpawnPlans = (
 		addToSpace: (
 			entityId: string,
 			spaceId: string,
-			position?: Record<string, unknown>,
+			position?: SpacePosition,
 		) => unknown;
 	},
 ): void => {

@@ -1,11 +1,20 @@
-import type { QuestionDefinition } from "@/components/game/types/question";
-import type { UdpBehaviorContext } from "./behaviors";
-import { UDP_BEHAVIORS } from "./behaviors";
+import type {
+	QuestionDefinitionFor,
+	QuestionTypeSpec,
+} from "@/components/game/types/question";
+import {
+	UDP_BEHAVIORS,
+	type UdpBehaviorContext,
+	type UdpEntityType,
+	type UdpPhaseId,
+} from "./behaviors";
 import {
 	CUSTOM_SPACE_CONFIGS,
+	type CustomSpaceKey,
 	DATA_PACKETS,
 	FRAME_ITEMS,
 	GRID_SPACE_CONFIGS,
+	type GridSpaceKey,
 	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
@@ -19,7 +28,17 @@ const INITIAL_SYN_ACK_IDS = new Set(
 	INITIAL_TCP_CLIENT_IDS.map((id) => `syn-ack-packet-${id}`),
 );
 
-export const UDP_DEFINITION: QuestionDefinition<string, UdpBehaviorContext> = {
+type UdpQuestionSpec = QuestionTypeSpec & {
+	conditionKey: never;
+	context: UdpBehaviorContext;
+	phase: UdpPhaseId;
+	spaceId: GridSpaceKey | CustomSpaceKey | "inventory" | "received";
+	entityType: UdpEntityType;
+	questionId: typeof QUESTION_ID;
+	conditionValue: never;
+};
+
+export const UDP_DEFINITION: QuestionDefinitionFor<UdpQuestionSpec> = {
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,

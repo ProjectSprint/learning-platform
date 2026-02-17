@@ -1,11 +1,12 @@
 import {
 	buildEntityArrivedTrigger,
 	chooseLaneForExecution,
+	createEntityPayloadWriter,
 	findEntitySpace,
 } from "@/components/game/engine/runtime";
 import type {
-	BehaviorDefinition,
-	BehaviorRule,
+	BehaviorDefinitionFor,
+	BehaviorRuleFor,
 	EffectContext,
 } from "@/components/game/types/behavior";
 import type {
@@ -31,10 +32,21 @@ type CoreLaneId = typeof SPACE_IDS.core1 | typeof SPACE_IDS.core2;
 const CORE_LANES: CoreLaneId[] = [SPACE_IDS.core1, SPACE_IDS.core2];
 const EXECUTION_SPLIT_SETTLE_MS = 250;
 
+export type CoresPhase = "single-core";
+export type CoresSpaceId = (typeof SPACE_IDS)[keyof typeof SPACE_IDS];
+export type CoresEntityType = "app" | "subtask";
+
+type CoresTriggerSpec = {
+	spaceId: CoresSpaceId;
+	entityType: CoresEntityType;
+	modalId: never;
+	modalActionId: never;
+	phase: CoresPhase;
+};
+
 export type CoresBehaviorContext = {
 	pipelineState: "idle" | "parsing" | "allocating" | "executing";
 	openedCount: number;
-	ramUsage: number;
 	dualCorePromptVisible: boolean;
 	activeLane1AppId: string | null;
 	activeLane1AppKey: AppKey | null;
@@ -51,6 +63,22 @@ export type CoresBehaviorContext = {
 };
 
 type Ctx = EffectContext<CoresBehaviorContext>;
+
+type CoresEntityDataByType = {
+	coresEntity: Record<string, unknown>;
+};
+
+const updateEntityData = (
+	ctx: Pick<Ctx, "world">,
+	entityId: string,
+	data: Record<string, unknown>,
+) => {
+	const payloadWriter = createEntityPayloadWriter<
+		CoresEntityDataByType,
+		Record<string, never>
+	>(ctx.world);
+	payloadWriter.updateData(entityId, "coresEntity", data);
+};
 
 function getActiveLaneApp(
 	ctx: { context: CoresBehaviorContext },
@@ -209,15 +237,15 @@ function createExecutionParts(
 		// keep an old midpoint-pause configuration.
 		ctx.world.updateEntity(partId, {
 			name: part.label,
-			data: {
-				appKey,
-				step: part.step,
-				partStatus: "queued",
-				laneId,
-				ownerAppId: appId,
-				pathPauseAtMidpoint: shouldPauseAtMidpoint,
-				pathResumeToken: 0,
-			},
+		});
+		updateEntityData(ctx, partId, {
+			appKey,
+			step: part.step,
+			partStatus: "queued",
+			laneId,
+			ownerAppId: appId,
+			pathPauseAtMidpoint: shouldPauseAtMidpoint,
+			pathResumeToken: 0,
 		});
 		const currentSpaceId = findEntitySpace(ctx.state, partId);
 		if (currentSpaceId) {
@@ -257,7 +285,7 @@ function moveNextPartToCore(
 			ctx.world.removeFromSpace(app.appId, currentSpaceId);
 		}
 		ctx.world.moveEntityToGrid(app.appId, SPACE_IDS.opened);
-		ctx.world.updateEntity(app.appId, { data: { appStatus: "opened" } });
+		updateEntityData(ctx, app.appId, { appStatus: "opened" });
 
 		const nextOpened = ctx.context.openedCount + 1;
 		setActiveLaneApp(ctx, laneId, null);
@@ -289,7 +317,7 @@ function moveNextPartToCore(
 		return;
 	}
 
-	ctx.world.updateEntity(partId, { data: { partStatus: "executing" } });
+	updateEntityData(ctx, partId, { partStatus: "executing" });
 	ctx.world.moveEntity(partId, laneId);
 }
 
@@ -301,9 +329,8 @@ function beginExecution(
 ) {
 	ctx.updateContext((c) => {
 		c.pipelineState = "executing";
-		c.ramUsage = Math.min(100, (c.openedCount + 1) * 50);
 	});
-	ctx.world.updateEntity(appId, { data: { appStatus: "allocating" } });
+	updateEntityData(ctx, appId, { appStatus: "allocating" });
 	createExecutionParts(ctx, appId, appKey, laneId);
 
 	const currentSpaceId = findEntitySpace(ctx.state, appId);
@@ -337,7 +364,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 	const laneId = selectAvailableLane(ctx);
 	if (!laneId) {
 		ctx.world.moveEntity(appId, SPACE_IDS.appPool);
-		ctx.world.updateEntity(appId, { data: { appStatus: "ready" } });
+		updateEntityData(ctx, appId, { appStatus: "ready" });
 		showNotice(
 			ctx,
 			"All available cores are busy. Wait for a lane to free up.",
@@ -350,7 +377,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 	ctx.updateContext((c) => {
 		c.pipelineState = "parsing";
 	});
-	ctx.world.updateEntity(appId, { data: { appStatus: "parsing" } });
+	updateEntityData(ctx, appId, { appStatus: "parsing" });
 
 	ctx.schedule(`core:parse:${appId}`, PARSING_MS, (sctx) => {
 		const currentApp = getActiveLaneApp(sctx, laneId);
@@ -359,7 +386,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 		sctx.updateContext((c) => {
 			c.pipelineState = "allocating";
 		});
-		sctx.world.updateEntity(appId, { data: { appStatus: "allocating" } });
+		updateEntityData(sctx, appId, { appStatus: "allocating" });
 
 		sctx.schedule(`core:alloc:${appId}`, ALLOCATING_MS, (actx) => {
 			const latestApp = getActiveLaneApp(actx, laneId);
@@ -369,7 +396,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 	});
 }
 
-const rules: BehaviorRule<CoresBehaviorContext>[] = [
+const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 	{
 		id: "cores.app-arrived-open",
 		on: buildEntityArrivedTrigger(SPACE_IDS.open, "app"),
@@ -404,9 +431,7 @@ const rules: BehaviorRule<CoresBehaviorContext>[] = [
 			const laneId = partEntity.data.laneId as CoreLaneId;
 			const ioRequestId = `io-request:${ownerAppId}:${laneId}:${event.actionId}`;
 
-			ctx.world.updateEntity(partId, {
-				data: { partStatus: "waiting-io" },
-			});
+			updateEntityData(ctx, partId, { partStatus: "waiting-io" });
 			ctx.world.createEntity({
 				id: ioRequestId,
 				name: "File request",
@@ -445,8 +470,8 @@ const rules: BehaviorRule<CoresBehaviorContext>[] = [
 			const ioRequestId = event.entityId;
 			ctx.world.updateEntity(ioRequestId, {
 				name: "File response",
-				data: { ioState: "response" },
 			});
+			updateEntityData(ctx, ioRequestId, { ioState: "response" });
 		},
 	},
 	{
@@ -471,11 +496,9 @@ const rules: BehaviorRule<CoresBehaviorContext>[] = [
 			const prevToken = ownerPartEntity.data.pathResumeToken;
 			const nextResumeToken = typeof prevToken === "number" ? prevToken + 1 : 1;
 
-			ctx.world.updateEntity(ownerPartId, {
-				data: {
-					partStatus: "executing",
-					pathResumeToken: nextResumeToken,
-				},
+			updateEntityData(ctx, ownerPartId, {
+				partStatus: "executing",
+				pathResumeToken: nextResumeToken,
 			});
 			ctx.world.deleteEntities([event.entityId]);
 		},
@@ -512,11 +535,13 @@ const rules: BehaviorRule<CoresBehaviorContext>[] = [
 	},
 ];
 
-export const CORES_BEHAVIORS: BehaviorDefinition<CoresBehaviorContext> = {
+export const CORES_BEHAVIORS: BehaviorDefinitionFor<
+	CoresBehaviorContext,
+	CoresTriggerSpec
+> = {
 	initialContext: {
 		pipelineState: "idle",
 		openedCount: 0,
-		ramUsage: 0,
 		dualCorePromptVisible: false,
 		activeLane1AppId: null,
 		activeLane1AppKey: null,

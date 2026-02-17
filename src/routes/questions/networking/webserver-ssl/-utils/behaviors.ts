@@ -2,17 +2,23 @@ import {
 	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
 	buildTerminalInputTrigger,
+	createEntityPayloadWriter,
 	findEntitySpace,
+	type ModalSubmissionContract,
+	parseModalSubmission,
+	parseTerminalInput,
+	type TerminalInputContract,
 } from "@/components/game/engine/runtime";
 import type {
-	BehaviorDefinition,
-	BehaviorRule,
+	BehaviorDefinitionFor,
+	BehaviorRuleFor,
 } from "@/components/game/types/behavior";
-import type {
-	GameState,
-	TerminalInputEvent,
-} from "@/components/game/types/state";
-import { DEFAULT_DOMAIN, INDEX_HTML_CONTENT } from "./constants";
+import type { GameState } from "@/components/game/types/state";
+import {
+	DEFAULT_DOMAIN,
+	INDEX_HTML_CONTENT,
+	type WebSslSpaceKey,
+} from "./constants";
 import {
 	buildBrowserStatusModal,
 	buildCertificateInfoModal,
@@ -28,6 +34,96 @@ import {
 export type SslBehaviorContext = {
 	certificateDomain: string | null;
 	navigateAway: boolean;
+};
+
+export type SslPhase = "setup" | "terminal" | "completed";
+export type SslSpaceId =
+	| WebSslSpaceKey
+	| "inventory"
+	| "ssl-setup"
+	| "ssl-items";
+export type SslEntityType =
+	| "browser"
+	| "webserver-80"
+	| "domain"
+	| "index-html"
+	| "webserver-443"
+	| "redirect-to-https"
+	| "private-key"
+	| "certificate";
+type SslModalId = string;
+type SslModalActionId = "issue" | "primary";
+
+type SslTriggerSpec = {
+	spaceId: SslSpaceId;
+	entityType: SslEntityType;
+	modalId: SslModalId;
+	modalActionId: SslModalActionId;
+	phase: SslPhase;
+};
+
+type CertificateIssueSubmission = {
+	deviceId: string;
+	domain: string;
+};
+
+type SslEntityDataByType = {
+	domain: {
+		certificateIssued: boolean;
+		verified: boolean;
+		certificateDomain: string;
+	};
+};
+
+type SslTerminalCommand = {
+	raw: string;
+	command: string;
+	tokens: string[];
+};
+
+const SSL_TERMINAL_COMMAND_CONTRACT: TerminalInputContract<SslTerminalCommand> =
+	{
+		parse: (input) => {
+			const raw = input.trim();
+			if (!raw) {
+				return { ok: false, errors: ["empty command"] };
+			}
+			const tokens = raw.split(/\s+/);
+			return {
+				ok: true,
+				value: {
+					raw,
+					command: tokens[0]?.toLowerCase() ?? "",
+					tokens,
+				},
+			};
+		},
+	};
+
+const CERTIFICATE_ISSUE_CONTRACT: ModalSubmissionContract<CertificateIssueSubmission> =
+	{
+		actionId: "issue",
+		modalIdStartsWith: "certificate-request-",
+		parse: (values, event) => {
+			const deviceId = event.modalId.replace("certificate-request-", "");
+			if (!deviceId) {
+				return {
+					ok: false,
+					errors: ["certificate request modal must include device id"],
+				};
+			}
+			const domain = String(values.domain ?? "").trim();
+			if (!domain) {
+				return { ok: false, errors: ["domain is required"] };
+			}
+			return { ok: true, value: { deviceId, domain } };
+		},
+	};
+
+const SSL_SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
+	actionId: "primary",
+	modalId: "success",
+	parse: () => ({ ok: true, value: null }),
 };
 
 /** Derive SSL terminal state from game state. */
@@ -83,7 +179,7 @@ function deriveSslStatus(state: GameState) {
 	return { httpReady, httpsReady, hasRedirect, port80Domain };
 }
 
-const rules: BehaviorRule<SslBehaviorContext>[] = [
+const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 	{
 		id: "ssl.browser-click",
 		on: buildEntityClickTrigger("browser"),
@@ -272,33 +368,39 @@ const rules: BehaviorRule<SslBehaviorContext>[] = [
 	{
 		id: "ssl.certificate-issue",
 		on: buildModalSubmitTrigger(undefined, "issue"),
-		guard: ({ event }) =>
-			event.type === "MODAL_SUBMITTED" &&
-			event.modalId.startsWith("certificate-request-"),
 		handler: ({ event, world, updateContext }) => {
-			if (event.type !== "MODAL_SUBMITTED") return;
-			const deviceId = event.modalId.replace("certificate-request-", "");
-			const domain = String(event.values.domain ?? "").trim();
-
-			if (domain) {
-				world.updateEntity(deviceId, {
-					data: {
-						certificateIssued: true,
-						verified: true,
-						certificateDomain: domain,
-					},
-				});
-
-				updateContext((ctx) => {
-					ctx.certificateDomain = domain;
-				});
+			const parsed = parseModalSubmission(event, CERTIFICATE_ISSUE_CONTRACT);
+			if (!parsed || !parsed.ok) {
+				return;
 			}
+
+			const { deviceId, domain } = parsed.value;
+			const payloadWriter = createEntityPayloadWriter<
+				SslEntityDataByType,
+				Record<string, never>
+			>(world);
+			payloadWriter.updateData(deviceId, "domain", {
+				certificateIssued: true,
+				verified: true,
+				certificateDomain: domain,
+			});
+
+			updateContext((ctx) => {
+				ctx.certificateDomain = domain;
+			});
 		},
 	},
 	{
 		id: "ssl.success-modal-navigate",
 		on: buildModalSubmitTrigger("success", "primary"),
-		handler: ({ updateContext }) => {
+		handler: ({ event, updateContext }) => {
+			const parsed = parseModalSubmission(
+				event,
+				SSL_SUCCESS_NAVIGATION_CONTRACT,
+			);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
 			});
@@ -350,11 +452,12 @@ const rules: BehaviorRule<SslBehaviorContext>[] = [
 		on: buildTerminalInputTrigger(),
 		guard: ({ state }) => state.question.status !== "completed",
 		handler: ({ event, state, context, terminal, interaction, progress }) => {
-			const rawInput = (event as TerminalInputEvent).input.trim();
-			if (!rawInput) return;
+			const parsed = parseTerminalInput(event, SSL_TERMINAL_COMMAND_CONTRACT);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
 
-			const tokens = rawInput.split(/\s+/);
-			const command = tokens[0]?.toLowerCase();
+			const { command, tokens } = parsed.value;
 			const ssl = deriveSslStatus(state);
 			const getDomain = () =>
 				ssl.port80Domain || context.certificateDomain || DEFAULT_DOMAIN;
@@ -568,7 +671,10 @@ const rules: BehaviorRule<SslBehaviorContext>[] = [
 	},
 ];
 
-export const SSL_BEHAVIORS: BehaviorDefinition<SslBehaviorContext> = {
+export const SSL_BEHAVIORS: BehaviorDefinitionFor<
+	SslBehaviorContext,
+	SslTriggerSpec
+> = {
 	initialContext: { certificateDomain: null, navigateAway: false },
 	rules,
 };

@@ -2,12 +2,17 @@ import {
 	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
 	buildTerminalInputTrigger,
+	createEntityPayloadWriter,
+	type ModalSubmissionContract,
+	parseModalSubmission,
+	parseTerminalInput,
+	type TerminalInputContract,
 } from "@/components/game/engine/runtime";
 import type {
-	BehaviorDefinition,
-	BehaviorRule,
+	BehaviorDefinitionFor,
+	BehaviorRuleFor,
 } from "@/components/game/types/behavior";
-import type { TerminalInputEvent } from "@/components/game/types/state";
+import type { DhcpSpaceKey } from "./constants";
 import {
 	buildPcConfigModal,
 	buildRouterConfigModal,
@@ -19,7 +24,98 @@ type DhcpBehaviorContext = {
 	navigateAway: boolean;
 };
 
-const rules: BehaviorRule<DhcpBehaviorContext>[] = [
+export type DhcpPhase = "setup" | "playing" | "terminal" | "completed";
+export type DhcpEntityType = "pc" | "router" | "cable";
+export type DhcpSpaceId = DhcpSpaceKey | "inventory";
+type DhcpModalId = string;
+type DhcpModalActionId = "save" | "primary";
+
+type DhcpTriggerSpec = {
+	spaceId: DhcpSpaceId;
+	entityType: DhcpEntityType;
+	modalId: DhcpModalId;
+	modalActionId: DhcpModalActionId;
+	phase: DhcpPhase;
+};
+
+type RouterConfigSubmission = {
+	deviceId: string;
+	dhcpEnabled: boolean;
+	startIp: string;
+	endIp: string;
+};
+
+type DhcpEntityDataByType = {
+	router: {
+		dhcpEnabled: boolean;
+		startIp: string;
+		endIp: string;
+	};
+};
+
+type DhcpTerminalCommand =
+	| { kind: "help" }
+	| { kind: "ping"; target: string }
+	| { kind: "unknown"; raw: string };
+
+const DHCP_TERMINAL_COMMAND_CONTRACT: TerminalInputContract<DhcpTerminalCommand> =
+	{
+		parse: (input) => {
+			const normalized = input.trim().toLowerCase();
+			if (!normalized) {
+				return { ok: false, errors: ["empty command"] };
+			}
+
+			const parts = normalized.split(/\s+/);
+			const command = parts[0];
+
+			if (command === "help") {
+				return { ok: true, value: { kind: "help" } };
+			}
+
+			if (command === "ping") {
+				const target = parts[1];
+				if (!target) {
+					return { ok: false, errors: ["ping target missing"] };
+				}
+				return { ok: true, value: { kind: "ping", target } };
+			}
+
+			return { ok: true, value: { kind: "unknown", raw: normalized } };
+		},
+	};
+
+const ROUTER_CONFIG_SAVE_CONTRACT: ModalSubmissionContract<RouterConfigSubmission> =
+	{
+		actionId: "save",
+		modalIdStartsWith: "router-config-",
+		parse: (values, event) => {
+			const deviceId = event.modalId.replace("router-config-", "");
+			if (!deviceId) {
+				return {
+					ok: false,
+					errors: ["router config modal must include device id"],
+				};
+			}
+			return {
+				ok: true,
+				value: {
+					deviceId,
+					dhcpEnabled: values.dhcpEnabled === true,
+					startIp: String(values.startIp ?? ""),
+					endIp: String(values.endIp ?? ""),
+				},
+			};
+		},
+	};
+
+const SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
+	actionId: "primary",
+	modalId: "success",
+	parse: () => ({ ok: true, value: null }),
+};
+
+const rules: BehaviorRuleFor<DhcpBehaviorContext, DhcpTriggerSpec>[] = [
 	{
 		id: "dhcp.router-click",
 		on: buildEntityClickTrigger("router"),
@@ -44,19 +140,26 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 	},
 	{
 		id: "dhcp.router-config-save",
-		on: buildModalSubmitTrigger(undefined, "save"),
-		guard: ({ event }) =>
-			event.type === "MODAL_SUBMITTED" &&
-			event.modalId.startsWith("router-config-"),
+		on: buildModalSubmitTrigger<`router-config-${string}`, "save">(
+			undefined,
+			"save",
+		),
 		handler: ({ event, world, updateContext }) => {
-			if (event.type !== "MODAL_SUBMITTED") return;
-			const deviceId = event.modalId.replace("router-config-", "");
-			const dhcpEnabled = !!event.values.dhcpEnabled;
-			const startIp = String(event.values.startIp ?? "");
-			const endIp = String(event.values.endIp ?? "");
+			const parsed = parseModalSubmission(event, ROUTER_CONFIG_SAVE_CONTRACT);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
 
-			world.updateEntity(deviceId, {
-				data: { dhcpEnabled, startIp, endIp },
+			const { deviceId, dhcpEnabled, startIp, endIp } = parsed.value;
+			const payloadWriter = createEntityPayloadWriter<
+				DhcpEntityDataByType,
+				Record<string, never>
+			>(world);
+
+			payloadWriter.updateData(deviceId, "router", {
+				dhcpEnabled,
+				startIp,
+				endIp,
 			});
 
 			updateContext((ctx) => {
@@ -67,7 +170,11 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 	{
 		id: "dhcp.success-modal-navigate",
 		on: buildModalSubmitTrigger("success", "primary"),
-		handler: ({ updateContext }) => {
+		handler: ({ event, updateContext }) => {
+			const parsed = parseModalSubmission(event, SUCCESS_NAVIGATION_CONTRACT);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
 			});
@@ -127,15 +234,16 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 		guard: ({ phase, state }) =>
 			phase === "terminal" && state.question.status !== "completed",
 		handler: ({ event, state, terminal, interaction, progress }) => {
-			const input = (event as TerminalInputEvent).input.trim().toLowerCase();
-			if (!input) return;
+			const parsed = parseTerminalInput(event, DHCP_TERMINAL_COMMAND_CONTRACT);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
 
-			const parts = input.split(/\s+/);
-			const command = parts[0];
+			const command = parsed.value;
 
-			if (command === "help") {
-				const pc2Ip =
-					(state.entities["pc-2"]?.state.ip as string | null) ?? null;
+			if (command.kind === "help") {
+				const rawPc2Ip = state.entities["pc-2"]?.state.ip;
+				const pc2Ip = typeof rawPc2Ip === "string" ? rawPc2Ip : null;
 				const lines = [
 					"Terminal - Network diagnostic utility",
 					"",
@@ -169,7 +277,7 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 				return;
 			}
 
-			if (command !== "ping") {
+			if (command.kind === "unknown") {
 				terminal.writeOutput(
 					'Error: Unknown command. Type "help" for available commands.',
 					"error",
@@ -177,13 +285,9 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 				return;
 			}
 
-			if (parts.length < 2) {
-				terminal.writeOutput("Error: Missing target.", "error");
-				return;
-			}
-
-			const target = parts[1];
-			const pc2Ip = (state.entities["pc-2"]?.state.ip as string | null) ?? null;
+			const target = command.target;
+			const rawPc2Ip = state.entities["pc-2"]?.state.ip;
+			const pc2Ip = typeof rawPc2Ip === "string" ? rawPc2Ip : null;
 
 			if (pc2Ip && target === pc2Ip) {
 				terminal.writeOutput(`Reply from ${pc2Ip}: bytes=32 time<1ms TTL=64`);
@@ -214,7 +318,10 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 
 export type { DhcpBehaviorContext };
 
-export const DHCP_BEHAVIORS: BehaviorDefinition<DhcpBehaviorContext> = {
+export const DHCP_BEHAVIORS: BehaviorDefinitionFor<
+	DhcpBehaviorContext,
+	DhcpTriggerSpec
+> = {
 	initialContext: { lastConfiguredDeviceId: null, navigateAway: false },
 	rules,
 };

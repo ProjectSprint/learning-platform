@@ -1,8 +1,7 @@
-import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
+import { Box, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useLayoutEffect, useMemo } from "react";
 import {
 	ContextualHint,
-	CustomSpace,
 	DragOverlay,
 	DrawerLayout,
 	GameBoard,
@@ -42,7 +41,7 @@ const INVENTORY_DRAWER_ID = "software-inventory-drawer";
 const hintByState: Record<CoresBehaviorContext["pipelineState"], string> = {
 	idle: "Drag an app into Open to launch it.",
 	parsing: "OS is parsing the binary header.",
-	allocating: "Allocating RAM before execution.",
+	allocating: "Preparing execution resources.",
 	executing: "Active cores are processing app parts.",
 };
 
@@ -96,7 +95,6 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 		const required = [
 			SPACE_IDS.appPool,
 			SPACE_IDS.open,
-			SPACE_IDS.ram,
 			SPACE_IDS.execution,
 			SPACE_IDS.core1,
 			SPACE_IDS.core2,
@@ -224,7 +222,7 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 							<InfoCard
 								title="Single Core Simulation"
 								value={`Opened apps: ${behaviorContext.openedCount}`}
-								subtitle="Flow: Open -> RAM -> Execution -> Core 1 -> Opened"
+								subtitle="Flow: Open -> Execution -> Core 1 -> Opened"
 							/>
 							{/* behaviorContext notice channel (set/cleared by behavior scheduler). */}
 							{notice ? (
@@ -251,12 +249,6 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={getEntityStatus}
 								/>
-							</Box>
-							<Box mt={3}>
-								{/* CustomSpace has no entity placement; it hosts pure custom UI (RamBar). */}
-								<CustomSpace id={SPACE_IDS.ram}>
-									<RamBar usage={behaviorContext.ramUsage} />
-								</CustomSpace>
 							</Box>
 							<Box mt={3}>
 								{/* Execution queue grid for subtask parts created by behavior rules. */}
@@ -424,39 +416,6 @@ const InfoCard = ({
 			</Text>
 			<Text mt={1} fontSize="xs" color="gray.400">
 				{subtitle}
-			</Text>
-		</Box>
-	);
-};
-
-const RamBar = ({ usage }: { usage: number }) => {
-	return (
-		<Box
-			bg="gray.900"
-			borderRadius="md"
-			border="1px solid"
-			borderColor="gray.800"
-			p={3}
-		>
-			<Flex align="center" justify="space-between" mb={2}>
-				<Text fontSize="sm" fontWeight="semibold" color="gray.100">
-					RAM
-				</Text>
-				<Text fontSize="xs" color="gray.400">
-					{usage}% utilized
-				</Text>
-			</Flex>
-			<Box h="10px" bg="gray.700" borderRadius="full" overflow="hidden">
-				<Box
-					h="100%"
-					bg="cyan.400"
-					borderRadius="full"
-					width={`${usage}%`}
-					transition="width 0.3s ease-out"
-				/>
-			</Box>
-			<Text mt={2} fontSize="xs" color="gray.400">
-				Each opened app consumes half of RAM.
 			</Text>
 		</Box>
 	);

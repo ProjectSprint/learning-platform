@@ -1,11 +1,14 @@
 import {
 	buildEntityArrivedTrigger,
 	buildModalSubmitTrigger,
+	createEntityPayloadWriter,
 	findEntitySpace,
+	type ModalSubmissionContract,
+	parseModalSubmission,
 } from "@/components/game/engine/runtime";
 import type {
-	BehaviorDefinition,
-	BehaviorRule,
+	BehaviorDefinitionFor,
+	BehaviorRuleFor,
 	EffectContext,
 	ScheduledEffectContext,
 } from "@/components/game/types/behavior";
@@ -20,6 +23,7 @@ import {
 	NOTES_PACKET_ITEMS,
 	SYSTEM_PACKET_ITEMS,
 	TCP_TOOL_ITEMS,
+	type TcpSpaceKey,
 } from "./constants";
 import {
 	buildAckIntroModal,
@@ -46,6 +50,28 @@ export type TcpPhase =
 	| "resend"
 	| "closing"
 	| "terminal";
+
+export type TcpSpaceId = TcpSpaceKey | "inventory" | "received";
+export type TcpEntityType =
+	| "message-file"
+	| "notes-file"
+	| "split-packet"
+	| "syn-flag"
+	| "ack-flag"
+	| "syn-ack-flag"
+	| "fin-flag"
+	| "fin-ack-flag"
+	| "subtask";
+type TcpModalId = string;
+type TcpModalActionId = "primary";
+
+type TcpTriggerSpec = {
+	spaceId: TcpSpaceId;
+	entityType: TcpEntityType;
+	modalId: TcpModalId;
+	modalActionId: TcpModalActionId;
+	phase: TcpPhase;
+};
 
 export type TcpBufferSlot = {
 	seq: number;
@@ -116,6 +142,14 @@ const FILE_REJECT_DELAY_MS = 1500;
 const ASSEMBLE_DELAY_MS = 2000;
 const BUFFER_RELEASE_DELAY_MS = 1500;
 const BUFFER_STEP_DELAY_MS = 800;
+
+type TcpEntityDataByType = {
+	tcpEntity: Record<string, unknown>;
+};
+
+type TcpEntityStateByType = {
+	tcpEntity: Record<string, unknown>;
+};
 const LOSS_FADE_MS = 700;
 const INITIAL_SERVER_STATUS = "🔴 Disconnected";
 const LOSS_PACKET_SEQ = 2;
@@ -237,14 +271,18 @@ const updateEntityState = (
 	entityId: string,
 	updates: Record<string, unknown>,
 ) => {
+	const payloadWriter = createEntityPayloadWriter<
+		TcpEntityDataByType,
+		TcpEntityStateByType
+	>(ctx.world);
 	const status = updates.status;
 	const dataUpdates: Record<string, unknown> = { ...updates };
 	delete dataUpdates.status;
 	if (Object.keys(dataUpdates).length > 0) {
-		ctx.world.updateEntity(entityId, { data: dataUpdates });
+		payloadWriter.updateData(entityId, "tcpEntity", dataUpdates);
 	}
 	if (status !== undefined) {
-		ctx.world.updateEntityState(entityId, { status });
+		payloadWriter.updateState(entityId, "tcpEntity", { status });
 	}
 };
 
@@ -1067,7 +1105,7 @@ const handleSplitterDrop = (ctx: TcpCtx, entity: EntityData) => {
 	syncSplitterVisibility(ctx);
 };
 
-const rules: BehaviorRule<TcpBehaviorContext>[] = [
+const rules: BehaviorRuleFor<TcpBehaviorContext, TcpTriggerSpec>[] = [
 	{
 		id: "tcp.entity.arrived.splitter",
 		on: buildEntityArrivedTrigger("splitter"),
@@ -1137,7 +1175,14 @@ const rules: BehaviorRule<TcpBehaviorContext>[] = [
 	{
 		id: "tcp.success-modal-navigate",
 		on: buildModalSubmitTrigger("tcp-success", "primary"),
-		handler: ({ updateContext }) => {
+		handler: ({ event, updateContext }) => {
+			const parsed = parseModalSubmission(
+				event,
+				TCP_SUCCESS_NAVIGATION_CONTRACT,
+			);
+			if (!parsed || !parsed.ok) {
+				return;
+			}
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
 			});
@@ -1162,7 +1207,16 @@ const initialCompletedFiles: CompletedFiles = {
 	notes: false,
 };
 
-export const TCP_BEHAVIORS: BehaviorDefinition<TcpBehaviorContext> = {
+const TCP_SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
+	actionId: "primary",
+	modalId: "tcp-success",
+	parse: () => ({ ok: true, value: null }),
+};
+
+export const TCP_BEHAVIORS: BehaviorDefinitionFor<
+	TcpBehaviorContext,
+	TcpTriggerSpec
+> = {
 	initialContext: {
 		navigateAway: false,
 		splitterVisible: false,

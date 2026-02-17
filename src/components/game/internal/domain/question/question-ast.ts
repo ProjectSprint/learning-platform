@@ -27,7 +27,10 @@ export const evaluateCondition = <ConditionKey extends string>(
 			if (value === undefined || value === null) {
 				return false;
 			}
-			return condition.values.includes(value as string | number);
+			if (typeof value !== "string" && typeof value !== "number") {
+				return false;
+			}
+			return condition.values.includes(value);
 		}
 		default:
 			return false;

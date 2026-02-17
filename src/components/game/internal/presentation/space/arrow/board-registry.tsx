@@ -103,12 +103,9 @@ export const BoardRegistryProvider = ({
 export const useBoardRegistry = () => {
 	const context = useContext(BoardRegistryContext);
 	if (!context) {
-		return {
-			containerRef: { current: null } as React.RefObject<HTMLDivElement | null>,
-			layoutVersion: 0,
-			registerBoard: () => {},
-			getBoardElement: () => null,
-		};
+		throw new Error(
+			"useBoardRegistry must be used within BoardRegistryProvider",
+		);
 	}
 	return context;
 };

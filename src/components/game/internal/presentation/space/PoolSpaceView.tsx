@@ -28,7 +28,10 @@ export interface PoolSpaceViewProps {
 	/** Optional title for the space */
 	title?: string;
 	/** Callback when an entity is clicked for dragging */
-	onEntityDragStart?: (entity: EntityData, event: React.PointerEvent) => void;
+	onEntityDragStart?: (
+		entity: EntityData,
+		event: React.PointerEvent<HTMLDivElement>,
+	) => void;
 	/** Callback when an entity is returned to the pool */
 	onEntityReturn?: (entityId: string) => boolean;
 }

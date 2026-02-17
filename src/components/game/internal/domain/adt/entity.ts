@@ -18,9 +18,11 @@ export const createEntityData = (config: EntityDataConfig): EntityData => {
 };
 
 export const createItemData = (config: ItemDataConfig): ItemData => {
+	const rawType = config.data?.type;
+	const entityType = typeof rawType === "string" ? rawType : "item";
 	return {
 		id: config.id,
-		type: (config.data?.type as string) ?? "item",
+		type: entityType,
 		name: config.name,
 		visual: config.visual ?? {},
 		data: config.data ?? {},

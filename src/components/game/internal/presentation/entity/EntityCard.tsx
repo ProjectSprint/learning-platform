@@ -8,11 +8,8 @@
 
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
-import type {
-	EntityData,
-	ItemData,
-	ItemTooltip,
-} from "@/components/game/types/entity";
+import type { EntityData, ItemTooltip } from "@/components/game/types/entity";
+import { isItemData } from "../../domain/entity/entity-data";
 import { InfoTooltip } from "../../ui/help";
 
 /**
@@ -61,14 +58,13 @@ export const EntityCard = ({
 	cardRef,
 }: EntityCardProps) => {
 	// Check if this is an Item entity (has draggable property)
-	const isItem = "draggable" in entity;
-	const item = isItem ? (entity as ItemData) : null;
+	const item = isItemData(entity) ? entity : null;
 	const isNonDraggable = item?.draggable === false;
 
 	// Get display properties
 	const displayName = entity.name ?? entity.type;
 	const iconInfo = item?.icon ?? entity.visual.icon;
-	const tooltip = item?.tooltip as ItemTooltip | undefined;
+	const tooltip: ItemTooltip | undefined = item?.tooltip;
 
 	return (
 		<Box
