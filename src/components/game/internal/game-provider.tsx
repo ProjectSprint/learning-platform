@@ -20,11 +20,11 @@ import {
 	applicationReducer,
 	createDefaultState,
 } from "./application/state/reducers";
-import { DrawerProvider } from "./presentation/drawer";
+import { DrawerProvider } from "./presentation/drawer/drawer-context";
 import { HintProvider } from "./presentation/hint";
 import { DragProvider } from "./presentation/interaction/drag/DragContext";
 import { ArrowProvider } from "./presentation/space/arrow";
-import { TerminalProvider } from "./presentation/terminal";
+import { TerminalProvider } from "./presentation/terminal/terminal-context";
 
 export type {
 	Arrow,

@@ -31,7 +31,7 @@ import {
 	useGameDispatch,
 	useGameState,
 } from "../../game-provider";
-import { useTerminalStore } from "../../presentation/terminal";
+import { useTerminalStore } from "../../presentation/terminal/terminal-context";
 import { useBehaviorReactor } from "../behavior/reactor";
 import { QuestionScheduler } from "../behavior/scheduler";
 import { bootstrapQuestion } from "../bootstrap/bootstrap";

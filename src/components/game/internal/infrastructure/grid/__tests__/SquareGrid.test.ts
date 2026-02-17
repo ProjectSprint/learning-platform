@@ -13,8 +13,8 @@ describe("SquareGrid", () => {
 		it("creates empty grid with specified dimensions", () => {
 			const grid = SquareGrid.empty(3, 2, metrics);
 
-			expect(grid.rows).toBe(2);
-			expect(grid.cols).toBe(3);
+			expect(grid.rows).toBe(3);
+			expect(grid.cols).toBe(2);
 		});
 
 		it("creates grid from 2D array data", () => {
@@ -56,8 +56,8 @@ describe("SquareGrid", () => {
 		it("returns null for out of bounds coordinate", () => {
 			const grid = SquareGrid.empty(3, 2, metrics);
 
-			expect(grid.getCellAt({ row: 2, col: 0 })).toBeNull();
-			expect(grid.getCellAt({ row: 0, col: 3 })).toBeNull();
+			expect(grid.getCellAt({ row: 3, col: 0 })).toBeNull();
+			expect(grid.getCellAt({ row: 0, col: 2 })).toBeNull();
 			expect(grid.getCellAt({ row: -1, col: 0 })).toBeNull();
 		});
 	});
@@ -88,12 +88,12 @@ describe("SquareGrid", () => {
 
 		it("returns true for valid coordinates", () => {
 			expect(grid.isValidCoord({ row: 0, col: 0 })).toBe(true);
-			expect(grid.isValidCoord({ row: 1, col: 2 })).toBe(true);
+			expect(grid.isValidCoord({ row: 2, col: 1 })).toBe(true);
 		});
 
 		it("returns false for out of bounds coordinates", () => {
-			expect(grid.isValidCoord({ row: 2, col: 0 })).toBe(false);
-			expect(grid.isValidCoord({ row: 0, col: 3 })).toBe(false);
+			expect(grid.isValidCoord({ row: 3, col: 0 })).toBe(false);
+			expect(grid.isValidCoord({ row: 0, col: 2 })).toBe(false);
 			expect(grid.isValidCoord({ row: -1, col: 0 })).toBe(false);
 		});
 	});
