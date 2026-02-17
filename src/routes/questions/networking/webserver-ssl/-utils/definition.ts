@@ -9,6 +9,7 @@ import {
 	SPACE_CONFIGS,
 	SSL_ITEMS_INVENTORY,
 	SSL_ITEMS_POOL_CONFIG,
+	SSL_POOL_IDS,
 	SSL_SETUP_INVENTORY_ITEMS,
 	SSL_SETUP_POOL_CONFIG,
 } from "./constants";
@@ -50,6 +51,7 @@ export const SSL_DEFINITION: QuestionDefinition<string, SslBehaviorContext> = {
 				allowedPlaces: item.allowedPlaces,
 				data: { ...item.data, type: item.type },
 			},
+			initialSpace: SSL_POOL_IDS.setup,
 		})),
 		...SSL_ITEMS_INVENTORY.map((item) => ({
 			config: {
@@ -60,6 +62,7 @@ export const SSL_DEFINITION: QuestionDefinition<string, SslBehaviorContext> = {
 				allowedPlaces: item.allowedPlaces,
 				data: { ...item.data, type: item.type },
 			},
+			initialSpace: SSL_POOL_IDS.certificates,
 		})),
 	],
 	phaseRules: [],

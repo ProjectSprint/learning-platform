@@ -1,6 +1,8 @@
 import {
+	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
 	buildTerminalInputTrigger,
+	findEntitySpace,
 } from "@/components/game/engine/runtime";
 import type {
 	BehaviorDefinition,
@@ -11,7 +13,17 @@ import type {
 	TerminalInputEvent,
 } from "@/components/game/types/state";
 import { DEFAULT_DOMAIN, INDEX_HTML_CONTENT } from "./constants";
-import { buildSuccessModal } from "./modal-builders";
+import {
+	buildBrowserStatusModal,
+	buildCertificateInfoModal,
+	buildCertificateRequestModal,
+	buildIndexHtmlViewModal,
+	buildPrivateKeyInfoModal,
+	buildRedirectInfoModal,
+	buildSuccessModal,
+	buildWebserver80StatusModal,
+	buildWebserver443StatusModal,
+} from "./modal-builders";
 
 export type SslBehaviorContext = {
 	certificateDomain: string | null;
@@ -73,6 +85,191 @@ function deriveSslStatus(state: GameState) {
 
 const rules: BehaviorRule<SslBehaviorContext>[] = [
 	{
+		id: "ssl.browser-click",
+		on: buildEntityClickTrigger("browser"),
+		handler: ({ entity, state, interaction }) => {
+			if (!entity) return;
+			const ssl = deriveSslStatus(state);
+			const browserStatus =
+				ssl.httpsReady && ssl.hasRedirect
+					? "success"
+					: ssl.httpReady
+						? "warning"
+						: "error";
+			const browserModalStatus =
+				browserStatus === "success"
+					? {
+							url: `https://${ssl.port80Domain || DEFAULT_DOMAIN}`,
+							connection: "Secure",
+							port: "443",
+						}
+					: browserStatus === "warning"
+						? {
+								url: `http://${ssl.port80Domain || DEFAULT_DOMAIN}`,
+								connection: "Not Secure",
+								port: "80",
+							}
+						: {
+								url: "Not connected",
+								connection: "Can't connect",
+								port: "-",
+							};
+			interaction.openModal(
+				buildBrowserStatusModal(
+					entity.id,
+					browserModalStatus,
+					browserStatus === "success",
+				),
+			);
+		},
+	},
+	{
+		id: "ssl.webserver-80-click",
+		on: buildEntityClickTrigger("webserver-80"),
+		handler: ({ entity, state, interaction }) => {
+			if (!entity) return;
+			const ssl = deriveSslStatus(state);
+			const port80Space =
+				state.spaces["port-80"]?.kind === "grid"
+					? state.spaces["port-80"]
+					: null;
+			const port80Types = port80Space
+				? Object.keys(port80Space.entityPositions).map((entityId) => {
+						const current = state.entities[entityId];
+						return current?.type ?? "";
+					})
+				: [];
+			const hasRedirect = port80Types.includes("redirect-to-https");
+			const hasIndexHtml = port80Types.includes("index-html");
+			const hasWebserver = port80Types.includes("webserver-80");
+			const hasDomain = port80Types.includes("domain");
+			const status =
+				!hasWebserver || !hasDomain || (!hasIndexHtml && !hasRedirect)
+					? "Not configured"
+					: hasRedirect
+						? "Redirecting to HTTPS"
+						: "Serving HTTP";
+			const servingFile = hasRedirect
+				? "Redirect to HTTPS"
+				: hasIndexHtml
+					? "index.html"
+					: undefined;
+			interaction.openModal(
+				buildWebserver80StatusModal(entity.id, {
+					status,
+					domain: ssl.port80Domain,
+					servingFile,
+				}),
+			);
+		},
+	},
+	{
+		id: "ssl.webserver-443-click",
+		on: buildEntityClickTrigger("webserver-443"),
+		handler: ({ entity, state, interaction }) => {
+			if (!entity) return;
+			const port443Space =
+				state.spaces["port-443"]?.kind === "grid"
+					? state.spaces["port-443"]
+					: null;
+			const port443Types = port443Space
+				? Object.keys(port443Space.entityPositions).map((entityId) => {
+						const current = state.entities[entityId];
+						return current?.type ?? "";
+					})
+				: [];
+			const hasWebserver = port443Types.includes("webserver-443");
+			const hasDomain = port443Types.includes("domain");
+			const hasIndexHtml = port443Types.includes("index-html");
+			const hasPrivateKey = port443Types.includes("private-key");
+			const hasCertificate = port443Types.includes("certificate");
+			const status =
+				!hasWebserver || !hasDomain || !hasIndexHtml
+					? "Not configured"
+					: hasPrivateKey && hasCertificate
+						? "🔒 Serving HTTPS"
+						: "Missing SSL";
+			const ssl = deriveSslStatus(state);
+			interaction.openModal(
+				buildWebserver443StatusModal(entity.id, {
+					status,
+					domain: ssl.port80Domain,
+					privateKey: hasPrivateKey ? "✓ Installed" : "Not installed",
+					certificate: hasCertificate ? "✓ Installed" : "Not installed",
+					servingFile: hasIndexHtml ? "index.html" : undefined,
+				}),
+			);
+		},
+	},
+	{
+		id: "ssl.letsencrypt-domain-click",
+		on: buildEntityClickTrigger("domain"),
+		handler: ({ entity, state, context, interaction }) => {
+			if (!entity) return;
+			const spaceId = findEntitySpace(state, entity.id);
+			if (spaceId !== "letsencrypt") return;
+			const issued =
+				typeof entity.data?.certificateIssued === "boolean"
+					? entity.data.certificateIssued
+					: false;
+			const domainName = issued
+				? context.certificateDomain || DEFAULT_DOMAIN
+				: typeof entity.data?.domain === "string"
+					? entity.data.domain
+					: DEFAULT_DOMAIN;
+			interaction.openModal(
+				buildCertificateRequestModal(entity.id, domainName, issued, {
+					domain: DEFAULT_DOMAIN,
+				}),
+			);
+		},
+	},
+	{
+		id: "ssl.index-click",
+		on: buildEntityClickTrigger("index-html"),
+		handler: ({ entity, interaction }) => {
+			if (!entity) return;
+			interaction.openModal(buildIndexHtmlViewModal(entity.id));
+		},
+	},
+	{
+		id: "ssl.private-key-click",
+		on: buildEntityClickTrigger("private-key"),
+		handler: ({ entity, state, interaction }) => {
+			if (!entity) return;
+			const installed = findEntitySpace(state, entity.id) === "port-443";
+			interaction.openModal(buildPrivateKeyInfoModal(entity.id, installed));
+		},
+	},
+	{
+		id: "ssl.certificate-click",
+		on: buildEntityClickTrigger("certificate"),
+		handler: ({ entity, state, interaction }) => {
+			if (!entity) return;
+			const installed = findEntitySpace(state, entity.id) === "port-443";
+			interaction.openModal(buildCertificateInfoModal(entity.id, installed));
+		},
+	},
+	{
+		id: "ssl.redirect-click",
+		on: buildEntityClickTrigger("redirect-to-https"),
+		handler: ({ entity, interaction }) => {
+			if (!entity) return;
+			interaction.openModal(buildRedirectInfoModal(entity.id));
+		},
+	},
+	{
+		id: "ssl.phase-terminal-ready",
+		on: { event: "ENTITY_UPDATED" },
+		guard: ({ state, phase }) => {
+			const ssl = deriveSslStatus(state);
+			return ssl.httpsReady && ssl.hasRedirect && phase !== "terminal";
+		},
+		handler: ({ setPhase }) => {
+			setPhase("terminal", "ssl.behavior");
+		},
+	},
+	{
 		id: "ssl.certificate-issue",
 		on: buildModalSubmitTrigger(undefined, "issue"),
 		guard: ({ event }) =>
@@ -104,6 +301,45 @@ const rules: BehaviorRule<SslBehaviorContext>[] = [
 		handler: ({ updateContext }) => {
 			updateContext((ctx) => {
 				ctx.navigateAway = true;
+			});
+		},
+	},
+	{
+		id: "ssl.terminal-onboarding",
+		on: { event: "PHASE_CHANGED", to: "terminal" },
+		handler: ({ state, context, schedule, once }) => {
+			once("ssl.terminal.onboarding", () => {
+				schedule("ssl.terminal.onboarding.delay", 100, ({ terminal }) => {
+					const ssl = deriveSslStatus(state);
+					const domain =
+						ssl.port80Domain || context.certificateDomain || DEFAULT_DOMAIN;
+					const helpLines = [
+						"Terminal - SSL diagnostic utility",
+						"",
+						"----",
+						"",
+						"SYNOPSIS",
+						"curl [url]",
+						"openssl s_client [url]",
+						"help",
+						"",
+						"----",
+						"",
+						"COMMANDS",
+						`curl http://${domain}`,
+						`curl https://${domain}`,
+						`curl -v https://${domain}`,
+						`curl -I https://${domain}`,
+						`openssl s_client https://${domain}`,
+						"help",
+						"clear",
+						"",
+					];
+
+					for (const line of helpLines) {
+						terminal.writeOutput(line);
+					}
+				});
 			});
 		},
 	},

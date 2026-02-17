@@ -44,10 +44,8 @@ import {
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
 	SPACE_CONFIGS,
-	SSL_ITEMS_INVENTORY,
 	SSL_ITEMS_POOL_CONFIG,
 	SSL_POOL_IDS,
-	SSL_SETUP_INVENTORY_ITEMS,
 	SSL_SETUP_POOL_CONFIG,
 	TERMINAL_INTRO_ENTRIES,
 	TERMINAL_PROMPT,
@@ -56,16 +54,6 @@ import { SSL_DEFINITION } from "./-utils/definition";
 import { getSslStatusMessage } from "./-utils/entity-badge";
 import { getSslItemLabel } from "./-utils/entity-label";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import {
-	buildBrowserStatusModal,
-	buildCertificateInfoModal,
-	buildCertificateRequestModal,
-	buildIndexHtmlViewModal,
-	buildPrivateKeyInfoModal,
-	buildRedirectInfoModal,
-	buildWebserver80StatusModal,
-	buildWebserver443StatusModal,
-} from "./-utils/modal-builders";
 import { useSslState } from "./-utils/use-ssl-state";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
@@ -89,25 +77,12 @@ const SslGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const {
-		world,
-		interactionSession,
-		state,
-		behaviorContext,
-		isCompleted,
-		registerTerminalFinish,
-	} = useQuestionRuntime("webserver-ssl-page", SSL_DEFINITION);
+	const { state, behaviorContext, isCompleted, registerTerminalFinish } =
+		useQuestionRuntime("webserver-ssl-page", SSL_DEFINITION);
 	const gameCtx = useGameCtx();
-	const terminalOpenedRef = useRef(false);
 	const terminalInput = useTerminalInput();
-	const {
-		terminal,
-		openTerminal,
-		closeTerminal,
-		setPrompt,
-		addEntry,
-		addOutput,
-	} = useTerminalStore();
+	const { terminal, openTerminal, closeTerminal, setPrompt, addEntry } =
+		useTerminalStore();
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed" || isCompleted;
 	const {
@@ -115,7 +90,6 @@ const SslGame = ({
 		browserStatus,
 		certificateDomain,
 		certificateIssued,
-		hasRedirect,
 		httpReady,
 		httpsReady,
 		letsencryptItems,
@@ -196,15 +170,6 @@ const SslGame = ({
 	}, [certificateIssued]);
 
 	useEffect(() => {
-		if (httpsReady && hasRedirect && state.phase !== "terminal") {
-			interactionSession.requestPhaseTransition(
-				"terminal",
-				"webserver_ssl.rules",
-			);
-		}
-	}, [hasRedirect, httpsReady, interactionSession, state.phase]);
-
-	useEffect(() => {
 		setPrompt(TERMINAL_PROMPT);
 		for (const entry of TERMINAL_INTRO_ENTRIES) {
 			addEntry(entry);
@@ -212,57 +177,15 @@ const SslGame = ({
 		closeTerminal();
 	}, [addEntry, closeTerminal, setPrompt]);
 
-	// Terminal visibility and initial help message
 	useEffect(() => {
 		if (shouldShowTerminal && !terminal.visible) {
 			openTerminal();
-
-			if (!terminalOpenedRef.current) {
-				terminalOpenedRef.current = true;
-				const domain = port80Domain || certificateDomain || DEFAULT_DOMAIN;
-				setTimeout(() => {
-					const helpLines = [
-						"Terminal - SSL diagnostic utility",
-						"",
-						"----",
-						"",
-						"SYNOPSIS",
-						"curl [url]",
-						"openssl s_client [url]",
-						"help",
-						"",
-						"----",
-						"",
-						"COMMANDS",
-						`curl http://${domain}`,
-						`curl https://${domain}`,
-						`curl -v https://${domain}`,
-						`curl -I https://${domain}`,
-						`openssl s_client https://${domain}`,
-						"help",
-						"clear",
-						"",
-					];
-
-					for (const line of helpLines) {
-						addOutput(line, "output");
-					}
-				}, 100);
-			}
 			return;
 		}
 		if (!shouldShowTerminal && terminal.visible) {
 			closeTerminal();
 		}
-	}, [
-		addOutput,
-		closeTerminal,
-		openTerminal,
-		shouldShowTerminal,
-		terminal.visible,
-		port80Domain,
-		certificateDomain,
-	]);
+	}, [closeTerminal, openTerminal, shouldShowTerminal, terminal.visible]);
 
 	const spaceAreas = useMemo(
 		() => ({
@@ -299,36 +222,6 @@ const SslGame = ({
 				md: "repeat(2, minmax(min-content, 1fr))",
 				lg: "repeat(2, minmax(min-content, 1fr))",
 			};
-
-	useEffect(() => {
-		if (!showSslSpaces) {
-			return;
-		}
-
-		for (const item of SSL_SETUP_INVENTORY_ITEMS) {
-			const currentSpaceId = findEntitySpace(state, item.id);
-			if (currentSpaceId) {
-				continue;
-			}
-
-			world.addToSpace(item.id, SSL_POOL_IDS.setup);
-		}
-	}, [showSslSpaces, state, world]);
-
-	useEffect(() => {
-		if (!showSslItems) {
-			return;
-		}
-
-		for (const item of SSL_ITEMS_INVENTORY) {
-			const currentSpaceId = findEntitySpace(state, item.id);
-			if (currentSpaceId) {
-				continue;
-			}
-
-			world.addToSpace(item.id, SSL_POOL_IDS.certificates);
-		}
-	}, [showSslItems, state, world]);
 
 	const port80Status = useMemo<BoardItemStatus>(() => {
 		if (
@@ -373,143 +266,6 @@ const SslGame = ({
 		}
 		return null;
 	}, [port443Status, port443SslStatus]);
-
-	const browserModalStatus = useMemo(() => {
-		if (browserStatus === "success") {
-			return {
-				url: `https://${port80Domain || DEFAULT_DOMAIN}`,
-				connection: "Secure",
-				port: "443",
-			};
-		}
-		if (browserStatus === "warning") {
-			return {
-				url: `http://${port80Domain || DEFAULT_DOMAIN}`,
-				connection: "Not Secure",
-				port: "80",
-			};
-		}
-		return {
-			url: "Not connected",
-			connection: "Can't connect",
-			port: "—",
-		};
-	}, [browserStatus, port80Domain]);
-
-	const entityClickHandlers = useMemo(
-		() => ({
-			browser: (entity: EntityData) => {
-				interactionSession.openModal(
-					buildBrowserStatusModal(
-						entity.id,
-						browserModalStatus,
-						browserStatus === "success",
-					),
-				);
-			},
-			"webserver-80": (entity: EntityData) => {
-				const servingFile = port80Config.hasRedirect
-					? "Redirect to HTTPS"
-					: port80Config.hasIndexHtml
-						? "index.html"
-						: undefined;
-				interactionSession.openModal(
-					buildWebserver80StatusModal(entity.id, {
-						status:
-							port80Status === "error"
-								? "Not configured"
-								: port80Status === "warning"
-									? "Serving HTTP"
-									: "Redirecting to HTTPS",
-						domain: port80Domain,
-						servingFile,
-					}),
-				);
-			},
-			"webserver-443": (entity: EntityData) => {
-				interactionSession.openModal(
-					buildWebserver443StatusModal(entity.id, {
-						status:
-							port443Status === "error"
-								? "Not configured"
-								: port443Status === "warning"
-									? "Missing SSL"
-									: "🔒 Serving HTTPS",
-						domain: port443Domain,
-						privateKey: port443SslStatus.hasPrivateKey
-							? "✓ Installed"
-							: "Not installed",
-						certificate: port443SslStatus.hasCertificate
-							? "✓ Installed"
-							: "Not installed",
-						servingFile: port443SslStatus.hasIndexHtml
-							? "index.html"
-							: undefined,
-					}),
-				);
-			},
-			domain: (entity: EntityData) => {
-				const spaceId = findEntitySpace(state, entity.id);
-				if (spaceId !== "letsencrypt") {
-					return;
-				}
-				const issued = certificateIssued;
-				const domainName = issued
-					? certificateDomain || port80Domain || DEFAULT_DOMAIN
-					: typeof entity.data?.domain === "string"
-						? entity.data.domain
-						: port80Domain || DEFAULT_DOMAIN;
-				interactionSession.openModal(
-					buildCertificateRequestModal(entity.id, domainName, issued, {
-						domain: port80Domain || DEFAULT_DOMAIN,
-					}),
-				);
-			},
-			"index-html": (entity: EntityData) => {
-				interactionSession.openModal(buildIndexHtmlViewModal(entity.id));
-			},
-			"private-key": (entity: EntityData) => {
-				const installed = findEntitySpace(state, entity.id) === "port-443";
-				interactionSession.openModal(
-					buildPrivateKeyInfoModal(entity.id, installed),
-				);
-			},
-			certificate: (entity: EntityData) => {
-				const installed = findEntitySpace(state, entity.id) === "port-443";
-				interactionSession.openModal(
-					buildCertificateInfoModal(entity.id, installed),
-				);
-			},
-			"redirect-to-https": (entity: EntityData) => {
-				interactionSession.openModal(buildRedirectInfoModal(entity.id));
-			},
-		}),
-		[
-			browserModalStatus,
-			browserStatus,
-			certificateDomain,
-			certificateIssued,
-			interactionSession,
-			port80Config,
-			port80Domain,
-			port80Status,
-			port443Domain,
-			port443SslStatus,
-			port443Status,
-			state,
-		],
-	);
-
-	const handleEntityClick = useCallback(
-		(entity: EntityData) => {
-			const handler =
-				entityClickHandlers[entity.type as keyof typeof entityClickHandlers];
-			if (handler) {
-				handler(entity);
-			}
-		},
-		[entityClickHandlers],
-	);
 
 	const isEntityClickable = useCallback(
 		(entity: EntityData) => {
@@ -720,7 +476,6 @@ const SslGame = ({
 								<GridSpace
 									ctx={gameCtx}
 									config={browserConfig}
-									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={(entity) => getSslItemLabel(entity.type)}
 									getEntityStatus={getEntityStatus}
@@ -732,7 +487,6 @@ const SslGame = ({
 								<GridSpace
 									ctx={gameCtx}
 									config={port80SpaceConfig}
-									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={(entity) => getSslItemLabel(entity.type)}
 									getEntityStatus={getEntityStatus}
@@ -744,7 +498,6 @@ const SslGame = ({
 								<GridSpace
 									ctx={gameCtx}
 									config={letsencryptConfig}
-									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={(entity) => getSslItemLabel(entity.type)}
 									getEntityStatus={getEntityStatus}
@@ -756,7 +509,6 @@ const SslGame = ({
 								<GridSpace
 									ctx={gameCtx}
 									config={port443Config}
-									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={(entity) => getSslItemLabel(entity.type)}
 									getEntityStatus={getEntityStatus}
