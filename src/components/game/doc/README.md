@@ -14,3 +14,4 @@ Full ordered sequence:
 8. [3.2-component-reference.md](./3.2-component-reference.md)
 9. [3.3-types-reference.md](./3.3-types-reference.md)
 10. [4-architecture-contract-adr.md](./4-architecture-contract-adr.md)
+11. [5-governance-and-contributor-guide.md](./5-governance-and-contributor-guide.md)
