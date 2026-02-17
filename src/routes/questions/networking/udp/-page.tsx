@@ -1,11 +1,5 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import {
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useState,
-} from "react";
+import { useEffect, useLayoutEffect, useMemo } from "react";
 import {
 	ContextualHint,
 	CustomSpace,
@@ -38,7 +32,6 @@ import type { UdpBehaviorContext } from "./-utils/behaviors";
 import {
 	FRAME_ITEMS,
 	GRID_SPACE_CONFIGS,
-	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
@@ -51,7 +44,6 @@ import { UDP_DEFINITION } from "./-utils/definition";
 import { TOTAL_FRAMES } from "./-utils/frame-destiny";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import type { ActiveMode } from "./-utils/types";
-import { useTcpPhase } from "./-utils/use-tcp-phase";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
 
@@ -68,8 +60,10 @@ const UdpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { state, isCompleted, world, interactionSession, behaviorContext } =
-		useQuestionRuntime<string, UdpBehaviorContext>("udp-page", UDP_DEFINITION);
+	const { state, isCompleted, behaviorContext } = useQuestionRuntime<
+		string,
+		UdpBehaviorContext
+	>("udp-page", UDP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
 	const { terminal, openTerminal, closeTerminal, setPrompt } =
@@ -78,18 +72,7 @@ const UdpGame = ({
 	useDragEngine();
 	const { registerDrawer } = useDrawerManager();
 
-	const [mode, setMode] = useState<ActiveMode>("tcp");
-
-	const handleTransitionToUdp = useCallback(() => {
-		setMode("udp");
-	}, []);
-
-	const tcpPhase = useTcpPhase({
-		active: mode === "tcp",
-		world,
-		interactionSession,
-		onTransitionToUdp: handleTransitionToUdp,
-	});
+	const mode: ActiveMode = "udp";
 
 	// Derive UDP state from behavior context
 	const udpPhase = useMemo(() => {
@@ -134,10 +117,10 @@ const UdpGame = ({
 
 	const contextualHint = getContextualHint({
 		mode,
-		tcpPhase: tcpPhase.phase,
+		tcpPhase: "connected",
 		udpPhase: udpPhase.phase,
 		expectedFrame: udpPhase.expectedFrame,
-		packetsSent: tcpPhase.packetsSent,
+		packetsSent: udpPhase.lastSentFrame,
 	});
 	useContextualHint(contextualHint ?? "");
 
@@ -174,13 +157,9 @@ const UdpGame = ({
 		}
 	}, [closeTerminal, openTerminal, shouldShowTerminal, terminal.visible]);
 
-	const handleEntityClick = useCallback((_entity: EntityData) => {
-		// UDP doesn't have clickable entities for now
-	}, []);
+	const isEntityClickable = (_entity: EntityData) => false;
 
-	const isEntityClickable = useCallback((_entity: EntityData) => false, []);
-
-	const activeNotice = mode === "tcp" ? tcpPhase.notice : udpPhase.notice;
+	const activeNotice = udpPhase.notice;
 	const boardReady = useMemo(() => {
 		const internetSpace = state.spaces.internet;
 		if (!internetSpace || internetSpace.kind !== "grid") {
@@ -223,23 +202,11 @@ const UdpGame = ({
 
 				<GameBoard>
 					{boardReady ? (
-						mode === "tcp" ? (
-							<TcpView
-								gameCtx={gameCtx}
-								showClientD={tcpPhase.showClientD}
-								clientStatus={tcpPhase.clientStatus}
-								tcpPhase={tcpPhase}
-								onEntityClick={handleEntityClick}
-								isEntityClickable={isEntityClickable}
-							/>
-						) : (
-							<UdpView
-								gameCtx={gameCtx}
-								udpPhase={udpPhase}
-								onEntityClick={handleEntityClick}
-								isEntityClickable={isEntityClickable}
-							/>
-						)
+						<UdpView
+							gameCtx={gameCtx}
+							udpPhase={udpPhase}
+							isEntityClickable={isEntityClickable}
+						/>
 					) : null}
 
 					{activeNotice ? (
@@ -290,103 +257,6 @@ const UdpGame = ({
 	);
 };
 
-const TcpView = ({
-	gameCtx,
-	showClientD,
-	clientStatus,
-	tcpPhase,
-	onEntityClick,
-	isEntityClickable,
-}: {
-	gameCtx: ReturnType<typeof useGameCtx>;
-	showClientD: boolean;
-	clientStatus: Record<string, string>;
-	tcpPhase: ReturnType<typeof useTcpPhase>;
-	onEntityClick: (entity: EntityData) => void;
-	isEntityClickable: (entity: EntityData) => boolean;
-}) => {
-	const visibleClients = showClientD
-		? [...INITIAL_TCP_CLIENT_IDS, "d" as const]
-		: [...INITIAL_TCP_CLIENT_IDS];
-	const colCount = visibleClients.length;
-
-	return (
-		<Grid
-			templateAreas={{
-				base: `${visibleClients.map((id) => `"client-${id}"`).join(" ")} "internet"`,
-				md: `"${visibleClients.map((id) => `client-${id}`).join(" ")}" "${visibleClients.map(() => "internet").join(" ")}"`,
-			}}
-			templateColumns={{
-				base: "1fr",
-				md: `repeat(${colCount}, minmax(0, 1fr))`,
-			}}
-			gap={{ base: 2, md: 4 }}
-			alignItems="stretch"
-		>
-			{visibleClients.map((clientId) => (
-				<GridItem key={clientId} area={`client-${clientId}`} minW={0}>
-					<CustomSpace id={UDP_CLIENT_SPACE_IDS[clientId]}>
-						<Box
-							bg="gray.900"
-							borderRadius="md"
-							border="1px solid"
-							borderColor="gray.800"
-							p={3}
-						>
-							<Text fontSize="xs" color="gray.400" mb={2} textAlign="center">
-								{clientStatus[clientId]}
-							</Text>
-							<TcpProgressBar
-								clientId={clientId}
-								statuses={tcpPhase.clientPacketStatus[clientId]}
-							/>
-						</Box>
-					</CustomSpace>
-				</GridItem>
-			))}
-			{GRID_SPACE_CONFIGS.internet ? (
-				<GridItem area="internet" minW={0}>
-					<GridSpace
-						ctx={gameCtx}
-						config={GRID_SPACE_CONFIGS.internet}
-						onEntityClick={onEntityClick}
-						isEntityClickable={isEntityClickable}
-						getEntityStatus={(entity) => {
-							const tcpState = entity.data?.tcpState as string | undefined;
-							if (tcpState === "in-transit" || tcpState === "waiting") {
-								return { status: "warning", message: "Sending" };
-							}
-							if (tcpState === "rejected") {
-								return { status: "error", message: "Rejected" };
-							}
-							return {};
-						}}
-					/>
-				</GridItem>
-			) : null}
-		</Grid>
-	);
-};
-
-const TcpProgressBar = ({
-	clientId,
-	statuses,
-}: {
-	clientId: string;
-	statuses: import("./-utils/types").PacketReceiptStatus[] | undefined;
-}) => {
-	if (!statuses) return null;
-	const receivedCount = statuses.filter((s) => s === "received").length;
-	const percentage = Math.round((receivedCount / statuses.length) * 100);
-	return (
-		<ProgressBar
-			clientId={clientId}
-			frameStatuses={statuses}
-			percentage={percentage}
-		/>
-	);
-};
-
 type UdpPhaseData = {
 	phase: UdpBehaviorContext["udpPhase"];
 	lastSentFrame: number;
@@ -404,12 +274,10 @@ type UdpPhaseData = {
 const UdpView = ({
 	gameCtx,
 	udpPhase,
-	onEntityClick,
 	isEntityClickable,
 }: {
 	gameCtx: ReturnType<typeof useGameCtx>;
 	udpPhase: UdpPhaseData;
-	onEntityClick: (entity: EntityData) => void;
 	isEntityClickable: (entity: EntityData) => boolean;
 }) => {
 	const { setArrows, clearArrows } = useBoardArrows();
@@ -485,7 +353,6 @@ const UdpView = ({
 					ctx={gameCtx}
 					config={GRID_SPACE_CONFIGS.internet}
 					responsiveSize={{ base: [1, 1] }}
-					onEntityClick={onEntityClick}
 					isEntityClickable={isEntityClickable}
 					getEntityStatus={(entity) => {
 						const frameState = entity.data?.state as string | undefined;
