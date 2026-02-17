@@ -1,13 +1,13 @@
-import type { _ItemDataConfig } from "@/components/game/types/entity";
-import type { _Commands, _WorldApi } from "@/components/game/types/runtime";
+import type { ItemDataConfig } from "@/components/game/types/entity";
+import type { Commands, WorldApi } from "@/components/game/types/runtime";
 import { runtimeError, runtimeOk, toRuntimeErrorMessage } from "./result";
 
 type WorldApiDeps = {
-	commands: _Commands;
+	commands: Commands;
 };
 
-export const createWorldApi = ({ commands }: WorldApiDeps): _WorldApi => ({
-	createEntity(config: _ItemDataConfig) {
+export const createWorldApi = ({ commands }: WorldApiDeps): WorldApi => ({
+	createEntity(config: ItemDataConfig) {
 		try {
 			commands.createEntity(config);
 			return runtimeOk();

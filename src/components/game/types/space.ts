@@ -1,52 +1,52 @@
-export type _GridPosition = {
+export type GridPosition = {
 	row: number;
 	col: number;
 };
 
-export type _GridMetrics = {
+export type GridMetrics = {
 	cellWidth: number;
 	cellHeight: number;
 	gapX?: number;
 	gapY?: number;
 };
 
-export type _SpaceBaseConfig = {
+export type SpaceBaseConfig = {
 	id: string;
 	name?: string;
 	maxCapacity?: number;
 	metadata?: Record<string, unknown>;
 };
 
-export type _SpaceBase = {
+export type SpaceBase = {
 	id: string;
 	name?: string;
 	maxCapacity?: number;
 	metadata: Record<string, unknown>;
 };
 
-export type _GridSpaceConfig = _SpaceBaseConfig & {
+export type GridSpaceConfig = SpaceBaseConfig & {
 	rows: number;
 	cols: number;
-	metrics: _GridMetrics;
+	metrics: GridMetrics;
 	allowMultiplePerCell?: boolean;
 };
 
-export type _GridSpaceData = _SpaceBase & {
+export type GridSpaceData = SpaceBase & {
 	kind: "grid";
 	rows: number;
 	cols: number;
-	metrics: _GridMetrics;
+	metrics: GridMetrics;
 	allowMultiplePerCell: boolean;
-	entityPositions: Record<string, _GridPosition>;
+	entityPositions: Record<string, GridPosition>;
 };
 
-export type _PoolSpaceConfig = _SpaceBaseConfig & {
+export type PoolSpaceConfig = SpaceBaseConfig & {
 	layout?: "grid" | "list" | "carousel";
 	columns?: number;
 	allowReorder?: boolean;
 };
 
-export type _PoolSpaceData = _SpaceBase & {
+export type PoolSpaceData = SpaceBase & {
 	kind: "pool";
 	layout: "grid" | "list" | "carousel";
 	columns?: number;
@@ -54,7 +54,7 @@ export type _PoolSpaceData = _SpaceBase & {
 	entityIds: string[];
 };
 
-export type _PathSpaceConfig = _SpaceBaseConfig & {
+export type PathSpaceConfig = SpaceBaseConfig & {
 	path: string;
 	viewBox?: string;
 	duration?: number;
@@ -62,7 +62,7 @@ export type _PathSpaceConfig = _SpaceBaseConfig & {
 	showDropzone?: boolean;
 };
 
-export type _PathSpaceData = _SpaceBase & {
+export type PathSpaceData = SpaceBase & {
 	kind: "path";
 	path: string;
 	viewBox: string;
@@ -72,32 +72,32 @@ export type _PathSpaceData = _SpaceBase & {
 	entityIds: string[];
 };
 
-export type _CustomSpaceConfig = _SpaceBaseConfig;
+export interface CustomSpaceConfig extends SpaceBaseConfig {}
 
-export type _CustomSpaceData = _SpaceBase & {
+export type CustomSpaceData = SpaceBase & {
 	kind: "custom";
 };
 
-export type _QueueSpaceConfig = _SpaceBaseConfig & {
+export type QueueSpaceConfig = SpaceBaseConfig & {
 	maxDepth?: number;
 	direction?: "horizontal" | "vertical";
 };
 
-export type _QueueSpaceData = _SpaceBase & {
+export type QueueSpaceData = SpaceBase & {
 	kind: "queue";
 	maxDepth?: number;
 	direction: "horizontal" | "vertical";
 	entityIds: string[];
 };
 
-export type _MeterSpaceConfig = _SpaceBaseConfig & {
+export type MeterSpaceConfig = SpaceBaseConfig & {
 	min: number;
 	max: number;
 	unit?: string;
 	thresholds?: Array<{ value: number; color: string }>;
 };
 
-export type _MeterSpaceData = _SpaceBase & {
+export type MeterSpaceData = SpaceBase & {
 	kind: "meter";
 	min: number;
 	max: number;
@@ -106,59 +106,41 @@ export type _MeterSpaceData = _SpaceBase & {
 	thresholds: Array<{ value: number; color: string }>;
 };
 
-export type _SpaceData =
-	| _GridSpaceData
-	| _PoolSpaceData
-	| _PathSpaceData
-	| _CustomSpaceData
-	| _QueueSpaceData
-	| _MeterSpaceData;
+export type SpaceData =
+	| GridSpaceData
+	| PoolSpaceData
+	| PathSpaceData
+	| CustomSpaceData
+	| QueueSpaceData
+	| MeterSpaceData;
 
-export type GridPosition = _GridPosition;
-export type GridMetrics = _GridMetrics;
-export type SpaceBaseConfig = _SpaceBaseConfig;
-export type SpaceBase = _SpaceBase;
-export type GridSpaceConfig = _GridSpaceConfig;
-export type GridSpaceData = _GridSpaceData;
-export type PoolSpaceConfig = _PoolSpaceConfig;
-export type PoolSpaceData = _PoolSpaceData;
-export type PathSpaceConfig = _PathSpaceConfig;
-export type PathSpaceData = _PathSpaceData;
-export type CustomSpaceConfig = _CustomSpaceConfig;
-export type CustomSpaceData = _CustomSpaceData;
-export type QueueSpaceConfig = _QueueSpaceConfig;
-export type QueueSpaceData = _QueueSpaceData;
-export type MeterSpaceConfig = _MeterSpaceConfig;
-export type MeterSpaceData = _MeterSpaceData;
-export type SpaceData = _SpaceData;
-
-export const isGridSpace = (space: _SpaceData): space is _GridSpaceData => {
+export const isGridSpace = (space: SpaceData): space is GridSpaceData => {
 	return space.kind === "grid";
 };
 
-export const isPoolSpace = (space: _SpaceData): space is _PoolSpaceData => {
+export const isPoolSpace = (space: SpaceData): space is PoolSpaceData => {
 	return space.kind === "pool";
 };
 
-export const isPathSpace = (space: _SpaceData): space is _PathSpaceData => {
+export const isPathSpace = (space: SpaceData): space is PathSpaceData => {
 	return space.kind === "path";
 };
 
-export const isCustomSpace = (space: _SpaceData): space is _CustomSpaceData => {
+export const isCustomSpace = (space: SpaceData): space is CustomSpaceData => {
 	return space.kind === "custom";
 };
 
-export const isQueueSpace = (space: _SpaceData): space is _QueueSpaceData => {
+export const isQueueSpace = (space: SpaceData): space is QueueSpaceData => {
 	return space.kind === "queue";
 };
 
-export const isMeterSpace = (space: _SpaceData): space is _MeterSpaceData => {
+export const isMeterSpace = (space: SpaceData): space is MeterSpaceData => {
 	return space.kind === "meter";
 };
 
 export const isValidGridPosition = (
 	position: unknown,
-): position is _GridPosition => {
+): position is GridPosition => {
 	return (
 		position !== undefined &&
 		typeof position === "object" &&

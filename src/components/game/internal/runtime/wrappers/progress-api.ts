@@ -1,16 +1,16 @@
-import type { _Commands, _ProgressApi } from "@/components/game/types/runtime";
+import type { Commands, ProgressApi } from "@/components/game/types/runtime";
 import type { Action } from "@/components/game/types/state";
 import { runtimeError, runtimeOk, toRuntimeErrorMessage } from "./result";
 
 type ProgressApiDeps = {
-	commands: _Commands;
+	commands: Commands;
 	dispatch: (action: Action) => void;
 };
 
 export const createProgressApi = ({
 	commands,
 	dispatch,
-}: ProgressApiDeps): _ProgressApi => ({
+}: ProgressApiDeps): ProgressApi => ({
 	completeQuestion() {
 		try {
 			commands.completeQuestion();

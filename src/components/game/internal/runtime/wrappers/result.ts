@@ -1,11 +1,11 @@
 import type {
-	_RuntimeApiFailure,
-	_RuntimeApiSuccess,
+	RuntimeApiFailure,
+	RuntimeApiSuccess,
 } from "@/components/game/types/runtime";
 
-export const runtimeOk = (): _RuntimeApiSuccess => ({ ok: true });
+export const runtimeOk = (): RuntimeApiSuccess => ({ ok: true });
 
-export const runtimeError = (message: string): _RuntimeApiFailure => ({
+export const runtimeError = (message: string): RuntimeApiFailure => ({
 	ok: false,
 	error: { message },
 });

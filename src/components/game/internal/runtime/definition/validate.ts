@@ -6,7 +6,7 @@
  */
 
 import type { QuestionDefinition } from "@/components/game/types/question";
-import type { _ValidationError } from "@/components/game/types/runtime";
+import type { ValidationError } from "@/components/game/types/runtime";
 
 /**
  * Validates a QuestionDefinition and returns any errors found.
@@ -18,8 +18,8 @@ import type { _ValidationError } from "@/components/game/types/runtime";
  */
 export function validateDefinition<CK extends string = string, TC = unknown>(
 	def: QuestionDefinition<CK, TC>,
-): _ValidationError[] {
-	const errors: _ValidationError[] = [];
+): ValidationError[] {
+	const errors: ValidationError[] = [];
 
 	// meta.id must be non-empty
 	if (!def.meta.id || def.meta.id.trim().length === 0) {

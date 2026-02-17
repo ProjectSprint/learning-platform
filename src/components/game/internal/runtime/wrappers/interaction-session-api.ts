@@ -1,9 +1,9 @@
-import type { _ModalInstance } from "@/components/game/types/modal";
+import type { ModalInstance } from "@/components/game/types/modal";
 import type {
-	_Commands,
-	_ExecutionFlowApi,
-	_InteractionSessionApi,
-	_InteractionSessionState,
+	Commands,
+	ExecutionFlowApi,
+	InteractionSessionApi,
+	InteractionSessionState,
 } from "@/components/game/types/runtime";
 import {
 	runtimeError,
@@ -13,12 +13,12 @@ import {
 } from "./result";
 
 type InteractionSessionApiDeps = {
-	commands: _Commands;
-	executionFlowApi: _ExecutionFlowApi;
+	commands: Commands;
+	executionFlowApi: ExecutionFlowApi;
 	setInteractionState: (
 		next:
-			| _InteractionSessionState
-			| ((prev: _InteractionSessionState) => _InteractionSessionState),
+			| InteractionSessionState
+			| ((prev: InteractionSessionState) => InteractionSessionState),
 	) => void;
 };
 
@@ -26,8 +26,8 @@ export const createInteractionSessionApi = ({
 	commands,
 	executionFlowApi,
 	setInteractionState,
-}: InteractionSessionApiDeps): _InteractionSessionApi => ({
-	openModal(modal: _ModalInstance) {
+}: InteractionSessionApiDeps): InteractionSessionApi => ({
+	openModal(modal: ModalInstance) {
 		try {
 			commands.openModal(modal);
 			return runtimeOk();

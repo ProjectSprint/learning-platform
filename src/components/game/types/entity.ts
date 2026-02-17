@@ -1,6 +1,6 @@
-import type { _IconInfo } from "./icon";
+import type { IconInfo } from "./icon";
 
-export type _EntityVisual = {
+export type EntityVisual = {
 	icon?: string;
 	color?: string;
 	size?: "sm" | "md" | "lg";
@@ -8,50 +8,43 @@ export type _EntityVisual = {
 	style?: Record<string, unknown>;
 };
 
-export type _ItemTooltip = {
+export type ItemTooltip = {
 	content: string;
 	seeMoreHref?: string;
 };
 
-export type _EntityDataConfig = {
+export type EntityDataConfig = {
 	id: string;
 	type: string;
 	name?: string;
-	visual?: _EntityVisual;
+	visual?: EntityVisual;
 	data?: Record<string, unknown>;
 	state?: Record<string, unknown>;
 	behaviorIds?: string[];
 };
 
-export type _EntityData = {
+export type EntityData = {
 	id: string;
 	type: string;
 	name?: string;
-	visual: _EntityVisual;
+	visual: EntityVisual;
 	data: Record<string, unknown>;
 	state: Record<string, unknown>;
 	behaviorIds: string[];
 };
 
-export type _ItemDataConfig = Omit<_EntityDataConfig, "type"> & {
+export type ItemDataConfig = Omit<EntityDataConfig, "type"> & {
 	allowedPlaces: string[];
-	icon?: _IconInfo;
-	tooltip?: _ItemTooltip;
+	icon?: IconInfo;
+	tooltip?: ItemTooltip;
 	draggable?: boolean;
 	category?: string;
 };
 
-export type _ItemData = _EntityData & {
+export type ItemData = EntityData & {
 	allowedPlaces: string[];
-	icon?: _IconInfo;
-	tooltip?: _ItemTooltip;
+	icon?: IconInfo;
+	tooltip?: ItemTooltip;
 	draggable: boolean;
 	category?: string;
 };
-
-export type EntityVisual = _EntityVisual;
-export type ItemTooltip = _ItemTooltip;
-export type EntityDataConfig = _EntityDataConfig;
-export type EntityData = _EntityData;
-export type ItemDataConfig = _ItemDataConfig;
-export type ItemData = _ItemData;

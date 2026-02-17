@@ -1,5 +1,5 @@
-import type { _EntityData, _ItemData } from "@/components/game/types/entity";
+import type { EntityData, ItemData } from "@/components/game/types/entity";
 
-export const isItemData = (entity: _EntityData): entity is _ItemData => {
+export const isItemData = (entity: EntityData): entity is ItemData => {
 	return "allowedPlaces" in entity && "draggable" in entity;
 };

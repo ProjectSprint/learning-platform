@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/components/game/internal/game-provider";
-import type { _EngineLifecycleCallbacks } from "@/components/game/types/engine";
+import type { EngineLifecycleCallbacks } from "@/components/game/types/engine";
 import {
 	type EngineController,
 	useEngineProgress,
@@ -12,7 +12,7 @@ export interface DragEngineState {
 }
 
 export interface DragEngineConfig<TContext = unknown>
-	extends _EngineLifecycleCallbacks<TContext> {
+	extends EngineLifecycleCallbacks<TContext> {
 	context?: TContext;
 	autoStart?: boolean;
 }

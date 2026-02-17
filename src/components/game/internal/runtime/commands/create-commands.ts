@@ -10,10 +10,7 @@
  */
 
 import type { ItemDataConfig } from "@/components/game/types/entity";
-import type {
-	_CommandContext,
-	_Commands,
-} from "@/components/game/types/runtime";
+import type { CommandContext, Commands } from "@/components/game/types/runtime";
 import { isGridSpace } from "@/components/game/types/space";
 import { createItemData } from "../../domain/adt";
 import { getEntitySpaceId, selectGridEmptyPositions } from "../../domain/read";
@@ -21,7 +18,7 @@ import { getEntitySpaceId, selectGridEmptyPositions } from "../../domain/read";
 /**
  * Create a Commands object backed by dispatch + getState.
  */
-export function createCommands(ctx: _CommandContext): _Commands {
+export function createCommands(ctx: CommandContext): Commands {
 	const { dispatch, getState } = ctx;
 
 	const moveEntityInternal = (

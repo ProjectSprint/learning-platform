@@ -14,17 +14,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import type {
-	_BehaviorDefinition,
+	BehaviorDefinition,
 	TerminalBridge,
 } from "@/components/game/types/behavior";
-import type { _QuestionDefinition } from "@/components/game/types/question";
+import type { QuestionDefinition } from "@/components/game/types/question";
 import type {
-	_ExecutionFlowApi,
-	_InteractionSessionApi,
-	_InteractionSessionState,
-	_ProgressApi,
-	_QuestionRuntime,
-	_WorldApi,
+	ExecutionFlowApi,
+	InteractionSessionApi,
+	InteractionSessionState,
+	ProgressApi,
+	QuestionRuntime,
+	WorldApi,
 } from "@/components/game/types/runtime";
 import {
 	useEngineEvents,
@@ -57,8 +57,8 @@ export function useQuestionRuntime<
 	TContext extends Record<string, unknown> = Record<string, never>,
 >(
 	engineId: string,
-	definition?: _QuestionDefinition<CK, TContext>,
-): _QuestionRuntime<TContext> {
+	definition?: QuestionDefinition<CK, TContext>,
+): QuestionRuntime<TContext> {
 	const dispatch = useGameDispatch();
 	const state = useGameState();
 	const { events, ack } = useEngineEvents(engineId);
@@ -66,7 +66,7 @@ export function useQuestionRuntime<
 	const stateRef = useRef(state);
 	stateRef.current = state;
 	const [interactionState, setInteractionState] =
-		useState<_InteractionSessionState>({
+		useState<InteractionSessionState>({
 			terminalVisible: false,
 			modalGateOpen: false,
 		});
@@ -123,19 +123,19 @@ export function useQuestionRuntime<
 		});
 	}
 
-	const executionFlowRef = useRef<_ExecutionFlowApi | null>(null);
+	const executionFlowRef = useRef<ExecutionFlowApi | null>(null);
 	if (!executionFlowRef.current) {
 		executionFlowRef.current = createExecutionFlowApi({
 			dispatcher: dispatcherRef.current,
 		});
 	}
 
-	const worldRef = useRef<_WorldApi | null>(null);
+	const worldRef = useRef<WorldApi | null>(null);
 	if (!worldRef.current) {
 		worldRef.current = createWorldApi({ commands: commandsRef.current });
 	}
 
-	const progressRef = useRef<_ProgressApi | null>(null);
+	const progressRef = useRef<ProgressApi | null>(null);
 	if (!progressRef.current) {
 		progressRef.current = createProgressApi({
 			commands: commandsRef.current,
@@ -143,7 +143,7 @@ export function useQuestionRuntime<
 		});
 	}
 
-	const interactionSessionRef = useRef<_InteractionSessionApi | null>(null);
+	const interactionSessionRef = useRef<InteractionSessionApi | null>(null);
 	if (!interactionSessionRef.current) {
 		interactionSessionRef.current = createInteractionSessionApi({
 			commands: commandsRef.current,
@@ -175,26 +175,44 @@ export function useQuestionRuntime<
 		};
 	}
 
+	const worldApi = worldRef.current;
+	const progressApi = progressRef.current;
+	const executionFlowApi = executionFlowRef.current;
+	const interactionSessionApi = interactionSessionRef.current;
+	const terminalBridge = terminalBridgeRef.current;
+	const scheduler = schedulerRef.current;
+
+	if (
+		!worldApi ||
+		!progressApi ||
+		!executionFlowApi ||
+		!interactionSessionApi ||
+		!terminalBridge ||
+		!scheduler
+	) {
+		throw new Error("[runtime] Failed to initialize runtime APIs");
+	}
+
 	const behaviorResult = useBehaviorReactor<TContext>(
-		definition?.behaviors as _BehaviorDefinition<TContext> | undefined,
+		definition?.behaviors as BehaviorDefinition<TContext> | undefined,
 		{
 			state,
 			events,
 			ack,
-			world: worldRef.current,
-			interaction: interactionSessionRef.current,
-			flow: executionFlowRef.current,
-			progress: progressRef.current,
-			terminal: terminalBridgeRef.current,
-			scheduler: schedulerRef.current,
+			world: worldApi,
+			interaction: interactionSessionApi,
+			flow: executionFlowApi,
+			progress: progressApi,
+			terminal: terminalBridge,
+			scheduler,
 		},
 	);
 
 	return {
-		world: worldRef.current,
-		progress: progressRef.current,
-		executionFlow: executionFlowRef.current,
-		interactionSession: interactionSessionRef.current,
+		world: worldApi,
+		progress: progressApi,
+		executionFlow: executionFlowApi,
+		interactionSession: interactionSessionApi,
 		interactionState,
 		state,
 		phase: state.phase,

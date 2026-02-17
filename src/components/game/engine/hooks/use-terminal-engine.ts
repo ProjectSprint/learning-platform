@@ -4,7 +4,7 @@ import {
 	useEngineEvents,
 } from "@/components/game/internal/game-provider";
 import { useTerminalStore } from "@/components/game/internal/presentation/terminal/terminal-context";
-import type { _EngineLifecycleCallbacks } from "@/components/game/types/engine";
+import type { EngineLifecycleCallbacks } from "@/components/game/types/engine";
 import {
 	type EngineController,
 	useEngineProgress,
@@ -19,7 +19,7 @@ export interface TerminalCommandHelpers<TContext = unknown> {
 }
 
 export interface TerminalEngineConfig<TContext = unknown>
-	extends _EngineLifecycleCallbacks<TContext> {
+	extends EngineLifecycleCallbacks<TContext> {
 	context?: TContext;
 	onCommand?: (
 		input: string,

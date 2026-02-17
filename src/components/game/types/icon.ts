@@ -1,6 +1,4 @@
-export type _IconInfo = {
+export type IconInfo = {
 	icon: string;
 	color?: string;
 };
-
-export type IconInfo = _IconInfo;

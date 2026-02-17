@@ -1,43 +1,43 @@
 import type { MutableRefObject } from "react";
-import type { _EntityVisual, _ItemData, _ItemDataConfig } from "./entity";
-import type { _ModalInstance } from "./modal";
-import type { _QuestionDefinition } from "./question";
-import type { _GridPosition } from "./space";
+import type { EntityVisual, ItemData, ItemDataConfig } from "./entity";
+import type { ModalInstance } from "./modal";
+import type { QuestionDefinition } from "./question";
+import type { GridPosition } from "./space";
 import type { Action, GameEvent, GameState } from "./state";
 
-export type _RuntimeApiSuccess = { ok: true };
+export type RuntimeApiSuccess = { ok: true };
 
-export type _RuntimeApiFailure = {
+export type RuntimeApiFailure = {
 	ok: false;
 	error: {
 		message: string;
 	};
 };
 
-export type _RuntimeApiResult = _RuntimeApiSuccess | _RuntimeApiFailure;
+export type RuntimeApiResult = RuntimeApiSuccess | RuntimeApiFailure;
 
-export type _ExecutionFlowIntent = {
+export type ExecutionFlowIntent = {
 	type: "execution_flow.phase_transition_requested";
 	payload: { phase: string; source: string };
 };
 
-export type _ExecutionFlowWarningEmitter = (message: string) => void;
+export type ExecutionFlowWarningEmitter = (message: string) => void;
 
-export type _ExecutionFlowDispatcher = {
-	dispatchIntent: (intent: _ExecutionFlowIntent) => _RuntimeApiResult;
+export type ExecutionFlowDispatcher = {
+	dispatchIntent: (intent: ExecutionFlowIntent) => RuntimeApiResult;
 };
 
-export type _ExecutionFlowDispatcherDeps = {
+export type ExecutionFlowDispatcherDeps = {
 	dispatch: (action: Action) => void;
 	getState: () => GameState;
 	nowMs: () => number;
-	warn: _ExecutionFlowWarningEmitter;
+	warn: ExecutionFlowWarningEmitter;
 };
 
-export type _InteractionSessionIntent =
+export type InteractionSessionIntent =
 	| {
 			type: "interaction_session.open_modal";
-			payload: { modal: _ModalInstance };
+			payload: { modal: ModalInstance };
 	  }
 	| {
 			type: "interaction_session.close_modal";
@@ -56,7 +56,7 @@ export type _InteractionSessionIntent =
 			payload: { phase: string; source: string };
 	  };
 
-export type _ProgressIntent =
+export type ProgressIntent =
 	| {
 			type: "progress.complete_question";
 	  }
@@ -65,10 +65,10 @@ export type _ProgressIntent =
 			payload: { id: string; status?: "in_progress" | "completed" };
 	  };
 
-export type _WorldIntent =
+export type WorldIntent =
 	| {
 			type: "world.create_entity";
-			payload: { config: _ItemDataConfig };
+			payload: { config: ItemDataConfig };
 	  }
 	| {
 			type: "world.update_entity";
@@ -94,7 +94,7 @@ export type _WorldIntent =
 			payload: {
 				entityId: string;
 				spaceId: string;
-				position?: _GridPosition;
+				position?: GridPosition;
 			};
 	  }
 	| {
@@ -106,7 +106,7 @@ export type _WorldIntent =
 			payload: {
 				entityId: string;
 				toSpaceId: string;
-				position?: _GridPosition;
+				position?: GridPosition;
 			};
 	  }
 	| {
@@ -114,14 +114,14 @@ export type _WorldIntent =
 			payload: { entityId: string; spaceId: string };
 	  };
 
-export type _Commands = {
-	createEntity: (config: _ItemDataConfig) => _ItemData;
+export type Commands = {
+	createEntity: (config: ItemDataConfig) => ItemData;
 	updateEntity: (
 		entityId: string,
 		updates: {
 			name?: string;
 			data?: Record<string, unknown>;
-			visual?: Partial<_EntityVisual>;
+			visual?: Partial<EntityVisual>;
 		},
 	) => void;
 	updateEntityState: (entityId: string, state: Record<string, unknown>) => void;
@@ -129,58 +129,58 @@ export type _Commands = {
 	addToSpace: (
 		entityId: string,
 		spaceId: string,
-		position?: _GridPosition,
+		position?: GridPosition,
 	) => void;
 	removeFromSpace: (entityId: string, spaceId: string) => void;
 	moveEntity: (
 		entityId: string,
 		toSpaceId: string,
-		position?: _GridPosition,
+		position?: GridPosition,
 	) => void;
 	moveEntityToGrid: (entityId: string, spaceId: string) => boolean;
 	completeQuestion: () => void;
-	openModal: (modal: _ModalInstance) => void;
+	openModal: (modal: ModalInstance) => void;
 	closeModal: (modalId?: string) => void;
 };
 
-export type _CommandContext = {
+export type CommandContext = {
 	dispatch: (action: Action) => void;
 	getState: () => GameState;
 };
 
-export type _ValidationError = {
+export type ValidationError = {
 	field: string;
 	message: string;
 };
 
-export type _ExecutionFlowApi = {
-	requestPhaseTransition: (phase: string, source: string) => _RuntimeApiResult;
-	dispatchIntent: (intent: _ExecutionFlowIntent) => _RuntimeApiResult;
+export type ExecutionFlowApi = {
+	requestPhaseTransition: (phase: string, source: string) => RuntimeApiResult;
+	dispatchIntent: (intent: ExecutionFlowIntent) => RuntimeApiResult;
 };
 
-export type _InteractionSessionState = {
+export type InteractionSessionState = {
 	terminalVisible: boolean;
 	modalGateOpen: boolean;
 };
 
-export type _InteractionSessionApi = {
-	openModal: (modal: _ModalInstance) => _RuntimeApiResult;
-	closeModal: (modalId?: string) => _RuntimeApiResult;
-	requestPhaseTransition: (phase: string, source: string) => _RuntimeApiResult;
-	setTerminalVisible: (visible: boolean) => _RuntimeApiResult;
-	setModalGateOpen: (open: boolean) => _RuntimeApiResult;
+export type InteractionSessionApi = {
+	openModal: (modal: ModalInstance) => RuntimeApiResult;
+	closeModal: (modalId?: string) => RuntimeApiResult;
+	requestPhaseTransition: (phase: string, source: string) => RuntimeApiResult;
+	setTerminalVisible: (visible: boolean) => RuntimeApiResult;
+	setModalGateOpen: (open: boolean) => RuntimeApiResult;
 };
 
-export type _ProgressApi = {
-	completeQuestion: () => _RuntimeApiResult;
+export type ProgressApi = {
+	completeQuestion: () => RuntimeApiResult;
 	setQuestion: (input: {
 		id: string;
 		status?: "in_progress" | "completed";
-	}) => _RuntimeApiResult;
+	}) => RuntimeApiResult;
 };
 
-export type _WorldApi = {
-	createEntity: (config: _ItemDataConfig) => _RuntimeApiResult;
+export type WorldApi = {
+	createEntity: (config: ItemDataConfig) => RuntimeApiResult;
 	updateEntity: (
 		entityId: string,
 		updates: {
@@ -188,32 +188,32 @@ export type _WorldApi = {
 			data?: Record<string, unknown>;
 			visual?: Record<string, unknown>;
 		},
-	) => _RuntimeApiResult;
+	) => RuntimeApiResult;
 	updateEntityState: (
 		entityId: string,
 		state: Record<string, unknown>,
-	) => _RuntimeApiResult;
-	deleteEntities: (entityIds: string[]) => _RuntimeApiResult;
+	) => RuntimeApiResult;
+	deleteEntities: (entityIds: string[]) => RuntimeApiResult;
 	addToSpace: (
 		entityId: string,
 		spaceId: string,
-		position?: _GridPosition,
-	) => _RuntimeApiResult;
-	removeFromSpace: (entityId: string, spaceId: string) => _RuntimeApiResult;
+		position?: GridPosition,
+	) => RuntimeApiResult;
+	removeFromSpace: (entityId: string, spaceId: string) => RuntimeApiResult;
 	moveEntity: (
 		entityId: string,
 		toSpaceId: string,
-		position?: _GridPosition,
-	) => _RuntimeApiResult;
-	moveEntityToGrid: (entityId: string, spaceId: string) => _RuntimeApiResult;
+		position?: GridPosition,
+	) => RuntimeApiResult;
+	moveEntityToGrid: (entityId: string, spaceId: string) => RuntimeApiResult;
 };
 
-export type _QuestionRuntime<TContext = Record<string, never>> = {
-	world: _WorldApi;
-	progress: _ProgressApi;
-	executionFlow: _ExecutionFlowApi;
-	interactionSession: _InteractionSessionApi;
-	interactionState: _InteractionSessionState;
+export type QuestionRuntime<TContext = Record<string, never>> = {
+	world: WorldApi;
+	progress: ProgressApi;
+	executionFlow: ExecutionFlowApi;
+	interactionSession: InteractionSessionApi;
+	interactionState: InteractionSessionState;
 	state: GameState;
 	phase: string;
 	isCompleted: boolean;
@@ -223,38 +223,10 @@ export type _QuestionRuntime<TContext = Record<string, never>> = {
 	registerTerminalFinish: MutableRefObject<(() => void) | null>;
 };
 
-export type _BootstrapQuestion = <
-	ConditionKey extends string = string,
-	TContext = Record<string, never>,
->(
-	definition: _QuestionDefinition<ConditionKey, TContext>,
-	dispatch: (action: Action) => void,
-) => void;
-
-export type QuestionRuntime<TContext = Record<string, never>> =
-	_QuestionRuntime<TContext>;
-export type Commands = _Commands;
-export type CommandContext = _CommandContext;
-export type ExecutionFlowIntent = _ExecutionFlowIntent;
-export type ExecutionFlowWarningEmitter = _ExecutionFlowWarningEmitter;
-export type ExecutionFlowDispatcher = _ExecutionFlowDispatcher;
-export type ExecutionFlowDispatcherDeps = _ExecutionFlowDispatcherDeps;
-export type ExecutionFlowApi = _ExecutionFlowApi;
-export type InteractionSessionIntent = _InteractionSessionIntent;
-export type InteractionSessionState = _InteractionSessionState;
-export type InteractionSessionApi = _InteractionSessionApi;
-export type ProgressIntent = _ProgressIntent;
-export type ProgressApi = _ProgressApi;
-export type RuntimeApiFailure = _RuntimeApiFailure;
-export type RuntimeApiResult = _RuntimeApiResult;
-export type RuntimeApiSuccess = _RuntimeApiSuccess;
-export type ValidationError = _ValidationError;
-export type WorldIntent = _WorldIntent;
-export type WorldApi = _WorldApi;
 export type BootstrapQuestion = <
 	ConditionKey extends string = string,
 	TContext = Record<string, never>,
 >(
-	definition: _QuestionDefinition<ConditionKey, TContext>,
+	definition: QuestionDefinition<ConditionKey, TContext>,
 	dispatch: (action: Action) => void,
 ) => void;

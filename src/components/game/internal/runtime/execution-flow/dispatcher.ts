@@ -1,20 +1,20 @@
 import type {
-	_ExecutionFlowDispatcher,
-	_ExecutionFlowDispatcherDeps,
-	_ExecutionFlowIntent,
-	_RuntimeApiResult,
+	ExecutionFlowDispatcher,
+	ExecutionFlowDispatcherDeps,
+	ExecutionFlowIntent,
+	RuntimeApiResult,
 } from "@/components/game/types/runtime";
 import { runtimeError, runtimeOk } from "../wrappers/result";
 
 const RAPID_INTENT_THRESHOLD_MS = 100;
 
 export const createExecutionFlowDispatcher = (
-	deps: _ExecutionFlowDispatcherDeps,
-): _ExecutionFlowDispatcher => {
+	deps: ExecutionFlowDispatcherDeps,
+): ExecutionFlowDispatcher => {
 	const { dispatch, getState, nowMs, warn } = deps;
-	const lastIntentAtByType = new Map<_ExecutionFlowIntent["type"], number>();
+	const lastIntentAtByType = new Map<ExecutionFlowIntent["type"], number>();
 
-	const dispatchIntent = (intent: _ExecutionFlowIntent): _RuntimeApiResult => {
+	const dispatchIntent = (intent: ExecutionFlowIntent): RuntimeApiResult => {
 		const now = nowMs();
 		const lastSeen = lastIntentAtByType.get(intent.type);
 		if (

@@ -3,7 +3,7 @@
  * Provides the foundation for different grid types (square, hex, radial, etc.)
  */
 
-import type { GridMetrics } from "@/components/game/types/grid";
+import type { GridMetrics } from "@/components/game/types/space";
 import type { GridCoordinate, Point2D } from "../../geometry/coordinates";
 import { isInBounds, manhattanDistance } from "../../geometry/coordinates";
 import type { GridCell } from "./GridCell";

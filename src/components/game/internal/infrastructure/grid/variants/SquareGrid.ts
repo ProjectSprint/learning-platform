@@ -3,10 +3,8 @@
  * The most common grid type with axis-aligned cells arranged in rows and columns.
  */
 
-import type {
-	GridMetrics,
-	SquareGridConfig,
-} from "@/components/game/types/grid";
+import type { SquareGridConfig } from "@/components/game/types/grid";
+import type { GridMetrics } from "@/components/game/types/space";
 import type { GridCoordinate, Point2D } from "../../geometry/coordinates";
 import { createGridCoord } from "../../geometry/coordinates";
 import { GridBase } from "../core/GridBase";

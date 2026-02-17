@@ -1,65 +1,65 @@
-export type _ModalHelpLink = {
+export type ModalHelpLink = {
 	label: string;
 	href: string;
 };
 
-export type _ModalFieldValidator<Value = unknown> = (
+export type ModalFieldValidator<Value = unknown> = (
 	value: Value,
 	allValues: Record<string, unknown>,
 ) => string | null;
 
-type _BaseModalField = {
+type BaseModalField = {
 	id: string;
 	label: string;
 	helpText?: string;
-	helpLink?: _ModalHelpLink;
+	helpLink?: ModalHelpLink;
 };
 
-export type _ModalTextField = _BaseModalField & {
+export type ModalTextField = BaseModalField & {
 	kind: "text";
 	placeholder?: string;
 	defaultValue?: string;
-	validate?: _ModalFieldValidator<string>;
+	validate?: ModalFieldValidator<string>;
 };
 
-export type _ModalTextareaField = _BaseModalField & {
+export type ModalTextareaField = BaseModalField & {
 	kind: "textarea";
 	placeholder?: string;
 	defaultValue?: string;
-	validate?: _ModalFieldValidator<string>;
+	validate?: ModalFieldValidator<string>;
 };
 
-export type _ModalCheckboxField = _BaseModalField & {
+export type ModalCheckboxField = BaseModalField & {
 	kind: "checkbox";
 	defaultValue?: boolean;
 };
 
-export type _ModalSelectOption = {
+export type ModalSelectOption = {
 	value: string;
 	label: string;
 };
 
-export type _ModalSelectField = _BaseModalField & {
+export type ModalSelectField = BaseModalField & {
 	kind: "select";
-	options: _ModalSelectOption[];
+	options: ModalSelectOption[];
 	placeholder?: string;
 	defaultValue?: string;
-	validate?: _ModalFieldValidator<string>;
+	validate?: ModalFieldValidator<string>;
 };
 
-export type _ModalReadonlyField = _BaseModalField & {
+export type ModalReadonlyField = BaseModalField & {
 	kind: "readonly";
 	value: string;
 };
 
-export type _ModalField =
-	| _ModalTextField
-	| _ModalTextareaField
-	| _ModalCheckboxField
-	| _ModalSelectField
-	| _ModalReadonlyField;
+export type ModalField =
+	| ModalTextField
+	| ModalTextareaField
+	| ModalCheckboxField
+	| ModalSelectField
+	| ModalReadonlyField;
 
-export type _ModalContentBlock =
+export type ModalContentBlock =
 	| {
 			kind: "text";
 			id?: string;
@@ -73,52 +73,33 @@ export type _ModalContentBlock =
 	  }
 	| {
 			kind: "field";
-			field: _ModalField;
+			field: ModalField;
 	  };
 
-export type _ModalActionVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ModalActionVariant = "primary" | "secondary" | "ghost" | "danger";
 
-export type _ModalAction = {
+export type ModalAction = {
 	id: string;
 	label: string;
-	variant?: _ModalActionVariant;
+	variant?: ModalActionVariant;
 	validate?: boolean;
 	closesModal?: boolean;
 };
 
-export type _ModalInstance = {
+export type ModalInstance = {
 	id?: string;
 	title?: string;
-	content: _ModalContentBlock[];
-	actions: _ModalAction[];
+	content: ModalContentBlock[];
+	actions: ModalAction[];
 	blocking?: boolean;
 	initialValues?: Record<string, unknown>;
 };
 
-export type _ModalEntry = {
-	instance: _ModalInstance;
+export type ModalEntry = {
+	instance: ModalInstance;
 	visible: boolean;
 };
 
-export type _OverlayState = {
-	modals: Record<string, _ModalEntry>;
+export type OverlayState = {
+	modals: Record<string, ModalEntry>;
 };
-
-export type ModalHelpLink = _ModalHelpLink;
-export type ModalFieldValidator<Value = unknown> = (
-	value: Value,
-	allValues: Record<string, unknown>,
-) => string | null;
-export type ModalTextField = _ModalTextField;
-export type ModalTextareaField = _ModalTextareaField;
-export type ModalCheckboxField = _ModalCheckboxField;
-export type ModalSelectOption = _ModalSelectOption;
-export type ModalSelectField = _ModalSelectField;
-export type ModalReadonlyField = _ModalReadonlyField;
-export type ModalField = _ModalField;
-export type ModalContentBlock = _ModalContentBlock;
-export type ModalActionVariant = _ModalActionVariant;
-export type ModalAction = _ModalAction;
-export type ModalInstance = _ModalInstance;
-export type ModalEntry = _ModalEntry;
-export type OverlayState = _OverlayState;

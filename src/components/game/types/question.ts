@@ -1,20 +1,20 @@
-import type { _BehaviorDefinition } from "./behavior";
-import type { _ItemDataConfig } from "./entity";
+import type { BehaviorDefinition } from "./behavior";
+import type { ItemDataConfig } from "./entity";
 import type {
-	_CustomSpaceConfig,
-	_GridPosition,
-	_GridSpaceConfig,
-	_MeterSpaceConfig,
-	_PathSpaceConfig,
-	_PoolSpaceConfig,
-	_QueueSpaceConfig,
+	CustomSpaceConfig,
+	GridPosition,
+	GridSpaceConfig,
+	MeterSpaceConfig,
+	PathSpaceConfig,
+	PoolSpaceConfig,
+	QueueSpaceConfig,
 } from "./space";
 import type { GameState } from "./state";
 
-export type _Condition<ConditionKey extends string = string> =
-	| { kind: "and"; all: _Condition<ConditionKey>[] }
-	| { kind: "or"; any: _Condition<ConditionKey>[] }
-	| { kind: "not"; value: _Condition<ConditionKey> }
+export type Condition<ConditionKey extends string = string> =
+	| { kind: "and"; all: Condition<ConditionKey>[] }
+	| { kind: "or"; any: Condition<ConditionKey>[] }
+	| { kind: "not"; value: Condition<ConditionKey> }
 	| { kind: "flag"; key: ConditionKey; is: boolean }
 	| {
 			kind: "eq";
@@ -23,52 +23,52 @@ export type _Condition<ConditionKey extends string = string> =
 	  }
 	| { kind: "in"; key: ConditionKey; values: Array<string | number> };
 
-export type _ConditionContext<ConditionKey extends string = string> = Record<
+export type ConditionContext<ConditionKey extends string = string> = Record<
 	ConditionKey,
 	string | number | boolean | null | undefined
 >;
 
-export type _PhaseRule<ConditionKey extends string = string> =
-	| { kind: "set"; when: _Condition<ConditionKey>; to: string }
-	| { kind: "retain"; when: _Condition<ConditionKey> };
+export type PhaseRule<ConditionKey extends string = string> =
+	| { kind: "set"; when: Condition<ConditionKey>; to: string }
+	| { kind: "retain"; when: Condition<ConditionKey> };
 
-export type _InventoryRule<ConditionKey extends string = string> =
-	| { kind: "show-group"; when: _Condition<ConditionKey>; groupId: string }
-	| { kind: "hide-group"; when: _Condition<ConditionKey>; groupId: string };
+export type InventoryRule<ConditionKey extends string = string> =
+	| { kind: "show-group"; when: Condition<ConditionKey>; groupId: string }
+	| { kind: "hide-group"; when: Condition<ConditionKey>; groupId: string };
 
-export type _SpaceRule<ConditionKey extends string = string> =
-	| { kind: "show"; when: _Condition<ConditionKey>; spaceId: string }
-	| { kind: "hide"; when: _Condition<ConditionKey>; spaceId: string };
+export type SpaceRule<ConditionKey extends string = string> =
+	| { kind: "show"; when: Condition<ConditionKey>; spaceId: string }
+	| { kind: "hide"; when: Condition<ConditionKey>; spaceId: string };
 
-export type _PhaseResolution = {
+export type PhaseResolution = {
 	nextPhase: string;
 	shouldRetain: boolean;
 };
 
-export type _DragGatingContext = {
+export type DragGatingContext = {
 	readonly entityId: string;
 	readonly entityType: string;
 	readonly spaceId: string;
 	readonly state: GameState;
 };
 
-export type _DragGatingRule = {
+export type DragGatingRule = {
 	spaceId: string;
 	entityType?: string;
-	canDrag: (ctx: _DragGatingContext) => boolean;
+	canDrag: (ctx: DragGatingContext) => boolean;
 };
 
-export type _LayoutRuleContext = {
+export type LayoutRuleContext = {
 	readonly state: GameState;
 	readonly phase: string;
 };
 
-export type _LayoutVisibilityRule = {
+export type LayoutVisibilityRule = {
 	targetId: string;
-	visible: (ctx: _LayoutRuleContext) => boolean;
+	visible: (ctx: LayoutRuleContext) => boolean;
 };
 
-export type _SpaceShapeOverrides = {
+export type SpaceShapeOverrides = {
 	rows?: number;
 	cols?: number;
 	maxCapacity?: number;
@@ -76,69 +76,44 @@ export type _SpaceShapeOverrides = {
 	title?: string;
 };
 
-export type _SpaceShapeRule = {
+export type SpaceShapeRule = {
 	spaceId: string;
-	compute: (ctx: _LayoutRuleContext) => _SpaceShapeOverrides | undefined;
+	compute: (ctx: LayoutRuleContext) => SpaceShapeOverrides | undefined;
 };
 
-export type _SpaceDefinition =
-	| { kind: "grid"; config: _GridSpaceConfig }
-	| { kind: "pool"; config: _PoolSpaceConfig }
-	| { kind: "path"; config: _PathSpaceConfig }
-	| { kind: "custom"; config: _CustomSpaceConfig }
-	| { kind: "queue"; config: _QueueSpaceConfig }
-	| { kind: "meter"; config: _MeterSpaceConfig };
+export type SpaceDefinition =
+	| { kind: "grid"; config: GridSpaceConfig }
+	| { kind: "pool"; config: PoolSpaceConfig }
+	| { kind: "path"; config: PathSpaceConfig }
+	| { kind: "custom"; config: CustomSpaceConfig }
+	| { kind: "queue"; config: QueueSpaceConfig }
+	| { kind: "meter"; config: MeterSpaceConfig };
 
-export type _EntityDefinition = {
-	config: _ItemDataConfig;
+export type EntityDefinition = {
+	config: ItemDataConfig;
 	initialSpace?: string;
-	initialPosition?: _GridPosition;
+	initialPosition?: GridPosition;
 };
 
-export type _QuestionMeta = {
+export type QuestionMeta = {
 	id: string;
 	title: string;
 	description: string;
 };
 
-export type _QuestionDefinition<
-	ConditionKey extends string = string,
-	TContext = Record<string, never>,
-> = {
-	meta: _QuestionMeta;
-	initialPhase: string;
-	spaces: _SpaceDefinition[];
-	entities: _EntityDefinition[];
-	phaseRules: _PhaseRule<ConditionKey>[];
-	inventoryRules?: _InventoryRule<ConditionKey>[];
-	spaceRules?: _SpaceRule<ConditionKey>[];
-	behaviors?: _BehaviorDefinition<TContext>;
-	dragRules?: _DragGatingRule[];
-	layoutRules?: _LayoutVisibilityRule[];
-	shapeRules?: _SpaceShapeRule[];
-};
-
-export type Condition<ConditionKey extends string = string> =
-	_Condition<ConditionKey>;
-export type ConditionContext<ConditionKey extends string = string> =
-	_ConditionContext<ConditionKey>;
-export type PhaseRule<ConditionKey extends string = string> =
-	_PhaseRule<ConditionKey>;
-export type InventoryRule<ConditionKey extends string = string> =
-	_InventoryRule<ConditionKey>;
-export type SpaceRule<ConditionKey extends string = string> =
-	_SpaceRule<ConditionKey>;
-export type PhaseResolution = _PhaseResolution;
-export type DragGatingContext = _DragGatingContext;
-export type DragGatingRule = _DragGatingRule;
-export type LayoutRuleContext = _LayoutRuleContext;
-export type LayoutVisibilityRule = _LayoutVisibilityRule;
-export type SpaceShapeOverrides = _SpaceShapeOverrides;
-export type SpaceShapeRule = _SpaceShapeRule;
-export type SpaceDefinition = _SpaceDefinition;
-export type EntityDefinition = _EntityDefinition;
-export type QuestionMeta = _QuestionMeta;
 export type QuestionDefinition<
 	ConditionKey extends string = string,
 	TContext = Record<string, never>,
-> = _QuestionDefinition<ConditionKey, TContext>;
+> = {
+	meta: QuestionMeta;
+	initialPhase: string;
+	spaces: SpaceDefinition[];
+	entities: EntityDefinition[];
+	phaseRules: PhaseRule<ConditionKey>[];
+	inventoryRules?: InventoryRule<ConditionKey>[];
+	spaceRules?: SpaceRule<ConditionKey>[];
+	behaviors?: BehaviorDefinition<TContext>;
+	dragRules?: DragGatingRule[];
+	layoutRules?: LayoutVisibilityRule[];
+	shapeRules?: SpaceShapeRule[];
+};

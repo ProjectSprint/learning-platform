@@ -44,13 +44,10 @@ export type {
 	DrawerState,
 	GamePhase,
 	HintState,
-	IconInfo,
 	InventoryGroup,
 	InventoryGroupConfig,
 	Item,
 	ItemTooltip,
-	ModalInstance,
-	OverlayState,
 	QuestionStatus,
 	SpaceConfig,
 	SpaceItemLocation,
@@ -61,6 +58,11 @@ export type {
 	TerminalState,
 } from "@/components/game/types/core";
 export type { EntityData, ItemData } from "@/components/game/types/entity";
+export type { IconInfo } from "@/components/game/types/icon";
+export type {
+	ModalInstance,
+	OverlayState,
+} from "@/components/game/types/modal";
 export type {
 	GridSpaceData,
 	PathSpaceData,

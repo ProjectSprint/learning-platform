@@ -1,6 +1,6 @@
-import type { _GridMetrics } from "./space";
+import type { GridMetrics } from "./space";
 
-export type _GridDirection =
+export type GridDirection =
 	| "north"
 	| "south"
 	| "east"
@@ -10,48 +10,39 @@ export type _GridDirection =
 	| "southeast"
 	| "southwest";
 
-export type _SquareGridConfig<T> = {
+export type SquareGridConfig<T> = {
 	rows: number;
 	cols: number;
-	metrics: _GridMetrics;
+	metrics: GridMetrics;
 	initializer?: (row: number, col: number) => T | null;
 };
 
-export type _HexOrientation = "flat-top" | "pointy-top";
+export type HexOrientation = "flat-top" | "pointy-top";
 
-export type _CubeCoordinate = {
+export type CubeCoordinate = {
 	q: number;
 	r: number;
 	s: number;
 };
 
-export type _HexGridConfig<T> = {
+export type HexGridConfig<T> = {
 	rows: number;
 	cols: number;
-	metrics: _GridMetrics;
-	orientation?: _HexOrientation;
+	metrics: GridMetrics;
+	orientation?: HexOrientation;
 	initializer?: (row: number, col: number) => T | null;
 };
 
-export type _PolarCoordinate = {
+export type PolarCoordinate = {
 	ring: number;
 	sector: number;
 };
 
-export type _RadialGridConfig<T> = {
+export type RadialGridConfig<T> = {
 	rings: number;
 	sectorsPerRing: number | number[];
-	metrics: _GridMetrics;
+	metrics: GridMetrics;
 	centerRadius?: number;
 	ringSpacing?: number;
 	initializer?: (ring: number, sector: number) => T | null;
 };
-
-export type GridDirection = _GridDirection;
-export type GridMetrics = _GridMetrics;
-export type SquareGridConfig<T> = _SquareGridConfig<T>;
-export type HexOrientation = _HexOrientation;
-export type CubeCoordinate = _CubeCoordinate;
-export type HexGridConfig<T> = _HexGridConfig<T>;
-export type PolarCoordinate = _PolarCoordinate;
-export type RadialGridConfig<T> = _RadialGridConfig<T>;

@@ -1,66 +1,56 @@
-import type { _EntityData } from "./entity";
+import type { EntityData } from "./entity";
 import type { EntityId, SpaceId } from "./ids";
-import type {
-	_ConditionContext,
-	_PhaseResolution,
-	_PhaseRule,
-} from "./question";
-import type { _GridPosition, _SpaceData } from "./space";
+import type { ConditionContext, PhaseResolution, PhaseRule } from "./question";
+import type { GridPosition, SpaceData } from "./space";
 
-export type _GameReadState = Readonly<{
-	spaces: Record<string, _SpaceData>;
-	entities: Record<string, _EntityData>;
+export type GameReadState = Readonly<{
+	spaces: Record<string, SpaceData>;
+	entities: Record<string, EntityData>;
 }>;
 
-export type _ReadApi = {
-	isEntityKnown: (state: _GameReadState, entityId: EntityId) => boolean;
-	isSpaceKnown: (state: _GameReadState, spaceId: SpaceId) => boolean;
+export type ReadApi = {
+	isEntityKnown: (state: GameReadState, entityId: EntityId) => boolean;
+	isSpaceKnown: (state: GameReadState, spaceId: SpaceId) => boolean;
 	isEntityInSpace: (
-		state: _GameReadState,
+		state: GameReadState,
 		entityId: EntityId,
 		spaceId: SpaceId,
 	) => boolean;
 	isEntityPlacementAllowed: (
-		state: _GameReadState,
+		state: GameReadState,
 		entityId: EntityId,
 		toSpaceId: SpaceId,
-		toPosition?: _GridPosition,
+		toPosition?: GridPosition,
 	) => boolean;
 	getEntity: (
-		state: _GameReadState,
+		state: GameReadState,
 		entityId: EntityId,
-	) => _EntityData | undefined;
-	getSpace: (state: _GameReadState, spaceId: SpaceId) => _SpaceData | undefined;
-	getEntitySpaceId: (
-		state: _GameReadState,
-		entityId: EntityId,
-	) => string | null;
+	) => EntityData | undefined;
+	getSpace: (state: GameReadState, spaceId: SpaceId) => SpaceData | undefined;
+	getEntitySpaceId: (state: GameReadState, entityId: EntityId) => string | null;
 	getGridEntityPosition: (
-		state: _GameReadState,
+		state: GameReadState,
 		entityId: EntityId,
 		spaceId?: SpaceId,
-	) => _GridPosition | undefined;
-	getSpaceEntityIds: (state: _GameReadState, spaceId: SpaceId) => string[];
-	selectEntitiesByType: (state: _GameReadState, type: string) => _EntityData[];
+	) => GridPosition | undefined;
+	getSpaceEntityIds: (state: GameReadState, spaceId: SpaceId) => string[];
+	selectEntitiesByType: (state: GameReadState, type: string) => EntityData[];
 	selectEntityStateValue: <T = unknown>(
-		state: _GameReadState,
+		state: GameReadState,
 		entityId: EntityId,
 		key: string,
 	) => T | undefined;
-	selectSpaceEntityCount: (state: _GameReadState, spaceId: SpaceId) => number;
-	selectSpaceIsFull: (state: _GameReadState, spaceId: SpaceId) => boolean;
-	selectSpaceIsEmpty: (state: _GameReadState, spaceId: SpaceId) => boolean;
+	selectSpaceEntityCount: (state: GameReadState, spaceId: SpaceId) => number;
+	selectSpaceIsFull: (state: GameReadState, spaceId: SpaceId) => boolean;
+	selectSpaceIsEmpty: (state: GameReadState, spaceId: SpaceId) => boolean;
 	selectGridEmptyPositions: (
-		state: _GameReadState,
+		state: GameReadState,
 		spaceId: SpaceId,
-	) => _GridPosition[];
+	) => GridPosition[];
 	selectDerivedPhase: <CK extends string>(
-		rules: _PhaseRule<CK>[],
-		context: _ConditionContext<CK>,
+		rules: PhaseRule<CK>[],
+		context: ConditionContext<CK>,
 		currentPhase: string,
 		fallbackPhase: string,
-	) => _PhaseResolution;
+	) => PhaseResolution;
 };
-
-export type GameReadState = _GameReadState;
-export type ReadApi = _ReadApi;

@@ -1,17 +1,17 @@
 import type {
-	_ExecutionFlowApi,
-	_ExecutionFlowDispatcher,
-	_ExecutionFlowIntent,
+	ExecutionFlowApi,
+	ExecutionFlowDispatcher,
+	ExecutionFlowIntent,
 } from "@/components/game/types/runtime";
 import { runtimeError, toRuntimeErrorMessage } from "./result";
 
 type ExecutionFlowApiDeps = {
-	dispatcher: _ExecutionFlowDispatcher;
+	dispatcher: ExecutionFlowDispatcher;
 };
 
 export const createExecutionFlowApi = ({
 	dispatcher,
-}: ExecutionFlowApiDeps): _ExecutionFlowApi => ({
+}: ExecutionFlowApiDeps): ExecutionFlowApi => ({
 	requestPhaseTransition(phase, source) {
 		try {
 			return dispatcher.dispatchIntent({
@@ -25,7 +25,7 @@ export const createExecutionFlowApi = ({
 		}
 	},
 
-	dispatchIntent(intent: _ExecutionFlowIntent) {
+	dispatchIntent(intent: ExecutionFlowIntent) {
 		try {
 			return dispatcher.dispatchIntent(intent);
 		} catch (error) {
