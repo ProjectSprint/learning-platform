@@ -17,19 +17,7 @@ import type {
 	ScheduledEffectContext,
 } from "@/components/game/types/behavior";
 import type { EntityData } from "@/components/game/types/entity";
-import type {
-	EntityClickedEvent,
-	EntityEnteredSpaceEvent,
-	EntityLeftSpaceEvent,
-	EntityMovedEvent,
-	GameEvent,
-	GameState,
-	ModalClosedEvent,
-	ModalOpenedEvent,
-	ModalSubmittedEvent,
-	PhaseChangedEvent,
-	TerminalInputEvent,
-} from "@/components/game/types/state";
+import type { GameEvent, GameState } from "@/components/game/types/state";
 
 type BehaviorConvenienceHelpers = Pick<
 	EffectContext<Record<string, unknown>>,
@@ -144,6 +132,117 @@ export function useBehaviorReactor<
 	return { context: contextRef.current };
 }
 
+type TriggerMatcherContext = {
+	event: GameEvent;
+	trigger: EventTrigger;
+	entityType: string | undefined;
+};
+
+const matchSpaceAndEntity = (
+	ctx: TriggerMatcherContext,
+	spaceId: string | undefined,
+	triggerSpace: string | undefined,
+	triggerEntityType: string | undefined,
+): boolean =>
+	(triggerSpace === undefined || spaceId === triggerSpace) &&
+	(triggerEntityType === undefined || ctx.entityType === triggerEntityType);
+
+const TRIGGER_MATCHERS: Record<
+	EventTrigger["event"],
+	(ctx: TriggerMatcherContext) => boolean
+> = {
+	ENTITY_PLACED_IN_SPACE: (ctx) => {
+		if (ctx.event.type !== "ENTITY_ENTERED_SPACE") return false;
+		const t = ctx.trigger as Extract<
+			EventTrigger,
+			{ event: "ENTITY_PLACED_IN_SPACE" }
+		>;
+		return matchSpaceAndEntity(ctx, ctx.event.spaceId, t.space, t.entityType);
+	},
+	ENTITY_TRANSFERRED_TO_SPACE: (ctx) => {
+		if (ctx.event.type !== "ENTITY_MOVED") return false;
+		const t = ctx.trigger as Extract<
+			EventTrigger,
+			{ event: "ENTITY_TRANSFERRED_TO_SPACE" }
+		>;
+		return matchSpaceAndEntity(ctx, ctx.event.toSpaceId, t.space, t.entityType);
+	},
+	ENTITY_ARRIVED_AT_SPACE: (ctx) => {
+		if (
+			ctx.event.type !== "ENTITY_ENTERED_SPACE" &&
+			ctx.event.type !== "ENTITY_MOVED"
+		)
+			return false;
+		const t = ctx.trigger as Extract<
+			EventTrigger,
+			{ event: "ENTITY_ARRIVED_AT_SPACE" }
+		>;
+		const spaceId =
+			ctx.event.type === "ENTITY_ENTERED_SPACE"
+				? ctx.event.spaceId
+				: ctx.event.toSpaceId;
+		return matchSpaceAndEntity(ctx, spaceId, t.space, t.entityType);
+	},
+	ENTITY_LEFT_SPACE: (ctx) => {
+		if (ctx.event.type !== "ENTITY_LEFT_SPACE") return false;
+		const t = ctx.trigger as Extract<
+			EventTrigger,
+			{ event: "ENTITY_LEFT_SPACE" }
+		>;
+		return matchSpaceAndEntity(ctx, ctx.event.spaceId, t.space, t.entityType);
+	},
+	ENTITY_CLICKED: (ctx) => {
+		if (ctx.event.type !== "ENTITY_CLICKED") return false;
+		const t = ctx.trigger as Extract<EventTrigger, { event: "ENTITY_CLICKED" }>;
+		return matchSpaceAndEntity(ctx, ctx.event.spaceId, t.space, t.entityType);
+	},
+	ENTITY_UPDATED: (ctx) => {
+		if (ctx.event.type !== "ENTITY_UPDATED") return false;
+		const t = ctx.trigger as Extract<EventTrigger, { event: "ENTITY_UPDATED" }>;
+		return t.entityType === undefined || ctx.entityType === t.entityType;
+	},
+	MODAL_OPENED: (ctx) => {
+		if (ctx.event.type !== "MODAL_OPENED") return false;
+		const t = ctx.trigger as Extract<EventTrigger, { event: "MODAL_OPENED" }>;
+		return t.modalId === undefined || ctx.event.modalId === t.modalId;
+	},
+	MODAL_CLOSED: (ctx) => {
+		if (ctx.event.type !== "MODAL_CLOSED") return false;
+		const t = ctx.trigger as Extract<EventTrigger, { event: "MODAL_CLOSED" }>;
+		return t.modalId === undefined || ctx.event.modalId === t.modalId;
+	},
+	MODAL_SUBMITTED: (ctx) => {
+		if (ctx.event.type !== "MODAL_SUBMITTED") return false;
+		const t = ctx.trigger as Extract<
+			EventTrigger,
+			{ event: "MODAL_SUBMITTED" }
+		>;
+		return (
+			(t.modalId === undefined || ctx.event.modalId === t.modalId) &&
+			(t.modalActionId === undefined ||
+				ctx.event.modalActionId === t.modalActionId)
+		);
+	},
+	TERMINAL_INPUT: (ctx) => {
+		if (ctx.event.type !== "TERMINAL_INPUT") return false;
+		const t = ctx.trigger as Extract<EventTrigger, { event: "TERMINAL_INPUT" }>;
+		if (t.match === undefined) return true;
+		if (typeof t.match === "string") return ctx.event.input === t.match;
+		if (t.match instanceof RegExp) return t.match.test(ctx.event.input);
+		return false;
+	},
+	PHASE_CHANGED: (ctx) => {
+		if (ctx.event.type !== "PHASE_CHANGED") return false;
+		const t = ctx.trigger as Extract<EventTrigger, { event: "PHASE_CHANGED" }>;
+		return (
+			(t.from === undefined || ctx.event.from === t.from) &&
+			(t.to === undefined || ctx.event.to === t.to)
+		);
+	},
+	ENGINE_STARTED: (ctx) => ctx.event.type === "ENGINE_STARTED",
+	ENGINE_FINISHED: (ctx) => ctx.event.type === "ENGINE_FINISHED",
+};
+
 export function matchesEventTrigger(
 	event: GameEvent,
 	trigger: EventTrigger,
@@ -154,102 +253,8 @@ export function matchesEventTrigger(
 			? state.entities[(event as { entityId: string }).entityId]?.type
 			: undefined;
 
-	switch (trigger.event) {
-		case "ENTITY_PLACED_IN_SPACE": {
-			if (event.type !== "ENTITY_ENTERED_SPACE") return false;
-			const e = event as EntityEnteredSpaceEvent;
-			return (
-				(trigger.space === undefined || e.spaceId === trigger.space) &&
-				(trigger.entityType === undefined || entityType === trigger.entityType)
-			);
-		}
-		case "ENTITY_TRANSFERRED_TO_SPACE": {
-			if (event.type !== "ENTITY_MOVED") return false;
-			const e = event as EntityMovedEvent;
-			return (
-				(trigger.space === undefined || e.toSpaceId === trigger.space) &&
-				(trigger.entityType === undefined || entityType === trigger.entityType)
-			);
-		}
-		case "ENTITY_ARRIVED_AT_SPACE": {
-			if (
-				event.type !== "ENTITY_ENTERED_SPACE" &&
-				event.type !== "ENTITY_MOVED"
-			) {
-				return false;
-			}
-			const spaceId =
-				event.type === "ENTITY_ENTERED_SPACE" ? event.spaceId : event.toSpaceId;
-			return (
-				(trigger.space === undefined || spaceId === trigger.space) &&
-				(trigger.entityType === undefined || entityType === trigger.entityType)
-			);
-		}
-		case "ENTITY_LEFT_SPACE": {
-			if (event.type !== "ENTITY_LEFT_SPACE") return false;
-			const e = event as EntityLeftSpaceEvent;
-			return (
-				(trigger.space === undefined || e.spaceId === trigger.space) &&
-				(trigger.entityType === undefined || entityType === trigger.entityType)
-			);
-		}
-		case "ENTITY_CLICKED": {
-			if (event.type !== "ENTITY_CLICKED") return false;
-			const e = event as EntityClickedEvent;
-			return (
-				(trigger.space === undefined || e.spaceId === trigger.space) &&
-				(trigger.entityType === undefined || entityType === trigger.entityType)
-			);
-		}
-		case "ENTITY_UPDATED":
-			if (event.type !== "ENTITY_UPDATED") return false;
-			return (
-				trigger.entityType === undefined || entityType === trigger.entityType
-			);
-		case "MODAL_OPENED": {
-			if (event.type !== "MODAL_OPENED") return false;
-			const e = event as ModalOpenedEvent;
-			return trigger.modalId === undefined || e.modalId === trigger.modalId;
-		}
-		case "MODAL_CLOSED": {
-			if (event.type !== "MODAL_CLOSED") return false;
-			const e = event as ModalClosedEvent;
-			return trigger.modalId === undefined || e.modalId === trigger.modalId;
-		}
-		case "MODAL_SUBMITTED": {
-			if (event.type !== "MODAL_SUBMITTED") return false;
-			const e = event as ModalSubmittedEvent;
-			return (
-				(trigger.modalId === undefined || e.modalId === trigger.modalId) &&
-				(trigger.modalActionId === undefined ||
-					e.modalActionId === trigger.modalActionId)
-			);
-		}
-		case "TERMINAL_INPUT": {
-			if (event.type !== "TERMINAL_INPUT") return false;
-			const e = event as TerminalInputEvent;
-			if (trigger.match === undefined) return true;
-			if (typeof trigger.match === "string") return e.input === trigger.match;
-			if (trigger.match instanceof RegExp) return trigger.match.test(e.input);
-			return false;
-		}
-		case "PHASE_CHANGED": {
-			if (event.type !== "PHASE_CHANGED") return false;
-			const e = event as PhaseChangedEvent;
-			return (
-				(trigger.from === undefined || e.from === trigger.from) &&
-				(trigger.to === undefined || e.to === trigger.to)
-			);
-		}
-		case "ENGINE_STARTED":
-			if (event.type !== "ENGINE_STARTED") return false;
-			return true;
-		case "ENGINE_FINISHED":
-			if (event.type !== "ENGINE_FINISHED") return false;
-			return true;
-		default:
-			return false;
-	}
+	const matcher = TRIGGER_MATCHERS[trigger.event];
+	return matcher ? matcher({ event, trigger, entityType }) : false;
 }
 
 function resolveEntity(
@@ -279,32 +284,43 @@ function buildGuardContext<TContext>(
 	};
 }
 
-function buildEffectContext<TContext extends Record<string, unknown>>(
-	event: GameEvent,
-	entity: EntityData | undefined,
-	state: GameState,
-	contextRef: React.MutableRefObject<TContext>,
-	onceKeys: Set<string>,
-	deps: BehaviorReactorDeps,
-	stateRef: React.MutableRefObject<GameState>,
-	depsRef: React.MutableRefObject<BehaviorReactorDeps>,
-	ruleId: string,
-): EffectContext<TContext> {
+type SharedContextDeps<TContext extends Record<string, unknown>> = {
+	provenance: EventProvenance;
+	contextRef: React.MutableRefObject<TContext>;
+	onceKeys: Set<string>;
+	stateRef: React.MutableRefObject<GameState>;
+	depsRef: React.MutableRefObject<BehaviorReactorDeps>;
+};
+
+function buildSharedContextFields<TContext extends Record<string, unknown>>(
+	shared: SharedContextDeps<TContext>,
+): Pick<
+	ScheduledEffectContext<TContext>,
+	| "context"
+	| "updateContext"
+	| "world"
+	| "interaction"
+	| "flow"
+	| "progress"
+	| "delay"
+	| "once"
+	| "terminal"
+	| "schedule"
+	| "cancelSchedule"
+	| "setPhase"
+	| "moveToInventory"
+	| "moveToGrid"
+> {
+	const deps = shared.depsRef.current;
 	const convenience = createBehaviorConvenience({
 		world: deps.world,
 		interaction: deps.interaction,
 	});
-	const provenance = buildEventProvenance(event, ruleId);
 
 	return {
-		event,
-		provenance,
-		entity,
-		state,
-		phase: state.phase,
-		context: contextRef.current,
+		context: shared.contextRef.current,
 		updateContext: (updater) => {
-			updater(contextRef.current);
+			updater(shared.contextRef.current);
 		},
 		world: deps.world,
 		interaction: deps.interaction,
@@ -312,8 +328,8 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 		progress: deps.progress,
 		delay: (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 		once: (key, fn) => {
-			if (onceKeys.has(key)) return;
-			onceKeys.add(key);
+			if (shared.onceKeys.has(key)) return;
+			shared.onceKeys.add(key);
 			fn();
 		},
 		terminal: {
@@ -329,71 +345,11 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 		},
 		schedule: (key, ms, fn) => {
 			deps.scheduler?.schedule(key, ms, () => {
-				const freshState = stateRef.current;
-				const freshDeps = depsRef.current;
-				const freshConvenience = createBehaviorConvenience({
-					world: freshDeps.world,
-					interaction: freshDeps.interaction,
-				});
 				const scheduledCtx: ScheduledEffectContext<TContext> = {
-					state: freshState,
-					phase: freshState.phase,
-					provenance,
-					context: contextRef.current,
-					updateContext: (updater) => {
-						updater(contextRef.current);
-					},
-					world: freshDeps.world,
-					interaction: freshDeps.interaction,
-					flow: freshDeps.flow,
-					progress: freshDeps.progress,
-					delay: (d) => new Promise<void>((resolve) => setTimeout(resolve, d)),
-					once: (k, f) => {
-						if (onceKeys.has(k)) return;
-						onceKeys.add(k);
-						f();
-					},
-					terminal: {
-						writeOutput: (content, type = "output") => {
-							freshDeps.terminal?.writeOutput(content, type);
-						},
-						clearHistory: () => {
-							freshDeps.terminal?.clearHistory();
-						},
-						finishEngine: () => {
-							freshDeps.terminal?.finishEngine();
-						},
-					},
-					schedule: (k, d, f) => {
-						freshDeps.scheduler?.schedule(k, d, () => {
-							const s = stateRef.current;
-							const dd = depsRef.current;
-							const sc = createBehaviorConvenience({
-								world: dd.world,
-								interaction: dd.interaction,
-							});
-							const nested: ScheduledEffectContext<TContext> = {
-								...scheduledCtx,
-								state: s,
-								phase: s.phase,
-								context: contextRef.current,
-								world: dd.world,
-								interaction: dd.interaction,
-								flow: dd.flow,
-								progress: dd.progress,
-								setPhase: sc.setPhase,
-								moveToInventory: sc.moveToInventory,
-								moveToGrid: sc.moveToGrid,
-							};
-							f(nested);
-						});
-					},
-					cancelSchedule: (k) => {
-						freshDeps.scheduler?.cancel(k);
-					},
-					setPhase: freshConvenience.setPhase,
-					moveToInventory: freshConvenience.moveToInventory,
-					moveToGrid: freshConvenience.moveToGrid,
+					state: shared.stateRef.current,
+					phase: shared.stateRef.current.phase,
+					...buildSharedContextFields(shared),
+					provenance: shared.provenance,
 				};
 				fn(scheduledCtx);
 			});
@@ -404,6 +360,36 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 		setPhase: convenience.setPhase,
 		moveToInventory: convenience.moveToInventory,
 		moveToGrid: convenience.moveToGrid,
+	};
+}
+
+function buildEffectContext<TContext extends Record<string, unknown>>(
+	event: GameEvent,
+	entity: EntityData | undefined,
+	state: GameState,
+	contextRef: React.MutableRefObject<TContext>,
+	onceKeys: Set<string>,
+	_deps: BehaviorReactorDeps,
+	stateRef: React.MutableRefObject<GameState>,
+	depsRef: React.MutableRefObject<BehaviorReactorDeps>,
+	ruleId: string,
+): EffectContext<TContext> {
+	const provenance = buildEventProvenance(event, ruleId);
+	const shared = buildSharedContextFields<TContext>({
+		provenance,
+		contextRef,
+		onceKeys,
+		stateRef,
+		depsRef,
+	});
+
+	return {
+		event,
+		provenance,
+		entity,
+		state,
+		phase: state.phase,
+		...shared,
 	};
 }
 

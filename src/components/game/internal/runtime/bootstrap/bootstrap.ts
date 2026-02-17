@@ -10,7 +10,11 @@
  * This replaces per-question init-spaces.ts files.
  */
 
-import type { QuestionDefinition } from "@/components/game/types/question";
+import type {
+	QuestionDefinition,
+	SpaceDefinition,
+} from "@/components/game/types/question";
+import type { SpaceData } from "@/components/game/types/space";
 import type { Action } from "@/components/game/types/state";
 import {
 	createCustomSpaceData,
@@ -21,6 +25,19 @@ import {
 	createPoolSpaceData,
 	createQueueSpaceData,
 } from "../../domain/adt";
+
+const SPACE_CREATORS: {
+	[K in SpaceDefinition["kind"]]: (
+		config: Extract<SpaceDefinition, { kind: K }>["config"],
+	) => SpaceData;
+} = {
+	grid: createGridSpaceData,
+	pool: createPoolSpaceData,
+	path: createPathSpaceData,
+	queue: createQueueSpaceData,
+	meter: createMeterSpaceData,
+	custom: createCustomSpaceData,
+};
 
 type Dispatch = (action: Action) => void;
 
@@ -51,18 +68,8 @@ export function bootstrapQuestion<CK extends string = string, TC = unknown>(
 
 	// 3. Create spaces
 	for (const spaceDef of definition.spaces) {
-		const space =
-			spaceDef.kind === "grid"
-				? createGridSpaceData(spaceDef.config)
-				: spaceDef.kind === "pool"
-					? createPoolSpaceData(spaceDef.config)
-					: spaceDef.kind === "path"
-						? createPathSpaceData(spaceDef.config)
-						: spaceDef.kind === "queue"
-							? createQueueSpaceData(spaceDef.config)
-							: spaceDef.kind === "meter"
-								? createMeterSpaceData(spaceDef.config)
-								: createCustomSpaceData(spaceDef.config);
+		const createSpace = SPACE_CREATORS[spaceDef.kind];
+		const space = createSpace(spaceDef.config as never);
 
 		dispatch({
 			type: "SPACE_CREATED",

@@ -49,10 +49,8 @@ internal/presentation   → application, domain
 1. Add field to `types/question.ts` → `QuestionDefinition`
 2. Add validation in `runtime/definition/validate.ts`
 3. If the field is structural, add bootstrap handling in `runtime/bootstrap/bootstrap.ts`
-4. Bump `CURRENT_SCHEMA_VERSION` in `runtime/definition/schema.ts`
-5. Add migration function for the old → new version via `registerMigration`
-6. Add test in `runtime/definition/__tests__/schema.test.ts`
-7. Update docs
+4. Add test in `runtime/definition/__tests__/schema.test.ts`
+5. Update docs
 
 ## PR Checklist (Game Runtime/Types)
 
@@ -62,7 +60,7 @@ internal/presentation   → application, domain
 - [ ] No new imports into `internal/*` from outside game package
 - [ ] Types modules contain only type exports (no runtime values)
 - [ ] New behaviors have contract tests
-- [ ] Config changes bump schema version with migration
+- [ ] Config changes include validation updates
 - [ ] Docs updated for new APIs
 
 ## Quality Gates

@@ -1,45 +1,13 @@
 /**
- * Schema-based validation and migration pipeline for QuestionDefinition.
+ * Schema validation for QuestionDefinition.
  *
- * Provides versioned config validation with deterministic migration
- * so definition changes are predictable and safe.
+ * Pre-launch: all definition changes are hard migrations (just change the type).
+ * Versioned migration pipeline will be re-added post-launch when needed.
  */
 
 import type { QuestionDefinition } from "@/components/game/types/question";
 import type { ValidationError } from "@/components/game/types/runtime";
 import { validateDefinition } from "./validate";
-
-export const CURRENT_SCHEMA_VERSION = 1;
-
-export type DefinitionMigration = {
-	from: number;
-	to: number;
-	migrate: (def: QuestionDefinition) => QuestionDefinition;
-};
-
-const migrations: DefinitionMigration[] = [];
-
-export function registerMigration(migration: DefinitionMigration): void {
-	migrations.push(migration);
-	migrations.sort((a, b) => a.from - b.from);
-}
-
-export function migrateDefinition(def: QuestionDefinition): QuestionDefinition {
-	let current = { ...def };
-	let version = current.version ?? 1;
-
-	const applicable = migrations.filter((m) => m.from >= version);
-	for (const migration of applicable) {
-		if (migration.from !== version) {
-			break;
-		}
-		current = migration.migrate(current);
-		version = migration.to;
-	}
-
-	current.version = version;
-	return current;
-}
 
 export type SchemaValidationResult =
 	| {
@@ -51,26 +19,14 @@ export type SchemaValidationResult =
 			errors: ValidationError[];
 	  };
 
-export function validateAndMigrateDefinition(
+export function validateQuestionDefinition(
 	def: QuestionDefinition,
 ): SchemaValidationResult {
-	const migrated = migrateDefinition(def);
-
-	const errors = validateDefinition(migrated);
-
-	if (
-		migrated.version !== undefined &&
-		migrated.version > CURRENT_SCHEMA_VERSION
-	) {
-		errors.push({
-			field: "version",
-			message: `Definition version ${migrated.version} is newer than supported version ${CURRENT_SCHEMA_VERSION}`,
-		});
-	}
+	const errors = validateDefinition(def);
 
 	if (errors.length > 0) {
 		return { ok: false, errors };
 	}
 
-	return { ok: true, definition: migrated };
+	return { ok: true, definition: def };
 }

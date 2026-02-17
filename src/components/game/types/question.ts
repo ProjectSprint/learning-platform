@@ -105,7 +105,6 @@ export type QuestionDefinition<
 	ConditionKey extends string = string,
 	TContext = Record<string, never>,
 > = {
-	version?: number;
 	meta: QuestionMeta;
 	initialPhase: string;
 	spaces: SpaceDefinition[];
