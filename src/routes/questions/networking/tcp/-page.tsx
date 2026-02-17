@@ -27,7 +27,12 @@ import {
 import { useQuestionRuntime } from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
-
+import type {
+	TcpBehaviorContext,
+	TcpBufferSlot,
+	TcpPhase,
+	TcpServerLogEntry,
+} from "./-utils/behaviors";
 import {
 	INVENTORY_GROUP_IDS,
 	INVENTORY_POOL_CONFIG,
@@ -41,7 +46,6 @@ import { getTcpStatusMessage } from "./-utils/entity-badge";
 import { getTcpItemLabel } from "./-utils/entity-label";
 import { getContextualHint } from "./-utils/get-contextual-hint";
 import { buildSuccessModal } from "./-utils/modal-builders";
-import { useTcpState } from "./-utils/use-tcp-state";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
 const TCP_SPACE_IDS = {
@@ -63,15 +67,8 @@ const TcpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const {
-		world,
-		progress,
-		interactionSession,
-		executionFlow,
-		state,
-		behaviorContext,
-		isCompleted,
-	} = useQuestionRuntime("tcp-page", TCP_DEFINITION);
+	const { progress, interactionSession, state, behaviorContext, isCompleted } =
+		useQuestionRuntime("tcp-page", TCP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const successShownRef = useRef(false);
 	const {
@@ -86,8 +83,8 @@ const TcpGame = ({
 		sequenceEnabled,
 		splitterVisible,
 		waitingCount,
-		phase: tcpPhase,
-	} = useTcpState({ world, interactionSession, executionFlow });
+	} = behaviorContext as TcpBehaviorContext;
+	const tcpPhase = (state.phase as TcpPhase) ?? "mtu";
 	useDragEngine();
 	const { registerDrawer, updateDrawerConfig, openDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
@@ -497,7 +494,7 @@ const TcpGame = ({
 								overflowY="auto"
 								pr={2}
 							>
-								{serverLogEntries.map((entry) => (
+								{serverLogEntries.map((entry: TcpServerLogEntry) => (
 									<Text key={entry.id} mb={1}>
 										{`> ${entry.content}`}
 									</Text>
@@ -518,7 +515,7 @@ const TcpGame = ({
 									Receiving buffer
 								</Text>
 								<Flex wrap="wrap" gap={2}>
-									{displayBufferSlots.map((slot) => (
+									{displayBufferSlots.map((slot: TcpBufferSlot) => (
 										<Box
 											key={slot.seq}
 											border="1px solid"

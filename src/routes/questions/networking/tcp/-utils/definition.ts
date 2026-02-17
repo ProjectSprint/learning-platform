@@ -100,6 +100,6 @@ export const TCP_DEFINITION: QuestionDefinition<string, TcpBehaviorContext> = {
 			},
 		})),
 	],
-	phaseRules: [], // TCP phases are managed imperatively by useTcpState
+	phaseRules: [],
 	behaviors: TCP_BEHAVIORS,
 };

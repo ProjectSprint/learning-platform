@@ -1,4 +1,4 @@
-import type { TcpPhase } from "./use-tcp-state";
+import type { TcpPhase } from "./behaviors";
 
 interface TcpGameState {
 	phase: TcpPhase;
