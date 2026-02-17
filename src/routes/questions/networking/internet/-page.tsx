@@ -1,11 +1,5 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
-import {
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo } from "react";
 import {
 	ContextualHint,
 	DragOverlay,
@@ -39,7 +33,6 @@ import type { ConditionContext } from "@/components/game/types/question";
 import type { QuestionProps } from "@/components/module";
 
 import {
-	GOOGLE_IP,
 	INVENTORY_POOL_CONFIG,
 	type InternetSpaceKey,
 	QUESTION_DESCRIPTION,
@@ -82,14 +75,8 @@ const InternetGame = ({
 	} = useQuestionRuntime("internet-page", INTERNET_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
-	const {
-		terminal,
-		openTerminal,
-		closeTerminal,
-		setPrompt,
-		addEntry,
-		addOutput,
-	} = useTerminalStore();
+	const { terminal, openTerminal, closeTerminal, setPrompt, addEntry } =
+		useTerminalStore();
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
@@ -173,70 +160,15 @@ const InternetGame = ({
 		state.question.status,
 	]);
 
-	// Terminal visibility and initial help message
-	const terminalOpenedRef = useRef(false);
 	useEffect(() => {
 		if (shouldShowTerminal && !terminal.visible) {
 			openTerminal();
-
-			// Show full help message on first terminal open
-			if (!terminalOpenedRef.current) {
-				terminalOpenedRef.current = true;
-				// Add help message after terminal opens
-				setTimeout(() => {
-					const helpLines = [
-						"Terminal - Network diagnostic and testing utility",
-						"",
-						"----",
-						"",
-						"SYNOPSIS",
-						"ifconfig",
-						"nslookup [domain]",
-						"curl [destination]",
-						"help",
-						"",
-						"----",
-						"",
-						"DESCRIPTION",
-						"This terminal provides network diagnostic tools to test your",
-						"internet connection configuration. Use these commands to verify",
-						"IP assignment, DNS resolution, and internet connectivity.",
-						"",
-						"----",
-						"",
-						"COMMANDS",
-						"ifconfig                    Display network interface configuration",
-						"nslookup [domain]           Query DNS to resolve domain names",
-						"curl [hostname or IP]       Make HTTP request to test connectivity",
-						"help                        Display this help message",
-						"",
-						"----",
-						"",
-						"EXAMPLES",
-						"ifconfig",
-						"nslookup google.com",
-						"curl google.com",
-						`curl ${GOOGLE_IP}`,
-						"",
-					];
-
-					for (const line of helpLines) {
-						addOutput(line, "output");
-					}
-				}, 100);
-			}
 			return;
 		}
 		if (!shouldShowTerminal && terminal.visible) {
 			closeTerminal();
 		}
-	}, [
-		addOutput,
-		closeTerminal,
-		openTerminal,
-		shouldShowTerminal,
-		terminal.visible,
-	]);
+	}, [closeTerminal, openTerminal, shouldShowTerminal, terminal.visible]);
 
 	// Contextual hints
 	const contextualHint = useMemo(

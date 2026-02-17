@@ -257,6 +257,54 @@ const rules: BehaviorRule<InternetBehaviorContext>[] = [
 			});
 		},
 	},
+	{
+		id: "internet.terminal-onboarding",
+		on: { event: "PHASE_CHANGED", to: "terminal" },
+		handler: ({ schedule, once }) => {
+			once("internet.terminal.onboarding", () => {
+				schedule("internet.terminal.onboarding.delay", 100, ({ terminal }) => {
+					const lines = [
+						"Terminal - Network diagnostic and testing utility",
+						"",
+						"----",
+						"",
+						"SYNOPSIS",
+						"ifconfig",
+						"nslookup [domain]",
+						"curl [destination]",
+						"help",
+						"",
+						"----",
+						"",
+						"DESCRIPTION",
+						"This terminal provides network diagnostic tools to test your",
+						"internet connection configuration. Use these commands to verify",
+						"IP assignment, DNS resolution, and internet connectivity.",
+						"",
+						"----",
+						"",
+						"COMMANDS",
+						"ifconfig                    Display network interface configuration",
+						"nslookup [domain]           Query DNS to resolve domain names",
+						"curl [hostname or IP]       Make HTTP request to test connectivity",
+						"help                        Display this help message",
+						"",
+						"----",
+						"",
+						"EXAMPLES",
+						"ifconfig",
+						"nslookup google.com",
+						"curl google.com",
+						`curl ${GOOGLE_IP}`,
+						"",
+					];
+					for (const line of lines) {
+						terminal.writeOutput(line);
+					}
+				});
+			});
+		},
+	},
 
 	// --- Terminal commands ---
 	{

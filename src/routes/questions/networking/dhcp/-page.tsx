@@ -1,11 +1,5 @@
 import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
-import {
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo } from "react";
 import {
 	ContextualHint,
 	DragOverlay,
@@ -79,14 +73,8 @@ const NetworkingGame = ({
 	} = useQuestionRuntime("dhcp-page", DHCP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
-	const {
-		terminal,
-		openTerminal,
-		closeTerminal,
-		setPrompt,
-		addEntry,
-		addOutput,
-	} = useTerminalStore();
+	const { terminal, openTerminal, closeTerminal, setPrompt, addEntry } =
+		useTerminalStore();
 	const shouldShowTerminal =
 		state.phase === "terminal" || state.phase === "completed";
 	const dragEngine = useDragEngine();
@@ -199,65 +187,15 @@ const NetworkingGame = ({
 		state.question.status,
 	]);
 
-	// Terminal visibility and initial help message
-	const terminalOpenedRef = useRef(false);
 	useEffect(() => {
 		if (shouldShowTerminal && !terminal.visible) {
 			openTerminal();
-
-			// Show full help message on first terminal open
-			if (!terminalOpenedRef.current) {
-				terminalOpenedRef.current = true;
-				// Add help message after terminal opens
-				setTimeout(() => {
-					const helpLines = [
-						"Terminal - Network diagnostic utility",
-						"",
-						"----",
-						"",
-						"SYNOPSIS",
-						"ping [destination]",
-						"help",
-						"",
-						"----",
-						"",
-						"DESCRIPTION",
-						"The ping utility sends ICMP ECHO_REQUEST packets to network hosts",
-						"to test connectivity and measure round-trip time.",
-						"",
-						"----",
-						"",
-						"COMMANDS",
-						"ping [ip]       Send ICMP echo request to specified IP address",
-						"help            Display this help message",
-						"",
-						"----",
-						"",
-						"EXAMPLES",
-						networkState.pc2Ip
-							? `ping ${networkState.pc2Ip}`
-							: "ping 192.168.1.10",
-						"",
-					];
-
-					for (const line of helpLines) {
-						addOutput(line, "output");
-					}
-				}, 100);
-			}
 			return;
 		}
 		if (!shouldShowTerminal && terminal.visible) {
 			closeTerminal();
 		}
-	}, [
-		addOutput,
-		closeTerminal,
-		openTerminal,
-		shouldShowTerminal,
-		terminal.visible,
-		networkState.pc2Ip,
-	]);
+	}, [closeTerminal, openTerminal, shouldShowTerminal, terminal.visible]);
 
 	// Arrows
 	const arrows = useMemo<Arrow[]>(

@@ -74,6 +74,54 @@ const rules: BehaviorRule<DhcpBehaviorContext>[] = [
 		},
 	},
 	{
+		id: "dhcp.terminal-onboarding",
+		on: { event: "PHASE_CHANGED", to: "terminal" },
+		handler: ({ state, schedule, once }) => {
+			once("dhcp.terminal.onboarding", () => {
+				schedule(
+					"dhcp.terminal.onboarding.delay",
+					100,
+					({ terminal: sTerm }) => {
+						const pc2Ip =
+							(typeof state.entities["pc-2"]?.state.ip === "string"
+								? (state.entities["pc-2"]?.state.ip as string)
+								: null) ?? null;
+						const lines = [
+							"Terminal - Network diagnostic utility",
+							"",
+							"----",
+							"",
+							"SYNOPSIS",
+							"ping [destination]",
+							"help",
+							"",
+							"----",
+							"",
+							"DESCRIPTION",
+							"The ping utility sends ICMP ECHO_REQUEST packets to network hosts",
+							"to test connectivity and measure round-trip time.",
+							"",
+							"----",
+							"",
+							"COMMANDS",
+							"ping [ip]       Send ICMP echo request to specified IP address",
+							"help            Display this help message",
+							"",
+							"----",
+							"",
+							"EXAMPLES",
+							pc2Ip ? `ping ${pc2Ip}` : "ping 192.168.1.10",
+							"",
+						];
+						for (const line of lines) {
+							sTerm.writeOutput(line);
+						}
+					},
+				);
+			});
+		},
+	},
+	{
 		id: "dhcp.terminal-command",
 		on: buildTerminalInputTrigger(),
 		guard: ({ phase, state }) =>
