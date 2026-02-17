@@ -36,7 +36,7 @@ import { useBehaviorReactor } from "../behavior/reactor";
 import { QuestionScheduler } from "../behavior/scheduler";
 import { bootstrapQuestion } from "../bootstrap/bootstrap";
 import { createCommands } from "../commands/create-commands";
-import { validateDefinition } from "../definition/validate";
+import { validateAndMigrateDefinition } from "../definition/schema";
 import { createExecutionFlowDispatcher } from "../execution-flow/dispatcher";
 import { emitRuntimeWarning } from "../execution-flow/warning";
 import {
@@ -72,9 +72,11 @@ export function useQuestionRuntime<
 		});
 
 	if (definition) {
-		const errors = validateDefinition(definition);
-		if (errors.length > 0) {
-			const formatted = errors
+		const schemaResult = validateAndMigrateDefinition(
+			definition as QuestionDefinition,
+		);
+		if (!schemaResult.ok) {
+			const formatted = schemaResult.errors
 				.map((error) => `${error.field}: ${error.message}`)
 				.join("; ");
 			throw new Error(
