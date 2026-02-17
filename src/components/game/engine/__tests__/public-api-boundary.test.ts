@@ -5,6 +5,7 @@ import * as runtimeApi from "../runtime";
 
 const SRC_ROOT = path.resolve(process.cwd(), "src");
 const GAME_ROOT = path.resolve(SRC_ROOT, "components/game");
+const GAME_TYPES_ROOT = path.resolve(GAME_ROOT, "types");
 
 const ALLOWED_GAME_IMPORTS = new Set([
 	"@/components/game/engine",
@@ -78,6 +79,72 @@ describe("game public import boundary", () => {
 		}
 
 		expect(offenders.sort()).toEqual([]);
+	});
+
+	it("types modules contain no bridge aliases (_Type -> Type re-exports)", () => {
+		const typeFiles = listCodeFiles(GAME_TYPES_ROOT);
+		const offenders: string[] = [];
+
+		for (const file of typeFiles) {
+			const source = readFileSync(file, "utf8");
+			const lines = source.split("\n");
+
+			for (let i = 0; i < lines.length; i++) {
+				const line = lines[i];
+				if (
+					line.includes(" as ") &&
+					(line.includes("export") || line.includes("import"))
+				) {
+					const underscoreAlias =
+						/_([A-Z][A-Za-z]*)\s+as\s+([A-Z][A-Za-z]*)/.exec(line);
+					if (underscoreAlias) {
+						offenders.push(
+							`${path.relative(process.cwd(), file)}:${i + 1} -> _${underscoreAlias[1]} as ${underscoreAlias[2]}`,
+						);
+					}
+				}
+			}
+		}
+
+		expect(offenders).toEqual([]);
+	});
+
+	it("types modules use only type exports (no runtime value re-exports except type guards)", () => {
+		const typeFiles = listCodeFiles(GAME_TYPES_ROOT);
+		const offenders: string[] = [];
+
+		for (const file of typeFiles) {
+			const source = readFileSync(file, "utf8");
+			const lines = source.split("\n");
+
+			for (let i = 0; i < lines.length; i++) {
+				const line = lines[i].trim();
+				if (
+					line.startsWith("export {") &&
+					!line.includes("export type") &&
+					!line.startsWith("export type")
+				) {
+					offenders.push(
+						`${path.relative(process.cwd(), file)}:${i + 1} -> runtime value export in types module`,
+					);
+				}
+				const isTypeGuard = source
+					.slice(source.indexOf(line, lines.slice(0, i).join("\n").length))
+					.match(/^export const \w+ = \([^)]*\)[^:]*:[^=]*\bis\b/);
+				if (
+					(line.startsWith("export const ") ||
+						line.startsWith("export function ") ||
+						line.startsWith("export class ")) &&
+					!isTypeGuard
+				) {
+					offenders.push(
+						`${path.relative(process.cwd(), file)}:${i + 1} -> runtime value declaration in types module (type guards allowed, others not)`,
+					);
+				}
+			}
+		}
+
+		expect(offenders).toEqual([]);
 	});
 
 	it("engine runtime exports only question-facing value APIs", () => {
