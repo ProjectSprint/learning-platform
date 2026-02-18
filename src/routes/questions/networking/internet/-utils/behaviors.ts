@@ -78,6 +78,7 @@ type RouterNatConfigSubmission = {
 
 type RouterWanConfigSubmission = {
 	deviceId: string;
+	connectionType: "PPPoE";
 	username: string;
 	password: string;
 };
@@ -93,6 +94,7 @@ type InternetEntityDataByType = {
 		natEnabled: boolean;
 	};
 	"router-wan": {
+		connectionType: "PPPoE";
 		username: string;
 		password: string;
 	};
@@ -204,6 +206,7 @@ const ROUTER_WAN_SAVE_CONTRACT: ModalSubmissionContract<RouterWanConfigSubmissio
 				ok: true,
 				value: {
 					deviceId,
+					connectionType: "PPPoE",
 					username: String(values.username ?? ""),
 					password: String(values.password ?? ""),
 				},
@@ -384,6 +387,9 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 	{
 		id: "internet.router-lan-save",
 		on: buildModalSubmitTrigger(undefined, "save"),
+		guard: ({ event }) =>
+			event.type === "MODAL_SUBMITTED" &&
+			event.modalId.startsWith("router-lan-config-"),
 		handler: ({ event, world }) => {
 			const parsed = parseModalSubmission(event, ROUTER_LAN_SAVE_CONTRACT);
 			if (!parsed || !parsed.ok) {
@@ -405,6 +411,9 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 	{
 		id: "internet.router-nat-save",
 		on: buildModalSubmitTrigger(undefined, "save"),
+		guard: ({ event }) =>
+			event.type === "MODAL_SUBMITTED" &&
+			event.modalId.startsWith("router-nat-config-"),
 		handler: ({ event, world }) => {
 			const parsed = parseModalSubmission(event, ROUTER_NAT_SAVE_CONTRACT);
 			if (!parsed || !parsed.ok) {
@@ -423,17 +432,21 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 	{
 		id: "internet.router-wan-save",
 		on: buildModalSubmitTrigger(undefined, "save"),
+		guard: ({ event }) =>
+			event.type === "MODAL_SUBMITTED" &&
+			event.modalId.startsWith("router-wan-config-"),
 		handler: ({ event, world }) => {
 			const parsed = parseModalSubmission(event, ROUTER_WAN_SAVE_CONTRACT);
 			if (!parsed || !parsed.ok) {
 				return;
 			}
-			const { deviceId, username, password } = parsed.value;
+			const { deviceId, connectionType, username, password } = parsed.value;
 			const payloadWriter = createEntityPayloadWriter<
 				InternetEntityDataByType,
 				Record<string, never>
 			>(world);
 			payloadWriter.updateData(deviceId, "router-wan", {
+				connectionType,
 				username,
 				password,
 			});

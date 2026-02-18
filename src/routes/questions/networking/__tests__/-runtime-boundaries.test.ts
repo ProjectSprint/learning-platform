@@ -184,4 +184,49 @@ describe("networking runtime boundaries", () => {
 
 		expect(offenders).toEqual([]);
 	});
+
+	it("tcp behaviors keep splitter conversion and server-delivery safeguards", () => {
+		const tcpBehaviors = readFileSync(
+			path.join(NETWORKING_ROOT, "tcp/-utils/behaviors.ts"),
+			"utf8",
+		);
+
+		expect(
+			tcpBehaviors.includes("ctx.world.deleteEntities([entity.id]);"),
+		).toBe(true);
+		expect(
+			tcpBehaviors.includes('moveEntityToSpace(ctx, entity.id, "inventory")'),
+		).toBe(false);
+		expect(tcpBehaviors.includes("scheduleMoveToServerWithRetry")).toBe(true);
+		expect(
+			tcpBehaviors.includes('moveEntityToSpace(ctx, synId, "received")'),
+		).toBe(true);
+		expect(
+			tcpBehaviors.includes('moveEntityToSpace(ctx, ackId, "received")'),
+		).toBe(true);
+	});
+
+	it("internet modal save rules are guarded per modal prefix", () => {
+		const internetBehaviors = readFileSync(
+			path.join(NETWORKING_ROOT, "internet/-utils/behaviors.ts"),
+			"utf8",
+		);
+
+		expect(
+			internetBehaviors.includes(
+				'event.modalId.startsWith("router-lan-config-")',
+			),
+		).toBe(true);
+		expect(
+			internetBehaviors.includes(
+				'event.modalId.startsWith("router-nat-config-")',
+			),
+		).toBe(true);
+		expect(
+			internetBehaviors.includes(
+				'event.modalId.startsWith("router-wan-config-")',
+			),
+		).toBe(true);
+		expect(internetBehaviors.includes('connectionType: "PPPoE"')).toBe(true);
+	});
 });

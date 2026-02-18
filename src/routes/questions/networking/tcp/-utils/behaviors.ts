@@ -142,6 +142,8 @@ const FILE_REJECT_DELAY_MS = 1500;
 const ASSEMBLE_DELAY_MS = 2000;
 const BUFFER_RELEASE_DELAY_MS = 1500;
 const BUFFER_STEP_DELAY_MS = 800;
+const SERVER_MOVE_RETRY_MS = 500;
+const MAX_SERVER_MOVE_ATTEMPTS = 8;
 
 type TcpEntityDataByType = {
 	tcpEntity: Record<string, unknown>;
@@ -341,6 +343,45 @@ const moveEntityToGrid = (
 
 const ensureInInventory = (ctx: TcpCtx | ScheduledTcpCtx, entityId: string) => {
 	moveEntityToSpace(ctx, entityId, "inventory");
+};
+
+const scheduleMoveToServerWithRetry = (
+	ctx: TcpCtx | ScheduledTcpCtx,
+	entityId: string,
+	key: string,
+	attempt = 1,
+) => {
+	ctx.schedule(key, INTERNET_TRAVEL_MS, (scheduledCtx) => {
+		const moved = moveEntityToGrid(scheduledCtx, entityId, "server");
+		if (moved) {
+			return;
+		}
+
+		if (attempt >= MAX_SERVER_MOVE_ATTEMPTS) {
+			updateEntityState(scheduledCtx, entityId, {
+				tcpState: "buffered",
+				status: "warning",
+			});
+			appendServerLog(
+				scheduledCtx,
+				"Server queue full. Make room, then retry sending the packet.",
+			);
+			return;
+		}
+
+		scheduledCtx.schedule(
+			`${key}.retry.${attempt}`,
+			SERVER_MOVE_RETRY_MS,
+			(retryCtx) => {
+				scheduleMoveToServerWithRetry(
+					retryCtx,
+					entityId,
+					`${key}.attempt.${attempt + 1}`,
+					attempt + 1,
+				);
+			},
+		);
+	});
 };
 
 const configurePackets = (
@@ -806,6 +847,7 @@ const handleSynArrival = (ctx: TcpCtx, synId: string) => {
 		status: "success",
 	});
 	setEntityDraggable(ctx, synId, false);
+	moveEntityToSpace(ctx, synId, "received");
 	ctx.updateContext((state) => {
 		state.receivedPoolVisible = true;
 	});
@@ -849,6 +891,8 @@ const handleAckArrival = (ctx: TcpCtx, ackId: string) => {
 		tcpState: "received",
 		status: "success",
 	});
+	setEntityDraggable(ctx, ackId, false);
+	moveEntityToSpace(ctx, ackId, "received");
 	ctx.updateContext((state) => {
 		state.connectionActive = true;
 		state.connectionClosed = false;
@@ -942,12 +986,10 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 			status: "warning",
 		});
 		ctx.setPhase("syn-wait", "tcp.behavior");
-		ctx.schedule(
+		scheduleMoveToServerWithRetry(
+			ctx,
+			entityId,
 			`tcp.internet.syn.${entityId}`,
-			INTERNET_TRAVEL_MS,
-			(scheduledCtx) => {
-				moveEntityToGrid(scheduledCtx, entityId, "server");
-			},
 		);
 		return;
 	}
@@ -957,12 +999,10 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 			tcpState: "in-transit",
 			status: "warning",
 		});
-		ctx.schedule(
+		scheduleMoveToServerWithRetry(
+			ctx,
+			entityId,
 			`tcp.internet.ack.${entityId}`,
-			INTERNET_TRAVEL_MS,
-			(scheduledCtx) => {
-				moveEntityToGrid(scheduledCtx, entityId, "server");
-			},
 		);
 		return;
 	}
@@ -972,12 +1012,10 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 			tcpState: "in-transit",
 			status: "warning",
 		});
-		ctx.schedule(
+		scheduleMoveToServerWithRetry(
+			ctx,
+			entityId,
 			`tcp.internet.fin.${entityId}`,
-			INTERNET_TRAVEL_MS,
-			(scheduledCtx) => {
-				moveEntityToGrid(scheduledCtx, entityId, "server");
-			},
 		);
 		return;
 	}
@@ -1009,12 +1047,10 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 			ctx.setPhase("loss", "tcp.behavior");
 		}
 
-		ctx.schedule(
+		scheduleMoveToServerWithRetry(
+			ctx,
+			entityId,
 			`tcp.internet.packet.${entityId}`,
-			INTERNET_TRAVEL_MS,
-			(scheduledCtx) => {
-				moveEntityToGrid(scheduledCtx, entityId, "server");
-			},
 		);
 	}
 };
@@ -1079,7 +1115,7 @@ const handleSplitterDrop = (ctx: TcpCtx, entity: EntityData) => {
 	}
 
 	const fileKey = entity.type === "notes-file" ? "notes" : "message";
-	moveEntityToSpace(ctx, entity.id, "inventory");
+	ctx.world.deleteEntities([entity.id]);
 
 	if (fileKey === "message") {
 		configurePackets(ctx, "message", {
