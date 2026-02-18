@@ -6,7 +6,14 @@
  * - `internal/*` stays as implementation primitives/interactors.
  */
 
-export { isGridSpace, isItem } from "./factories";
+export {
+	ConditionFactory,
+	EntityFactory,
+	isGridSpace,
+	isItem,
+	PhaseRuleFactory,
+	SpaceFactory,
+} from "./factories";
 export type {
 	AnyModalContract,
 	AnyTerminalContract,
@@ -16,6 +23,7 @@ export type {
 	EntityData,
 	EntityKey,
 	EntityPayloadWriter,
+	EntityReader,
 	EntityState,
 	InferModal,
 	InferTerminal,
@@ -29,6 +37,7 @@ export type {
 	TerminalInputContract,
 	TerminalKey,
 	TerminalPayload,
+	TypedEntity,
 } from "./public-methods";
 export {
 	buildEntityArrivedTrigger,
@@ -38,6 +47,7 @@ export {
 	buildTerminalInputTrigger,
 	chooseLaneForExecution,
 	createEntityPayloadWriter,
+	createEntityReader,
 	deriveQuestionPhase,
 	entityIsInSpace,
 	findEntitySpace,

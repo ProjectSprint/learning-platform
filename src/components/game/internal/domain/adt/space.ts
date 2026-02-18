@@ -13,6 +13,8 @@ import type {
 	QueueSpaceData,
 } from "@/components/game/types/space";
 
+const DEFAULT_POOL_ALLOW_REORDER = true;
+
 export const createGridSpaceData = (config: GridSpaceConfig): GridSpaceData => {
 	return {
 		id: config.id,
@@ -37,7 +39,7 @@ export const createPoolSpaceData = (config: PoolSpaceConfig): PoolSpaceData => {
 		kind: "pool",
 		layout: config.layout ?? "grid",
 		columns: config.columns,
-		allowReorder: config.allowReorder ?? true,
+		allowReorder: config.allowReorder ?? DEFAULT_POOL_ALLOW_REORDER,
 		entityIds: [],
 	};
 };

@@ -150,6 +150,10 @@ describe("game public import boundary", () => {
 	it("engine runtime exports only question-facing value APIs", () => {
 		expect(Object.keys(runtimeApi).sort()).toEqual(
 			[
+				"ConditionFactory",
+				"EntityFactory",
+				"PhaseRuleFactory",
+				"SpaceFactory",
 				"bootstrapQuestion",
 				"buildEntityArrivedTrigger",
 				"buildEntityClickTrigger",
@@ -158,6 +162,7 @@ describe("game public import boundary", () => {
 				"buildTerminalInputTrigger",
 				"chooseLaneForExecution",
 				"createEntityPayloadWriter",
+				"createEntityReader",
 				"deriveQuestionPhase",
 				"entityIsInSpace",
 				"findEntitySpace",

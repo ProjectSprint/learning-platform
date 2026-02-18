@@ -54,5 +54,6 @@ describe("domain/adt constructors", () => {
 		expect(grid.entityPositions).toEqual({});
 		expect(pool.kind).toBe("pool");
 		expect(pool.entityIds).toEqual([]);
+		expect(pool.allowReorder).toBe(true);
 	});
 });
