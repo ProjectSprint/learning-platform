@@ -36,7 +36,7 @@ dependencies and is imported by both definition and page.
 
 ```typescript
 // -utils/constants.ts
-import type { GridSpaceConfig, PoolSpaceConfig } from "@/components/game/engine/runtime";
+import type { GridSpaceConfig, PoolSpaceConfig } from "@/components/game/types/space";
 import type { Item, TerminalEntry } from "@/components/game/engine/game-provider";
 
 export const QUESTION_ID = "my-question";
@@ -242,7 +242,13 @@ QuestionDefinition.
 
 ```typescript
 // -utils/definition.ts
-import type { QuestionDefinition } from "@/components/game/engine/runtime";
+import {
+  ConditionFactory,
+  EntityFactory,
+  PhaseRuleFactory,
+  SpaceFactory,
+} from "@/components/game/engine/runtime";
+import type { QuestionDefinitionFor, QuestionTypeSpec } from "@/components/game/types/question";
 import { MY_BEHAVIORS, type MyBehaviorContext } from "./behaviors";
 import {
   INVENTORY_ITEMS,
@@ -255,7 +261,17 @@ import {
 
 type MyConditionKey = "dragStatus" | "questionStatus";
 
-export const MY_DEFINITION: QuestionDefinition<MyConditionKey, MyBehaviorContext> = {
+type MyQuestionSpec = QuestionTypeSpec & {
+  conditionKey: MyConditionKey;
+  context: MyBehaviorContext;
+  phase: "setup" | "playing" | "terminal" | "completed";
+  spaceId: "inventory" | string;
+  entityType: string;
+  questionId: typeof QUESTION_ID;
+  conditionValue: string;
+};
+
+export const MY_DEFINITION: QuestionDefinitionFor<MyQuestionSpec> = {
   meta: {
     id: QUESTION_ID,
     title: QUESTION_TITLE,
@@ -263,27 +279,14 @@ export const MY_DEFINITION: QuestionDefinition<MyConditionKey, MyBehaviorContext
   },
   initialPhase: "setup",
   spaces: [
-    ...Object.values(SPACE_CONFIGS).map(config => ({
-      kind: "grid" as const,
-      config,
-    })),
-    { kind: "pool" as const, config: INVENTORY_POOL_CONFIG },
+    ...Object.values(SPACE_CONFIGS).map((config) => SpaceFactory.grid(config)),
+    SpaceFactory.pool(INVENTORY_POOL_CONFIG),
   ],
-  entities: INVENTORY_ITEMS.map(item => ({
-    config: {
-      id: item.id,
-      name: item.name,
-      icon: item.icon,
-      tooltip: item.tooltip,
-      allowedPlaces: item.allowedPlaces,
-      data: { ...item.data, type: item.type },
-    },
-    initialSpace: "inventory",
-  })),
+  entities: INVENTORY_ITEMS.map((item) => EntityFactory.itemInSpace(item, "inventory")),
   phaseRules: [
-    { kind: "set", when: { kind: "eq", key: "dragStatus", value: "started" }, to: "playing" },
-    { kind: "set", when: { kind: "eq", key: "dragStatus", value: "finished" }, to: "terminal" },
-    { kind: "set", when: { kind: "eq", key: "questionStatus", value: "completed" }, to: "completed" },
+    PhaseRuleFactory.set(ConditionFactory.eq("dragStatus", "started"), "playing"),
+    PhaseRuleFactory.set(ConditionFactory.eq("dragStatus", "finished"), "terminal"),
+    PhaseRuleFactory.set(ConditionFactory.eq("questionStatus", "completed"), "completed"),
   ],
   behaviors: MY_BEHAVIORS,
 };
@@ -291,6 +294,9 @@ export const MY_DEFINITION: QuestionDefinition<MyConditionKey, MyBehaviorContext
 
 **Important:** Entity `data.type` is what becomes `entity.type`. Include
 `data: { type: item.type }` in entity config.
+
+**Pool default:** If `allowReorder` is omitted in `PoolSpaceConfig`, runtime
+defaults it to `true`.
 
 ---
 
@@ -497,7 +503,7 @@ const MyPage = ({ onQuestionComplete }: { onQuestionComplete: () => void }) => {
       dragStatus: dragEngine.progress.status,
       questionStatus: state.question.status,
     };
-    const resolved = resolvePhase(
+    const resolved = deriveQuestionPhase(
       MY_DEFINITION.phaseRules, context, state.phase, "setup",
     );
     if (state.phase !== resolved.nextPhase) {
@@ -635,7 +641,7 @@ Mount
   ├── Behavior reactor matches event → runs handler
   │     (e.g. entityClicked → openModal → MODAL_SUBMITTED → updateEntity)
   │
-  ├── useEffect: resolvePhase() → requestPhaseTransition() if phase changed
+  ├── useEffect: deriveQuestionPhase() → requestPhaseTransition() if phase changed
   │
   ├── Phase reaches "terminal" → openTerminal()
   │     User types command → TERMINAL_INPUT event → behavior handler

@@ -54,6 +54,12 @@ src/routes/questions/<category>/<question>/
 ### 2.2 Minimal definition
 
 ```ts
+import {
+  ConditionFactory,
+  EntityFactory,
+  PhaseRuleFactory,
+  SpaceFactory,
+} from "@/components/game/engine/runtime";
 import type {
   QuestionDefinitionFor,
   QuestionTypeSpec,
@@ -76,39 +82,38 @@ export const DEMO_DEFINITION: QuestionDefinitionFor<DemoQuestionSpec> = {
   meta: { id: "demo", title: "Demo", description: "Demo question" },
   initialPhase: "setup",
   spaces: [
-    {
-      kind: "grid",
-      config: {
-        id: "board",
-        name: "Board",
-        rows: 1,
-        cols: 2,
-        metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-      },
-    },
-    { kind: "pool", config: { id: "inventory", name: "Inventory" } },
+    SpaceFactory.grid({
+      id: "board",
+      name: "Board",
+      rows: 1,
+      cols: 2,
+      metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+    }),
+    SpaceFactory.pool({ id: "inventory", name: "Inventory" }),
   ],
   entities: [
-    {
-      config: {
+    EntityFactory.config(
+      {
         id: "router-1",
         name: "Router",
         allowedPlaces: ["inventory", "board"],
         data: { type: "router" },
       },
-      initialSpace: "inventory",
-    },
+      { initialSpace: "inventory" },
+    ),
   ],
   phaseRules: [
-    {
-      kind: "set",
-      when: { kind: "eq", key: "questionStatus", value: "completed" },
-      to: "completed",
-    },
+    PhaseRuleFactory.set(
+      ConditionFactory.eq("questionStatus", "completed"),
+      "completed",
+    ),
   ],
   behaviors: { initialContext: { navigateAway: false }, rules: [] },
 };
 ```
+
+`SpaceFactory.pool(...)` follows runtime defaults (for example, omitted
+`allowReorder` resolves to `true`).
 
 ### 2.3 Minimal page wiring
 
@@ -353,6 +358,10 @@ Validation implementation:
 | `useQuestionRuntime` | `useQuestionRuntime(engineId, definition?)` | `useQuestionRuntime("dhcp-page", DHCP_DEFINITION)` | Main runtime entrypoint | validates definition, bootstraps once, consumes events, runs behaviors, manages scheduler |
 | `bootstrapQuestion` | `bootstrapQuestion(definition, dispatch): void` | `bootstrapQuestion(def, dispatch)` | Deterministic bootstrap from definition | dispatches `SET_QUESTION`, `SET_PHASE`, `SPACE_CREATED`, `ENTITY_CREATED`, optional `ENTITY_ADDED` |
 | `deriveQuestionPhase` | `deriveQuestionPhase(rules, context, currentPhase, fallback?)` | `deriveQuestionPhase(def.phaseRules, ctx, state.phase, "setup")` | Resolve next phase from rules | none (pure) |
+| `SpaceFactory` | `{ grid,pool,path,custom,queue,meter }` | `SpaceFactory.grid(config)` | Build typed `SpaceDefinition` entries | none (pure) |
+| `EntityFactory` | `{ config,item,itemInSpace }` | `EntityFactory.itemInSpace(item, "inventory")` | Build typed `EntityDefinition` entries | none (pure) |
+| `ConditionFactory` | `{ eq,flag,and,or,not }` | `ConditionFactory.eq("questionStatus", "completed")` | Build declarative conditions | none (pure) |
+| `PhaseRuleFactory` | `{ set,retain }` | `PhaseRuleFactory.set(cond, "completed")` | Build declarative phase rules | none (pure) |
 | `findEntitySpace` | `(state, entityId) => string \| null` | `findEntitySpace(state, "router-1")` | Find owning space for entity | none (pure) |
 | `listSpaceEntityIds` | `(state, spaceId) => string[]` | `listSpaceEntityIds(state, "inventory")` | List entity IDs in a space | none (pure) |
 | `entityIsInSpace` | `(state, entityId, spaceId) => boolean` | `entityIsInSpace(state, "pc-1", "pc-board")` | Membership check | none (pure) |
@@ -366,6 +375,7 @@ Validation implementation:
 | `buildEntityPlacedTrigger` | `(spaceId?, entityType?) => EventTrigger` | `buildEntityPlacedTrigger("router-board", "router")` | Trigger factory for enter-space events | none (pure) |
 | `buildEntityArrivedTrigger` | `(spaceId?, entityType?) => EventTrigger` | `buildEntityArrivedTrigger("egress-path")` | Trigger factory for entered/moved arrival | none (pure) |
 | `chooseLaneForExecution` | `(input) => LaneSelectionResult` | `chooseLaneForExecution(input)` | Lane scheduler policy helper | none (pure) |
+| `createEntityReader` | `(world) => { find, byType, inSpace }` | `const read = createEntityReader(world)` | Typed entity read facade by id/type/space | none (pure) |
 | `createEntityPayloadWriter` | `(world) => { updateData, updateState }` | `createEntityPayloadWriter<DataMap, StateMap>(world)` | Typed writer facade for dynamic `data` and `state` payload updates | dispatches via `world.updateEntity`/`world.updateEntityState` |
 
 ### 4.2 Runtime object APIs returned by `useQuestionRuntime`
