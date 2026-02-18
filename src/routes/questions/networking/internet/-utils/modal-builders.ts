@@ -20,6 +20,14 @@ const VALID_DNS_SERVERS = [
 	"208.67.222.222",
 ];
 
+const getStringValue = (
+	allValues: Record<string, unknown>,
+	key: string,
+): string | undefined => {
+	const value = allValues[key];
+	return typeof value === "string" ? value : undefined;
+};
+
 const validateIpAddress: ModalFieldValidator<string> = (input) => {
 	if (!input) {
 		return null;
@@ -66,7 +74,7 @@ const validateEndIp: ModalFieldValidator<string> = (input, allValues) => {
 		return baseError;
 	}
 
-	const startIp = allValues.startIp as string | undefined;
+	const startIp = getStringValue(allValues, "startIp");
 	if (!startIp || !input) {
 		return null;
 	}
@@ -113,7 +121,7 @@ const validatePppoeUsername: ModalFieldValidator<string> = (
 	input,
 	allValues,
 ) => {
-	const connectionType = allValues.connectionType as string | undefined;
+	const connectionType = getStringValue(allValues, "connectionType");
 	if (connectionType === "pppoe" && !input) {
 		return "Enter your ISP username";
 	}
@@ -124,7 +132,7 @@ const validatePppoePassword: ModalFieldValidator<string> = (
 	input,
 	allValues,
 ) => {
-	const connectionType = allValues.connectionType as string | undefined;
+	const connectionType = getStringValue(allValues, "connectionType");
 	if (connectionType === "pppoe" && !input) {
 		return "Enter your ISP password";
 	}

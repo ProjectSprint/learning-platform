@@ -106,6 +106,10 @@ export interface InternetNetworkSnapshot {
 export const buildInternetNetworkSnapshot = (
 	placedItems: SpaceItemLocation[],
 ): InternetNetworkSnapshot => {
+	const isDefinedSpaceItem = (
+		item: SpaceItemLocation | undefined,
+	): item is SpaceItemLocation => item !== undefined;
+
 	const pc = placedItems.find((item) => item.type === "pc");
 	const cable = placedItems.find((item) => item.type === "cable");
 	const routerLan = placedItems.find((item) => item.type === "router-lan");
@@ -131,7 +135,7 @@ export const buildInternetNetworkSnapshot = (
 	const connectionErrors: string[] = [];
 	let isFullyConnected = true;
 
-	const placedDevices = devices.filter(Boolean) as SpaceItemLocation[];
+	const placedDevices = devices.filter(isDefinedSpaceItem);
 
 	if (placedDevices.length !== devices.length) {
 		isFullyConnected = false;

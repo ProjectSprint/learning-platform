@@ -22,13 +22,15 @@ export const SPACE_IDS = {
 	opened: "opened",
 } as const;
 
-export const APP_POOL_CONFIG: PoolSpaceConfig = {
+type CoresSpaceId = (typeof SPACE_IDS)[keyof typeof SPACE_IDS];
+
+export const APP_POOL_CONFIG: PoolSpaceConfig<CoresSpaceId> = {
 	id: SPACE_IDS.appPool,
 	name: "Apps",
 	metadata: { visible: true },
 };
 
-export const OPEN_GRID_CONFIG: GridSpaceConfig = {
+export const OPEN_GRID_CONFIG: GridSpaceConfig<CoresSpaceId> = {
 	id: SPACE_IDS.open,
 	name: "Open",
 	rows: 1,
@@ -37,7 +39,7 @@ export const OPEN_GRID_CONFIG: GridSpaceConfig = {
 	maxCapacity: 1,
 };
 
-export const EXECUTION_GRID_CONFIG: GridSpaceConfig = {
+export const EXECUTION_GRID_CONFIG: GridSpaceConfig<CoresSpaceId> = {
 	id: SPACE_IDS.execution,
 	name: "Execution",
 	rows: 2,
@@ -46,7 +48,7 @@ export const EXECUTION_GRID_CONFIG: GridSpaceConfig = {
 	maxCapacity: 6,
 };
 
-export const OPENED_GRID_CONFIG: GridSpaceConfig = {
+export const OPENED_GRID_CONFIG: GridSpaceConfig<CoresSpaceId> = {
 	id: SPACE_IDS.opened,
 	name: "Opened",
 	rows: 1,
@@ -55,7 +57,7 @@ export const OPENED_GRID_CONFIG: GridSpaceConfig = {
 	maxCapacity: 5,
 };
 
-export const CORE1_PATH_CONFIG: PathSpaceConfig = {
+export const CORE1_PATH_CONFIG: PathSpaceConfig<CoresSpaceId> = {
 	id: SPACE_IDS.core1,
 	name: "Core 1",
 	path: "M 12 60 L 308 60",
@@ -66,7 +68,7 @@ export const CORE1_PATH_CONFIG: PathSpaceConfig = {
 	maxCapacity: 1,
 };
 
-export const CORE2_PATH_CONFIG: PathSpaceConfig = {
+export const CORE2_PATH_CONFIG: PathSpaceConfig<CoresSpaceId> = {
 	id: SPACE_IDS.core2,
 	name: "Core 2",
 	path: "M 12 60 L 308 60",
@@ -77,7 +79,7 @@ export const CORE2_PATH_CONFIG: PathSpaceConfig = {
 	maxCapacity: 1,
 };
 
-export const STORAGE_PATH_CONFIG: PathSpaceConfig = {
+export const STORAGE_PATH_CONFIG: PathSpaceConfig<CoresSpaceId> = {
 	id: SPACE_IDS.storage,
 	name: "Storage",
 	path: "M 52 20 L 52 132 Q 52 160 80 160 L 240 160 Q 268 160 268 132 L 268 20",
@@ -141,7 +143,7 @@ export const APP_ITEMS: Item[] = APPS.map((app) => ({
 
 export const APP_BY_ID = Object.fromEntries(
 	APPS.map((app) => [app.entityId, app]),
-) as Record<string, AppDefinition>;
+);
 
 export const APP_IDS = new Set(APP_ITEMS.map((item) => item.id));
 

@@ -28,6 +28,10 @@ import {
 	deriveQuestionPhase,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
+import type {
+	BoardItemStatus,
+	EntityStatus,
+} from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
 import type { ConditionContext } from "@/components/game/types/question";
 import type { QuestionProps } from "@/components/module";
@@ -51,6 +55,32 @@ import { getContextualHint } from "./-utils/get-contextual-hint";
 import { useInternetState } from "./-utils/use-internet-state";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
+
+const toBoardItemStatus = (value: unknown): BoardItemStatus => {
+	if (
+		value === "normal" ||
+		value === "warning" ||
+		value === "success" ||
+		value === "error"
+	) {
+		return value;
+	}
+	return "normal";
+};
+
+const toEntityStatus = (status: BoardItemStatus): EntityStatus =>
+	status === "normal" ? undefined : status;
+
+const parseCoordinate = (value: unknown): number => {
+	if (typeof value === "number") {
+		return value;
+	}
+	if (typeof value === "string") {
+		const parsed = Number.parseInt(value, 10);
+		return Number.isNaN(parsed) ? 0 : parsed;
+	}
+	return 0;
+};
 
 export const InternetQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -363,21 +393,18 @@ const InternetGame = ({
 						isEntityClickable={isEntityClickable}
 						getEntityLabel={(entity) => getInternetItemLabel(entity.type)}
 						getEntityStatus={(entity) => {
-							const rawStatus = (entity.state.status as string) ?? "normal";
+							const rawStatus = toBoardItemStatus(entity.state.status);
 							const statusMessage = getInternetStatusMessage({
 								id: entity.id,
 								itemId: entity.id,
 								type: entity.type,
-								blockX: parseInt((entity.data.x ?? "0") as string, 10),
-								blockY: parseInt((entity.data.y ?? "0") as string, 10),
-								status: rawStatus as "normal" | "warning" | "success" | "error",
+								blockX: parseCoordinate(entity.data.x),
+								blockY: parseCoordinate(entity.data.y),
+								status: rawStatus,
 								data: entity.data,
 							});
 							return {
-								status:
-									rawStatus !== "normal"
-										? (rawStatus as "success" | "warning" | "error" | "info")
-										: undefined,
+								status: toEntityStatus(rawStatus),
 								message: statusMessage,
 							};
 						}}

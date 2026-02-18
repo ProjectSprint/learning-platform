@@ -1,3 +1,9 @@
+import {
+	ConditionFactory,
+	EntityFactory,
+	PhaseRuleFactory,
+	SpaceFactory,
+} from "@/components/game/engine/runtime";
 import type {
 	QuestionDefinitionFor,
 	QuestionTypeSpec,
@@ -42,44 +48,31 @@ export const INTERNET_DEFINITION: QuestionDefinitionFor<InternetQuestionSpec> =
 		},
 		initialPhase: "setup",
 		spaces: [
-			...Object.values(SPACE_CONFIGS).map((config) => ({
-				kind: "grid" as const,
-				config,
-			})),
-			{ kind: "pool" as const, config: INVENTORY_POOL_CONFIG },
+			...Object.values(SPACE_CONFIGS).map((config) =>
+				SpaceFactory.grid(config),
+			),
+			SpaceFactory.pool(INVENTORY_POOL_CONFIG),
 		],
-		entities: INVENTORY_ITEMS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-			},
-			initialSpace: "inventory",
-		})),
+		entities: INVENTORY_ITEMS.map((item) =>
+			EntityFactory.itemInSpace(item, "inventory"),
+		),
 		phaseRules: [
-			{
-				kind: "set",
-				when: { kind: "eq", key: "allDevicesPlaced", value: true },
-				to: "configuring",
-			},
-			{
-				kind: "set",
-				when: { kind: "eq", key: "dragStatus", value: "started" },
-				to: "playing",
-			},
-			{
-				kind: "set",
-				when: { kind: "eq", key: "dragStatus", value: "finished" },
-				to: "terminal",
-			},
-			{
-				kind: "set",
-				when: { kind: "eq", key: "questionStatus", value: "completed" },
-				to: "completed",
-			},
+			PhaseRuleFactory.set(
+				ConditionFactory.eq("allDevicesPlaced", true),
+				"configuring",
+			),
+			PhaseRuleFactory.set(
+				ConditionFactory.eq("dragStatus", "started"),
+				"playing",
+			),
+			PhaseRuleFactory.set(
+				ConditionFactory.eq("dragStatus", "finished"),
+				"terminal",
+			),
+			PhaseRuleFactory.set(
+				ConditionFactory.eq("questionStatus", "completed"),
+				"completed",
+			),
 		],
 		behaviors: INTERNET_BEHAVIORS,
 	};

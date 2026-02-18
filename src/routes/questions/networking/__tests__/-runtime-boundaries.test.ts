@@ -6,6 +6,7 @@ const NETWORKING_ROOT = path.resolve(
 	process.cwd(),
 	"src/routes/questions/networking",
 );
+const QUESTIONS_ROOT = path.resolve(process.cwd(), "src/routes/questions");
 
 const listCodeFiles = (dir: string): string[] => {
 	const entries = readdirSync(dir);
@@ -30,6 +31,12 @@ const listCodeFiles = (dir: string): string[] => {
 
 	return files;
 };
+
+const listDefinitionFiles = (dir: string): string[] =>
+	listCodeFiles(dir).filter((filePath) => {
+		const normalized = filePath.split(path.sep).join("/");
+		return normalized.endsWith("/-utils/definition.ts");
+	});
 
 describe("networking runtime boundaries", () => {
 	it("does not call commands.setPhase directly", () => {
@@ -80,6 +87,32 @@ describe("networking runtime boundaries", () => {
 		}
 
 		expect(missing).toEqual([]);
+	});
+
+	it("definition files enforce factory-based authoring for spaces and entities", () => {
+		const definitionFiles = listDefinitionFiles(QUESTIONS_ROOT);
+		const missingFactoryUsage: string[] = [];
+		const rawSpaceDefinitions: string[] = [];
+
+		for (const file of definitionFiles) {
+			const content = readFileSync(file, "utf8");
+			const rel = path.relative(process.cwd(), file);
+
+			if (!content.includes("SpaceFactory.")) {
+				missingFactoryUsage.push(`${rel} (missing SpaceFactory usage)`);
+			}
+
+			if (!content.includes("EntityFactory.")) {
+				missingFactoryUsage.push(`${rel} (missing EntityFactory usage)`);
+			}
+
+			if (/kind:\s*"(grid|pool|path|custom|queue|meter)"/.test(content)) {
+				rawSpaceDefinitions.push(rel);
+			}
+		}
+
+		expect(missingFactoryUsage).toEqual([]);
+		expect(rawSpaceDefinitions).toEqual([]);
 	});
 
 	it("page files do not contain event loop patterns (for...of events)", () => {

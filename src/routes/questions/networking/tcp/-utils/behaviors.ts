@@ -178,14 +178,17 @@ const uniquePush = (values: string[], value: string) =>
 const formatSeqList = (seqs: number[]) =>
 	seqs.map((seq) => `#${seq}`).join(", ");
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
+
 const isGridSpace = (space: unknown): space is GridSpaceData => {
-	if (!space || typeof space !== "object") return false;
+	if (!isRecord(space)) return false;
 	return (
 		"rows" in space &&
 		"cols" in space &&
 		"entityPositions" in space &&
-		typeof (space as { rows?: unknown }).rows === "number" &&
-		typeof (space as { cols?: unknown }).cols === "number"
+		typeof space.rows === "number" &&
+		typeof space.cols === "number"
 	);
 };
 

@@ -13,7 +13,10 @@ export const TERMINAL_PROMPT =
 
 export type TcpSpaceKey = "splitter" | "internet" | "server";
 
-export const SPACE_CONFIGS: Record<TcpSpaceKey, GridSpaceConfig> = {
+export const SPACE_CONFIGS: Record<
+	TcpSpaceKey,
+	GridSpaceConfig<TcpSpaceKey>
+> = {
 	splitter: {
 		id: "splitter",
 		name: "Content Splitter",
@@ -40,13 +43,17 @@ export const SPACE_CONFIGS: Record<TcpSpaceKey, GridSpaceConfig> = {
 	},
 };
 
-export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
+export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
+	TcpSpaceKey | "inventory" | "received"
+> = {
 	id: "inventory",
 	name: "Inventory",
 	metadata: { visible: true },
 };
 
-export const RECEIVED_POOL_CONFIG: PoolSpaceConfig = {
+export const RECEIVED_POOL_CONFIG: PoolSpaceConfig<
+	TcpSpaceKey | "inventory" | "received"
+> = {
 	id: "received",
 	name: "Received",
 	metadata: { visible: false },

@@ -9,7 +9,6 @@ import type {
 	BehaviorDefinitionFor,
 	BehaviorRuleFor,
 } from "@/components/game/types/behavior";
-import type { EntityEnteredSpaceEvent } from "@/components/game/types/state";
 import type { UdpClientId } from "./constants";
 import {
 	type CustomSpaceKey,
@@ -100,8 +99,8 @@ const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
 				UdpEntityDataByType,
 				Record<string, never>
 			>(world);
-			const e = event as EntityEnteredSpaceEvent;
-			const entityId = e.entityId;
+			if (event.type !== "ENTITY_ENTERED_SPACE") return;
+			const entityId = event.entityId;
 			const frameNumber =
 				typeof entity.data?.frameNumber === "number"
 					? entity.data.frameNumber

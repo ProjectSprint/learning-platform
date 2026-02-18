@@ -105,7 +105,10 @@ export const DHCP_SPACE_IDS = {
 
 export type DhcpSpaceKey = (typeof DHCP_SPACE_IDS)[keyof typeof DHCP_SPACE_IDS];
 
-export const SPACE_CONFIGS: Record<DhcpSpaceKey, GridSpaceConfig> = {
+export const SPACE_CONFIGS: Record<
+	DhcpSpaceKey,
+	GridSpaceConfig<DhcpSpaceKey>
+> = {
 	[DHCP_SPACE_IDS.pc1]: {
 		id: DHCP_SPACE_IDS.pc1,
 		name: "PC-1",
@@ -148,7 +151,9 @@ export const SPACE_CONFIGS: Record<DhcpSpaceKey, GridSpaceConfig> = {
 	},
 };
 
-export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
+export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
+	DhcpSpaceKey | "inventory"
+> = {
 	id: "inventory",
 	name: "Items",
 	metadata: { visible: true },

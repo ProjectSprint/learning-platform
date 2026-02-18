@@ -192,7 +192,10 @@ export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
 	},
 ];
 
-export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceConfig> = {
+export const SPACE_CONFIGS: Record<
+	InternetSpaceKey,
+	GridSpaceConfig<InternetSpaceKey>
+> = {
 	local: {
 		id: "local",
 		name: "Client",
@@ -251,7 +254,9 @@ export const SPACE_CONFIGS: Record<InternetSpaceKey, GridSpaceConfig> = {
 	},
 };
 
-export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
+export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
+	InternetSpaceKey | "inventory"
+> = {
 	id: "inventory",
 	name: "Items",
 	metadata: { visible: true },

@@ -1,3 +1,4 @@
+import { EntityFactory, SpaceFactory } from "@/components/game/engine/runtime";
 import type {
 	QuestionDefinitionFor,
 	QuestionTypeSpec,
@@ -20,18 +21,23 @@ import {
 	SSL_POOL_IDS,
 	SSL_SETUP_INVENTORY_ITEMS,
 	SSL_SETUP_POOL_CONFIG,
-	type WebSslSpaceKey,
+	type WebSslSpaceId,
 } from "./constants";
 
 type SslQuestionSpec = QuestionTypeSpec & {
 	conditionKey: never;
 	context: SslBehaviorContext;
 	phase: SslPhase;
-	spaceId: WebSslSpaceKey | (typeof SSL_POOL_IDS)[keyof typeof SSL_POOL_IDS];
+	spaceId: WebSslSpaceId;
 	entityType: SslEntityType;
 	questionId: typeof QUESTION_ID;
 	conditionValue: never;
 };
+
+const INVENTORY_SPACE_ID: SslQuestionSpec["spaceId"] = "inventory";
+const SSL_SETUP_SPACE_ID: SslQuestionSpec["spaceId"] = SSL_POOL_IDS.setup;
+const SSL_CERTIFICATES_SPACE_ID: SslQuestionSpec["spaceId"] =
+	SSL_POOL_IDS.certificates;
 
 export const SSL_DEFINITION: QuestionDefinitionFor<SslQuestionSpec> = {
 	meta: {
@@ -41,49 +47,21 @@ export const SSL_DEFINITION: QuestionDefinitionFor<SslQuestionSpec> = {
 	},
 	initialPhase: "setup",
 	spaces: [
-		...Object.values(SPACE_CONFIGS).map((config) => ({
-			kind: "grid" as const,
-			config,
-		})),
-		{ kind: "pool" as const, config: INVENTORY_POOL_CONFIG },
-		{ kind: "pool" as const, config: SSL_SETUP_POOL_CONFIG },
-		{ kind: "pool" as const, config: SSL_ITEMS_POOL_CONFIG },
+		...Object.values(SPACE_CONFIGS).map((config) => SpaceFactory.grid(config)),
+		SpaceFactory.pool(INVENTORY_POOL_CONFIG),
+		SpaceFactory.pool(SSL_SETUP_POOL_CONFIG),
+		SpaceFactory.pool(SSL_ITEMS_POOL_CONFIG),
 	],
 	entities: [
-		...BASIC_INVENTORY_ITEMS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-			},
-			initialSpace: "inventory" as const,
-		})),
-		...SSL_SETUP_INVENTORY_ITEMS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-			},
-			initialSpace: SSL_POOL_IDS.setup as (typeof SSL_POOL_IDS)["setup"],
-		})),
-		...SSL_ITEMS_INVENTORY.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-			},
-			initialSpace:
-				SSL_POOL_IDS.certificates as (typeof SSL_POOL_IDS)["certificates"],
-		})),
+		...BASIC_INVENTORY_ITEMS.map((item) =>
+			EntityFactory.itemInSpace(item, INVENTORY_SPACE_ID),
+		),
+		...SSL_SETUP_INVENTORY_ITEMS.map((item) =>
+			EntityFactory.itemInSpace(item, SSL_SETUP_SPACE_ID),
+		),
+		...SSL_ITEMS_INVENTORY.map((item) =>
+			EntityFactory.itemInSpace(item, SSL_CERTIFICATES_SPACE_ID),
+		),
 	],
 	phaseRules: [],
 	behaviors: SSL_BEHAVIORS,

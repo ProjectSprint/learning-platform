@@ -1,3 +1,4 @@
+import { EntityFactory, SpaceFactory } from "@/components/game/engine/runtime";
 import type {
 	QuestionDefinitionFor,
 	QuestionTypeSpec,
@@ -46,55 +47,23 @@ export const UDP_DEFINITION: QuestionDefinitionFor<UdpQuestionSpec> = {
 	},
 	initialPhase: "setup",
 	spaces: [
-		...Object.values(GRID_SPACE_CONFIGS).map((config) => ({
-			kind: "grid" as const,
-			config,
-		})),
-		...Object.values(CUSTOM_SPACE_CONFIGS).map((config) => ({
-			kind: "custom" as const,
-			config,
-		})),
-		{ kind: "pool" as const, config: INVENTORY_POOL_CONFIG },
-		{ kind: "pool" as const, config: RECEIVED_POOL_CONFIG },
+		...Object.values(GRID_SPACE_CONFIGS).map((config) =>
+			SpaceFactory.grid(config),
+		),
+		...Object.values(CUSTOM_SPACE_CONFIGS).map((config) =>
+			SpaceFactory.custom(config),
+		),
+		SpaceFactory.pool(INVENTORY_POOL_CONFIG),
+		SpaceFactory.pool(RECEIVED_POOL_CONFIG),
 	],
 	entities: [
-		...SYN_ACK_PACKETS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-				draggable: item.draggable,
-				category: item.category,
-			},
-			initialSpace: INITIAL_SYN_ACK_IDS.has(item.id) ? "inventory" : undefined,
-		})),
-		...DATA_PACKETS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-				draggable: item.draggable,
-				category: item.category,
-			},
-		})),
-		...FRAME_ITEMS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-				draggable: item.draggable,
-				category: item.category,
-			},
-		})),
+		...SYN_ACK_PACKETS.map((item) =>
+			INITIAL_SYN_ACK_IDS.has(item.id)
+				? EntityFactory.itemInSpace(item, "inventory")
+				: EntityFactory.item(item),
+		),
+		...DATA_PACKETS.map((item) => EntityFactory.item(item)),
+		...FRAME_ITEMS.map((item) => EntityFactory.item(item)),
 	],
 	phaseRules: [],
 	behaviors: UDP_BEHAVIORS,

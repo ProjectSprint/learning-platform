@@ -25,6 +25,10 @@ import {
 	useGameCtx,
 } from "@/components/game/engine/game-provider";
 import { useQuestionRuntime } from "@/components/game/engine/runtime";
+import type {
+	BoardItemStatus,
+	EntityStatus,
+} from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
 import type {
@@ -54,6 +58,68 @@ const TCP_SPACE_IDS = {
 	server: "server",
 } as const;
 
+const TCP_PHASES: readonly TcpPhase[] = [
+	"mtu",
+	"splitter",
+	"split-send",
+	"syn",
+	"syn-wait",
+	"ack",
+	"connected",
+	"notes",
+	"loss",
+	"resend",
+	"closing",
+	"terminal",
+];
+
+const isTcpPhase = (phase: string): phase is TcpPhase =>
+	TCP_PHASES.some((value) => value === phase);
+
+const toBoardItemStatus = (value: unknown): BoardItemStatus => {
+	if (
+		value === "normal" ||
+		value === "warning" ||
+		value === "success" ||
+		value === "error"
+	) {
+		return value;
+	}
+	return "normal";
+};
+
+const toEntityStatus = (status: BoardItemStatus): EntityStatus =>
+	status === "normal" ? undefined : status;
+
+const parseCoordinate = (value: unknown): number => {
+	if (typeof value === "number") {
+		return value;
+	}
+	if (typeof value === "string") {
+		const parsed = Number.parseInt(value, 10);
+		return Number.isNaN(parsed) ? 0 : parsed;
+	}
+	return 0;
+};
+
+const getTcpEntityStatus = (entity: EntityData) => {
+	const rawStatus = toBoardItemStatus(entity.state.status);
+	const statusMessage = getTcpStatusMessage({
+		id: entity.id,
+		itemId: entity.id,
+		type: entity.type,
+		blockX: parseCoordinate(entity.data.x),
+		blockY: parseCoordinate(entity.data.y),
+		status: rawStatus,
+		data: entity.data,
+	});
+
+	return {
+		status: toEntityStatus(rawStatus),
+		message: statusMessage,
+	};
+};
+
 export const TcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
 		<GameProvider>
@@ -68,7 +134,7 @@ const TcpGame = ({
 	onQuestionComplete: () => void;
 }) => {
 	const { progress, interactionSession, state, behaviorContext, isCompleted } =
-		useQuestionRuntime("tcp-page", TCP_DEFINITION);
+		useQuestionRuntime<TcpBehaviorContext>("tcp-page", TCP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const successShownRef = useRef(false);
 	const {
@@ -83,8 +149,8 @@ const TcpGame = ({
 		sequenceEnabled,
 		splitterVisible,
 		waitingCount,
-	} = behaviorContext as TcpBehaviorContext;
-	const tcpPhase = (state.phase as TcpPhase) ?? "mtu";
+	} = behaviorContext;
+	const tcpPhase = isTcpPhase(state.phase) ? state.phase : "mtu";
 	useDragEngine();
 	const { registerDrawer, updateDrawerConfig, openDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
@@ -334,34 +400,7 @@ const TcpGame = ({
 									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={(entity) => getTcpItemLabel(entity.type)}
-									getEntityStatus={(entity) => {
-										const rawStatus =
-											(entity.state.status as string) ?? "normal";
-										const statusMessage = getTcpStatusMessage({
-											id: entity.id,
-											itemId: entity.id,
-											type: entity.type,
-											blockX: parseInt((entity.data.x ?? "0") as string, 10),
-											blockY: parseInt((entity.data.y ?? "0") as string, 10),
-											status: rawStatus as
-												| "normal"
-												| "warning"
-												| "success"
-												| "error",
-											data: entity.data,
-										});
-										return {
-											status:
-												rawStatus !== "normal"
-													? (rawStatus as
-															| "success"
-															| "warning"
-															| "error"
-															| "info")
-													: undefined,
-											message: statusMessage,
-										};
-									}}
+									getEntityStatus={getTcpEntityStatus}
 								/>
 							</GridItem>
 						) : null}
@@ -373,34 +412,7 @@ const TcpGame = ({
 									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={(entity) => getTcpItemLabel(entity.type)}
-									getEntityStatus={(entity) => {
-										const rawStatus =
-											(entity.state.status as string) ?? "normal";
-										const statusMessage = getTcpStatusMessage({
-											id: entity.id,
-											itemId: entity.id,
-											type: entity.type,
-											blockX: parseInt((entity.data.x ?? "0") as string, 10),
-											blockY: parseInt((entity.data.y ?? "0") as string, 10),
-											status: rawStatus as
-												| "normal"
-												| "warning"
-												| "success"
-												| "error",
-											data: entity.data,
-										});
-										return {
-											status:
-												rawStatus !== "normal"
-													? (rawStatus as
-															| "success"
-															| "warning"
-															| "error"
-															| "info")
-													: undefined,
-											message: statusMessage,
-										};
-									}}
+									getEntityStatus={getTcpEntityStatus}
 								/>
 							</GridItem>
 						) : null}
@@ -413,34 +425,7 @@ const TcpGame = ({
 									onEntityClick={handleEntityClick}
 									isEntityClickable={isEntityClickable}
 									getEntityLabel={(entity) => getTcpItemLabel(entity.type)}
-									getEntityStatus={(entity) => {
-										const rawStatus =
-											(entity.state.status as string) ?? "normal";
-										const statusMessage = getTcpStatusMessage({
-											id: entity.id,
-											itemId: entity.id,
-											type: entity.type,
-											blockX: parseInt((entity.data.x ?? "0") as string, 10),
-											blockY: parseInt((entity.data.y ?? "0") as string, 10),
-											status: rawStatus as
-												| "normal"
-												| "warning"
-												| "success"
-												| "error",
-											data: entity.data,
-										});
-										return {
-											status:
-												rawStatus !== "normal"
-													? (rawStatus as
-															| "success"
-															| "warning"
-															| "error"
-															| "info")
-													: undefined,
-											message: statusMessage,
-										};
-									}}
+									getEntityStatus={getTcpEntityStatus}
 								/>
 							</GridItem>
 						) : null}

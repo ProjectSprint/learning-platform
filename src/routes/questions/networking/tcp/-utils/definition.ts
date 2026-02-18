@@ -1,3 +1,4 @@
+import { EntityFactory, SpaceFactory } from "@/components/game/engine/runtime";
 import type {
 	QuestionDefinitionFor,
 	QuestionTypeSpec,
@@ -42,82 +43,27 @@ export const TCP_DEFINITION: QuestionDefinitionFor<TcpQuestionSpec> = {
 	},
 	initialPhase: "mtu",
 	spaces: [
-		...Object.values(SPACE_CONFIGS).map((config) => ({
-			kind: "grid" as const,
-			config,
-		})),
-		{ kind: "pool" as const, config: INVENTORY_POOL_CONFIG },
-		{ kind: "pool" as const, config: RECEIVED_POOL_CONFIG },
+		...Object.values(SPACE_CONFIGS).map((config) => SpaceFactory.grid(config)),
+		SpaceFactory.pool(INVENTORY_POOL_CONFIG),
+		SpaceFactory.pool(RECEIVED_POOL_CONFIG),
 	],
 	entities: [
 		// File inventory items — start in inventory
-		...FILE_INVENTORY_ITEMS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-			},
-			initialSpace: "inventory",
-		})),
+		...FILE_INVENTORY_ITEMS.map((item) =>
+			EntityFactory.itemInSpace(item, "inventory"),
+		),
 		// System packets — created but NOT placed in a space
-		...Object.values(SYSTEM_PACKET_ITEMS).map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-				draggable: item.draggable,
-			},
-		})),
+		...Object.values(SYSTEM_PACKET_ITEMS).map((item) =>
+			EntityFactory.item(item),
+		),
 		// TCP tool items — created but NOT placed
-		...Object.values(TCP_TOOL_ITEMS).map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-			},
-		})),
+		...Object.values(TCP_TOOL_ITEMS).map((item) => EntityFactory.item(item)),
 		// Message packet items — created but NOT placed
-		...MESSAGE_PACKET_ITEMS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-			},
-		})),
+		...MESSAGE_PACKET_ITEMS.map((item) => EntityFactory.item(item)),
 		// Notes file item — created but NOT placed
-		{
-			config: {
-				id: NOTES_FILE_ITEM.id,
-				name: NOTES_FILE_ITEM.name,
-				icon: NOTES_FILE_ITEM.icon,
-				tooltip: NOTES_FILE_ITEM.tooltip,
-				allowedPlaces: NOTES_FILE_ITEM.allowedPlaces,
-				data: { ...NOTES_FILE_ITEM.data, type: NOTES_FILE_ITEM.type },
-			},
-		},
+		EntityFactory.item(NOTES_FILE_ITEM),
 		// Notes packet items — created but NOT placed
-		...NOTES_PACKET_ITEMS.map((item) => ({
-			config: {
-				id: item.id,
-				name: item.name,
-				icon: item.icon,
-				tooltip: item.tooltip,
-				allowedPlaces: item.allowedPlaces,
-				data: { ...item.data, type: item.type },
-			},
-		})),
+		...NOTES_PACKET_ITEMS.map((item) => EntityFactory.item(item)),
 	],
 	phaseRules: [],
 	behaviors: TCP_BEHAVIORS,

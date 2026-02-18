@@ -18,8 +18,14 @@ export const TERMINAL_PROMPT =
 	"Your secure website is ready! Test both HTTP and HTTPS connections.";
 
 export type WebSslSpaceKey = "browser" | "port-80" | "letsencrypt" | "port-443";
+type WebSslPoolKey = "inventory" | "setup" | "certificates";
+type WebSslPoolId = "inventory" | "ssl-setup" | "ssl-items";
+export type WebSslSpaceId = WebSslSpaceKey | WebSslPoolId;
 
-export const SPACE_CONFIGS: Record<WebSslSpaceKey, GridSpaceConfig> = {
+export const SPACE_CONFIGS: Record<
+	WebSslSpaceKey,
+	GridSpaceConfig<WebSslSpaceKey>
+> = {
 	browser: {
 		id: "browser",
 		name: "Browser",
@@ -54,25 +60,25 @@ export const SPACE_CONFIGS: Record<WebSslSpaceKey, GridSpaceConfig> = {
 	},
 };
 
-export const SSL_POOL_IDS = {
+export const SSL_POOL_IDS: Record<WebSslPoolKey, WebSslPoolId> = {
 	inventory: "inventory",
 	setup: "ssl-setup",
 	certificates: "ssl-items",
-} as const;
+};
 
-export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
+export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<WebSslSpaceId> = {
 	id: SSL_POOL_IDS.inventory,
 	name: "Inventory",
 	metadata: { visible: true },
 };
 
-export const SSL_SETUP_POOL_CONFIG: PoolSpaceConfig = {
+export const SSL_SETUP_POOL_CONFIG: PoolSpaceConfig<WebSslSpaceId> = {
 	id: SSL_POOL_IDS.setup,
 	name: "SSL Setup",
 	metadata: { visible: false },
 };
 
-export const SSL_ITEMS_POOL_CONFIG: PoolSpaceConfig = {
+export const SSL_ITEMS_POOL_CONFIG: PoolSpaceConfig<WebSslSpaceId> = {
 	id: SSL_POOL_IDS.certificates,
 	name: "SSL Certificates",
 	metadata: { visible: false },

@@ -60,10 +60,10 @@ const UdpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { state, isCompleted, behaviorContext } = useQuestionRuntime<
-		string,
-		UdpBehaviorContext
-	>("udp-page", UDP_DEFINITION);
+	const { state, isCompleted, behaviorContext } = useQuestionRuntime(
+		"udp-page",
+		UDP_DEFINITION,
+	);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
 	const { terminal, openTerminal, closeTerminal, setPrompt } =
@@ -355,7 +355,10 @@ const UdpView = ({
 					responsiveSize={{ base: [1, 1] }}
 					isEntityClickable={isEntityClickable}
 					getEntityStatus={(entity) => {
-						const frameState = entity.data?.state as string | undefined;
+						const frameState =
+							typeof entity.data?.state === "string"
+								? entity.data.state
+								: undefined;
 						if (frameState === "sending") {
 							return { status: "warning", message: "Sending" };
 						}

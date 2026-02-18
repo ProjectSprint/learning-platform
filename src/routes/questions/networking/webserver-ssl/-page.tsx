@@ -34,7 +34,7 @@ import {
 	findEntitySpace,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
-import type { EntityStatus } from "@/components/game/types/core";
+import type { EntityStatus } from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
 
@@ -63,6 +63,9 @@ const WEB_SSL_SPACE_IDS = {
 	letsencrypt: "letsencrypt",
 	port443: "port-443",
 } as const;
+
+const toEntityStatus = (status: BoardItemStatus): EntityStatus =>
+	status === "normal" ? undefined : status;
 
 export const WebServerSslQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -303,7 +306,7 @@ const SslGame = ({
 					data: { domain: port80Domain || DEFAULT_DOMAIN },
 				});
 				return {
-					status: browserStatus as EntityStatus,
+					status: toEntityStatus(browserStatus),
 					message: statusMessage,
 				};
 			}
@@ -322,7 +325,7 @@ const SslGame = ({
 					spaceId,
 				);
 				return {
-					status: port80Status as EntityStatus,
+					status: toEntityStatus(port80Status),
 					message: statusMessage,
 				};
 			}
@@ -341,7 +344,7 @@ const SslGame = ({
 					spaceId,
 				);
 				return {
-					status: port443Status as EntityStatus,
+					status: toEntityStatus(port443Status),
 					message: statusMessage,
 				};
 			}
@@ -369,7 +372,10 @@ const SslGame = ({
 			}
 
 			if (entity.type === "domain" && spaceId === "letsencrypt") {
-				const status: EntityStatus = certificateIssued ? "success" : "error";
+				const boardStatus: BoardItemStatus = certificateIssued
+					? "success"
+					: "error";
+				const status = toEntityStatus(boardStatus);
 				const domainName = certificateIssued
 					? certificateDomain || port80Domain || DEFAULT_DOMAIN
 					: typeof entity.data?.domain === "string"
@@ -382,7 +388,7 @@ const SslGame = ({
 						type: entity.type,
 						blockX: 0,
 						blockY: 0,
-						status,
+						status: boardStatus,
 						data: { domain: domainName },
 					},
 					spaceId,

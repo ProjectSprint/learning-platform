@@ -189,10 +189,8 @@ const rules: BehaviorRuleFor<DhcpBehaviorContext, DhcpTriggerSpec>[] = [
 					"dhcp.terminal.onboarding.delay",
 					100,
 					({ terminal: sTerm }) => {
-						const pc2Ip =
-							(typeof state.entities["pc-2"]?.state.ip === "string"
-								? (state.entities["pc-2"]?.state.ip as string)
-								: null) ?? null;
+						const rawPc2Ip = state.entities["pc-2"]?.state.ip;
+						const pc2Ip = typeof rawPc2Ip === "string" ? rawPc2Ip : null;
 						const lines = [
 							"Terminal - Network diagnostic utility",
 							"",

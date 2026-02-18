@@ -28,6 +28,10 @@ import {
 	deriveQuestionPhase,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
+import type {
+	BoardItemStatus,
+	EntityStatus,
+} from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
 import type { ConditionContext } from "@/components/game/types/question";
 import type { QuestionProps } from "@/components/module";
@@ -48,6 +52,32 @@ import { getContextualHint } from "./-utils/get-contextual-hint";
 import { useNetworkState } from "./-utils/use-network-state";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
+
+const toBoardItemStatus = (value: unknown): BoardItemStatus => {
+	if (
+		value === "normal" ||
+		value === "warning" ||
+		value === "success" ||
+		value === "error"
+	) {
+		return value;
+	}
+	return "normal";
+};
+
+const toEntityStatus = (status: BoardItemStatus): EntityStatus =>
+	status === "normal" ? undefined : status;
+
+const parseCoordinate = (value: unknown): number => {
+	if (typeof value === "number") {
+		return value;
+	}
+	if (typeof value === "string") {
+		const parsed = Number.parseInt(value, 10);
+		return Number.isNaN(parsed) ? 0 : parsed;
+	}
+	return 0;
+};
 
 export const DhcpQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (
@@ -96,28 +126,25 @@ const NetworkingGame = ({
 		[],
 	);
 	const getEntityStatus = useCallback((entity: EntityData) => {
-		const rawStatus = (entity.state.status as string) ?? "normal";
+		const rawStatus = toBoardItemStatus(entity.state.status);
 		const dataWithIp = {
 			...entity.data,
 			ip: entity.state.ip ?? entity.data.ip,
 		};
 		const hasIp = typeof dataWithIp.ip === "string" && dataWithIp.ip.length > 0;
-		const effectiveStatus =
+		const effectiveStatus: BoardItemStatus =
 			entity.type === "pc" && !hasIp ? "warning" : rawStatus;
 		const statusMessage = getNetworkingStatusMessage({
 			id: entity.id,
 			itemId: entity.id,
 			type: entity.type,
-			blockX: parseInt((entity.data.x ?? "0") as string, 10),
-			blockY: parseInt((entity.data.y ?? "0") as string, 10),
-			status: effectiveStatus as "normal" | "warning" | "success" | "error",
+			blockX: parseCoordinate(entity.data.x),
+			blockY: parseCoordinate(entity.data.y),
+			status: effectiveStatus,
 			data: dataWithIp,
 		});
 		return {
-			status:
-				effectiveStatus !== "normal"
-					? (effectiveStatus as "success" | "warning" | "error" | "info")
-					: undefined,
+			status: toEntityStatus(effectiveStatus),
 			message: statusMessage,
 		};
 	}, []);

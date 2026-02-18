@@ -61,7 +61,10 @@ export const UDP_CLIENT_SPACE_IDS = {
 	d: "client-d",
 } as const;
 
-export const GRID_SPACE_CONFIGS: Record<GridSpaceKey, GridSpaceConfig> = {
+export const GRID_SPACE_CONFIGS: Record<
+	GridSpaceKey,
+	GridSpaceConfig<GridSpaceKey>
+> = {
 	internet: {
 		id: "internet",
 		name: "Internet",
@@ -72,20 +75,27 @@ export const GRID_SPACE_CONFIGS: Record<GridSpaceKey, GridSpaceConfig> = {
 	},
 };
 
-export const CUSTOM_SPACE_CONFIGS: Record<CustomSpaceKey, CustomSpaceConfig> = {
+export const CUSTOM_SPACE_CONFIGS: Record<
+	CustomSpaceKey,
+	CustomSpaceConfig<CustomSpaceKey>
+> = {
 	"client-a": { id: "client-a", name: "Client A" },
 	"client-b": { id: "client-b", name: "Client B" },
 	"client-c": { id: "client-c", name: "Client C" },
 	"client-d": { id: "client-d", name: "Client D" },
 };
 
-export const INVENTORY_POOL_CONFIG: PoolSpaceConfig = {
+export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
+	GridSpaceKey | CustomSpaceKey | "inventory" | "received"
+> = {
 	id: "inventory",
 	name: "Inventory",
 	metadata: { visible: true },
 };
 
-export const RECEIVED_POOL_CONFIG: PoolSpaceConfig = {
+export const RECEIVED_POOL_CONFIG: PoolSpaceConfig<
+	GridSpaceKey | CustomSpaceKey | "inventory" | "received"
+> = {
 	id: "received",
 	name: "Received",
 	metadata: { visible: true },
@@ -102,9 +112,8 @@ export const POOL_GROUP_IDS = {
 const isInitialClientId = (
 	clientId: unknown,
 ): clientId is (typeof INITIAL_TCP_CLIENT_IDS)[number] =>
-	INITIAL_TCP_CLIENT_IDS.includes(
-		clientId as (typeof INITIAL_TCP_CLIENT_IDS)[number],
-	);
+	typeof clientId === "string" &&
+	INITIAL_TCP_CLIENT_IDS.some((id) => id === clientId);
 
 export const buildSynPacket = (clientId: TcpClientId): Item => ({
 	id: `syn-packet-${clientId}`,

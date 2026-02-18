@@ -7,6 +7,14 @@ import type {
 } from "@/components/game/engine";
 import { PRIVATE_IP_RANGES } from "./constants";
 
+const getStringValue = (
+	allValues: Record<string, unknown>,
+	key: string,
+): string | undefined => {
+	const value = allValues[key];
+	return typeof value === "string" ? value : undefined;
+};
+
 const validateIpAddress: ModalFieldValidator<string> = (input) => {
 	if (!input) {
 		return null; // Allow empty, will be caught by range validation
@@ -40,7 +48,7 @@ const validateEndIp: ModalFieldValidator<string> = (input, allValues) => {
 		return baseError;
 	}
 
-	const startIp = allValues.startIp as string | undefined;
+	const startIp = getStringValue(allValues, "startIp");
 	if (!startIp || !input) {
 		return null;
 	}

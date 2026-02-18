@@ -116,10 +116,7 @@ export const useSslState = () => {
 
 	const issuedDomainEntity = useMemo(
 		() =>
-			domainEntities.find(
-				(entity) =>
-					(entity.data?.certificateIssued as boolean | undefined) === true,
-			),
+			domainEntities.find((entity) => entity.data?.certificateIssued === true),
 		[domainEntities],
 	);
 

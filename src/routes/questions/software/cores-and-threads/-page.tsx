@@ -61,10 +61,10 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 	// 2) subscribes to engine events for "cores-and-threads-page",
 	// 3) runs behavior rules from -utils/behaviors.ts,
 	// 4) returns the latest global game state + behavior-only context.
-	const { state, behaviorContext } = useQuestionRuntime<
-		string,
-		CoresBehaviorContext
-	>("cores-and-threads-page", CORES_THREADS_DEFINITION);
+	const { state, behaviorContext } = useQuestionRuntime(
+		"cores-and-threads-page",
+		CORES_THREADS_DEFINITION,
+	);
 	// Explicit game context object (state + dispatch) passed to engine components.
 	const gameCtx = useGameCtx();
 	// Registers the generic drag engine lifecycle (progress/events for dragging).
@@ -132,7 +132,10 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 	// This does not mutate state; it only determines visual status chips.
 	const getEntityStatus = useCallback(
 		(entity: { data: Record<string, unknown> }) => {
-			const appStatus = entity.data.appStatus as string | undefined;
+			const appStatus =
+				typeof entity.data.appStatus === "string"
+					? entity.data.appStatus
+					: undefined;
 			if (appStatus === "parsing") {
 				return { status: "warning" as const, message: "Parsing" };
 			}
@@ -143,7 +146,10 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 				return { status: "success" as const, message: "Opened" };
 			}
 
-			const partStatus = entity.data.partStatus as string | undefined;
+			const partStatus =
+				typeof entity.data.partStatus === "string"
+					? entity.data.partStatus
+					: undefined;
 			if (partStatus === "queued") {
 				return { status: "info" as const, message: "Waiting" };
 			}

@@ -10,10 +10,8 @@ import type {
 	EffectContext,
 } from "@/components/game/types/behavior";
 import type {
-	EntityEnteredSpaceEvent,
-	EntityLeftSpaceEvent,
-	EntityMovedEvent,
 	EntityUpdatedEvent,
+	GameEvent,
 } from "@/components/game/types/state";
 
 import {
@@ -177,6 +175,12 @@ function selectAvailableLane(
 function hasAnyActiveLane(ctx: { context: CoresBehaviorContext }): boolean {
 	return CORE_LANES.some((laneId) => getActiveLaneApp(ctx, laneId) !== null);
 }
+
+const isEntityUpdatedEvent = (event: GameEvent): event is EntityUpdatedEvent =>
+	event.type === "ENTITY_UPDATED";
+
+const isCoreLaneId = (value: unknown): value is CoreLaneId =>
+	value === SPACE_IDS.core1 || value === SPACE_IDS.core2;
 
 function showNotice(
 	ctx: Pick<Ctx, "updateContext" | "schedule">,
@@ -401,17 +405,17 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 		id: "cores.app-arrived-open",
 		on: buildEntityArrivedTrigger(SPACE_IDS.open, "app"),
 		handler: (ctx) => {
-			const event = ctx.event as EntityEnteredSpaceEvent | EntityMovedEvent;
-			handleAppEnteredOpen(ctx, event.entityId);
+			const entityId = ctx.provenance.entityId;
+			if (!entityId) return;
+			handleAppEnteredOpen(ctx, entityId);
 		},
 	},
 	{
 		id: "cores.request-midpoint-waits-for-io",
 		on: { event: "ENTITY_UPDATED", entityType: "subtask" },
 		guard: ({ event, entity }) => {
-			if (event.type !== "ENTITY_UPDATED") return false;
-			const updated = event as EntityUpdatedEvent;
-			if (typeof updated.updates.data?.pathMidpointTick !== "number")
+			if (!isEntityUpdatedEvent(event)) return false;
+			if (typeof event.updates.data?.pathMidpointTick !== "number")
 				return false;
 			if (!entity) return false;
 			return (
@@ -422,13 +426,16 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 			);
 		},
 		handler: (ctx) => {
-			const event = ctx.event as EntityUpdatedEvent;
+			if (!isEntityUpdatedEvent(ctx.event)) return;
+			const event = ctx.event;
 			const partId = event.entityId;
 			const partEntity = ctx.state.entities[partId];
 			if (!partEntity) return;
 
-			const ownerAppId = partEntity.data.ownerAppId as string;
-			const laneId = partEntity.data.laneId as CoreLaneId;
+			const ownerAppId = partEntity.data.ownerAppId;
+			if (typeof ownerAppId !== "string") return;
+			const laneId = partEntity.data.laneId;
+			if (!isCoreLaneId(laneId)) return;
 			const ioRequestId = `io-request:${ownerAppId}:${laneId}:${event.actionId}`;
 
 			updateEntityData(ctx, partId, { partStatus: "waiting-io" });
@@ -456,9 +463,8 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 		id: "cores.storage-midpoint-swaps-response",
 		on: { event: "ENTITY_UPDATED", entityType: "subtask" },
 		guard: ({ event, entity }) => {
-			if (event.type !== "ENTITY_UPDATED") return false;
-			const updated = event as EntityUpdatedEvent;
-			if (typeof updated.updates.data?.pathMidpointTick !== "number")
+			if (!isEntityUpdatedEvent(event)) return false;
+			if (typeof event.updates.data?.pathMidpointTick !== "number")
 				return false;
 			if (!entity) return false;
 			return (
@@ -466,7 +472,8 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 			);
 		},
 		handler: (ctx) => {
-			const event = ctx.event as EntityUpdatedEvent;
+			if (!isEntityUpdatedEvent(ctx.event)) return;
+			const event = ctx.event;
 			const ioRequestId = event.entityId;
 			ctx.world.updateEntity(ioRequestId, {
 				name: "File response",
@@ -478,14 +485,16 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 		id: "cores.storage-complete-resumes-request",
 		on: { event: "ENTITY_LEFT_SPACE", space: SPACE_IDS.storage },
 		handler: (ctx) => {
-			const event = ctx.event as EntityLeftSpaceEvent;
+			if (ctx.event.type !== "ENTITY_LEFT_SPACE") return;
+			const event = ctx.event;
 			const ioRequestEntity = ctx.state.entities[event.entityId];
 			if (!ioRequestEntity) return;
 			if (ioRequestEntity.data.ioRole !== "storage") return;
 
-			const ownerPartId = ioRequestEntity.data.ownerPartId as
-				| string
-				| undefined;
+			const ownerPartId =
+				typeof ioRequestEntity.data.ownerPartId === "string"
+					? ioRequestEntity.data.ownerPartId
+					: undefined;
 			if (!ownerPartId) return;
 			const ownerPartEntity = ctx.state.entities[ownerPartId];
 			if (!ownerPartEntity) {
@@ -508,19 +517,28 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 		on: { event: "ENTITY_LEFT_SPACE" },
 		guard: ({ event }) => {
 			if (event.type !== "ENTITY_LEFT_SPACE") return false;
-			const e = event as EntityLeftSpaceEvent;
-			return e.spaceId === SPACE_IDS.core1 || e.spaceId === SPACE_IDS.core2;
+			return (
+				event.spaceId === SPACE_IDS.core1 || event.spaceId === SPACE_IDS.core2
+			);
 		},
 		handler: (ctx) => {
-			const event = ctx.event as EntityLeftSpaceEvent;
+			if (ctx.event.type !== "ENTITY_LEFT_SPACE") return;
+			const event = ctx.event;
 			const partId = event.entityId;
-			const laneId = event.spaceId as CoreLaneId;
+			const laneId = event.spaceId;
+			if (!isCoreLaneId(laneId)) return;
 
 			const partEntity = ctx.state.entities[partId];
 			if (!partEntity) return;
 
-			const ownerAppId = partEntity.data.ownerAppId as string | undefined;
-			const partLaneId = partEntity.data.laneId as string | undefined;
+			const ownerAppId =
+				typeof partEntity.data.ownerAppId === "string"
+					? partEntity.data.ownerAppId
+					: undefined;
+			const partLaneId =
+				typeof partEntity.data.laneId === "string"
+					? partEntity.data.laneId
+					: undefined;
 			if (!ownerAppId || partLaneId !== laneId) return;
 
 			ctx.world.deleteEntities([partId]);
