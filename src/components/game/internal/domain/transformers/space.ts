@@ -203,6 +203,25 @@ const removeFromSpace = (
 	return { removed: false };
 };
 
+const findFirstEmptyGridCell = (
+	space: {
+		rows: number;
+		cols: number;
+		entityPositions: Record<string, GridPosition>;
+		allowMultiplePerCell: boolean;
+	},
+	entityId: string,
+): GridPosition | undefined => {
+	for (let row = 0; row < space.rows; row += 1) {
+		for (let col = 0; col < space.cols; col += 1) {
+			if (!isGridCellBlocked(space, entityId, { row, col })) {
+				return { row, col };
+			}
+		}
+	}
+	return undefined;
+};
+
 const addToSpace = (
 	space: SpaceData,
 	entityId: string,
@@ -212,26 +231,38 @@ const addToSpace = (
 	position?: SpacePosition;
 } => {
 	if (isGridSpace(space)) {
-		if (!position || !isValidGridPosition(position)) {
+		// Auto-find the first free cell when no position is provided
+		const resolvedPosition =
+			position && isValidGridPosition(position)
+				? { row: position.row, col: position.col }
+				: findFirstEmptyGridCell(space, entityId);
+
+		if (!resolvedPosition) {
 			return { added: false };
 		}
 		if (
-			position.row < 0 ||
-			position.col < 0 ||
-			position.row >= space.rows ||
-			position.col >= space.cols
+			resolvedPosition.row < 0 ||
+			resolvedPosition.col < 0 ||
+			resolvedPosition.row >= space.rows ||
+			resolvedPosition.col >= space.cols
 		) {
 			return { added: false };
 		}
 		if (!hasGridCapacity(space, entityId)) {
 			return { added: false };
 		}
-		if (isGridCellBlocked(space, entityId, position)) {
+		if (isGridCellBlocked(space, entityId, resolvedPosition)) {
 			return { added: false };
 		}
 		delete space.entityPositions[entityId];
-		space.entityPositions[entityId] = { row: position.row, col: position.col };
-		return { added: true, position: { row: position.row, col: position.col } };
+		space.entityPositions[entityId] = {
+			row: resolvedPosition.row,
+			col: resolvedPosition.col,
+		};
+		return {
+			added: true,
+			position: { row: resolvedPosition.row, col: resolvedPosition.col },
+		};
 	}
 
 	if (isPoolSpace(space)) {

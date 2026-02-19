@@ -43,6 +43,12 @@ const TOOLTIP_FRAME = {
 	seeMoreHref: "https://en.wikipedia.org/wiki/User_Datagram_Protocol",
 };
 
+const TOOLTIP_UNICAST = {
+	content:
+		"A unicast response from a client confirming they are listening on the UDP port.",
+	seeMoreHref: "https://en.wikipedia.org/wiki/Unicast",
+};
+
 export const TCP_CLIENT_IDS = ["a", "b", "c", "d"] as const;
 export const INITIAL_TCP_CLIENT_IDS = ["a", "b", "c"] as const;
 export const UDP_CLIENT_IDS = ["a", "b", "c"] as const;
@@ -52,14 +58,9 @@ export type UdpClientId = (typeof UDP_CLIENT_IDS)[number];
 
 export type GridSpaceKey = "internet";
 
-export type CustomSpaceKey = "client-a" | "client-b" | "client-c" | "client-d";
+export type CustomSpaceKey = "clients";
 
-export const UDP_CLIENT_SPACE_IDS = {
-	a: "client-a",
-	b: "client-b",
-	c: "client-c",
-	d: "client-d",
-} as const;
+export const SHARED_CLIENT_SPACE_ID = "clients" as const;
 
 export const GRID_SPACE_CONFIGS: Record<
 	GridSpaceKey,
@@ -79,22 +80,27 @@ export const CUSTOM_SPACE_CONFIGS: Record<
 	CustomSpaceKey,
 	CustomSpaceConfig<CustomSpaceKey>
 > = {
-	"client-a": { id: "client-a", name: "Client A" },
-	"client-b": { id: "client-b", name: "Client B" },
-	"client-c": { id: "client-c", name: "Client C" },
-	"client-d": { id: "client-d", name: "Client D" },
+	clients: { id: "clients", name: "Clients" },
 };
 
 export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
-	GridSpaceKey | CustomSpaceKey | "inventory" | "received"
+	GridSpaceKey | CustomSpaceKey | "inventory" | "packets" | "received"
 > = {
 	id: "inventory",
-	name: "Inventory",
+	name: "tcp tools",
+	metadata: { visible: true },
+};
+
+export const PACKETS_POOL_CONFIG: PoolSpaceConfig<
+	GridSpaceKey | CustomSpaceKey | "inventory" | "packets" | "received"
+> = {
+	id: "packets",
+	name: "Packets",
 	metadata: { visible: true },
 };
 
 export const RECEIVED_POOL_CONFIG: PoolSpaceConfig<
-	GridSpaceKey | CustomSpaceKey | "inventory" | "received"
+	GridSpaceKey | CustomSpaceKey | "inventory" | "packets" | "received"
 > = {
 	id: "received",
 	name: "Received",
@@ -119,7 +125,7 @@ export const buildSynPacket = (clientId: TcpClientId): Item => ({
 	id: `syn-packet-${clientId}`,
 	type: "syn-packet",
 	name: `SYN from Client ${clientId.toUpperCase()}`,
-	allowedPlaces: ["inventory", "internet"],
+	allowedPlaces: ["packets", "internet"],
 	icon: { icon: "mdi:handshake-outline", color: "#FBBF24" },
 	data: { clientId, tcpState: "pending" },
 	tooltip: TOOLTIP_SYN,
@@ -134,6 +140,7 @@ export const buildReceivedSynPacket = (clientId: TcpClientId): Item => ({
 
 export const buildReceivedAckPacket = (clientId: TcpClientId): Item => ({
 	...buildAckPacket(clientId),
+	id: `received-ack-packet-${clientId}`,
 	allowedPlaces: ["received"],
 	draggable: false,
 	data: { clientId, tcpState: "delivered" },
@@ -153,7 +160,7 @@ export const buildAckPacket = (clientId: TcpClientId): Item => ({
 	id: `ack-packet-${clientId}`,
 	type: "ack-packet",
 	name: `ACK from Client ${clientId.toUpperCase()}`,
-	allowedPlaces: ["inventory", "internet"],
+	allowedPlaces: ["packets", "internet"],
 	icon: { icon: "mdi:check-circle-outline", color: "#10B981" },
 	data: { clientId, tcpState: "pending" },
 	tooltip: TOOLTIP_ACK,
@@ -163,7 +170,7 @@ export const buildDataPacket = (clientId: TcpClientId, seq: number): Item => ({
 	id: `data-packet-${clientId}-${seq}`,
 	type: "data-packet",
 	name: `Packet ${seq} -> Client ${clientId.toUpperCase()}`,
-	allowedPlaces: ["inventory", "internet"],
+	allowedPlaces: ["packets", "internet"],
 	icon: { icon: "mdi:filmstrip", color: "#60A5FA" },
 	data: { clientId, seq, tcpState: "pending" },
 	tooltip: TOOLTIP_DATA,
@@ -173,10 +180,20 @@ export const buildFrameItem = (frameNumber: number): Item => ({
 	id: `udp-frame-${frameNumber}`,
 	type: "frame",
 	name: `Frame ${frameNumber}`,
-	allowedPlaces: ["inventory", "internet"],
+	allowedPlaces: ["packets", "internet"],
 	icon: { icon: "mdi:filmstrip-box", color: "#8B5CF6" },
 	data: { frameNumber, state: "ready" },
 	tooltip: TOOLTIP_FRAME,
+});
+
+export const buildUnicastItem = (clientId: UdpClientId): Item => ({
+	id: `unicast-${clientId}`,
+	type: "unicast-response",
+	name: `Unicast from Client ${clientId.toUpperCase()}`,
+	allowedPlaces: ["internet", "received"],
+	icon: { icon: "mdi:access-point", color: "#38BDF8" },
+	data: { clientId, state: "waiting" },
+	tooltip: TOOLTIP_UNICAST,
 });
 
 export const SYN_PACKETS: Item[] = INITIAL_TCP_CLIENT_IDS.map((clientId) =>
@@ -184,6 +201,10 @@ export const SYN_PACKETS: Item[] = INITIAL_TCP_CLIENT_IDS.map((clientId) =>
 );
 export const RECEIVED_SYN_PACKETS: Item[] = INITIAL_TCP_CLIENT_IDS.map(
 	(clientId) => buildReceivedSynPacket(clientId),
+);
+
+export const RECEIVED_ACK_PACKETS: Item[] = TCP_CLIENT_IDS.map((clientId) =>
+	buildReceivedAckPacket(clientId),
 );
 
 export const SYN_ACK_PACKETS: Item[] = TCP_CLIENT_IDS.map((clientId) =>
@@ -203,6 +224,10 @@ export const DATA_PACKETS: Item[] = TCP_CLIENT_IDS.flatMap((clientId) =>
 
 export const FRAME_ITEMS: Item[] = Array.from({ length: 6 }, (_, index) =>
 	buildFrameItem(index + 1),
+);
+
+export const UNICAST_ITEMS: Item[] = UDP_CLIENT_IDS.map((clientId) =>
+	buildUnicastItem(clientId),
 );
 
 export const INVENTORY_GROUPS: InventoryGroupConfig[] = [
@@ -247,6 +272,7 @@ export const PACKET_LIKE_TYPES = [
 	"data-packet",
 	"ack-data",
 	"frame",
+	"unicast-response",
 ];
 
 export const TCP_ITEM_IDS = [
@@ -256,4 +282,7 @@ export const TCP_ITEM_IDS = [
 	...DATA_PACKETS.map((item) => item.id),
 ];
 
-export const UDP_ITEM_IDS = [...FRAME_ITEMS.map((item) => item.id)];
+export const UDP_ITEM_IDS = [
+	...FRAME_ITEMS.map((item) => item.id),
+	...UNICAST_ITEMS.map((item) => item.id),
+];

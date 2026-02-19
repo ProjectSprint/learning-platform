@@ -9,14 +9,10 @@ import {
 	GridSpace,
 	Modal,
 	PoolSpace,
-	TerminalInput,
-	TerminalLayout,
-	TerminalView,
 	useBoardArrows,
 	useContextualHint,
 	useDragEngine,
-	useTerminalInput,
-	useTerminalStore,
+	useSpaceEntities,
 } from "@/components/game/engine";
 import {
 	GameProvider,
@@ -26,24 +22,21 @@ import {
 import { useQuestionRuntime } from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
-
-import { ProgressBar } from "./-components/ProgressBar";
+import { type FrameStatus, ProgressBar } from "./-components/ProgressBar";
 import type { UdpBehaviorContext } from "./-utils/behaviors";
 import {
-	FRAME_ITEMS,
 	GRID_SPACE_CONFIGS,
 	INVENTORY_POOL_CONFIG,
+	PACKETS_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
 	RECEIVED_POOL_CONFIG,
-	TERMINAL_PROMPT,
+	SHARED_CLIENT_SPACE_ID,
 	UDP_CLIENT_IDS,
-	UDP_CLIENT_SPACE_IDS,
 } from "./-utils/constants";
 import { UDP_DEFINITION } from "./-utils/definition";
 import { TOTAL_FRAMES } from "./-utils/frame-destiny";
 import { getContextualHint } from "./-utils/get-contextual-hint";
-import type { ActiveMode } from "./-utils/types";
 
 const INVENTORY_DRAWER_ID = "inventory-drawer";
 
@@ -60,117 +53,89 @@ const UdpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { state, isCompleted, behaviorContext } = useQuestionRuntime(
+	const { state, behaviorContext } = useQuestionRuntime<UdpBehaviorContext>(
 		"udp-page",
 		UDP_DEFINITION,
 	);
 	const gameCtx = useGameCtx();
-	const terminalInput = useTerminalInput();
-	const { terminal, openTerminal, closeTerminal, setPrompt } =
-		useTerminalStore();
-	const shouldShowTerminal = state.phase === "terminal";
 	useDragEngine();
 	const { registerDrawer } = useDrawerManager();
-
-	const mode: ActiveMode = "udp";
-
-	// Derive UDP state from behavior context
-	const udpPhase = useMemo(() => {
-		const { lastSentFrame, clientFramesA, clientFramesB, clientFramesC } =
-			behaviorContext;
-		const expectedFrame = Math.min(lastSentFrame + 1, TOTAL_FRAMES);
-		const clientProgress = UDP_CLIENT_IDS.map((clientId) => {
-			const key =
-				clientId === "a"
-					? clientFramesA
-					: clientId === "b"
-						? clientFramesB
-						: clientFramesC;
-			const frames = key.split("").map((ch) => ch === "1");
-			const receivedCount = frames.filter(Boolean).length;
-			const percent = Math.round((receivedCount / TOTAL_FRAMES) * 100);
-			return { clientId, frames, receivedCount, percent };
-		});
-		const notice =
-			behaviorContext.noticeMessage && behaviorContext.noticeTone
-				? {
-						message: behaviorContext.noticeMessage,
-						tone: behaviorContext.noticeTone,
-					}
-				: null;
-		return {
-			phase: behaviorContext.udpPhase,
-			lastSentFrame,
-			expectedFrame,
-			clientProgress,
-			notice,
-			frames: FRAME_ITEMS,
-		};
-	}, [behaviorContext]);
-
-	// Navigate away when behavior signals completion
-	useEffect(() => {
-		if (behaviorContext.navigateAway) {
-			onQuestionComplete();
-		}
-	}, [behaviorContext.navigateAway, onQuestionComplete]);
-
-	const contextualHint = getContextualHint({
-		mode,
-		tcpPhase: "connected",
-		udpPhase: udpPhase.phase,
-		expectedFrame: udpPhase.expectedFrame,
-		packetsSent: udpPhase.lastSentFrame,
-	});
-	useContextualHint(contextualHint ?? "");
-
-	useEffect(() => {
-		setPrompt(TERMINAL_PROMPT);
-		closeTerminal();
-	}, [closeTerminal, setPrompt]);
 
 	useLayoutEffect(() => {
 		registerDrawer({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: "inventory",
-			spaceIds: ["inventory", "received"],
-			title: "Inventory",
+			spaceIds: ["inventory", "packets", "received"],
+			title: "inventory",
 			position: "bottom",
 			initialState: "expanded",
-			expandedSize: { base: "65vh", md: "40vh" },
+			expandedSize: { base: "65vh", md: "40vh", xl: "45vh" },
 			foldedSize: { sm: "30vh" },
 			mouseAware: true,
 			showFloatingButton: true,
-			floatingButtonLabel: "Inventory",
+			floatingButtonLabel: "inventory",
 		});
 	}, [registerDrawer]);
 
-	// Terminal visibility
 	useEffect(() => {
-		if (shouldShowTerminal && !terminal.visible) {
-			openTerminal();
-			return;
+		if (behaviorContext.navigateAway) {
+			onQuestionComplete();
 		}
-		if (!shouldShowTerminal && terminal.visible) {
-			closeTerminal();
-		}
-	}, [closeTerminal, openTerminal, shouldShowTerminal, terminal.visible]);
+	}, [behaviorContext.navigateAway, onQuestionComplete]);
 
-	const isEntityClickable = (_entity: EntityData) => false;
+	const expectedFrame = Math.min(
+		behaviorContext.lastSentFrame + 1,
+		TOTAL_FRAMES,
+	);
+	const mode = behaviorContext.mode;
+	const contextualHint = getContextualHint({
+		mode,
+		tcpPhase: behaviorContext.tcpPhase,
+		udpPhase: behaviorContext.udpPhase,
+		expectedFrame,
+		packetsSent: behaviorContext.tcpPacketsSent,
+	});
+	useContextualHint(contextualHint ?? "");
 
-	const activeNotice = udpPhase.notice;
+	const inventory = useSpaceEntities("inventory");
+
 	const boardReady = useMemo(() => {
 		const internetSpace = state.spaces.internet;
-		if (!internetSpace || internetSpace.kind !== "grid") {
-			return false;
-		}
-
-		return Object.values(UDP_CLIENT_SPACE_IDS).every((spaceId) => {
-			const space = state.spaces[spaceId];
-			return space?.kind === "custom";
-		});
+		const clientsSpace = state.spaces[SHARED_CLIENT_SPACE_ID];
+		return internetSpace?.kind === "grid" && clientsSpace?.kind === "custom";
 	}, [state.spaces]);
+
+	const udpClientProgress = useMemo(
+		() =>
+			UDP_CLIENT_IDS.map((clientId) => {
+				const key =
+					clientId === "a"
+						? behaviorContext.clientFramesA
+						: clientId === "b"
+							? behaviorContext.clientFramesB
+							: behaviorContext.clientFramesC;
+				const frames = key.split("").map((ch) => ch === "1");
+				const receivedCount = frames.filter(Boolean).length;
+				const percent = Math.round((receivedCount / TOTAL_FRAMES) * 100);
+				return { clientId, frames, receivedCount, percent };
+			}),
+		[
+			behaviorContext.clientFramesA,
+			behaviorContext.clientFramesB,
+			behaviorContext.clientFramesC,
+		],
+	);
+
+	const activeNotice =
+		behaviorContext.noticeMessage && behaviorContext.noticeTone
+			? {
+					message: behaviorContext.noticeMessage,
+					tone: behaviorContext.noticeTone,
+				}
+			: null;
+
+	const tcpClientReady = behaviorContext.tcpConnections;
 
 	return (
 		<Box
@@ -204,8 +169,17 @@ const UdpGame = ({
 					{boardReady ? (
 						<UdpView
 							gameCtx={gameCtx}
-							udpPhase={udpPhase}
-							isEntityClickable={isEntityClickable}
+							mode={mode}
+							tcpPhase={behaviorContext.tcpPhase}
+							udpPhase={behaviorContext.udpPhase}
+							expectedFrame={expectedFrame}
+							lastSentFrame={behaviorContext.lastSentFrame}
+							tcpClientReady={tcpClientReady}
+							tcpDeliveredCounts={behaviorContext.tcpDeliveredCounts}
+							tcpWaitingSeqs={behaviorContext.tcpWaitingSeqs}
+							tcpReconnecting={behaviorContext.tcpReconnecting}
+							activeTcpClients={behaviorContext.activeTcpClients}
+							udpClientProgress={udpClientProgress}
 						/>
 					) : null}
 
@@ -221,149 +195,217 @@ const UdpGame = ({
 
 					<ContextualHint />
 
-					<DragOverlay getEntityLabel={(type) => type} />
+					<DragOverlay
+						getEntityLabel={(type) => {
+							if (type === "syn-ack-packet") return "SYN-ACK";
+							if (type === "data-packet") return "Data Packet";
+							if (type === "frame") return "Frame";
+							if (type === "unicast-response") return "Unicast";
+							return type;
+						}}
+					/>
 					<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
 						<Flex direction="column" gap={3}>
+							{inventory.hasEntities && (
+								<PoolSpace ctx={gameCtx} config={INVENTORY_POOL_CONFIG} />
+							)}
+							<PoolSpace ctx={gameCtx} config={PACKETS_POOL_CONFIG} />
 							<PoolSpace ctx={gameCtx} config={RECEIVED_POOL_CONFIG} />
-							<PoolSpace ctx={gameCtx} config={INVENTORY_POOL_CONFIG} />
 						</Flex>
 					</DrawerLayout>
 				</GameBoard>
-
-				<TerminalLayout
-					visible={terminal.visible}
-					focusRef={terminalInput.inputRef}
-					view={
-						<TerminalView
-							history={terminal.history}
-							prompt={terminal.prompt}
-							isCompleted={isCompleted}
-						/>
-					}
-					input={
-						<TerminalInput
-							value={terminalInput.value}
-							onChange={terminalInput.onChange}
-							onKeyDown={terminalInput.onKeyDown}
-							inputRef={terminalInput.inputRef}
-							placeholder={isCompleted ? "Terminal disabled" : "Type a command"}
-							disabled={isCompleted}
-						/>
-					}
-				/>
 			</Flex>
 			<Modal />
 		</Box>
 	);
 };
 
-type UdpPhaseData = {
-	phase: UdpBehaviorContext["udpPhase"];
-	lastSentFrame: number;
+const UdpView = ({
+	gameCtx,
+	mode,
+	tcpPhase,
+	udpPhase,
+	expectedFrame,
+	lastSentFrame,
+	tcpClientReady,
+	tcpDeliveredCounts,
+	tcpWaitingSeqs,
+	tcpReconnecting,
+	activeTcpClients,
+	udpClientProgress,
+}: {
+	gameCtx: ReturnType<typeof useGameCtx>;
+	mode: UdpBehaviorContext["mode"];
+	tcpPhase: UdpBehaviorContext["tcpPhase"];
+	udpPhase: UdpBehaviorContext["udpPhase"];
 	expectedFrame: number;
-	clientProgress: {
-		clientId: string;
+	lastSentFrame: number;
+	tcpClientReady: UdpBehaviorContext["tcpConnections"];
+	tcpDeliveredCounts: UdpBehaviorContext["tcpDeliveredCounts"];
+	tcpWaitingSeqs: UdpBehaviorContext["tcpWaitingSeqs"];
+	tcpReconnecting: UdpBehaviorContext["tcpReconnecting"];
+	activeTcpClients: UdpBehaviorContext["activeTcpClients"];
+	udpClientProgress: {
+		clientId: "a" | "b" | "c";
 		frames: boolean[];
 		receivedCount: number;
 		percent: number;
 	}[];
-	notice: { message: string; tone: "error" | "info" } | null;
-	frames: typeof FRAME_ITEMS;
-};
-
-const UdpView = ({
-	gameCtx,
-	udpPhase,
-	isEntityClickable,
-}: {
-	gameCtx: ReturnType<typeof useGameCtx>;
-	udpPhase: UdpPhaseData;
-	isEntityClickable: (entity: EntityData) => boolean;
 }) => {
 	const { setArrows, clearArrows } = useBoardArrows();
-
-	const arrows = useMemo(
-		() =>
-			UDP_CLIENT_IDS.map((clientId) => ({
-				id: `internet-to-client-${clientId}`,
-				from: { spaceId: "internet", anchor: "bl" as const },
-				to: {
-					spaceId: UDP_CLIENT_SPACE_IDS[clientId],
-					anchor: "tr" as const,
-				},
-				style: { stroke: "#8B5CF6", dashed: true, opacity: 0.6 },
-			})),
-		[],
-	);
+	const stageLabel =
+		mode === "tcp"
+			? "TCP Handshake"
+			: udpPhase === "unicast"
+				? "UDP Unicast"
+				: "UDP Streaming";
+	const displayClientIds = mode === "tcp" ? activeTcpClients : UDP_CLIENT_IDS;
 
 	useEffect(() => {
-		setArrows(arrows);
+		setArrows([
+			{
+				id: "internet-to-clients",
+				from: { spaceId: "internet", anchor: "bl" as const },
+				to: { spaceId: SHARED_CLIENT_SPACE_ID, anchor: "tr" as const },
+				style: { stroke: "#8B5CF6", dashed: true, opacity: 0.6 },
+			},
+		]);
 		return clearArrows;
-	}, [arrows, setArrows, clearArrows]);
-
-	const colCount = UDP_CLIENT_IDS.length;
+	}, [clearArrows, setArrows]);
 
 	return (
 		<Grid
 			templateAreas={{
-				base: `${UDP_CLIENT_IDS.map((id) => `"client-${id}"`).join(" ")} "internet"`,
-				md: `"${UDP_CLIENT_IDS.map((id) => `client-${id}`).join(" ")}" "${UDP_CLIENT_IDS.map(() => "internet").join(" ")}"`,
+				base: `"clients" "internet"`,
+				md: `"clients" "internet"`,
 			}}
-			templateColumns={{
-				base: "1fr",
-				md: `repeat(${colCount}, minmax(0, 1fr))`,
-			}}
+			templateColumns={{ base: "1fr", md: "1fr" }}
 			gap={{ base: 2, md: 4 }}
 			alignItems="stretch"
 		>
-			{UDP_CLIENT_IDS.map((clientId) => {
-				const cp = udpPhase.clientProgress.find((c) => c.clientId === clientId);
-				return (
-					<GridItem key={clientId} area={`client-${clientId}`} minW={0}>
-						<CustomSpace id={UDP_CLIENT_SPACE_IDS[clientId]}>
-							<Box
-								bg="gray.900"
-								borderRadius="md"
-								border="1px solid"
-								borderColor="gray.800"
-								p={3}
-							>
-								<Text fontSize="xs" color="gray.400" mb={2} textAlign="center">
-									UDP Streaming · Next frame: #{udpPhase.expectedFrame}
-								</Text>
-								{cp ? (
-									<ProgressBar
-										clientId={cp.clientId}
-										frameStatuses={cp.frames.map((received, index) => {
-											if (index >= udpPhase.lastSentFrame) {
-												return "pending";
-											}
-											return received ? "delivered" : "lost";
-										})}
-										percentage={cp.percent}
-									/>
-								) : null}
-							</Box>
-						</CustomSpace>
-					</GridItem>
-				);
-			})}
+			<GridItem area="clients" minW={0}>
+				<CustomSpace id={SHARED_CLIENT_SPACE_ID}>
+					<Grid
+						templateColumns={{
+							base: "1fr",
+							md: `repeat(${displayClientIds.length}, minmax(0, 1fr))`,
+						}}
+						gap={{ base: 2, md: 3 }}
+					>
+						{displayClientIds.map((clientId) => {
+							const cp = udpClientProgress.find(
+								(item) => item.clientId === clientId,
+							);
+							const isReconnecting = tcpReconnecting.includes(clientId);
+							const deliveredSeqs = new Set(tcpDeliveredCounts[clientId]);
+							const waitingSeqs = new Set(tcpWaitingSeqs[clientId]);
+							const tcpStatuses = Array.from(
+								{ length: 6 },
+								(_, index): FrameStatus => {
+									if (isReconnecting) return "pending";
+									const seq = index + 1;
+									if (deliveredSeqs.has(seq)) return "received";
+									if (waitingSeqs.has(seq)) return "out-of-order";
+									return "pending";
+								},
+							);
+							const tcpPercentage = isReconnecting
+								? 0
+								: Math.round((deliveredSeqs.size / 6) * 100);
+							const tcpConnectionText = tcpClientReady[clientId]
+								? "🟢 Connected - ready to receive packets"
+								: "🔴 Waiting for SYN-ACK handshake";
+							return (
+								<Box
+									key={`client-panel-${clientId}`}
+									bg="gray.900"
+									borderRadius="md"
+									border="1px solid"
+									borderColor={
+										mode === "tcp" && tcpClientReady[clientId]
+											? "green.700"
+											: "gray.800"
+									}
+									p={3}
+								>
+									<Text
+										fontSize="xs"
+										color="gray.400"
+										mb={2}
+										textAlign="center"
+									>
+										{mode === "tcp"
+											? `${stageLabel} · ${tcpPhase} · SYN-ACK before data`
+											: udpPhase === "unicast"
+												? `${stageLabel} · Drag unicast to Received`
+												: `${stageLabel} · Next frame #${expectedFrame}`}
+									</Text>
+
+									{mode === "tcp" ? (
+										<Flex direction="column" gap={2}>
+											<Text fontSize="xs" color="gray.200" textAlign="center">
+												{tcpConnectionText}
+											</Text>
+											<ProgressBar
+												clientId={clientId}
+												frameStatuses={tcpStatuses}
+												percentage={tcpPercentage}
+											/>
+										</Flex>
+									) : cp ? (
+										<ProgressBar
+											clientId={cp.clientId}
+											frameStatuses={cp.frames.map((received, index) => {
+												if (index >= lastSentFrame) {
+													return "pending";
+												}
+												return received ? "delivered" : "lost";
+											})}
+											percentage={cp.percent}
+										/>
+									) : null}
+								</Box>
+							);
+						})}
+					</Grid>
+				</CustomSpace>
+			</GridItem>
+
 			<GridItem area="internet" minW={0}>
 				<GridSpace
 					ctx={gameCtx}
 					config={GRID_SPACE_CONFIGS.internet}
-					responsiveSize={{ base: [1, 1] }}
-					isEntityClickable={isEntityClickable}
-					getEntityStatus={(entity) => {
+					responsiveSize={
+						mode === "tcp" || udpPhase === "unicast"
+							? { base: [3, 1] }
+							: { base: [1, 3] }
+					}
+					isEntityClickable={() => false}
+					getEntityStatus={(entity: EntityData) => {
 						const frameState =
-							typeof entity.data?.state === "string"
-								? entity.data.state
-								: undefined;
+							typeof entity.data?.state === "string" ? entity.data.state : null;
+						if (frameState === "waiting") {
+							return { status: "info" as const, message: "Waiting" };
+						}
 						if (frameState === "sending") {
-							return { status: "warning", message: "Sending" };
+							return { status: "warning" as const, message: "Sending" };
 						}
 						if (frameState === "rejected") {
-							return { status: "error", message: "Wrong order" };
+							return { status: "error" as const, message: "Wrong order" };
+						}
+
+						const tcpState =
+							typeof entity.data?.tcpState === "string"
+								? entity.data.tcpState
+								: null;
+						if (tcpState === "sending") {
+							return { status: "warning" as const, message: "Sending" };
+						}
+						if (tcpState === "rejected") {
+							return { status: "error" as const, message: "Rejected" };
+						}
+						if (tcpState === "delivered") {
+							return { status: "success" as const, message: "Delivered" };
 						}
 						return {};
 					}}

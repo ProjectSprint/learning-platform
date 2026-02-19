@@ -155,6 +155,16 @@ export const PoolSpace = memo(
 		// Handle entity return to pool
 		const handleEntityReturn = useCallback(
 			(entityId: string): boolean => {
+				// Check if this entity is allowed in this pool space
+				const entity = state.entities[entityId];
+				if (
+					entity &&
+					isItemData(entity) &&
+					!entity.allowedPlaces.includes(resolvedId)
+				) {
+					return false;
+				}
+
 				let currentSpaceId: string | null = null;
 				for (const [spaceKey, space] of Object.entries(state.spaces)) {
 					if (spaceKey === resolvedId) {
@@ -190,7 +200,7 @@ export const PoolSpace = memo(
 				});
 				return true;
 			},
-			[dispatch, resolvedId, state.spaces],
+			[dispatch, resolvedId, state.entities, state.spaces],
 		);
 
 		// Handle null/undefined pool
