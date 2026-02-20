@@ -68,13 +68,13 @@ export const SSL_POOL_IDS: Record<WebSslPoolKey, WebSslPoolId> = {
 
 export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<WebSslSpaceId> = {
 	id: SSL_POOL_IDS.inventory,
-	name: "Inventory",
+	name: "http components",
 	metadata: { visible: true },
 };
 
 export const SSL_SETUP_POOL_CONFIG: PoolSpaceConfig<WebSslSpaceId> = {
 	id: SSL_POOL_IDS.setup,
-	name: "SSL Setup",
+	name: "https components",
 	metadata: { visible: false },
 };
 

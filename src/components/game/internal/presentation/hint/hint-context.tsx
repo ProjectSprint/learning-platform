@@ -6,7 +6,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import type { HintState } from "@/components/game/types/core";
+import type { HintState } from "@/components/game/types/hint";
 
 type HintContextValue = {
 	hint: HintState;

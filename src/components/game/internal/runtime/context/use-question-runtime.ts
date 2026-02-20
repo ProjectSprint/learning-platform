@@ -53,11 +53,10 @@ import {
  * @param definition — optional QuestionDefinition to bootstrap on mount
  */
 export function useQuestionRuntime<
-	CK extends string = string,
 	TContext extends Record<string, unknown> = Record<string, never>,
 >(
 	engineId: string,
-	definition?: QuestionDefinition<CK, TContext>,
+	definition?: QuestionDefinition<string, TContext>,
 ): QuestionRuntime<TContext> {
 	const dispatch = useGameDispatch();
 	const state = useGameState();

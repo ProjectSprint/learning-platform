@@ -198,11 +198,27 @@ describe("networking runtime boundaries", () => {
 			tcpBehaviors.includes('moveEntityToSpace(ctx, entity.id, "inventory")'),
 		).toBe(false);
 		expect(tcpBehaviors.includes("scheduleMoveToServerWithRetry")).toBe(true);
+		expect(tcpBehaviors.includes("lockInReceivedPool(ctx, synId);")).toBe(true);
+		expect(tcpBehaviors.includes("lockInReceivedPool(ctx, ackId);")).toBe(true);
 		expect(
-			tcpBehaviors.includes('moveEntityToSpace(ctx, synId, "received")'),
+			tcpBehaviors.includes('ctx.phase === "syn-wait" || ctx.phase === "ack"'),
 		).toBe(true);
+		expect(tcpBehaviors.includes("state.splitterVisible = false;")).toBe(true);
+		expect(tcpBehaviors.includes("state.splitterVisible = true;")).toBe(true);
+		expect(tcpBehaviors.includes('tcpState: "queued"')).toBe(true);
 		expect(
-			tcpBehaviors.includes('moveEntityToSpace(ctx, ackId, "received")'),
+			tcpBehaviors.includes("getInternetPacketStaggerMs(ctx, entityId)"),
+		).toBe(true);
+	});
+
+	it("tcp packet badges include waiting label for queued server slot", () => {
+		const badgeUtils = readFileSync(
+			path.join(NETWORKING_ROOT, "tcp/-utils/entity-badge.ts"),
+			"utf8",
+		);
+
+		expect(
+			badgeUtils.includes('queued: { label: "Waiting for server slot" }'),
 		).toBe(true);
 	});
 
@@ -228,5 +244,36 @@ describe("networking runtime boundaries", () => {
 			),
 		).toBe(true);
 		expect(internetBehaviors.includes('connectionType: "PPPoE"')).toBe(true);
+	});
+
+	it("webserver ssl has terminal readiness triggers and renamed pool labels", () => {
+		const sslBehaviors = readFileSync(
+			path.join(NETWORKING_ROOT, "webserver-ssl/-utils/behaviors.ts"),
+			"utf8",
+		);
+		const sslConstants = readFileSync(
+			path.join(NETWORKING_ROOT, "webserver-ssl/-utils/constants.ts"),
+			"utf8",
+		);
+
+		expect(sslBehaviors.includes('buildEntityArrivedTrigger("port-80")')).toBe(
+			true,
+		);
+		expect(sslBehaviors.includes('buildEntityArrivedTrigger("port-443")')).toBe(
+			true,
+		);
+		expect(sslConstants.includes('name: "http components"')).toBe(true);
+		expect(sslConstants.includes('name: "https components"')).toBe(true);
+	});
+
+	it("udp client header reflects tcp-vs-udp stage", () => {
+		const udpPage = readFileSync(
+			path.join(NETWORKING_ROOT, "udp/-page.tsx"),
+			"utf8",
+		);
+
+		expect(
+			udpPage.includes('mode === "tcp" ? "TCP Handshake" : "UDP Streaming"'),
+		).toBe(true);
 	});
 });

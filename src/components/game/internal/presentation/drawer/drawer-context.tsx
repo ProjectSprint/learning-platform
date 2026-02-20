@@ -11,7 +11,7 @@ import {
 import type {
 	DrawerConfig,
 	DrawerInstance,
-} from "@/components/game/types/core";
+} from "@/components/game/types/drawer";
 
 type DrawerEventType =
 	| "DRAWER_OPEN"

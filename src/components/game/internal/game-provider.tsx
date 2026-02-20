@@ -33,32 +33,35 @@ export type {
 	ArrowBreakpoint,
 	ArrowEndpoint,
 	ArrowStyle,
+} from "@/components/game/types/arrow";
+export type {
 	Block,
 	BlockStatus,
 	BoardItemStatus,
+	GamePhase,
+	QuestionStatus,
+	SpaceConfig,
+	SpaceItemLocation,
+	SpaceItemLocationSeed,
+	SpaceState,
+} from "@/components/game/types/board";
+export type {
 	DrawerBreakpoint,
 	DrawerConfig,
 	DrawerInstance,
 	DrawerPosition,
 	DrawerSizeMap,
 	DrawerState,
-	GamePhase,
-	HintState,
+} from "@/components/game/types/drawer";
+export type { EntityData, ItemData } from "@/components/game/types/entity";
+export type { HintState } from "@/components/game/types/hint";
+export type { IconInfo } from "@/components/game/types/icon";
+export type {
 	InventoryGroup,
 	InventoryGroupConfig,
 	Item,
 	ItemTooltip,
-	QuestionStatus,
-	SpaceConfig,
-	SpaceItemLocation,
-	SpaceItemLocationSeed,
-	SpaceState,
-	TerminalEntry,
-	TerminalEntryType,
-	TerminalState,
-} from "@/components/game/types/core";
-export type { EntityData, ItemData } from "@/components/game/types/entity";
-export type { IconInfo } from "@/components/game/types/icon";
+} from "@/components/game/types/inventory";
 export type {
 	ModalInstance,
 	OverlayState,
@@ -76,6 +79,11 @@ export type {
 	GameState,
 	ModalCloseReason,
 } from "@/components/game/types/state";
+export type {
+	TerminalEntry,
+	TerminalEntryType,
+	TerminalState,
+} from "@/components/game/types/terminal";
 
 // ============================================================================
 // Hook Exports

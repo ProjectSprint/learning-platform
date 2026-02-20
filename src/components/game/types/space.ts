@@ -16,8 +16,8 @@ export type GridMetrics = {
 	gapY?: number;
 };
 
-export type SpaceBaseConfig = {
-	id: string;
+export type SpaceBaseConfig<TId extends string = string> = {
+	id: TId;
 	name?: string;
 	maxCapacity?: number;
 	metadata?: Record<string, unknown>;
@@ -30,12 +30,13 @@ export type SpaceBase = {
 	metadata: Record<string, unknown>;
 };
 
-export type GridSpaceConfig = SpaceBaseConfig & {
-	rows: number;
-	cols: number;
-	metrics: GridMetrics;
-	allowMultiplePerCell?: boolean;
-};
+export type GridSpaceConfig<TId extends string = string> =
+	SpaceBaseConfig<TId> & {
+		rows: number;
+		cols: number;
+		metrics: GridMetrics;
+		allowMultiplePerCell?: boolean;
+	};
 
 export type GridSpaceData = SpaceBase & {
 	kind: "grid";
@@ -46,11 +47,12 @@ export type GridSpaceData = SpaceBase & {
 	entityPositions: Record<string, GridPosition>;
 };
 
-export type PoolSpaceConfig = SpaceBaseConfig & {
-	layout?: "grid" | "list" | "carousel";
-	columns?: number;
-	allowReorder?: boolean;
-};
+export type PoolSpaceConfig<TId extends string = string> =
+	SpaceBaseConfig<TId> & {
+		layout?: "grid" | "list" | "carousel";
+		columns?: number;
+		allowReorder?: boolean;
+	};
 
 export type PoolSpaceData = SpaceBase & {
 	kind: "pool";
@@ -60,13 +62,14 @@ export type PoolSpaceData = SpaceBase & {
 	entityIds: string[];
 };
 
-export type PathSpaceConfig = SpaceBaseConfig & {
-	path: string;
-	viewBox?: string;
-	duration?: number;
-	speedMultiplier?: number;
-	showDropzone?: boolean;
-};
+export type PathSpaceConfig<TId extends string = string> =
+	SpaceBaseConfig<TId> & {
+		path: string;
+		viewBox?: string;
+		duration?: number;
+		speedMultiplier?: number;
+		showDropzone?: boolean;
+	};
 
 export type PathSpaceData = SpaceBase & {
 	kind: "path";
@@ -78,16 +81,18 @@ export type PathSpaceData = SpaceBase & {
 	entityIds: string[];
 };
 
-export interface CustomSpaceConfig extends SpaceBaseConfig {}
+export type CustomSpaceConfig<TId extends string = string> =
+	SpaceBaseConfig<TId>;
 
 export type CustomSpaceData = SpaceBase & {
 	kind: "custom";
 };
 
-export type QueueSpaceConfig = SpaceBaseConfig & {
-	maxDepth?: number;
-	direction?: "horizontal" | "vertical";
-};
+export type QueueSpaceConfig<TId extends string = string> =
+	SpaceBaseConfig<TId> & {
+		maxDepth?: number;
+		direction?: "horizontal" | "vertical";
+	};
 
 export type QueueSpaceData = SpaceBase & {
 	kind: "queue";
@@ -96,12 +101,13 @@ export type QueueSpaceData = SpaceBase & {
 	entityIds: string[];
 };
 
-export type MeterSpaceConfig = SpaceBaseConfig & {
-	min: number;
-	max: number;
-	unit?: string;
-	thresholds?: Array<{ value: number; color: string }>;
-};
+export type MeterSpaceConfig<TId extends string = string> =
+	SpaceBaseConfig<TId> & {
+		min: number;
+		max: number;
+		unit?: string;
+		thresholds?: Array<{ value: number; color: string }>;
+	};
 
 export type MeterSpaceData = SpaceBase & {
 	kind: "meter";

@@ -44,6 +44,7 @@ import {
 	QUESTION_TITLE,
 	RECEIVED_POOL_CONFIG,
 	SPACE_CONFIGS,
+	TCP_TOOLS_POOL_CONFIG,
 } from "./-utils/constants";
 import { TCP_DEFINITION } from "./-utils/definition";
 import { getTcpStatusMessage } from "./-utils/entity-badge";
@@ -186,22 +187,29 @@ const TcpGame = ({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: "inventory",
-			spaceIds: ["inventory"],
-			title: "Inventory",
+			spaceIds: ["inventory", "tcp-tools"],
+			title: "inventory",
 			position: "bottom",
 			initialState: "expanded",
-			expandedSize: { base: "65vh", md: "40vh" },
+			expandedSize: { base: "65vh", md: "40vh", xl: "32vh" },
 			foldedSize: { sm: "30vh" },
 			mouseAware: true,
 			showFloatingButton: true,
-			floatingButtonLabel: "Inventory",
+			floatingButtonLabel: "inventory",
 		});
 	}, [registerDrawer]);
 
+	const tcpToolsVisible = useMemo(() => {
+		const toolsSpace = state.spaces[TCP_TOOLS_POOL_CONFIG.id];
+		return toolsSpace?.kind === "pool" && toolsSpace.entityIds.length > 0;
+	}, [state.spaces]);
+
 	useEffect(() => {
-		const nextSpaceIds = receivedPoolVisible
-			? ["inventory", INVENTORY_GROUP_IDS.received]
-			: ["inventory"];
+		const nextSpaceIds = [
+			...(tcpToolsVisible ? [TCP_TOOLS_POOL_CONFIG.id] : []),
+			"inventory",
+			...(receivedPoolVisible ? [INVENTORY_GROUP_IDS.received] : []),
+		];
 		updateDrawerConfig(INVENTORY_DRAWER_ID, { spaceIds: nextSpaceIds });
 
 		if (receivedPoolVisible && !lastReceivedVisibleRef.current) {
@@ -209,7 +217,7 @@ const TcpGame = ({
 		}
 
 		lastReceivedVisibleRef.current = receivedPoolVisible;
-	}, [openDrawer, receivedPoolVisible, updateDrawerConfig]);
+	}, [tcpToolsVisible, openDrawer, receivedPoolVisible, updateDrawerConfig]);
 
 	useEffect(() => {
 		if (state.phase !== "terminal" || isCompleted || successShownRef.current) {
@@ -301,6 +309,7 @@ const TcpGame = ({
 	}, []);
 
 	const isEntityClickable = useCallback((_entity: EntityData) => false, []);
+	const isReceivedEntityDraggable = useCallback(() => false, []);
 	const showTunnel = connectionActive;
 	const showBuffer = connectionActive || receivedCount > 0 || waitingCount > 0;
 	const serverLogEntries = useMemo(() => {
@@ -525,9 +534,16 @@ const TcpGame = ({
 					<DragOverlay getEntityLabel={getTcpItemLabel} />
 					<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
 						<Flex direction="column" gap={3}>
+							<Box display={tcpToolsVisible ? "block" : "none"}>
+								<PoolSpace ctx={gameCtx} config={TCP_TOOLS_POOL_CONFIG} />
+							</Box>
 							<PoolSpace ctx={gameCtx} config={INVENTORY_POOL_CONFIG} />
 							<Box display={receivedPoolVisible ? "block" : "none"}>
-								<PoolSpace ctx={gameCtx} config={RECEIVED_POOL_CONFIG} />
+								<PoolSpace
+									ctx={gameCtx}
+									config={RECEIVED_POOL_CONFIG}
+									isEntityDraggable={isReceivedEntityDraggable}
+								/>
 							</Box>
 						</Flex>
 					</DrawerLayout>

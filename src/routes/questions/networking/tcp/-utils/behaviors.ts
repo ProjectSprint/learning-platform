@@ -51,7 +51,7 @@ export type TcpPhase =
 	| "closing"
 	| "terminal";
 
-export type TcpSpaceId = TcpSpaceKey | "inventory" | "received";
+export type TcpSpaceId = TcpSpaceKey | "inventory" | "received" | "tcp-tools";
 export type TcpEntityType =
 	| "message-file"
 	| "notes-file"
@@ -134,7 +134,8 @@ export type TcpBehaviorContext = {
 	completedFiles: CompletedFiles;
 };
 
-const INTERNET_TRAVEL_MS = 2000;
+const INTERNET_TRAVEL_MS = 800;
+const MESSAGE_PACKET_TRAVEL_MS = 800;
 const SERVER_REJECT_DELAY_MS = 2000;
 const PACKET_REJECT_RETURN_MS = 1500;
 const FILE_PROCESS_DELAY_MS = 1500;
@@ -345,23 +346,38 @@ const ensureInInventory = (ctx: TcpCtx | ScheduledTcpCtx, entityId: string) => {
 	moveEntityToSpace(ctx, entityId, "inventory");
 };
 
+const ensureInTcpTools = (ctx: TcpCtx | ScheduledTcpCtx, entityId: string) => {
+	moveEntityToSpace(ctx, entityId, "tcp-tools");
+};
+
+const lockInReceivedPool = (
+	ctx: TcpCtx | ScheduledTcpCtx,
+	entityId: string,
+) => {
+	setEntityDraggable(ctx, entityId, false);
+	moveEntityToSpace(ctx, entityId, "received");
+};
+
 const scheduleMoveToServerWithRetry = (
 	ctx: TcpCtx | ScheduledTcpCtx,
 	entityId: string,
 	key: string,
 	attempt = 1,
+	initialTravelMs = INTERNET_TRAVEL_MS,
 ) => {
-	ctx.schedule(key, INTERNET_TRAVEL_MS, (scheduledCtx) => {
+	const delayMs = attempt === 1 ? initialTravelMs : SERVER_MOVE_RETRY_MS;
+	ctx.schedule(key, delayMs, (scheduledCtx) => {
 		const moved = moveEntityToGrid(scheduledCtx, entityId, "server");
 		if (moved) {
 			return;
 		}
 
+		updateEntityState(scheduledCtx, entityId, {
+			tcpState: "queued",
+			status: "warning",
+		});
+
 		if (attempt >= MAX_SERVER_MOVE_ATTEMPTS) {
-			updateEntityState(scheduledCtx, entityId, {
-				tcpState: "buffered",
-				status: "warning",
-			});
 			appendServerLog(
 				scheduledCtx,
 				"Server queue full. Make room, then retry sending the packet.",
@@ -369,17 +385,11 @@ const scheduleMoveToServerWithRetry = (
 			return;
 		}
 
-		scheduledCtx.schedule(
-			`${key}.retry.${attempt}`,
-			SERVER_MOVE_RETRY_MS,
-			(retryCtx) => {
-				scheduleMoveToServerWithRetry(
-					retryCtx,
-					entityId,
-					`${key}.attempt.${attempt + 1}`,
-					attempt + 1,
-				);
-			},
+		scheduleMoveToServerWithRetry(
+			scheduledCtx,
+			entityId,
+			`${key}.attempt.${attempt + 1}`,
+			attempt + 1,
 		);
 	});
 };
@@ -509,13 +519,16 @@ const handleFileComplete = (
 			appendServerLog(scheduledCtx, "📄 message.txt received successfully!");
 			appendServerLog(scheduledCtx, "Waiting for notes.txt packets...");
 			ensureInInventory(scheduledCtx, NOTES_FILE_ITEM_ID);
+			scheduledCtx.updateContext((state) => {
+				state.splitterVisible = true;
+			});
 			resetBufferState(scheduledCtx, NOTES_PACKET_IDS.length);
 			scheduledCtx.setPhase("notes", "tcp.behavior");
 			return;
 		}
 
 		appendServerLog(scheduledCtx, "📄 notes.txt received successfully!");
-		ensureInInventory(scheduledCtx, TCP_TOOL_ITEMS.fin.id);
+		ensureInTcpTools(scheduledCtx, TCP_TOOL_ITEMS.fin.id);
 		scheduledCtx.updateContext((state) => {
 			state.lossScenarioActive = false;
 		});
@@ -691,8 +704,8 @@ const handleFileMtuReject = (
 	spaceId: string,
 ) => {
 	updateEntityState(ctx, entityId, {
-		tcpState: "in-transit",
-		status: "warning",
+		tcpState: "processing",
+		status: "normal",
 	});
 	ctx.schedule(
 		`tcp.file.reject.start.${entityId}`,
@@ -770,7 +783,7 @@ const handlePacketRejected = (ctx: TcpCtx, packetId: string) => {
 								tcpState: "idle",
 								status: "normal",
 							});
-							ensureInInventory(returnCtx, TCP_TOOL_ITEMS.syn.id);
+							ensureInTcpTools(returnCtx, TCP_TOOL_ITEMS.syn.id);
 						}
 					}
 				},
@@ -779,29 +792,10 @@ const handlePacketRejected = (ctx: TcpCtx, packetId: string) => {
 	);
 };
 
-const handleFileUnknownReturn = (ctx: TcpCtx, entityId: string) => {
-	updateEntityState(ctx, entityId, {
-		tcpState: "unknown",
-		status: "error",
-	});
-	ctx.schedule(
-		`tcp.file.unknown.${entityId}`,
-		FILE_PROCESS_DELAY_MS,
-		(scheduledCtx) => {
-			updateEntityState(scheduledCtx, entityId, {
-				tcpState: "ready",
-				status: "normal",
-			});
-			ensureInInventory(scheduledCtx, entityId);
-			syncSplitterVisibility(scheduledCtx);
-		},
-	);
-};
-
 const handleFileTooLargeRepeat = (ctx: TcpCtx, entityId: string) => {
 	updateEntityState(ctx, entityId, {
-		tcpState: "in-transit",
-		status: "warning",
+		tcpState: "processing",
+		status: "normal",
 	});
 	ctx.schedule(
 		`tcp.file.large.reject.${entityId}`,
@@ -847,10 +841,6 @@ const handleSynArrival = (ctx: TcpCtx, synId: string) => {
 		status: "success",
 	});
 	setEntityDraggable(ctx, synId, false);
-	moveEntityToSpace(ctx, synId, "received");
-	ctx.updateContext((state) => {
-		state.receivedPoolVisible = true;
-	});
 	appendServerLog(ctx, "🟡 SYN received - sending SYN-ACK...");
 	appendServerLog(ctx, "🟡 SYN-ACK sent - waiting for ACK...");
 	const synAckId = SYSTEM_PACKET_ITEMS.synAck.id;
@@ -867,8 +857,7 @@ const handleSynAckArrival = (ctx: TcpCtx | ScheduledTcpCtx) => {
 		tcpState: "received",
 		status: "success",
 	});
-	setEntityDraggable(ctx, SYSTEM_PACKET_ITEMS.synAck.id, false);
-	moveEntityToSpace(ctx, SYSTEM_PACKET_ITEMS.synAck.id, "received");
+	lockInReceivedPool(ctx, SYSTEM_PACKET_ITEMS.synAck.id);
 	ctx.updateContext((state) => {
 		state.receivedPoolVisible = true;
 	});
@@ -883,7 +872,7 @@ const handleSynAckArrival = (ctx: TcpCtx | ScheduledTcpCtx) => {
 		tcpState: "idle",
 		status: "normal",
 	});
-	ensureInInventory(ctx, TCP_TOOL_ITEMS.ack.id);
+	ensureInTcpTools(ctx, TCP_TOOL_ITEMS.ack.id);
 };
 
 const handleAckArrival = (ctx: TcpCtx, ackId: string) => {
@@ -892,7 +881,6 @@ const handleAckArrival = (ctx: TcpCtx, ackId: string) => {
 		status: "success",
 	});
 	setEntityDraggable(ctx, ackId, false);
-	moveEntityToSpace(ctx, ackId, "received");
 	ctx.updateContext((state) => {
 		state.connectionActive = true;
 		state.connectionClosed = false;
@@ -919,7 +907,12 @@ const handleFinArrival = (ctx: TcpCtx, finId: string) => {
 		tcpState: "received",
 		status: "success",
 	});
-	ensureInInventory(ctx, SYSTEM_PACKET_ITEMS.finAck.id);
+	setEntityDraggable(ctx, finId, false);
+	updateEntityState(ctx, SYSTEM_PACKET_ITEMS.finAck.id, {
+		tcpState: "received",
+		status: "success",
+	});
+	lockInReceivedPool(ctx, SYSTEM_PACKET_ITEMS.finAck.id);
 	ctx.updateContext((state) => {
 		state.connectionActive = false;
 		state.connectionClosed = true;
@@ -933,7 +926,7 @@ const handleFinAckArrival = (ctx: TcpCtx | ScheduledTcpCtx) => {
 		tcpState: "received",
 		status: "success",
 	});
-	ensureInInventory(ctx, SYSTEM_PACKET_ITEMS.finAck.id);
+	lockInReceivedPool(ctx, SYSTEM_PACKET_ITEMS.finAck.id);
 	ctx.updateContext((state) => {
 		state.connectionActive = false;
 		state.connectionClosed = true;
@@ -947,18 +940,26 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 	const entityType = entity.type;
 
 	if (entityType === "message-file" || entityType === "notes-file") {
-		if (ctx.phase === "mtu") {
-			handleFileMtuReject(ctx, entityId, "internet");
-		} else {
-			handleFileTooLargeRepeat(ctx, entityId);
-		}
+		updateEntityState(ctx, entityId, {
+			tcpState: "in-transit",
+			status: "warning",
+		});
+		scheduleMoveToServerWithRetry(
+			ctx,
+			entityId,
+			`tcp.internet.file.${entityId}`,
+		);
 		return;
 	}
 
 	if (
 		(entityType === "syn-ack-flag" || entityType === "fin-ack-flag") &&
 		(entity.data.direction === "server-to-client" ||
-			entity.state.direction === "server-to-client")
+			entity.state.direction === "server-to-client" ||
+			(entityType === "syn-ack-flag" &&
+				(ctx.phase === "syn-wait" || ctx.phase === "ack")) ||
+			(entityType === "fin-ack-flag" &&
+				(ctx.phase === "closing" || ctx.phase === "terminal")))
 	) {
 		updateEntityState(ctx, entityId, {
 			tcpState: "in-transit",
@@ -1023,6 +1024,8 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 	if (entityType === "split-packet") {
 		const fileKey = entity.data.fileKey === "notes" ? "notes" : "message";
 		const seq = typeof entity.data.seq === "number" ? entity.data.seq : 0;
+		const travelMs =
+			fileKey === "message" ? MESSAGE_PACKET_TRAVEL_MS : INTERNET_TRAVEL_MS;
 
 		updateEntityState(ctx, entityId, {
 			tcpState: "in-transit",
@@ -1051,6 +1054,8 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 			ctx,
 			entityId,
 			`tcp.internet.packet.${entityId}`,
+			1,
+			travelMs,
 		);
 	}
 };
@@ -1059,7 +1064,11 @@ const handleServerItem = (ctx: TcpCtx, entity: EntityData) => {
 	const entityId = entity.id;
 
 	if (entity.type === "message-file" || entity.type === "notes-file") {
-		handleFileUnknownReturn(ctx, entityId);
+		if (ctx.phase === "mtu") {
+			handleFileMtuReject(ctx, entityId, "server");
+		} else {
+			handleFileTooLargeRepeat(ctx, entityId);
+		}
 		return;
 	}
 
@@ -1116,6 +1125,9 @@ const handleSplitterDrop = (ctx: TcpCtx, entity: EntityData) => {
 
 	const fileKey = entity.type === "notes-file" ? "notes" : "message";
 	ctx.world.deleteEntities([entity.id]);
+	ctx.updateContext((state) => {
+		state.splitterVisible = false;
+	});
 
 	if (fileKey === "message") {
 		configurePackets(ctx, "message", {
@@ -1128,7 +1140,6 @@ const handleSplitterDrop = (ctx: TcpCtx, entity: EntityData) => {
 		});
 		ctx.setPhase("split-send", "tcp.behavior");
 		resetBufferState(ctx, MESSAGE_PACKET_IDS.length);
-		syncSplitterVisibility(ctx);
 		return;
 	}
 
@@ -1141,7 +1152,6 @@ const handleSplitterDrop = (ctx: TcpCtx, entity: EntityData) => {
 	});
 	ctx.setPhase("loss", "tcp.behavior");
 	resetBufferState(ctx, NOTES_PACKET_IDS.length);
-	syncSplitterVisibility(ctx);
 };
 
 const rules: BehaviorRuleFor<TcpBehaviorContext, TcpTriggerSpec>[] = [

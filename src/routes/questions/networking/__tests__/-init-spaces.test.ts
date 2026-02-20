@@ -15,12 +15,14 @@ import {
 	INVENTORY_POOL_CONFIG as TCP_INVENTORY_POOL_CONFIG,
 	RECEIVED_POOL_CONFIG as TCP_RECEIVED_POOL_CONFIG,
 	SPACE_CONFIGS as TCP_SPACE_CONFIGS,
+	TCP_TOOLS_POOL_CONFIG,
 } from "../tcp/-utils/constants";
 import { TCP_DEFINITION } from "../tcp/-utils/definition";
 import {
 	CUSTOM_SPACE_CONFIGS as UDP_CUSTOM_SPACE_CONFIGS,
 	GRID_SPACE_CONFIGS as UDP_GRID_SPACE_CONFIGS,
 	INVENTORY_POOL_CONFIG as UDP_INVENTORY_POOL_CONFIG,
+	PACKETS_POOL_CONFIG as UDP_PACKETS_POOL_CONFIG,
 	RECEIVED_POOL_CONFIG as UDP_RECEIVED_POOL_CONFIG,
 } from "../udp/-utils/constants";
 import { UDP_DEFINITION } from "../udp/-utils/definition";
@@ -103,6 +105,7 @@ describe("networking init-spaces", () => {
 		assertBootOrder(actions);
 		assertSpaceCoverage(actions, [
 			...Object.keys(TCP_SPACE_CONFIGS),
+			TCP_TOOLS_POOL_CONFIG.id,
 			TCP_INVENTORY_POOL_CONFIG.id,
 			TCP_RECEIVED_POOL_CONFIG.id,
 		]);
@@ -117,6 +120,7 @@ describe("networking init-spaces", () => {
 			...Object.keys(UDP_GRID_SPACE_CONFIGS),
 			...Object.keys(UDP_CUSTOM_SPACE_CONFIGS),
 			UDP_INVENTORY_POOL_CONFIG.id,
+			UDP_PACKETS_POOL_CONFIG.id,
 			UDP_RECEIVED_POOL_CONFIG.id,
 		]);
 	});

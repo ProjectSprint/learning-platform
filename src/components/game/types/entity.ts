@@ -7,6 +7,7 @@ export type EntityVisual = {
 	color?: string;
 	size?: "sm" | "md" | "lg";
 	className?: string;
+	draggable?: boolean;
 	style?: Record<string, unknown>;
 };
 

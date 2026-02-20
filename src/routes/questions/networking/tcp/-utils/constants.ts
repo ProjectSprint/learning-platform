@@ -44,19 +44,27 @@ export const SPACE_CONFIGS: Record<
 };
 
 export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
-	TcpSpaceKey | "inventory" | "received"
+	TcpSpaceKey | "inventory" | "received" | "tcp-tools"
 > = {
 	id: "inventory",
-	name: "Inventory",
+	name: "data",
 	metadata: { visible: true },
 };
 
 export const RECEIVED_POOL_CONFIG: PoolSpaceConfig<
-	TcpSpaceKey | "inventory" | "received"
+	TcpSpaceKey | "inventory" | "received" | "tcp-tools"
 > = {
 	id: "received",
 	name: "Received",
 	metadata: { visible: false },
+};
+
+export const TCP_TOOLS_POOL_CONFIG: PoolSpaceConfig<
+	TcpSpaceKey | "inventory" | "received" | "tcp-tools"
+> = {
+	id: "tcp-tools",
+	name: "tcp tools",
+	metadata: { visible: true },
 };
 
 export const INVENTORY_GROUP_IDS = {
@@ -183,7 +191,7 @@ export const TCP_TOOL_ITEMS: Record<"syn" | "ack" | "fin", Item> = {
 		id: "syn-flag-1",
 		type: "syn-flag",
 		name: "SYN",
-		allowedPlaces: ["inventory", "internet", "server"],
+		allowedPlaces: ["tcp-tools", "internet", "server"],
 		icon: { icon: "mdi:flag-outline", color: "#FBBF24" },
 		data: { tcpState: "idle" },
 		tooltip: TOOLTIP_SYN,
@@ -192,7 +200,7 @@ export const TCP_TOOL_ITEMS: Record<"syn" | "ack" | "fin", Item> = {
 		id: "ack-flag-1",
 		type: "ack-flag",
 		name: "ACK",
-		allowedPlaces: ["inventory", "internet", "server"],
+		allowedPlaces: ["tcp-tools", "internet", "server"],
 		icon: { icon: "mdi:flag", color: "#10B981" },
 		data: { tcpState: "idle" },
 		tooltip: TOOLTIP_ACK,
@@ -201,7 +209,7 @@ export const TCP_TOOL_ITEMS: Record<"syn" | "ack" | "fin", Item> = {
 		id: "fin-flag-1",
 		type: "fin-flag",
 		name: "FIN",
-		allowedPlaces: ["inventory", "internet", "server"],
+		allowedPlaces: ["tcp-tools", "internet", "server"],
 		icon: { icon: "mdi:flag-remove", color: "#F97316" },
 		data: { tcpState: "idle" },
 		tooltip: TOOLTIP_FIN,
@@ -225,6 +233,7 @@ export const SYSTEM_PACKET_ITEMS: Record<"synAck" | "finAck", Item> = {
 		allowedPlaces: ["inventory", "internet"],
 		icon: { icon: "mdi:flag-remove-outline", color: "#FB923C" },
 		data: { tcpState: "idle" },
+		draggable: false,
 	},
 };
 

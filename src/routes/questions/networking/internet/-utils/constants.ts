@@ -258,7 +258,7 @@ export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
 	InternetSpaceKey | "inventory"
 > = {
 	id: "inventory",
-	name: "Items",
+	name: "components",
 	metadata: { visible: true },
 };
 

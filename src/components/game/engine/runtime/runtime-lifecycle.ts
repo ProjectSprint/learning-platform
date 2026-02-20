@@ -6,11 +6,8 @@ import { useQuestionRuntime as internalUseQuestionRuntime } from "../../internal
 /**
  * Initializes question state deterministically from definition data.
  */
-export const bootstrapQuestion = <
-	ConditionKey extends string = string,
-	TContext = Record<string, never>,
->(
-	definition: QuestionDefinition<ConditionKey, TContext>,
+export const bootstrapQuestion = <TContext = unknown>(
+	definition: QuestionDefinition<string, TContext>,
 	dispatch: (action: Action) => void,
 ): void => {
 	internalBootstrapQuestion(definition, dispatch);

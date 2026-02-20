@@ -16,8 +16,8 @@ import type { ValidationError } from "@/components/game/types/runtime";
  * - space IDs are unique
  * - entity initial spaces reference valid space IDs
  */
-export function validateDefinition<CK extends string = string, TC = unknown>(
-	def: QuestionDefinition<CK, TC>,
+export function validateDefinition<TContext = unknown>(
+	def: QuestionDefinition<string, TContext>,
 ): ValidationError[] {
 	const errors: ValidationError[] = [];
 

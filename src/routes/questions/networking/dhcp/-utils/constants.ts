@@ -155,7 +155,7 @@ export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
 	DhcpSpaceKey | "inventory"
 > = {
 	id: "inventory",
-	name: "Items",
+	name: "hardwares",
 	metadata: { visible: true },
 };
 

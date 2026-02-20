@@ -157,14 +157,14 @@ const NetworkingGame = ({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
 			spaceId: "inventory",
-			title: "Items",
+			title: "inventory",
 			position: "bottom",
 			initialState: "expanded",
 			expandedSize: { base: "65vh", md: "40vh" },
 			foldedSize: { sm: "30vh" },
 			mouseAware: true,
 			showFloatingButton: true,
-			floatingButtonLabel: "Items",
+			floatingButtonLabel: "inventory",
 		});
 	}, [registerDrawer]);
 

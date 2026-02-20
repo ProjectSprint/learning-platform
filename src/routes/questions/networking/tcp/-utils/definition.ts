@@ -22,6 +22,7 @@ import {
 	SPACE_CONFIGS,
 	SYSTEM_PACKET_ITEMS,
 	TCP_TOOL_ITEMS,
+	TCP_TOOLS_POOL_CONFIG,
 	type TcpSpaceKey,
 } from "./constants";
 
@@ -29,7 +30,7 @@ type TcpQuestionSpec = QuestionTypeSpec & {
 	conditionKey: never;
 	context: TcpBehaviorContext;
 	phase: TcpPhase;
-	spaceId: TcpSpaceKey | "inventory" | "received";
+	spaceId: TcpSpaceKey | "inventory" | "received" | "tcp-tools";
 	entityType: TcpEntityType;
 	questionId: typeof QUESTION_ID;
 	conditionValue: never;
@@ -44,6 +45,7 @@ export const TCP_DEFINITION: QuestionDefinitionFor<TcpQuestionSpec> = {
 	initialPhase: "mtu",
 	spaces: [
 		...Object.values(SPACE_CONFIGS).map((config) => SpaceFactory.grid(config)),
+		SpaceFactory.pool(TCP_TOOLS_POOL_CONFIG),
 		SpaceFactory.pool(INVENTORY_POOL_CONFIG),
 		SpaceFactory.pool(RECEIVED_POOL_CONFIG),
 	],

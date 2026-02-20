@@ -10,7 +10,7 @@ import type {
 	TerminalEntry,
 	TerminalEntryType,
 	TerminalState,
-} from "@/components/game/types/core";
+} from "@/components/game/types/terminal";
 import {
 	MAX_HISTORY_ENTRIES,
 	sanitizeTerminalInput,

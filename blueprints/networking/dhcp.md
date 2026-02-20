@@ -1,7 +1,7 @@
 # DHCP Home Networking Blueprint
 
 Declaration-first blueprint for `networking` (DHCP question).
-This document is the starting specification for authoring and maintaining this question.
+This document is the canonical source of truth for authoring and maintaining this question.
 
 Canonical engine references:
 - `src/components/game/doc/README.md`
@@ -57,14 +57,14 @@ Use game docs for runtime API details.
 
 ### 1.3 Space Terms
 
-| Term ID | Space ID | Kind |
-|---|---|---|
-| `SPACE_PC_1` | `pc-1-board` | `grid` |
-| `SPACE_CONN_LEFT` | `connector-left` | `grid` |
-| `SPACE_ROUTER` | `router-board` | `grid` |
-| `SPACE_CONN_RIGHT` | `connector-right` | `grid` |
-| `SPACE_PC_2` | `pc-2-board` | `grid` |
-| `SPACE_INVENTORY` | `inventory` | `pool` |
+| Term ID | Space ID | Kind | Grid Size |
+|---|---|---|---|
+| `SPACE_PC_1` | `pc-1-board` | `grid` | 1×1 |
+| `SPACE_CONN_LEFT` | `connector-left` | `grid` | 1×1 |
+| `SPACE_ROUTER` | `router-board` | `grid` | 1×1 |
+| `SPACE_CONN_RIGHT` | `connector-right` | `grid` | 1×1 |
+| `SPACE_PC_2` | `pc-2-board` | `grid` | 1×1 |
+| `SPACE_INVENTORY` | `inventory` | `pool` | — |
 
 ### 1.4 Entity Terms
 
@@ -75,6 +75,8 @@ Use game docs for runtime API details.
 | `ENTITY_ROUTER` | `router-1` | `router` |
 | `ENTITY_CABLE_1` | `cable-1` | `cable` |
 | `ENTITY_CABLE_2` | `cable-2` | `cable` |
+
+All 5 entities start in `SPACE_INVENTORY`.
 
 ### 1.5 Phase Terms
 
@@ -87,44 +89,55 @@ Use game docs for runtime API details.
 
 ### 1.6 Condition Context Terms
 
-| Term ID | Meaning |
-|---|---|
-| `CTX_DRAG_STATUS` | `dragEngine.progress.status` |
-| `CTX_QUESTION_STATUS` | `state.question.status` |
-
-### 1.7 Behavior Rule Terms
-
-| Term ID | Behavior Rule ID |
-|---|---|
-| `RULE_ROUTER_CLICK` | `dhcp.router-click` |
-| `RULE_PC_CLICK` | `dhcp.pc-click` |
-| `RULE_ROUTER_SAVE` | `dhcp.router-config-save` |
-| `RULE_SUCCESS_NAV` | `dhcp.success-modal-navigate` |
-| `RULE_TERMINAL_COMMAND` | `dhcp.terminal-command` |
-| `RULE_TERMINAL_NOT_READY` | `dhcp.terminal-not-ready` |
-
-### 1.8 Modal Terms
-
-| Term ID | Modal ID Pattern | Actions |
+| Term ID | Source | Meaning |
 |---|---|---|
-| `MODAL_ROUTER_CONFIG` | `router-config-{deviceId}` | `cancel`, `save` |
-| `MODAL_PC_CONFIG` | `pc-config-{deviceId}` | `close` |
-| `MODAL_SUCCESS` | `success` | `primary` |
+| `CTX_DRAG_STATUS` | `dragEngine.progress.status` | Current drag engine progress value |
+| `CTX_QUESTION_STATUS` | `state.question.status` | Engine-level question completion |
 
-### 1.9 Validation Terms
+### 1.7 Behavior Context Fields
+
+These fields live on `ctx` (mutable context bag) in behavior rules:
+
+| Field | Type | Set By | Meaning |
+|---|---|---|---|
+| `ctx.navigateAway` | `boolean` | `RULE_SUCCESS_NAV` | Signals page to navigate to next question |
+| `ctx.lastConfiguredDeviceId` | `string` | `RULE_ROUTER_SAVE` | ID of router entity most recently saved |
+
+### 1.8 Behavior Rule Terms
+
+| Term ID | Behavior Rule ID | Trigger |
+|---|---|---|
+| `RULE_ROUTER_CLICK` | `dhcp.router-click` | entity click on `router` type |
+| `RULE_PC_CLICK` | `dhcp.pc-click` | entity click on `pc` type |
+| `RULE_ROUTER_SAVE` | `dhcp.router-config-save` | modal submit on `router-config-*` with `save` action |
+| `RULE_SUCCESS_NAV` | `dhcp.success-modal-navigate` | modal submit on `success` with `primary` action |
+| `RULE_TERMINAL_ONBOARDING` | `dhcp.terminal-onboarding` | `PHASE_CHANGED` event to `terminal`, fires once |
+| `RULE_TERMINAL_COMMAND` | `dhcp.terminal-command` | terminal input event |
+| `RULE_TERMINAL_NOT_READY` | `dhcp.terminal-not-ready` | terminal input event (fallback guard) |
+
+### 1.9 Modal Terms
+
+| Term ID | Modal ID Pattern | Actions | Fields |
+|---|---|---|---|
+| `MODAL_ROUTER_CONFIG` | `router-config-{deviceId}` | `cancel`, `save` | `dhcpEnabled` (checkbox), `startIp` (text), `endIp` (text) |
+| `MODAL_PC_CONFIG` | `pc-config-{deviceId}` | `close` | `ip` (readonly) |
+| `MODAL_SUCCESS` | `success` | `primary` | educational content |
+
+### 1.10 Validation Terms
 
 | Term ID | Meaning |
 |---|---|
-| `VALID_PRIVATE_IP_RANGE` | Start/end must be valid private IPv4 addresses |
-| `VALID_RANGE_MIN_SIZE` | End IP must be greater than start IP and provide at least 2 addresses |
+| `VALID_PRIVATE_IP_RANGE` | `startIp` and `endIp` must be valid private IPv4 addresses |
+| `VALID_RANGE_MIN_SIZE` | `endIp` must be strictly greater than `startIp` and provide at least 2 addresses |
 
-### 1.10 Terminal Terms
+### 1.11 Terminal Terms
 
 | Term ID | Value |
 |---|---|
+| `TERMINAL_PROMPT` | `"How can you check that PC-1 is connected to PC-2?"` |
 | `TERMINAL_COMMAND_HELP` | `help` |
 | `TERMINAL_COMMAND_PING` | `ping <ip>` |
-| `TERMINAL_SUCCESS_TARGET` | `pc-2` assigned IP |
+| `TERMINAL_SUCCESS_TARGET` | Current `pc-2` assigned IP address |
 
 ---
 
@@ -133,7 +146,7 @@ Use game docs for runtime API details.
 ### 2.1 Meta Declaration
 
 - Meta fields must match Section 1.1.
-- Initial phase must be `PHASE_SETUP`.
+- Initial phase is `PHASE_SETUP`.
 
 ### 2.2 Space and Entity Declaration
 
@@ -143,35 +156,52 @@ Use game docs for runtime API details.
 
 ### 2.3 Phase Rule Declaration
 
-Phase rules (declared order):
-1. `questionStatus == completed` -> `PHASE_COMPLETED`
-2. `dragStatus == finished` -> `PHASE_TERMINAL`
-3. `dragStatus == started` -> `PHASE_PLAYING`
+Phase rules (declared order, evaluated `last-match-wins`):
 
-Because evaluation is `last-match-wins`, later matches override earlier matches.
+1. `CTX_QUESTION_STATUS == completed` → `PHASE_COMPLETED`
+2. `CTX_DRAG_STATUS == finished` → `PHASE_TERMINAL`
+3. `CTX_DRAG_STATUS == started` → `PHASE_PLAYING`
+
+Because evaluation is `last-match-wins`, rule 3 (`playing`) wins over rule 1 (`completed`) when drag status is `started` but question is also complete — however rule 1 wins whenever `questionStatus` is `completed` **and** drag status is not `started`. In practice, the question is completed only during terminal phase when drag is `finished`, so rule 1 supersedes rule 2 after completion.
+
+Effective phase resolution priority (highest to lowest): playing > terminal > completed (when drag started).
 
 ### 2.4 Derived State Declaration
 
-- Router config is read from `ENTITY_ROUTER.data`.
-- Router is considered configured when DHCP is enabled and IP range passes validation terms.
-- Connected PCs receive sequential IPs starting from configured start IP.
-- Entity status is derived and written by the state hook:
-  - router: `success` or `error`
-  - cables: `success` or `warning`
-  - PCs: `success` when IP assigned, else `warning`
+Derived in `useNetworkState` hook (`-utils/use-network-state.ts`):
+
+| Derived Field | Meaning |
+|---|---|
+| `routerConfigured` | DHCP enabled + IP range passes `VALID_PRIVATE_IP_RANGE` and `VALID_RANGE_MIN_SIZE` |
+| `pc1HasIp` | PC-1 entity has a non-empty IP assigned |
+| `pc2HasIp` | PC-2 entity has a non-empty IP assigned |
+| `pc2Ip` | Current IP string assigned to PC-2 |
+| `connectedPcIds` | Entity IDs of PCs with a cable connecting them to the router |
+
+IP assignment happens as a side effect of the hook whenever `routerConfigured` is true and a PC is connected:
+- Connected PCs are sorted by entity ID alphabetically.
+- IPs are assigned sequentially starting from `startIp` (last octet incremented per PC index).
+- IP is written to `entity.state.ip` for each connected PC.
+
+Entity statuses written by hook:
+- router: `"success"` when configured, `"error"` otherwise
+- cables: `"success"` when properly connected, `"warning"` otherwise
+- PCs: `"success"` when IP assigned, `"warning"` otherwise
 
 ### 2.5 Drag Engine Declaration
 
-- Start drag progress when router exists and at least one PC is connected.
-- Finish drag progress when router exists and both PCs have IP addresses.
+- **Start** drag progress: when router entity exists in `SPACE_ROUTER` and at least one PC is connected via cable.
+- **Finish** drag progress: when router entity exists and both `pc1HasIp && pc2HasIp` are true.
 
 ### 2.6 Behavior Declaration
 
-- Router click opens DHCP config modal.
-- PC click opens read-only IP modal.
-- Router save persists DHCP settings.
-- Terminal command rule is active only in `PHASE_TERMINAL` and before completion.
-- Success modal submit sets navigation context.
+- `RULE_ROUTER_CLICK` opens `MODAL_ROUTER_CONFIG`.
+- `RULE_PC_CLICK` reads `entity.state.ip` and merges into modal data, opens `MODAL_PC_CONFIG` (readonly).
+- `RULE_ROUTER_SAVE` parses modal submission, writes `dhcpEnabled`, `startIp`, `endIp` to entity data, sets `ctx.lastConfiguredDeviceId`.
+- `RULE_TERMINAL_ONBOARDING` fires once when phase transitions to `terminal`; after 100ms prints the terminal intro including the actual current PC-2 IP.
+- `RULE_TERMINAL_COMMAND` is active only when `phase === "terminal" && questionStatus !== "completed"`.
+- `RULE_TERMINAL_NOT_READY` is a fallback: active when `phase !== "terminal"`, always returns error.
+- `RULE_SUCCESS_NAV` sets `ctx.navigateAway = true`; page then navigates away.
 
 ### 2.7 AI Authoring Contract
 
@@ -185,38 +215,73 @@ Because evaluation is `last-match-wins`, later matches override earlier matches.
 
 ### 3.1 Runtime Lifecycle Sequence
 
-1. Bootstrap board and inventory.
-2. User places PCs, router, and cables.
+1. Bootstrap board and inventory with all 5 entities.
+2. User drags router to `SPACE_ROUTER`, PCs to their respective boards, cables to connectors.
 3. Derived hook computes topology connectivity.
-4. User configures router DHCP settings.
-5. Hook validates range and auto-assigns IPs.
-6. Terminal phase opens when both PCs have IPs.
-7. User runs ping check; success modal completes question.
+4. When router placed and ≥1 PC connected: drag engine starts, phase → `PHASE_PLAYING`.
+5. User clicks router to open `MODAL_ROUTER_CONFIG` and configure DHCP.
+6. On `RULE_ROUTER_SAVE`: settings persisted, `ctx.lastConfiguredDeviceId` updated.
+7. Hook validates IP range, auto-assigns IPs to connected PCs.
+8. When both PCs have IPs: drag engine finishes, phase → `PHASE_TERMINAL`.
+9. `RULE_TERMINAL_ONBOARDING` fires once; prints intro including `ping <pc-2-ip>`.
+10. User runs `ping <pc-2-ip>` to verify connectivity.
+11. On successful ping: opens success modal, completes question, phase → `PHASE_COMPLETED`.
+12. `RULE_SUCCESS_NAV` fires; `ctx.navigateAway = true`; page navigates.
 
 ### 3.2 Connectivity Logic
 
-- Two cables are required to connect both PCs to router.
-- Direct PC-to-PC does not satisfy topology.
-- Cable statuses are warning until properly connected.
+`buildNetworkSnapshot` (`-utils/network-utils.ts`):
+- Reads all 5 grid spaces and their placed items.
+- Locates pc1, pc2, router, leftCables, rightCables.
+- Derives `connectedPcIds`: a PC is connected when a cable occupies the connector space on that PC's side.
+- Returns `connectionErrors` for topology validation.
+
+Topology rules:
+- Direct PC-to-PC (without router) does **not** satisfy connectivity.
+- A cable in `SPACE_CONN_LEFT` connects PC-1 to router; a cable in `SPACE_CONN_RIGHT` connects PC-2 to router.
+- Both cables must be present for both PCs to receive IPs.
 
 ### 3.3 DHCP Configuration Logic
 
-- `dhcpEnabled` must be true.
-- `startIp` and `endIp` must satisfy `VALID_PRIVATE_IP_RANGE` and `VALID_RANGE_MIN_SIZE`.
-- Once valid and connected, IP addresses are assigned to connected PCs in sorted entity order.
+Fields saved by `RULE_ROUTER_SAVE`:
+- `dhcpEnabled`: must be `true` for router to be considered configured.
+- `startIp`: must pass `VALID_PRIVATE_IP_RANGE`.
+- `endIp`: must pass `VALID_PRIVATE_IP_RANGE` and `VALID_RANGE_MIN_SIZE` (strictly greater than `startIp`, ≥2 addresses).
+
+IP assignment when configured:
+- Connected PCs sorted by entity ID alphabetically (e.g., `pc-1` before `pc-2`).
+- First connected PC gets `startIp` last-octet value; subsequent PCs get incremented last octets.
 
 ### 3.4 Terminal Logic
 
-- `help`: prints ping/manual help text.
-- `ping <ip>`:
-  - success only when target equals current PC-2 assigned IP.
-  - on success: open success modal, finish terminal engine, complete question.
-  - otherwise: error unknown target.
-- Any other command: unknown command error.
+Active guard: `phase === "terminal" && questionStatus !== "completed"`.
 
-### 3.5 Terminal Not-Ready Logic
+| Command | Logic |
+|---|---|
+| `help` | Prints command manual (`ping <pc-2-ip>` syntax explained). |
+| `ping <ip>` | If `<ip>` equals current `TERMINAL_SUCCESS_TARGET`: success response, opens success modal, finishes engine, completes question. Otherwise: unknown target error. |
+| Any other command | Unknown command error. |
+| Missing argument | Missing argument error. |
 
-- Any terminal input outside `PHASE_TERMINAL` returns `Error: Terminal is not ready yet.`
+### 3.5 Terminal Onboarding Logic
+
+`RULE_TERMINAL_ONBOARDING` fires once on `PHASE_CHANGED` event to `terminal`. After 100ms it prints:
+- The terminal prompt (`TERMINAL_PROMPT`).
+- Intro entries showing `- ping <pc-2-ip>` with the **actual current** PC-2 IP value.
+
+### 3.6 Terminal Not-Ready Logic
+
+`RULE_TERMINAL_NOT_READY` fires when `phase !== "terminal"`. Returns `Error: Terminal is not ready yet.` for any input.
+
+### 3.7 Entity Badge Logic
+
+Short badge text derived by `getNetworkingStatusMessage` (`-utils/entity-badge.ts`):
+
+| Entity Type | Badge Values |
+|---|---|
+| `router` | `"needs configuration"` / `"configured"` |
+| `pc` | IP string (when assigned) / `"no ip"` |
+| `cable` | `null` (no badge) |
 
 ---
 
@@ -236,51 +301,54 @@ Evaluation mode: `last-match-wins`.
 
 | Modal Pattern | Action | Side Effect |
 |---|---|---|
-| `router-config-*` | `save` | persist `dhcpEnabled/startIp/endIp` |
-| `success` | `primary` | set navigate-away context |
+| `router-config-*` | `save` | persist `dhcpEnabled`, `startIp`, `endIp`; set `ctx.lastConfiguredDeviceId` |
+| `success` | `primary` | set `ctx.navigateAway = true` |
 
 ### 4.3 Terminal Command Matrix
 
 | Command | Preconditions | Success | Failure |
 |---|---|---|---|
 | `help` | terminal phase active | manual text | n/a |
-| `ping <ip>` | terminal phase active | completes question when target equals PC-2 IP | unknown target/missing arg |
+| `ping <ip>` | terminal phase active | completes question when `<ip>` equals `TERMINAL_SUCCESS_TARGET` | unknown target / missing argument |
+| Other | terminal phase active | — | unknown command error |
 
 ---
 
 ## 5) Term-to-Logic Link Index
 
-### 5.1 Space Terms -> Logic
+### 5.1 Space Terms → Logic
 
 | Term | Logic Usage |
 |---|---|
-| `SPACE_CONN_LEFT` | PC-1 cable bridge |
-| `SPACE_CONN_RIGHT` | PC-2 cable bridge |
-| `SPACE_ROUTER` | DHCP configuration anchor |
+| `SPACE_CONN_LEFT` | Hosts cable connecting PC-1 to router |
+| `SPACE_CONN_RIGHT` | Hosts cable connecting PC-2 to router |
+| `SPACE_ROUTER` | DHCP configuration anchor; drag engine watches for router presence here |
 
-### 5.2 Rule Terms -> Logic
+### 5.2 Rule Terms → Logic
 
 | Term | Logic Usage |
 |---|---|
-| `RULE_ROUTER_SAVE` | persist router DHCP settings |
+| `RULE_ROUTER_SAVE` | persists router DHCP settings; triggers IP re-derivation |
+| `RULE_TERMINAL_ONBOARDING` | prints intro with actual PC-2 IP on phase entry |
 | `RULE_TERMINAL_COMMAND` | ping verification and success gate |
 | `RULE_TERMINAL_NOT_READY` | guards pre-terminal input |
 
-### 5.3 Validation Terms -> Logic
+### 5.3 Validation Terms → Logic
 
 | Term | Logic Usage |
 |---|---|
-| `VALID_PRIVATE_IP_RANGE` | router config validation |
-| `VALID_RANGE_MIN_SIZE` | prevents invalid DHCP pool size |
+| `VALID_PRIVATE_IP_RANGE` | router config `startIp`/`endIp` validation |
+| `VALID_RANGE_MIN_SIZE` | prevents trivial DHCP pool with only 1 address |
 
 ---
 
 ## 6) Hard Invariants
 
 - Router remains the only configurable network core.
-- Success remains tied to pinging current PC-2 assigned IP.
+- Success remains tied to pinging `TERMINAL_SUCCESS_TARGET` (current PC-2 assigned IP).
 - Modal ID patterns remain stable.
 - All entities remain single-instance with fixed IDs.
+- IP assignment is always sorted by entity ID, sequential from `startIp`.
 
 ---
 
@@ -304,9 +372,10 @@ Evaluation mode: `last-match-wins`.
 ### 8.2 Consistency Checks
 
 - Phase rules documented as `last-match-wins`.
-- Every modal used in logic appears in Section 1.8.
-- Terminal behavior text matches command outcomes.
+- Every modal used in logic appears in Section 1.9.
+- Terminal behavior text matches command outcomes in Section 4.3.
 - No undeclared synonyms appear in Sections 2-5.
+- `TERMINAL_SUCCESS_TARGET` is dynamic (PC-2 current IP), not a hardcoded string.
 
 ### 8.3 Quality Gates
 

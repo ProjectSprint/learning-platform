@@ -5,6 +5,7 @@ import type {
 	ModalEventTrigger,
 	TerminalEventTrigger,
 } from "@/components/game/types/behavior";
+import type { EntityData as StoredEntityData } from "@/components/game/types/entity";
 import type {
 	ConditionContext,
 	PhaseResolution,
@@ -250,6 +251,90 @@ export const createEntityPayloadWriter = <
 		},
 	};
 };
+
+/**
+ * A view of a stored entity with data/state narrowed by entity type.
+ * Used by EntityReader to provide typed access without changing runtime storage.
+ */
+export type TypedEntity<
+	TData extends Record<string, unknown> = Record<string, unknown>,
+	TState extends Record<string, unknown> = Record<string, unknown>,
+> = Omit<StoredEntityData, "data" | "state"> & {
+	data: TData;
+	state: TState;
+};
+
+/**
+ * Typed entity reader — provides compile-time-safe reads from erased GameState.
+ * Mirrors EntityPayloadWriter: callers supply the entity type key to recover types.
+ */
+export type EntityReader<
+	TDataByType extends Record<string, Record<string, unknown>>,
+	TStateByType extends Record<string, Record<string, unknown>>,
+> = {
+	get: <K extends keyof TDataByType & keyof TStateByType & string>(
+		state: GameState,
+		entityId: string,
+		entityType: K,
+	) => TypedEntity<TDataByType[K], TStateByType[K]> | null;
+
+	getData: <K extends keyof TDataByType & string>(
+		state: GameState,
+		entityId: string,
+		entityType: K,
+	) => TDataByType[K] | null;
+
+	getState: <K extends keyof TStateByType & string>(
+		state: GameState,
+		entityId: string,
+		entityType: K,
+	) => TStateByType[K] | null;
+
+	is: <K extends keyof TDataByType & keyof TStateByType & string>(
+		entity: StoredEntityData | undefined,
+		entityType: K,
+	) => entity is TypedEntity<TDataByType[K], TStateByType[K]>;
+};
+
+/**
+ * Creates a typed entity reader for compile-time-safe entity data access.
+ * The reader validates entity.type at runtime before casting.
+ *
+ * Usage:
+ * ```ts
+ * const entities = createEntityReader<MyDataByType, MyStateByType>();
+ * const router = entities.get(state, deviceId, "router");
+ * router?.data.dhcpEnabled; // typed boolean
+ * ```
+ */
+export const createEntityReader = <
+	TDataByType extends Record<string, Record<string, unknown>>,
+	TStateByType extends Record<string, Record<string, unknown>>,
+>(): EntityReader<TDataByType, TStateByType> => ({
+	get(state, entityId, entityType) {
+		const e = state.entities[entityId];
+		if (!e || e.type !== entityType) return null;
+		return e as TypedEntity<
+			TDataByType[typeof entityType],
+			TStateByType[typeof entityType]
+		>;
+	},
+	getData(state, entityId, entityType) {
+		return this.get(state, entityId, entityType)?.data ?? null;
+	},
+	getState(state, entityId, entityType) {
+		return this.get(state, entityId, entityType)?.state ?? null;
+	},
+	is(
+		entity,
+		entityType,
+	): entity is TypedEntity<
+		TDataByType[typeof entityType],
+		TStateByType[typeof entityType]
+	> {
+		return entity !== undefined && entity.type === entityType;
+	},
+});
 
 export const parseModalSubmission = <TValues>(
 	event: GameEvent,

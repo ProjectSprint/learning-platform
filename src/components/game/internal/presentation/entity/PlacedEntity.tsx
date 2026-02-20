@@ -10,7 +10,7 @@
 import { Box, Text } from "@chakra-ui/react";
 import { Icon } from "@iconify/react";
 import { memo, type RefCallback } from "react";
-import type { EntityStatus } from "@/components/game/types/core";
+import type { EntityStatus } from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
 import { isItemData } from "../../domain/entity/entity-data";
 

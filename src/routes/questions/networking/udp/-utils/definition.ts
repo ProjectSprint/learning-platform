@@ -18,11 +18,15 @@ import {
 	type GridSpaceKey,
 	INITIAL_TCP_CLIENT_IDS,
 	INVENTORY_POOL_CONFIG,
+	PACKETS_POOL_CONFIG,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
+	RECEIVED_ACK_PACKETS,
 	RECEIVED_POOL_CONFIG,
+	RECEIVED_SYN_PACKETS,
 	SYN_ACK_PACKETS,
+	UNICAST_ITEMS,
 } from "./constants";
 
 const INITIAL_SYN_ACK_IDS = new Set(
@@ -33,7 +37,7 @@ type UdpQuestionSpec = QuestionTypeSpec & {
 	conditionKey: never;
 	context: UdpBehaviorContext;
 	phase: UdpPhaseId;
-	spaceId: GridSpaceKey | CustomSpaceKey | "inventory" | "received";
+	spaceId: GridSpaceKey | CustomSpaceKey | "inventory" | "packets" | "received";
 	entityType: UdpEntityType;
 	questionId: typeof QUESTION_ID;
 	conditionValue: never;
@@ -54,6 +58,7 @@ export const UDP_DEFINITION: QuestionDefinitionFor<UdpQuestionSpec> = {
 			SpaceFactory.custom(config),
 		),
 		SpaceFactory.pool(INVENTORY_POOL_CONFIG),
+		SpaceFactory.pool(PACKETS_POOL_CONFIG),
 		SpaceFactory.pool(RECEIVED_POOL_CONFIG),
 	],
 	entities: [
@@ -62,8 +67,13 @@ export const UDP_DEFINITION: QuestionDefinitionFor<UdpQuestionSpec> = {
 				? EntityFactory.itemInSpace(item, "inventory")
 				: EntityFactory.item(item),
 		),
+		...RECEIVED_SYN_PACKETS.map((item) =>
+			EntityFactory.itemInSpace(item, "received"),
+		),
+		...RECEIVED_ACK_PACKETS.map((item) => EntityFactory.item(item)),
 		...DATA_PACKETS.map((item) => EntityFactory.item(item)),
 		...FRAME_ITEMS.map((item) => EntityFactory.item(item)),
+		...UNICAST_ITEMS.map((item) => EntityFactory.item(item)),
 	],
 	phaseRules: [],
 	behaviors: UDP_BEHAVIORS,

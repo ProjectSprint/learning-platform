@@ -1,7 +1,7 @@
 # Internet Gateway Blueprint
 
 Declaration-first blueprint for `internet-gateway`.
-This document is the starting specification for authoring and maintaining this question.
+This document is the canonical source of truth for authoring and maintaining this question.
 
 Canonical engine references:
 - `src/components/game/doc/README.md`
@@ -16,7 +16,7 @@ Canonical engine references:
 
 ### 0.1 Purpose
 
-Use this blueprint as the canonical source of truth for Internet question behavior.
+Use this blueprint as the canonical source of truth for Internet Gateway question behavior.
 Use game docs for API details.
 
 ### 0.2 Mandatory Reading Order
@@ -57,16 +57,18 @@ Use game docs for API details.
 
 ### 1.3 Space Terms
 
-| Term ID | Space ID | Kind |
-|---|---|---|
-| `SPACE_LOCAL` | `local` | `grid` |
-| `SPACE_CONN_1` | `conn-1` | `grid` |
-| `SPACE_ROUTER` | `router` | `grid` |
-| `SPACE_CONN_2` | `conn-2` | `grid` |
-| `SPACE_IGW` | `igw` | `grid` |
-| `SPACE_DNS` | `dns` | `grid` |
-| `SPACE_GOOGLE` | `google` | `grid` |
-| `SPACE_INVENTORY` | `inventory` | `pool` |
+| Term ID | Space ID | Kind | Grid Size |
+|---|---|---|---|
+| `SPACE_LOCAL` | `local` | `grid` | 1×1 |
+| `SPACE_CONN_1` | `conn-1` | `grid` | 1×1 |
+| `SPACE_ROUTER` | `router` | `grid` | 1×3 |
+| `SPACE_CONN_2` | `conn-2` | `grid` | 1×1 |
+| `SPACE_IGW` | `igw` | `grid` | 1×1 |
+| `SPACE_DNS` | `dns` | `grid` | 1×1 |
+| `SPACE_GOOGLE` | `google` | `grid` | 1×1 |
+| `SPACE_INVENTORY` | `inventory` | `pool` | — |
+
+`SPACE_ROUTER` is a 1×3 grid that hosts three distinct router entities side by side (`ENTITY_ROUTER_LAN`, `ENTITY_ROUTER_NAT`, `ENTITY_ROUTER_WAN`).
 
 ### 1.4 Entity Terms
 
@@ -82,15 +84,19 @@ Use game docs for API details.
 | `ENTITY_DNS` | `dns-1` | `dns` |
 | `ENTITY_GOOGLE` | `google-1` | `google` |
 
+All 9 entities start in `SPACE_INVENTORY`.
+
 ### 1.5 Network Validation Terms
 
 | Term ID | Meaning |
 |---|---|
-| `VALID_DNS_RUNTIME` | Runtime reachability accepts `8.8.8.8`, `8.8.4.4`, `1.1.1.1`, `1.0.0.1` |
-| `VALID_DNS_MODAL` | Modal validator also accepts `208.67.222.222` |
+| `VALID_DNS_RUNTIME` | Runtime reachability check accepts: `8.8.8.8`, `8.8.4.4`, `1.1.1.1`, `1.0.0.1` |
+| `VALID_DNS_MODAL` | LAN modal validator additionally accepts `208.67.222.222` (OpenDNS); superset of `VALID_DNS_RUNTIME` |
 | `VALID_PPPOE_USERNAME` | `user@telkom.net` |
 | `VALID_PPPOE_PASSWORD` | `indihome123` |
 | `GOOGLE_IP` | `142.250.80.46` |
+
+`VALID_DNS_MODAL` exists so the UI can suggest valid servers without restricting to a shorter runtime list. Only `VALID_DNS_RUNTIME` gates actual reachability logic.
 
 ### 1.6 Phase Terms
 
@@ -104,51 +110,61 @@ Use game docs for API details.
 
 ### 1.7 Condition Context Terms
 
-| Term ID | Meaning |
-|---|---|
-| `CTX_DRAG_STATUS` | `dragEngine.progress.status` |
-| `CTX_QUESTION_STATUS` | `state.question.status` |
-| `CTX_ALL_DEVICES_PLACED` | Derived boolean from topology completeness |
-
-### 1.8 Behavior Rule Terms
-
-| Term ID | Behavior Rule ID |
-|---|---|
-| `RULE_LAN_CLICK` | `internet.router-lan-click` |
-| `RULE_NAT_CLICK` | `internet.router-nat-click` |
-| `RULE_WAN_CLICK` | `internet.router-wan-click` |
-| `RULE_PC_CLICK` | `internet.pc-click` |
-| `RULE_IGW_CLICK` | `internet.igw-click` |
-| `RULE_DNS_CLICK` | `internet.dns-click` |
-| `RULE_GOOGLE_CLICK` | `internet.google-click` |
-| `RULE_LAN_SAVE` | `internet.router-lan-save` |
-| `RULE_NAT_SAVE` | `internet.router-nat-save` |
-| `RULE_WAN_SAVE` | `internet.router-wan-save` |
-| `RULE_SUCCESS_NAV` | `internet.success-modal-navigate` |
-| `RULE_TERMINAL_COMMAND` | `internet.terminal-command` |
-| `RULE_TERMINAL_NOT_READY` | `internet.terminal-not-ready` |
-
-### 1.9 Modal Terms
-
-| Term ID | Modal ID Pattern | Actions |
+| Term ID | Source | Meaning |
 |---|---|---|
-| `MODAL_ROUTER_LAN` | `router-lan-config-{deviceId}` | `cancel`, `save` |
-| `MODAL_ROUTER_NAT` | `router-nat-config-{deviceId}` | `cancel`, `save` |
-| `MODAL_ROUTER_WAN` | `router-wan-config-{deviceId}` | `cancel`, `save` |
-| `MODAL_PC_STATUS` | `pc-status-{deviceId}` | `close` |
-| `MODAL_IGW_STATUS` | `igw-status-{deviceId}` | `close` |
-| `MODAL_DNS_STATUS` | `dns-status-{deviceId}` | `close` |
-| `MODAL_GOOGLE_STATUS` | `google-status-{deviceId}` | `close` |
-| `MODAL_SUCCESS` | `success` | `primary` |
+| `CTX_DRAG_STATUS` | `dragEngine.progress.status` | Current drag engine progress value |
+| `CTX_QUESTION_STATUS` | `state.question.status` | Engine-level question completion |
+| `CTX_ALL_DEVICES_PLACED` | derived in `useInternetState` | `true` when all 9 required entities are placed and fully connected in topology |
 
-### 1.10 Terminal Terms
+### 1.8 Behavior Context Fields
+
+These fields live on `ctx` (mutable context bag) in behavior rules:
+
+| Field | Type | Set By | Meaning |
+|---|---|---|---|
+| `ctx.navigateAway` | `boolean` | `RULE_SUCCESS_NAV` | Signals page to navigate to next question |
+
+### 1.9 Behavior Rule Terms
+
+| Term ID | Behavior Rule ID | Trigger |
+|---|---|---|
+| `RULE_LAN_CLICK` | `internet.router-lan-click` | entity click on `router-lan` type |
+| `RULE_NAT_CLICK` | `internet.router-nat-click` | entity click on `router-nat` type |
+| `RULE_WAN_CLICK` | `internet.router-wan-click` | entity click on `router-wan` type |
+| `RULE_PC_CLICK` | `internet.pc-click` | entity click on `pc` type |
+| `RULE_IGW_CLICK` | `internet.igw-click` | entity click on `igw` type |
+| `RULE_DNS_CLICK` | `internet.dns-click` | entity click on `dns` type |
+| `RULE_GOOGLE_CLICK` | `internet.google-click` | entity click on `google` type |
+| `RULE_LAN_SAVE` | `internet.router-lan-save` | modal submit on `router-lan-config-*` with `save` action |
+| `RULE_NAT_SAVE` | `internet.router-nat-save` | modal submit on `router-nat-config-*` with `save` action |
+| `RULE_WAN_SAVE` | `internet.router-wan-save` | modal submit on `router-wan-config-*` with `save` action |
+| `RULE_SUCCESS_NAV` | `internet.success-modal-navigate` | modal submit on `success` with `primary` action |
+| `RULE_TERMINAL_ONBOARDING` | `internet.terminal-onboarding` | `PHASE_CHANGED` event to `terminal` phase, fires once |
+| `RULE_TERMINAL_COMMAND` | `internet.terminal-command` | terminal input event |
+| `RULE_TERMINAL_NOT_READY` | `internet.terminal-not-ready` | terminal input event (fallback guard) |
+
+### 1.10 Modal Terms
+
+| Term ID | Modal ID Pattern | Actions | Fields |
+|---|---|---|---|
+| `MODAL_ROUTER_LAN` | `router-lan-config-{deviceId}` | `cancel`, `save` | `dhcpEnabled` (checkbox), `startIp` (text), `endIp` (text), `dnsServer` (text) |
+| `MODAL_ROUTER_NAT` | `router-nat-config-{deviceId}` | `cancel`, `save` | `natEnabled` (checkbox) |
+| `MODAL_ROUTER_WAN` | `router-wan-config-{deviceId}` | `cancel`, `save` | `username` (text), `password` (text) |
+| `MODAL_PC_STATUS` | `pc-status-{deviceId}` | `close` | `ip` (readonly), `status` (readonly) |
+| `MODAL_IGW_STATUS` | `igw-status-{deviceId}` | `close` | `Connection Status` (readonly) |
+| `MODAL_DNS_STATUS` | `dns-status-{deviceId}` | `close` | `DNS Server` (readonly), `Status` (readonly) |
+| `MODAL_GOOGLE_STATUS` | `google-status-{deviceId}` | `close` | `Domain`, `IP Address`, `Status`, optional `Reason` (all readonly) |
+| `MODAL_SUCCESS` | `success` | `primary` | educational content |
+
+### 1.11 Terminal Terms
 
 | Term ID | Value |
 |---|---|
 | `TERMINAL_COMMAND_HELP` | `help` |
 | `TERMINAL_COMMAND_IFCONFIG` | `ifconfig` |
-| `TERMINAL_COMMAND_NSLOOKUP` | `nslookup <domain>` |
-| `TERMINAL_COMMAND_CURL` | `curl <hostname-or-ip>` |
+| `TERMINAL_COMMAND_NSLOOKUP` | `nslookup google.com` |
+| `TERMINAL_COMMAND_CURL_DOMAIN` | `curl google.com` |
+| `TERMINAL_COMMAND_CURL_IP` | `curl 142.250.80.46` |
 | `TERMINAL_ALLOWED_DOMAIN` | `google.com` |
 | `TERMINAL_ALLOWED_IP` | `142.250.80.46` |
 
@@ -159,44 +175,56 @@ Use game docs for API details.
 ### 2.1 Meta Declaration
 
 - Meta fields must match Section 1.1.
-- Initial phase must be `PHASE_SETUP`.
+- Initial phase is `PHASE_SETUP`.
 
 ### 2.2 Space and Entity Declaration
 
 - Declare all spaces from Section 1.3.
 - All entities from Section 1.4 start in `SPACE_INVENTORY`.
-- Allowed-place constraints remain fixed.
+- Allowed-place constraints are fixed per entity type.
 
 ### 2.3 Phase Rule Declaration
 
-Phase rules (in declared order):
-1. `CTX_ALL_DEVICES_PLACED == true` -> `PHASE_CONFIGURING`
-2. `CTX_DRAG_STATUS == started` -> `PHASE_PLAYING`
-3. `CTX_DRAG_STATUS == finished` -> `PHASE_TERMINAL`
-4. `CTX_QUESTION_STATUS == completed` -> `PHASE_COMPLETED`
+Phase rules (declared order, evaluated `last-match-wins`):
 
-Because `PHASE_RULE_EVAL_MODE` is `last-match-wins`, later matches override earlier matches.
+1. `CTX_ALL_DEVICES_PLACED == true` → `PHASE_CONFIGURING`
+2. `CTX_DRAG_STATUS == started` → `PHASE_PLAYING`
+3. `CTX_DRAG_STATUS == finished` → `PHASE_TERMINAL`
+4. `CTX_QUESTION_STATUS == completed` → `PHASE_COMPLETED`
+
+Because `PHASE_RULE_EVAL_MODE` is `last-match-wins`, rule 4 always wins over rule 3 once the question is completed. Rule 2 wins over rule 1 once the drag engine starts (devices already placed). Rule 3 wins once drag engine finishes (routers configured + Google reachable).
+
+Effective phase resolution priority (highest to lowest): completed > terminal > playing > configuring.
 
 ### 2.4 Derived State Declaration
 
-- `allDevicesPlaced`: all 9 required entities are placed on target topology.
-- `routerLanConfigured`: DHCP enabled + valid private range + runtime-valid DNS.
-- `routerNatConfigured`: NAT enabled.
-- `hasValidPppoeCredentials`: exact PPPoE username/password match.
-- `allRoutersConfigured`: LAN configured + NAT enabled + PPPoE valid.
-- `googleReachable`: `allRoutersConfigured` and full topology connected.
+Derived in `useInternetState` hook (`-utils/use-internet-state.ts`):
+
+| Derived Field | Meaning |
+|---|---|
+| `allDevicesPlaced` | All 9 entities placed **and** topology is fully connected (PC→cable→router→fiber→IGW→DNS→Google) |
+| `routerLanConfigured` | DHCP enabled + valid private IP range + runtime-valid DNS (`VALID_DNS_RUNTIME`) |
+| `routerNatConfigured` | NAT enabled |
+| `hasValidPppoeCredentials` | WAN username/password exact-match `VALID_PPPOE_USERNAME`/`VALID_PPPOE_PASSWORD` |
+| `allRoutersConfigured` | `routerLanConfigured && routerNatConfigured && hasValidPppoeCredentials` |
+| `googleReachable` | `allRoutersConfigured && topology fully connected` |
+| `pcIp` | Derived from router LAN `startIp`; assigned when `routerLanConfigured && pcConnectedToRouterLan` |
+
+Entity statuses are updated as a side effect of the hook every render cycle.
 
 ### 2.5 Drag Engine Declaration
 
-- Start drag progress when `allDevicesPlaced` becomes true.
-- Finish drag progress when `allRoutersConfigured` and `googleReachable` are true.
+- **Start** drag progress: when `allDevicesPlaced` becomes `true`.
+- **Finish** drag progress: when `allRoutersConfigured && googleReachable` are both `true`.
 
 ### 2.6 Behavior Declaration
 
-- Click rules open config/status modals.
-- Save rules persist router fields to entity data.
-- Terminal command rule is active only in `PHASE_TERMINAL` and before question completion.
-- Success modal rule toggles navigate-away context.
+- Click rules open config/status modals for respective entity types.
+- Save rules read modal submission via `createEntityPayloadWriter`, validate, and write to entity data.
+- `RULE_TERMINAL_ONBOARDING` fires once when phase transitions to `terminal`; prints help text after 100ms delay.
+- `RULE_TERMINAL_COMMAND` is active only when `phase === "terminal" && questionStatus !== "completed"`.
+- `RULE_TERMINAL_NOT_READY` is a fallback: active when `phase !== "terminal"`, always returns error.
+- `RULE_SUCCESS_NAV` sets `ctx.navigateAway = true`; page then navigates away.
 
 ### 2.7 AI Authoring Contract
 
@@ -210,56 +238,94 @@ Because `PHASE_RULE_EVAL_MODE` is `last-match-wins`, later matches override earl
 
 ### 3.1 Runtime Lifecycle Sequence
 
-1. Bootstrap board and inventory.
-2. User places all devices along topology.
-3. User configures router LAN, NAT, and WAN.
-4. Derived state updates entity statuses and PC IP assignment.
-5. Terminal phase opens when drag engine finishes.
-6. User verifies connectivity with terminal commands.
-7. Success modal completes question and navigation context is set.
+1. Bootstrap board and inventory with all 9 entities.
+2. User drags entities into topology: PC → cable → router spaces → fiber → IGW → DNS → Google.
+3. `CTX_ALL_DEVICES_PLACED` becomes `true`; phase resolves to `PHASE_CONFIGURING`.
+4. Drag engine starts; phase resolves to `PHASE_PLAYING` (overrides configuring).
+5. User clicks router entities to open config modals and save settings.
+6. Derived state computes `routerLanConfigured`, `routerNatConfigured`, `googleReachable`.
+7. PC auto-receives IP when LAN configured and physically connected.
+8. When `allRoutersConfigured && googleReachable`, drag engine finishes.
+9. Phase resolves to `PHASE_TERMINAL`.
+10. `RULE_TERMINAL_ONBOARDING` fires once; prints intro + help text.
+11. User runs terminal commands to verify connectivity.
+12. `curl google.com` or `curl 142.250.80.46` succeeds: opens success modal, completes question.
+13. `RULE_SUCCESS_NAV` fires; `ctx.navigateAway = true`; page navigates.
 
-### 3.2 Placement and Topology Logic
+### 3.2 Topology and Connectivity Logic
 
-- Required topology path: PC -> cable -> router LAN/NAT/WAN -> fiber -> IGW -> DNS -> Google.
-- `allDevicesPlaced` is placement completeness, not correctness of configuration.
-- Entity statuses are derived continuously from connectivity and config validity.
+Required physical topology (left to right):
+```
+PC (local) → cable (conn-1) → Router LAN/NAT/WAN (router) → fiber (conn-2) → IGW (igw) → DNS (dns) → Google (google)
+```
+
+`buildInternetNetworkSnapshot` (`-utils/network-utils.ts`):
+- Reads all 7 grid spaces and their placed items.
+- Derives `pcConnectedToRouterLan`, `routerWanConnectedToIgw`, `isFullyConnected`.
+- Returns `connectionErrors` list for diagnostic display.
+
+`allDevicesPlaced` requires all entities placed **and** `isFullyConnected == true`.
 
 ### 3.3 Router Configuration Logic
 
-- Router LAN modal fields:
-  - `dhcpEnabled`
-  - `startIp`
-  - `endIp`
-  - `dnsServer`
-- Router NAT modal field:
-  - `natEnabled`
-- Router WAN modal fields:
-  - `username`
-  - `password`
+**LAN modal** (`MODAL_ROUTER_LAN`):
+- `dhcpEnabled`: must be `true`.
+- `startIp`: must be a valid private IP address.
+- `endIp`: must be a valid private IP address greater than `startIp`.
+- `dnsServer`: validated against `VALID_DNS_MODAL` list (superset of runtime).
 
-Save actions update entity data. Runtime derivation then decides effective connectivity.
+**NAT modal** (`MODAL_ROUTER_NAT`):
+- `natEnabled`: must be `true`.
+
+**WAN modal** (`MODAL_ROUTER_WAN`):
+- `username`: exact match against `VALID_PPPOE_USERNAME`.
+- `password`: exact match against `VALID_PPPOE_PASSWORD`.
+- Placeholder text shows example credentials.
+
+Save actions call `createEntityPayloadWriter` to persist fields to `entity.data`.
 
 ### 3.4 PC IP and Reachability Logic
 
-- PC receives IP only when router LAN is configured and physically connected.
-- Assigned IP uses LAN `startIp` base value.
-- Google reachability requires valid WAN auth, NAT enabled, and valid DNS.
+- PC auto-receives IP when `routerLanConfigured && pcConnectedToRouterLan`.
+- Assigned IP is derived from `startIp` (last octet incremented for each connected PC).
+- `googleReachable` requires: valid WAN credentials + NAT enabled + valid DNS + full topology.
 
 ### 3.5 Terminal Logic
 
-- `help`: prints command manual.
-- `ifconfig`: prints `eth0` IP or missing IP.
-- `nslookup <domain>`:
-  - requires runtime-valid DNS
-  - resolves only `google.com` -> `GOOGLE_IP`
-- `curl <target>`:
-  - target must be `google.com` or `GOOGLE_IP`
-  - checks WAN then NAT then DNS (for domain target)
-  - on success prints simulated HTTP response and opens success modal.
+Active guard: `phase === "terminal" && questionStatus !== "completed"`.
 
-### 3.6 Terminal Not-Ready Logic
+| Command | Logic |
+|---|---|
+| `help` | Prints command manual listing all available commands. |
+| `ifconfig` | Prints `eth0: <pcIp>` if IP assigned; otherwise `eth0: No IP assigned`. |
+| `nslookup google.com` | Requires `dnsServer` in `VALID_DNS_RUNTIME`; resolves `google.com` → `GOOGLE_IP`. |
+| `curl google.com` | Gate: WAN valid → NAT enabled → DNS valid. On success: prints HTTP 200 response, opens success modal, completes question. |
+| `curl 142.250.80.46` | Gate: WAN valid → NAT enabled (no DNS check for IP). On success: same as above. |
+| Unknown command | Prints unknown command error. |
 
-- Any terminal input outside `PHASE_TERMINAL` returns `Error: Terminal is not ready yet.`
+`deriveStatus(state)` is an internal function in `behaviors.ts` that reads all router entity data from `state.entities` and returns a snapshot used to gate terminal command outcomes.
+
+### 3.6 Terminal Onboarding Logic
+
+`RULE_TERMINAL_ONBOARDING` fires once on `PHASE_CHANGED` event to `terminal`. After a 100ms delay it prints `TERMINAL_INTRO_ENTRIES` (5 output lines listing available commands).
+
+### 3.7 Terminal Not-Ready Logic
+
+`RULE_TERMINAL_NOT_READY` fires when `phase !== "terminal"`. Returns `Error: Terminal is not ready yet.` for any input.
+
+### 3.8 Entity Badge Logic
+
+Short badge text derived by `getInternetStatusMessage` (`-utils/entity-badge.ts`):
+
+| Entity Type | Badge Values |
+|---|---|
+| `pc` | `"no ip"` / IP string / `"Can't reach Google"` / `"<ip> → internet"` |
+| `router-lan` | `"not configured"` / `"no DNS"` / `"configured"` |
+| `router-nat` | `"disabled"` / `"enabled"` |
+| `router-wan` | `"not configured"` / `"wrong credentials"` / `"authenticated"` |
+| `igw` | `"waiting for auth"` / `"connected"` |
+| `dns` | `"unreachable"` / `"resolving"` |
+| `google` | `"can't resolve"` / `"no route"` / `"142.250.80.46"` |
 
 ---
 
@@ -274,65 +340,69 @@ Save actions update entity data. Runtime derivation then decides effective conne
 | 3 | `dragStatus == finished` | `terminal` |
 | 4 | `questionStatus == completed` | `completed` |
 
-Evaluation mode: `last-match-wins`.
+Evaluation mode: `last-match-wins`. Rule 4 supersedes all others once complete.
 
 ### 4.2 Command Outcome Matrix
 
 | Command | Preconditions | Success Output | Failure Output |
 |---|---|---|---|
-| `ifconfig` | none (terminal phase active) | `eth0: <ip>` | `eth0: No IP assigned` |
-| `nslookup google.com` | DNS runtime-valid | `google.com -> 142.250.80.46` | DNS not configured error |
-| `curl google.com` | WAN + NAT + DNS valid | `HTTP/1.1 200 OK ...` | specific gate error |
-| `curl 142.250.80.46` | WAN + NAT valid | `HTTP/1.1 200 OK ...` | specific gate error |
+| `help` | terminal phase active | command manual | n/a |
+| `ifconfig` | terminal phase active | `eth0: <ip>` | `eth0: No IP assigned` |
+| `nslookup google.com` | DNS in `VALID_DNS_RUNTIME` | `google.com -> 142.250.80.46` | DNS not configured error |
+| `curl google.com` | WAN valid + NAT enabled + DNS valid | `HTTP/1.1 200 OK ...` + success modal | specific gate error per failed condition |
+| `curl 142.250.80.46` | WAN valid + NAT enabled | `HTTP/1.1 200 OK ...` + success modal | specific gate error |
 
 ### 4.3 Modal Submission Matrix
 
 | Modal | Action | Side Effect |
 |---|---|---|
-| `router-lan-config-*` | `save` | persist LAN fields |
-| `router-nat-config-*` | `save` | persist NAT field |
-| `router-wan-config-*` | `save` | persist WAN credentials |
-| `success` | `primary` | set navigate-away context |
+| `router-lan-config-*` | `save` | persist `dhcpEnabled`, `startIp`, `endIp`, `dnsServer` to entity data |
+| `router-nat-config-*` | `save` | persist `natEnabled` to entity data |
+| `router-wan-config-*` | `save` | persist `username`, `password` to entity data |
+| `success` | `primary` | `ctx.navigateAway = true` |
 
 ---
 
 ## 5) Term-to-Logic Link Index
 
-### 5.1 Space Terms -> Logic
+### 5.1 Space Terms → Logic
 
 | Term | Logic Usage |
 |---|---|
-| `SPACE_ROUTER` | Hosts LAN/NAT/WAN configurable entities |
+| `SPACE_ROUTER` | Hosts all three router entities in a 1×3 grid |
 | `SPACE_CONN_1` | PC-to-router cable connector |
 | `SPACE_CONN_2` | Router-to-IGW fiber connector |
-| `SPACE_GOOGLE` | End destination status entity |
+| `SPACE_GOOGLE` | End destination; status entity tracks reachability |
 
-### 5.2 Validation Terms -> Logic
-
-| Term | Logic Usage |
-|---|---|
-| `VALID_DNS_RUNTIME` | reachability checks and DNS status |
-| `VALID_DNS_MODAL` | LAN modal validation only |
-| `VALID_PPPOE_USERNAME/PASSWORD` | WAN auth check |
-
-### 5.3 Rule Terms -> Logic
+### 5.2 Validation Terms → Logic
 
 | Term | Logic Usage |
 |---|---|
-| `RULE_LAN_SAVE` | writes DHCP/DNS values |
-| `RULE_WAN_SAVE` | writes PPPoE credentials |
+| `VALID_DNS_RUNTIME` | `deriveStatus` and reachability gate for `nslookup`/`curl` |
+| `VALID_DNS_MODAL` | LAN modal `dnsServer` field validator only |
+| `VALID_PPPOE_USERNAME` | WAN auth exact-match check |
+| `VALID_PPPOE_PASSWORD` | WAN auth exact-match check |
+
+### 5.3 Rule Terms → Logic
+
+| Term | Logic Usage |
+|---|---|
+| `RULE_LAN_SAVE` | writes DHCP/DNS values to entity data |
+| `RULE_WAN_SAVE` | writes PPPoE credentials to entity data |
+| `RULE_TERMINAL_ONBOARDING` | prints intro once on phase entry |
 | `RULE_TERMINAL_COMMAND` | command interpreter and success gate |
-| `RULE_TERMINAL_NOT_READY` | terminal guard outside terminal phase |
+| `RULE_TERMINAL_NOT_READY` | guards terminal input outside terminal phase |
 
 ---
 
 ## 6) Hard Invariants
 
 - `GOOGLE_IP` remains `142.250.80.46`.
-- WAN credentials remain exact-match gates.
-- Terminal success remains tied to `curl` against allowed host/IP.
+- `VALID_PPPOE_USERNAME` and `VALID_PPPOE_PASSWORD` remain exact-match gates.
+- Terminal success remains tied to `curl` against `google.com` or `142.250.80.46` only.
 - Phase rules remain declarative and evaluated with `last-match-wins`.
 - Modal ID patterns remain stable.
+- `SPACE_ROUTER` remains a 1×3 grid hosting three distinct router entity types.
 
 ---
 
@@ -356,10 +426,11 @@ Evaluation mode: `last-match-wins`.
 
 ### 8.2 Consistency Checks
 
-- Every behavior rule ID referenced in logic exists in Section 1.8.
-- Every modal pattern used in logic exists in Section 1.9.
+- Every behavior rule ID referenced in logic exists in Section 1.9.
+- Every modal pattern used in logic exists in Section 1.10.
 - Phase-rule semantics state `last-match-wins`.
-- DNS validator/runtime split is documented.
+- `VALID_DNS_MODAL` vs `VALID_DNS_RUNTIME` split is documented in Section 1.5.
+- `CTX_ALL_DEVICES_PLACED` requires both placement and topology connectivity.
 
 ### 8.3 Quality Gates
 

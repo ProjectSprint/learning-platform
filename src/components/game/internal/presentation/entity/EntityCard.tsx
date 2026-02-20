@@ -59,7 +59,8 @@ export const EntityCard = ({
 }: EntityCardProps) => {
 	// Check if this is an Item entity (has draggable property)
 	const item = isItemData(entity) ? entity : null;
-	const isNonDraggable = item?.draggable === false;
+	const isNonDraggable =
+		item?.draggable === false || entity.visual.draggable === false;
 
 	// Get display properties
 	const displayName = entity.name ?? entity.type;

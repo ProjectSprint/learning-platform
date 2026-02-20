@@ -5,7 +5,7 @@
  * subscribing internally, so there is no double-subscription.
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
 	BehaviorDefinition,
 	BehaviorReactorDeps,
@@ -51,9 +51,21 @@ export function useBehaviorReactor<
 	definition: BehaviorDefinition<TContext> | undefined,
 	deps: BehaviorReactorDeps,
 ): BehaviorReactorResult<TContext> {
-	const contextRef = useRef<TContext>(
-		definition?.initialContext ?? ({} as TContext),
-	);
+	const initialContext = definition?.initialContext ?? ({} as TContext);
+	const contextRef = useRef<TContext>(initialContext);
+	const [contextState, setContextState] = useState<TContext>(initialContext);
+	const setContextRef = useRef(setContextState);
+	setContextRef.current = setContextState;
+
+	const commitContext = useCallback((updater: (ctx: TContext) => void) => {
+		const next = structuredClone(contextRef.current);
+		updater(next);
+		contextRef.current = next;
+		setContextRef.current(next);
+	}, []);
+	const commitContextRef = useRef(commitContext);
+	commitContextRef.current = commitContext;
+
 	const stateRef = useRef(deps.state);
 	stateRef.current = deps.state;
 
@@ -104,6 +116,7 @@ export function useBehaviorReactor<
 							entity,
 							state,
 							contextRef,
+							commitContextRef,
 							onceKeys.current,
 							depsRef.current,
 							stateRef,
@@ -129,7 +142,7 @@ export function useBehaviorReactor<
 		};
 	}, [events, ack]);
 
-	return { context: contextRef.current };
+	return { context: contextState };
 }
 
 type TriggerMatcherContext = {
@@ -276,6 +289,9 @@ function buildGuardContext<TContext>(
 type SharedContextDeps<TContext extends Record<string, unknown>> = {
 	provenance: EventProvenance;
 	contextRef: React.MutableRefObject<TContext>;
+	commitContextRef: React.MutableRefObject<
+		(updater: (ctx: TContext) => void) => void
+	>;
 	onceKeys: Set<string>;
 	stateRef: React.MutableRefObject<GameState>;
 	depsRef: React.MutableRefObject<BehaviorReactorDeps>;
@@ -307,9 +323,11 @@ function buildSharedContextFields<TContext extends Record<string, unknown>>(
 	});
 
 	return {
-		context: shared.contextRef.current,
-		updateContext: (updater) => {
-			updater(shared.contextRef.current);
+		get context() {
+			return shared.contextRef.current;
+		},
+		updateContext: (updater: (ctx: TContext) => void) => {
+			shared.commitContextRef.current(updater);
 		},
 		world: deps.world,
 		interaction: deps.interaction,
@@ -334,12 +352,17 @@ function buildSharedContextFields<TContext extends Record<string, unknown>>(
 		},
 		schedule: (key, ms, fn) => {
 			deps.scheduler?.schedule(key, ms, () => {
-				const scheduledCtx: ScheduledEffectContext<TContext> = {
+				const inner = buildSharedContextFields(shared);
+				const scheduledCtx = {
 					state: shared.stateRef.current,
 					phase: shared.stateRef.current.phase,
-					...buildSharedContextFields(shared),
+					...inner,
 					provenance: shared.provenance,
-				};
+				} as ScheduledEffectContext<TContext>;
+				Object.defineProperty(scheduledCtx, "context", {
+					get: () => shared.contextRef.current,
+					enumerable: true,
+				});
 				fn(scheduledCtx);
 			});
 		},
@@ -357,6 +380,9 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 	entity: EntityData | undefined,
 	state: GameState,
 	contextRef: React.MutableRefObject<TContext>,
+	commitContextRef: React.MutableRefObject<
+		(updater: (ctx: TContext) => void) => void
+	>,
 	onceKeys: Set<string>,
 	_deps: BehaviorReactorDeps,
 	stateRef: React.MutableRefObject<GameState>,
@@ -367,19 +393,25 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 	const shared = buildSharedContextFields<TContext>({
 		provenance,
 		contextRef,
+		commitContextRef,
 		onceKeys,
 		stateRef,
 		depsRef,
 	});
 
-	return {
+	const ctx = {
 		event,
 		provenance,
 		entity,
 		state,
 		phase: state.phase,
 		...shared,
-	};
+	} as EffectContext<TContext>;
+	Object.defineProperty(ctx, "context", {
+		get: () => contextRef.current,
+		enumerable: true,
+	});
+	return ctx;
 }
 
 export function buildEventProvenance(

@@ -89,9 +89,12 @@ export type DragGatingContext = {
 	readonly state: GameState;
 };
 
-export type DragGatingRule = {
-	spaceId: string;
-	entityType?: string;
+export type DragGatingRule<
+	TSpaceId extends string = string,
+	TEntityType extends string = string,
+> = {
+	spaceId: TSpaceId;
+	entityType?: TEntityType;
 	canDrag: (ctx: DragGatingContext) => boolean;
 };
 
@@ -100,8 +103,8 @@ export type LayoutRuleContext = {
 	readonly phase: string;
 };
 
-export type LayoutVisibilityRule = {
-	targetId: string;
+export type LayoutVisibilityRule<TSpaceId extends string = string> = {
+	targetId: TSpaceId;
 	visible: (ctx: LayoutRuleContext) => boolean;
 };
 
@@ -113,18 +116,18 @@ export type SpaceShapeOverrides = {
 	title?: string;
 };
 
-export type SpaceShapeRule = {
-	spaceId: string;
+export type SpaceShapeRule<TSpaceId extends string = string> = {
+	spaceId: TSpaceId;
 	compute: (ctx: LayoutRuleContext) => SpaceShapeOverrides | undefined;
 };
 
-export type SpaceDefinition =
-	| { kind: "grid"; config: GridSpaceConfig }
-	| { kind: "pool"; config: PoolSpaceConfig }
-	| { kind: "path"; config: PathSpaceConfig }
-	| { kind: "custom"; config: CustomSpaceConfig }
-	| { kind: "queue"; config: QueueSpaceConfig }
-	| { kind: "meter"; config: MeterSpaceConfig };
+export type SpaceDefinition<TSpaceId extends string = string> =
+	| { kind: "grid"; config: GridSpaceConfig<TSpaceId> }
+	| { kind: "pool"; config: PoolSpaceConfig<TSpaceId> }
+	| { kind: "path"; config: PathSpaceConfig<TSpaceId> }
+	| { kind: "custom"; config: CustomSpaceConfig<TSpaceId> }
+	| { kind: "queue"; config: QueueSpaceConfig<TSpaceId> }
+	| { kind: "meter"; config: MeterSpaceConfig<TSpaceId> };
 
 export type EntityDefinition<
 	TConfig extends ItemDataConfig = ItemDataConfig,
@@ -143,7 +146,7 @@ export type QuestionMeta<TQuestionId extends string = string> = {
 
 export type QuestionDefinition<
 	ConditionKey extends string = string,
-	TContext = Record<string, never>,
+	TContext = unknown,
 	TPhase extends string = string,
 	TSpaceId extends string = string,
 	TEntityType extends string = string,
@@ -152,7 +155,7 @@ export type QuestionDefinition<
 > = {
 	meta: QuestionMeta<TQuestionId>;
 	initialPhase: TPhase;
-	spaces: SpaceDefinition[];
+	spaces: SpaceDefinition<TSpaceId>[];
 	entities: EntityDefinition<ItemDataConfig, TSpaceId>[];
 	phaseRules: PhaseRule<ConditionKey, TPhase, TConditionValue>[];
 	inventoryRules?: InventoryRule<ConditionKey, string, TConditionValue>[];
@@ -161,9 +164,9 @@ export type QuestionDefinition<
 		TContext,
 		EventTrigger<TSpaceId, TEntityType, string, string, TPhase>
 	>;
-	dragRules?: DragGatingRule[];
-	layoutRules?: LayoutVisibilityRule[];
-	shapeRules?: SpaceShapeRule[];
+	dragRules?: DragGatingRule<TSpaceId, TEntityType>[];
+	layoutRules?: LayoutVisibilityRule<TSpaceId>[];
+	shapeRules?: SpaceShapeRule<TSpaceId>[];
 };
 
 export type QuestionTypeSpec = {

@@ -22,6 +22,7 @@ Then jump to the linked deep reference.
 | Update entity config/state | `world.updateEntity(...)`, `world.updateEntityState(...)` | `EntityData` | `3.1-runtime-api-reference.md` |
 | Move entities between spaces | `world.addToSpace(...)`, `world.moveEntity(...)`, `world.removeFromSpace(...)` | `SpaceData`, placement constraints | `3.1-runtime-api-reference.md` |
 | Schedule delayed behavior safely | `schedule(key, ...)`, `cancelSchedule(key)` | behavior context shape | `2.2-interactions-and-behaviors.md` |
+| Check if a space has entities | `useSpaceEntities(spaceId)` | `SpaceData`, `EntityData` | `3.2-component-reference.md` |
 | Render board/inventory/transit | `GameBoard`, `GridSpace`, `PoolSpace`, `PathSpace` | component props | `3.2-component-reference.md` |
 | Render custom widgets or queue/meter UIs | `CustomSpace` + custom UI | `QueueSpaceData`, `MeterSpaceData` | `3.2-component-reference.md`, `3.3-types-reference.md` |
 

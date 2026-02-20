@@ -9,7 +9,7 @@
 
 import { useBreakpointValue } from "@chakra-ui/react";
 import { memo, useEffect, useMemo } from "react";
-import type { EntityStatus } from "@/components/game/types/core";
+import type { EntityStatus } from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
 import type {
 	GridPosition,

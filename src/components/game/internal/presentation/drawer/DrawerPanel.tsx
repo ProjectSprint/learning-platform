@@ -13,7 +13,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { DrawerInstance } from "@/components/game/types/core";
+import type { DrawerInstance } from "@/components/game/types/drawer";
 import { useDragContext } from "../interaction/drag/DragContext";
 import { useDrawerStore } from "./drawer-context";
 import { FloatingActionButton } from "./FloatingActionButton";

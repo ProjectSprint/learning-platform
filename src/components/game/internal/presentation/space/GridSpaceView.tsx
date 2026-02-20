@@ -9,7 +9,7 @@
 
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EntityStatus } from "@/components/game/types/core";
+import type { EntityStatus } from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
 import type {
 	GridPosition,

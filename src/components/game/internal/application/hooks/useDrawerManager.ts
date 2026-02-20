@@ -6,7 +6,7 @@
 import type {
 	DrawerConfig,
 	DrawerInstance,
-} from "@/components/game/types/core";
+} from "@/components/game/types/drawer";
 import { useDrawerStore } from "../../presentation/drawer/drawer-context";
 
 type DrawerManager = {

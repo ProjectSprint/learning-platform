@@ -7,6 +7,7 @@ type TcpStateLabel = {
 const packetStateMessages: Record<string, TcpStateLabel> = {
 	idle: { label: "Ready" },
 	"in-transit": { label: "Sending..." },
+	queued: { label: "Waiting for server slot" },
 	received: { label: "Received" },
 	buffered: { label: "Buffered for ordering" },
 	lost: { label: "Lost!" },

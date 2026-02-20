@@ -4,7 +4,7 @@ import type {
 	InventoryGroup,
 	InventoryGroupConfig,
 	Item,
-} from "@/components/game/types/core";
+} from "@/components/game/types/inventory";
 import { MAX_INVENTORY_ITEMS } from "./sanitize";
 
 export const DEFAULT_POOL_GROUP_ID = "default";

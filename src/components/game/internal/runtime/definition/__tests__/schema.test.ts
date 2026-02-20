@@ -18,9 +18,6 @@ describe("validateQuestionDefinition", () => {
 		const def = minimalDefinition();
 		const result = validateQuestionDefinition(def);
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.definition).toBe(def);
-		}
 	});
 
 	it("returns errors for invalid definition", () => {

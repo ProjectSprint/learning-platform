@@ -1,4 +1,5 @@
 import {
+	buildEntityArrivedTrigger,
 	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
 	buildTerminalInputTrigger,
@@ -355,8 +356,19 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 		},
 	},
 	{
-		id: "ssl.phase-terminal-ready",
-		on: { event: "ENTITY_UPDATED" },
+		id: "ssl.phase-terminal-ready.port-80",
+		on: buildEntityArrivedTrigger("port-80"),
+		guard: ({ state, phase }) => {
+			const ssl = deriveSslStatus(state);
+			return ssl.httpsReady && ssl.hasRedirect && phase !== "terminal";
+		},
+		handler: ({ setPhase }) => {
+			setPhase("terminal", "ssl.behavior");
+		},
+	},
+	{
+		id: "ssl.phase-terminal-ready.port-443",
+		on: buildEntityArrivedTrigger("port-443"),
 		guard: ({ state, phase }) => {
 			const ssl = deriveSslStatus(state);
 			return ssl.httpsReady && ssl.hasRedirect && phase !== "terminal";

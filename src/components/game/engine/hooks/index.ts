@@ -8,6 +8,7 @@ export {
 	type EngineController,
 	useEngineProgress,
 } from "./use-engine-progress";
+export { useSpaceEntities } from "./use-space-entities";
 export {
 	type TerminalCommandHelpers,
 	type TerminalEngine,
