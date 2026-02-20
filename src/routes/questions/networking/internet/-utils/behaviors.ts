@@ -1,4 +1,6 @@
 import {
+	BehaviorDefinition,
+	BehaviorRule,
 	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
 	buildTerminalInputTrigger,
@@ -8,10 +10,6 @@ import {
 	parseTerminalInput,
 	type TerminalInputContract,
 } from "@/components/game/engine/runtime";
-import type {
-	BehaviorDefinitionFor,
-	BehaviorRuleFor,
-} from "@/components/game/types/behavior";
 import type { GameState } from "@/components/game/types/state";
 import {
 	GOOGLE_IP,
@@ -281,9 +279,9 @@ function deriveStatus(state: GameState) {
 	};
 }
 
-const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
+const rules = [
 	// --- Entity click handlers ---
-	{
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.router-lan-click",
 		on: buildEntityClickTrigger("router-lan"),
 		handler: ({ entity, interaction }) => {
@@ -292,8 +290,8 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				buildRouterLanConfigModal(entity.id, entity.data ?? {}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.router-nat-click",
 		on: buildEntityClickTrigger("router-nat"),
 		handler: ({ entity, interaction }) => {
@@ -302,8 +300,8 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				buildRouterNatConfigModal(entity.id, entity.data ?? {}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.router-wan-click",
 		on: buildEntityClickTrigger("router-wan"),
 		handler: ({ entity, interaction }) => {
@@ -312,8 +310,8 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				buildRouterWanConfigModal(entity.id, entity.data ?? {}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.pc-click",
 		on: buildEntityClickTrigger("pc"),
 		handler: ({ entity, state, interaction }) => {
@@ -328,8 +326,8 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.igw-click",
 		on: buildEntityClickTrigger("igw"),
 		handler: ({ entity, state, interaction }) => {
@@ -343,8 +341,8 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.dns-click",
 		on: buildEntityClickTrigger("dns"),
 		handler: ({ entity, state, interaction }) => {
@@ -357,8 +355,8 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.google-click",
 		on: buildEntityClickTrigger("google"),
 		handler: ({ entity, state, interaction }) => {
@@ -381,10 +379,10 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				}),
 			);
 		},
-	},
+	}),
 
 	// --- Modal submit save handlers ---
-	{
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.router-lan-save",
 		on: buildModalSubmitTrigger(undefined, "save"),
 		guard: ({ event }) =>
@@ -407,8 +405,8 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				dnsServer,
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.router-nat-save",
 		on: buildModalSubmitTrigger(undefined, "save"),
 		guard: ({ event }) =>
@@ -428,8 +426,8 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				natEnabled,
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.router-wan-save",
 		on: buildModalSubmitTrigger(undefined, "save"),
 		guard: ({ event }) =>
@@ -451,10 +449,10 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				password,
 			});
 		},
-	},
+	}),
 
 	// --- Success modal navigation ---
-	{
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.success-modal-navigate",
 		on: buildModalSubmitTrigger("success", "primary"),
 		handler: ({ event, updateContext }) => {
@@ -469,8 +467,8 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				ctx.navigateAway = true;
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.terminal-onboarding",
 		on: { event: "PHASE_CHANGED", to: "terminal" },
 		handler: ({ schedule, once }) => {
@@ -517,10 +515,10 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				});
 			});
 		},
-	},
+	}),
 
 	// --- Terminal commands ---
-	{
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.terminal-command",
 		on: buildTerminalInputTrigger(),
 		guard: ({ phase, state }) =>
@@ -672,21 +670,21 @@ const rules: BehaviorRuleFor<InternetBehaviorContext, InternetTriggerSpec>[] = [
 				"error",
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.terminal-not-ready",
 		on: buildTerminalInputTrigger(),
 		guard: ({ phase }) => phase !== "terminal",
 		handler: ({ terminal }) => {
 			terminal.writeOutput("Error: Terminal is not ready yet.", "error");
 		},
-	},
+	}),
 ];
 
-export const INTERNET_BEHAVIORS: BehaviorDefinitionFor<
+export const INTERNET_BEHAVIORS = BehaviorDefinition<
 	InternetBehaviorContext,
 	InternetTriggerSpec
-> = {
+>({
 	initialContext: { navigateAway: false },
 	rules,
-};
+});

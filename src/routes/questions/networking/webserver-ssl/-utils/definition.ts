@@ -1,8 +1,9 @@
-import { EntityFactory, SpaceFactory } from "@/components/game/engine/runtime";
-import type {
-	QuestionDefinitionFor,
-	QuestionTypeSpec,
-} from "@/components/game/types/question";
+import {
+	EntityFactory,
+	QuestionDefinition,
+	type QuestionTypeSpec,
+	SpaceFactory,
+} from "@/components/game/engine/runtime";
 import {
 	SSL_BEHAVIORS,
 	type SslBehaviorContext,
@@ -39,7 +40,7 @@ const SSL_SETUP_SPACE_ID: SslQuestionSpec["spaceId"] = SSL_POOL_IDS.setup;
 const SSL_CERTIFICATES_SPACE_ID: SslQuestionSpec["spaceId"] =
 	SSL_POOL_IDS.certificates;
 
-export const SSL_DEFINITION: QuestionDefinitionFor<SslQuestionSpec> = {
+export const SSL_DEFINITION = QuestionDefinition<SslQuestionSpec>({
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -65,4 +66,4 @@ export const SSL_DEFINITION: QuestionDefinitionFor<SslQuestionSpec> = {
 	],
 	phaseRules: [],
 	behaviors: SSL_BEHAVIORS,
-};
+});

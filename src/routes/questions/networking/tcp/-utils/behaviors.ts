@@ -1,17 +1,15 @@
 import {
+	BehaviorDefinition,
+	BehaviorRule,
 	buildEntityArrivedTrigger,
 	buildModalSubmitTrigger,
 	createEntityPayloadWriter,
+	type EffectContext,
 	findEntitySpace,
 	type ModalSubmissionContract,
 	parseModalSubmission,
+	type ScheduledEffectContext,
 } from "@/components/game/engine/runtime";
-import type {
-	BehaviorDefinitionFor,
-	BehaviorRuleFor,
-	EffectContext,
-	ScheduledEffectContext,
-} from "@/components/game/types/behavior";
 import type { EntityData } from "@/components/game/types/entity";
 import type { GridSpaceData } from "@/components/game/types/space";
 import {
@@ -1154,32 +1152,32 @@ const handleSplitterDrop = (ctx: TcpCtx, entity: EntityData) => {
 	resetBufferState(ctx, NOTES_PACKET_IDS.length);
 };
 
-const rules: BehaviorRuleFor<TcpBehaviorContext, TcpTriggerSpec>[] = [
-	{
+const rules = [
+	BehaviorRule<TcpBehaviorContext, TcpTriggerSpec>({
 		id: "tcp.entity.arrived.splitter",
 		on: buildEntityArrivedTrigger("splitter"),
 		handler: (ctx) => {
 			if (!ctx.entity) return;
 			handleSplitterDrop(ctx, ctx.entity);
 		},
-	},
-	{
+	}),
+	BehaviorRule<TcpBehaviorContext, TcpTriggerSpec>({
 		id: "tcp.entity.arrived.internet",
 		on: buildEntityArrivedTrigger("internet"),
 		handler: (ctx) => {
 			if (!ctx.entity) return;
 			handleInternetItem(ctx, ctx.entity);
 		},
-	},
-	{
+	}),
+	BehaviorRule<TcpBehaviorContext, TcpTriggerSpec>({
 		id: "tcp.entity.arrived.server",
 		on: buildEntityArrivedTrigger("server"),
 		handler: (ctx) => {
 			if (!ctx.entity) return;
 			handleServerItem(ctx, ctx.entity);
 		},
-	},
-	{
+	}),
+	BehaviorRule<TcpBehaviorContext, TcpTriggerSpec>({
 		id: "tcp.modal.closed.mtu",
 		on: { event: "MODAL_CLOSED", modalId: "mtu-limit" },
 		handler: (ctx) => {
@@ -1199,8 +1197,8 @@ const rules: BehaviorRuleFor<TcpBehaviorContext, TcpTriggerSpec>[] = [
 			}
 			syncSplitterVisibility(ctx);
 		},
-	},
-	{
+	}),
+	BehaviorRule<TcpBehaviorContext, TcpTriggerSpec>({
 		id: "tcp.modal.closed.syn-ack",
 		on: { event: "MODAL_CLOSED", modalId: "syn-ack-received" },
 		handler: (ctx) => {
@@ -1211,8 +1209,8 @@ const rules: BehaviorRuleFor<TcpBehaviorContext, TcpTriggerSpec>[] = [
 				ctx.interaction.openModal(buildAckIntroModal());
 			}
 		},
-	},
-	{
+	}),
+	BehaviorRule<TcpBehaviorContext, TcpTriggerSpec>({
 		id: "tcp.modal.closed.duplicate",
 		on: { event: "MODAL_CLOSED", modalId: "duplicate-acks" },
 		handler: ({ updateContext }) => {
@@ -1220,8 +1218,8 @@ const rules: BehaviorRuleFor<TcpBehaviorContext, TcpTriggerSpec>[] = [
 				ctx.allowPacket2 = true;
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<TcpBehaviorContext, TcpTriggerSpec>({
 		id: "tcp.success-modal-navigate",
 		on: buildModalSubmitTrigger("tcp-success", "primary"),
 		handler: ({ event, updateContext }) => {
@@ -1236,7 +1234,7 @@ const rules: BehaviorRuleFor<TcpBehaviorContext, TcpTriggerSpec>[] = [
 				ctx.navigateAway = true;
 			});
 		},
-	},
+	}),
 ];
 
 const initialModalsShown: ModalShownFlags = {
@@ -1262,10 +1260,10 @@ const TCP_SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
 	parse: () => ({ ok: true, value: null }),
 };
 
-export const TCP_BEHAVIORS: BehaviorDefinitionFor<
+export const TCP_BEHAVIORS = BehaviorDefinition<
 	TcpBehaviorContext,
 	TcpTriggerSpec
-> = {
+>({
 	initialContext: {
 		navigateAway: false,
 		splitterVisible: false,
@@ -1296,4 +1294,4 @@ export const TCP_BEHAVIORS: BehaviorDefinitionFor<
 		completedFiles: initialCompletedFiles,
 	},
 	rules,
-};
+});

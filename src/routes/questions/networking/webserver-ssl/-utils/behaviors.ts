@@ -1,4 +1,6 @@
 import {
+	BehaviorDefinition,
+	BehaviorRule,
 	buildEntityArrivedTrigger,
 	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
@@ -10,10 +12,6 @@ import {
 	parseTerminalInput,
 	type TerminalInputContract,
 } from "@/components/game/engine/runtime";
-import type {
-	BehaviorDefinitionFor,
-	BehaviorRuleFor,
-} from "@/components/game/types/behavior";
 import type { GameState } from "@/components/game/types/state";
 import {
 	DEFAULT_DOMAIN,
@@ -180,8 +178,8 @@ function deriveSslStatus(state: GameState) {
 	return { httpReady, httpsReady, hasRedirect, port80Domain };
 }
 
-const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
-	{
+const rules = [
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.browser-click",
 		on: buildEntityClickTrigger("browser"),
 		handler: ({ entity, state, interaction }) => {
@@ -219,8 +217,8 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 				),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.webserver-80-click",
 		on: buildEntityClickTrigger("webserver-80"),
 		handler: ({ entity, state, interaction }) => {
@@ -259,8 +257,8 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 				}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.webserver-443-click",
 		on: buildEntityClickTrigger("webserver-443"),
 		handler: ({ entity, state, interaction }) => {
@@ -297,8 +295,8 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 				}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.letsencrypt-domain-click",
 		on: buildEntityClickTrigger("domain"),
 		handler: ({ entity, state, context, interaction }) => {
@@ -320,16 +318,16 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 				}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.index-click",
 		on: buildEntityClickTrigger("index-html"),
 		handler: ({ entity, interaction }) => {
 			if (!entity) return;
 			interaction.openModal(buildIndexHtmlViewModal(entity.id));
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.private-key-click",
 		on: buildEntityClickTrigger("private-key"),
 		handler: ({ entity, state, interaction }) => {
@@ -337,8 +335,8 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 			const installed = findEntitySpace(state, entity.id) === "port-443";
 			interaction.openModal(buildPrivateKeyInfoModal(entity.id, installed));
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.certificate-click",
 		on: buildEntityClickTrigger("certificate"),
 		handler: ({ entity, state, interaction }) => {
@@ -346,16 +344,16 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 			const installed = findEntitySpace(state, entity.id) === "port-443";
 			interaction.openModal(buildCertificateInfoModal(entity.id, installed));
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.redirect-click",
 		on: buildEntityClickTrigger("redirect-to-https"),
 		handler: ({ entity, interaction }) => {
 			if (!entity) return;
 			interaction.openModal(buildRedirectInfoModal(entity.id));
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.phase-terminal-ready.port-80",
 		on: buildEntityArrivedTrigger("port-80"),
 		guard: ({ state, phase }) => {
@@ -365,8 +363,8 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 		handler: ({ setPhase }) => {
 			setPhase("terminal", "ssl.behavior");
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.phase-terminal-ready.port-443",
 		on: buildEntityArrivedTrigger("port-443"),
 		guard: ({ state, phase }) => {
@@ -376,8 +374,8 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 		handler: ({ setPhase }) => {
 			setPhase("terminal", "ssl.behavior");
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.certificate-issue",
 		on: buildModalSubmitTrigger(undefined, "issue"),
 		handler: ({ event, world, updateContext }) => {
@@ -401,8 +399,8 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 				ctx.certificateDomain = domain;
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.success-modal-navigate",
 		on: buildModalSubmitTrigger("success", "primary"),
 		handler: ({ event, updateContext }) => {
@@ -417,8 +415,8 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 				ctx.navigateAway = true;
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.terminal-onboarding",
 		on: { event: "PHASE_CHANGED", to: "terminal" },
 		handler: ({ state, context, schedule, once }) => {
@@ -456,10 +454,10 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 				});
 			});
 		},
-	},
+	}),
 
 	// --- Terminal commands ---
-	{
+	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.terminal-command",
 		on: buildTerminalInputTrigger(),
 		guard: ({ state }) => state.question.status !== "completed",
@@ -680,13 +678,13 @@ const rules: BehaviorRuleFor<SslBehaviorContext, SslTriggerSpec>[] = [
 				"error",
 			);
 		},
-	},
+	}),
 ];
 
-export const SSL_BEHAVIORS: BehaviorDefinitionFor<
+export const SSL_BEHAVIORS = BehaviorDefinition<
 	SslBehaviorContext,
 	SslTriggerSpec
-> = {
+>({
 	initialContext: { certificateDomain: null, navigateAway: false },
 	rules,
-};
+});

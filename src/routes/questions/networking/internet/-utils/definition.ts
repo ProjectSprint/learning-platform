@@ -2,12 +2,10 @@ import {
 	ConditionFactory,
 	EntityFactory,
 	PhaseRuleFactory,
+	QuestionDefinition,
+	type QuestionTypeSpec,
 	SpaceFactory,
 } from "@/components/game/engine/runtime";
-import type {
-	QuestionDefinitionFor,
-	QuestionTypeSpec,
-} from "@/components/game/types/question";
 import {
 	INTERNET_BEHAVIORS,
 	type InternetBehaviorContext,
@@ -39,40 +37,37 @@ type InternetQuestionSpec = QuestionTypeSpec & {
 	conditionValue: string | boolean;
 };
 
-export const INTERNET_DEFINITION: QuestionDefinitionFor<InternetQuestionSpec> =
-	{
-		meta: {
-			id: QUESTION_ID,
-			title: QUESTION_TITLE,
-			description: QUESTION_DESCRIPTION,
-		},
-		initialPhase: "setup",
-		spaces: [
-			...Object.values(SPACE_CONFIGS).map((config) =>
-				SpaceFactory.grid(config),
-			),
-			SpaceFactory.pool(INVENTORY_POOL_CONFIG),
-		],
-		entities: INVENTORY_ITEMS.map((item) =>
-			EntityFactory.itemInSpace(item, "inventory"),
+export const INTERNET_DEFINITION = QuestionDefinition<InternetQuestionSpec>({
+	meta: {
+		id: QUESTION_ID,
+		title: QUESTION_TITLE,
+		description: QUESTION_DESCRIPTION,
+	},
+	initialPhase: "setup",
+	spaces: [
+		...Object.values(SPACE_CONFIGS).map((config) => SpaceFactory.grid(config)),
+		SpaceFactory.pool(INVENTORY_POOL_CONFIG),
+	],
+	entities: INVENTORY_ITEMS.map((item) =>
+		EntityFactory.itemInSpace(item, "inventory"),
+	),
+	phaseRules: [
+		PhaseRuleFactory.set(
+			ConditionFactory.eq("allDevicesPlaced", true),
+			"configuring",
 		),
-		phaseRules: [
-			PhaseRuleFactory.set(
-				ConditionFactory.eq("allDevicesPlaced", true),
-				"configuring",
-			),
-			PhaseRuleFactory.set(
-				ConditionFactory.eq("dragStatus", "started"),
-				"playing",
-			),
-			PhaseRuleFactory.set(
-				ConditionFactory.eq("dragStatus", "finished"),
-				"terminal",
-			),
-			PhaseRuleFactory.set(
-				ConditionFactory.eq("questionStatus", "completed"),
-				"completed",
-			),
-		],
-		behaviors: INTERNET_BEHAVIORS,
-	};
+		PhaseRuleFactory.set(
+			ConditionFactory.eq("dragStatus", "started"),
+			"playing",
+		),
+		PhaseRuleFactory.set(
+			ConditionFactory.eq("dragStatus", "finished"),
+			"terminal",
+		),
+		PhaseRuleFactory.set(
+			ConditionFactory.eq("questionStatus", "completed"),
+			"completed",
+		),
+	],
+	behaviors: INTERNET_BEHAVIORS,
+});

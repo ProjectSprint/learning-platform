@@ -6,6 +6,23 @@
  * - `internal/*` stays as implementation primitives/interactors.
  */
 
+export type {
+	EffectContext,
+	ScheduledEffectContext,
+} from "../../types/behavior";
+// Types re-exported for consumers who need them as local type aliases or
+// inline annotations (e.g. `type Ctx = EffectContext<MyCtx>`).
+export type {
+	ConditionContext,
+	QuestionTypeSpec,
+} from "../../types/question";
+// Constructor functions — drive TypeScript inference so consumers never need
+// to import the *For type aliases separately.
+export {
+	BehaviorDefinition,
+	BehaviorRule,
+	QuestionDefinition,
+} from "./constructors";
 export {
 	ConditionFactory,
 	EntityFactory,

@@ -2,12 +2,10 @@ import {
 	ConditionFactory,
 	EntityFactory,
 	PhaseRuleFactory,
+	QuestionDefinition,
+	type QuestionTypeSpec,
 	SpaceFactory,
 } from "@/components/game/engine/runtime";
-import type {
-	QuestionDefinitionFor,
-	QuestionTypeSpec,
-} from "@/components/game/types/question";
 import {
 	DHCP_BEHAVIORS,
 	type DhcpBehaviorContext,
@@ -36,7 +34,7 @@ type DhcpQuestionSpec = QuestionTypeSpec & {
 	conditionValue: string | boolean;
 };
 
-export const DHCP_DEFINITION: QuestionDefinitionFor<DhcpQuestionSpec> = {
+export const DHCP_DEFINITION = QuestionDefinition<DhcpQuestionSpec>({
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -65,4 +63,4 @@ export const DHCP_DEFINITION: QuestionDefinitionFor<DhcpQuestionSpec> = {
 		),
 	],
 	behaviors: DHCP_BEHAVIORS,
-};
+});

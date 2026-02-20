@@ -1,8 +1,9 @@
-import { EntityFactory, SpaceFactory } from "@/components/game/engine/runtime";
-import type {
-	QuestionDefinitionFor,
-	QuestionTypeSpec,
-} from "@/components/game/types/question";
+import {
+	EntityFactory,
+	QuestionDefinition,
+	type QuestionTypeSpec,
+	SpaceFactory,
+} from "@/components/game/engine/runtime";
 
 import {
 	CORES_BEHAVIORS,
@@ -36,26 +37,25 @@ type CoresQuestionSpec = QuestionTypeSpec & {
 	conditionValue: never;
 };
 
-export const CORES_THREADS_DEFINITION: QuestionDefinitionFor<CoresQuestionSpec> =
-	{
-		meta: {
-			id: QUESTION_ID,
-			title: QUESTION_TITLE,
-			description: QUESTION_DESCRIPTION,
-		},
-		initialPhase: "single-core",
-		spaces: [
-			SpaceFactory.pool(APP_POOL_CONFIG),
-			SpaceFactory.grid(OPEN_GRID_CONFIG),
-			SpaceFactory.grid(EXECUTION_GRID_CONFIG),
-			SpaceFactory.path(CORE1_PATH_CONFIG),
-			SpaceFactory.path(CORE2_PATH_CONFIG),
-			SpaceFactory.path(STORAGE_PATH_CONFIG),
-			SpaceFactory.grid(OPENED_GRID_CONFIG),
-		],
-		entities: APP_ITEMS.map((item) =>
-			EntityFactory.itemInSpace(item, SPACE_IDS.appPool),
-		),
-		phaseRules: [],
-		behaviors: CORES_BEHAVIORS,
-	};
+export const CORES_THREADS_DEFINITION = QuestionDefinition<CoresQuestionSpec>({
+	meta: {
+		id: QUESTION_ID,
+		title: QUESTION_TITLE,
+		description: QUESTION_DESCRIPTION,
+	},
+	initialPhase: "single-core",
+	spaces: [
+		SpaceFactory.pool(APP_POOL_CONFIG),
+		SpaceFactory.grid(OPEN_GRID_CONFIG),
+		SpaceFactory.grid(EXECUTION_GRID_CONFIG),
+		SpaceFactory.path(CORE1_PATH_CONFIG),
+		SpaceFactory.path(CORE2_PATH_CONFIG),
+		SpaceFactory.path(STORAGE_PATH_CONFIG),
+		SpaceFactory.grid(OPENED_GRID_CONFIG),
+	],
+	entities: APP_ITEMS.map((item) =>
+		EntityFactory.itemInSpace(item, SPACE_IDS.appPool),
+	),
+	phaseRules: [],
+	behaviors: CORES_BEHAVIORS,
+});

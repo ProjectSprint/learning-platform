@@ -1,8 +1,9 @@
-import { EntityFactory, SpaceFactory } from "@/components/game/engine/runtime";
-import type {
-	QuestionDefinitionFor,
-	QuestionTypeSpec,
-} from "@/components/game/types/question";
+import {
+	EntityFactory,
+	QuestionDefinition,
+	type QuestionTypeSpec,
+	SpaceFactory,
+} from "@/components/game/engine/runtime";
 import {
 	UDP_BEHAVIORS,
 	type UdpBehaviorContext,
@@ -43,7 +44,7 @@ type UdpQuestionSpec = QuestionTypeSpec & {
 	conditionValue: never;
 };
 
-export const UDP_DEFINITION: QuestionDefinitionFor<UdpQuestionSpec> = {
+export const UDP_DEFINITION = QuestionDefinition<UdpQuestionSpec>({
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -77,4 +78,4 @@ export const UDP_DEFINITION: QuestionDefinitionFor<UdpQuestionSpec> = {
 	],
 	phaseRules: [],
 	behaviors: UDP_BEHAVIORS,
-};
+});

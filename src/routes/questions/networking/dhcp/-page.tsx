@@ -24,6 +24,7 @@ import {
 	useDrawerManager,
 	useGameCtx,
 } from "@/components/game/engine/game-provider";
+import type { ConditionContext } from "@/components/game/engine/runtime";
 import {
 	deriveQuestionPhase,
 	useQuestionRuntime,
@@ -33,7 +34,6 @@ import type {
 	EntityStatus,
 } from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
-import type { ConditionContext } from "@/components/game/types/question";
 import type { QuestionProps } from "@/components/module";
 
 import {

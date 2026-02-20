@@ -1,16 +1,14 @@
 import {
+	BehaviorDefinition,
+	BehaviorRule,
 	buildModalSubmitTrigger,
 	createEntityPayloadWriter,
+	type EffectContext,
 	findEntitySpace,
 	type ModalSubmissionContract,
 	parseModalSubmission,
+	type ScheduledEffectContext,
 } from "@/components/game/engine/runtime";
-import type {
-	BehaviorDefinitionFor,
-	BehaviorRuleFor,
-	EffectContext,
-	ScheduledEffectContext,
-} from "@/components/game/types/behavior";
 import type { EntityData } from "@/components/game/types/entity";
 import {
 	type CustomSpaceKey,
@@ -681,8 +679,8 @@ const handleFrameDrop = (ctx: UdpCtx, entity: EntityData) => {
 	});
 };
 
-const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
-	{
+const rules = [
+	BehaviorRule<UdpBehaviorContext, UdpTriggerSpec>({
 		id: "udp.internet.transfer.synack",
 		on: {
 			event: "ENTITY_TRANSFERRED_TO_SPACE",
@@ -693,8 +691,8 @@ const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
 			if (!ctx.entity) return;
 			handleSynAckPacketDrop(ctx, ctx.entity);
 		},
-	},
-	{
+	}),
+	BehaviorRule<UdpBehaviorContext, UdpTriggerSpec>({
 		id: "udp.internet.transfer.data",
 		on: {
 			event: "ENTITY_TRANSFERRED_TO_SPACE",
@@ -705,8 +703,8 @@ const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
 			if (!ctx.entity) return;
 			handleDataPacketDrop(ctx, ctx.entity);
 		},
-	},
-	{
+	}),
+	BehaviorRule<UdpBehaviorContext, UdpTriggerSpec>({
 		id: "udp.received.unicast",
 		on: {
 			event: "ENTITY_TRANSFERRED_TO_SPACE",
@@ -717,8 +715,8 @@ const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
 			if (!ctx.entity) return;
 			handleUnicastReceived(ctx, ctx.entity);
 		},
-	},
-	{
+	}),
+	BehaviorRule<UdpBehaviorContext, UdpTriggerSpec>({
 		id: "udp.internet.transfer.frame",
 		on: {
 			event: "ENTITY_TRANSFERRED_TO_SPACE",
@@ -729,8 +727,8 @@ const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
 			if (!ctx.entity) return;
 			handleFrameDrop(ctx, ctx.entity);
 		},
-	},
-	{
+	}),
+	BehaviorRule<UdpBehaviorContext, UdpTriggerSpec>({
 		id: "udp.tcp.timeout.reconnect",
 		on: buildModalSubmitTrigger("tcp-timeout", "reconnect"),
 		handler: (ctx) => {
@@ -743,8 +741,8 @@ const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
 			}
 			resetClientsForReconnect(ctx, INITIAL_TCP_CLIENT_IDS);
 		},
-	},
-	{
+	}),
+	BehaviorRule<UdpBehaviorContext, UdpTriggerSpec>({
 		id: "udp.tcp.breaking.continue",
 		on: buildModalSubmitTrigger("tcp-exhaustion", "continue"),
 		handler: (ctx) => {
@@ -772,8 +770,8 @@ const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
 				injectUnicastsToInternet(sCtx);
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<UdpBehaviorContext, UdpTriggerSpec>({
 		id: "udp.success.navigate",
 		on: buildModalSubmitTrigger("udp-success", "complete"),
 		handler: ({ event, updateContext }) => {
@@ -788,7 +786,7 @@ const rules: BehaviorRuleFor<UdpBehaviorContext, UdpTriggerSpec>[] = [
 				state.navigateAway = true;
 			});
 		},
-	},
+	}),
 ];
 
 const initialConnections: TcpConnections = {
@@ -819,10 +817,10 @@ const initialModalsShown: TcpModalFlags = {
 	udpSuccess: false,
 };
 
-export const UDP_BEHAVIORS: BehaviorDefinitionFor<
+export const UDP_BEHAVIORS = BehaviorDefinition<
 	UdpBehaviorContext,
 	UdpTriggerSpec
-> = {
+>({
 	initialContext: {
 		navigateAway: false,
 		mode: "tcp",
@@ -845,4 +843,4 @@ export const UDP_BEHAVIORS: BehaviorDefinitionFor<
 		unicastsReceived: 0,
 	},
 	rules,
-};
+});

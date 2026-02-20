@@ -1,4 +1,6 @@
 import {
+	BehaviorDefinition,
+	BehaviorRule,
 	buildEntityClickTrigger,
 	buildModalSubmitTrigger,
 	buildTerminalInputTrigger,
@@ -8,10 +10,6 @@ import {
 	parseTerminalInput,
 	type TerminalInputContract,
 } from "@/components/game/engine/runtime";
-import type {
-	BehaviorDefinitionFor,
-	BehaviorRuleFor,
-} from "@/components/game/types/behavior";
 import type { DhcpSpaceKey } from "./constants";
 import {
 	buildPcConfigModal,
@@ -115,8 +113,8 @@ const SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
 	parse: () => ({ ok: true, value: null }),
 };
 
-const rules: BehaviorRuleFor<DhcpBehaviorContext, DhcpTriggerSpec>[] = [
-	{
+const rules = [
+	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.router-click",
 		on: buildEntityClickTrigger("router"),
 		handler: ({ entity, interaction }) => {
@@ -125,8 +123,8 @@ const rules: BehaviorRuleFor<DhcpBehaviorContext, DhcpTriggerSpec>[] = [
 				buildRouterConfigModal(entity.id, entity.data ?? {}),
 			);
 		},
-	},
-	{
+	}),
+	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.pc-click",
 		on: buildEntityClickTrigger("pc"),
 		handler: ({ entity, state, interaction }) => {
@@ -137,8 +135,8 @@ const rules: BehaviorRuleFor<DhcpBehaviorContext, DhcpTriggerSpec>[] = [
 			};
 			interaction.openModal(buildPcConfigModal(entity.id, currentData));
 		},
-	},
-	{
+	}),
+	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.router-config-save",
 		on: buildModalSubmitTrigger<`router-config-${string}`, "save">(
 			undefined,
@@ -166,8 +164,8 @@ const rules: BehaviorRuleFor<DhcpBehaviorContext, DhcpTriggerSpec>[] = [
 				ctx.lastConfiguredDeviceId = deviceId;
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.success-modal-navigate",
 		on: buildModalSubmitTrigger("success", "primary"),
 		handler: ({ event, updateContext }) => {
@@ -179,8 +177,8 @@ const rules: BehaviorRuleFor<DhcpBehaviorContext, DhcpTriggerSpec>[] = [
 				ctx.navigateAway = true;
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.terminal-onboarding",
 		on: { event: "PHASE_CHANGED", to: "terminal" },
 		handler: ({ state, schedule, once }) => {
@@ -225,8 +223,8 @@ const rules: BehaviorRuleFor<DhcpBehaviorContext, DhcpTriggerSpec>[] = [
 				);
 			});
 		},
-	},
-	{
+	}),
+	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.terminal-command",
 		on: buildTerminalInputTrigger(),
 		guard: ({ phase, state }) =>
@@ -303,23 +301,23 @@ const rules: BehaviorRuleFor<DhcpBehaviorContext, DhcpTriggerSpec>[] = [
 
 			terminal.writeOutput(`Error: Unknown target "${target}".`, "error");
 		},
-	},
-	{
+	}),
+	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.terminal-not-ready",
 		on: buildTerminalInputTrigger(),
 		guard: ({ phase }) => phase !== "terminal",
 		handler: ({ terminal }) => {
 			terminal.writeOutput("Error: Terminal is not ready yet.", "error");
 		},
-	},
+	}),
 ];
 
 export type { DhcpBehaviorContext };
 
-export const DHCP_BEHAVIORS: BehaviorDefinitionFor<
+export const DHCP_BEHAVIORS = BehaviorDefinition<
 	DhcpBehaviorContext,
 	DhcpTriggerSpec
-> = {
+>({
 	initialContext: { lastConfiguredDeviceId: null, navigateAway: false },
 	rules,
-};
+});

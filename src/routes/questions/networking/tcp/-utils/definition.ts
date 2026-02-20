@@ -1,8 +1,9 @@
-import { EntityFactory, SpaceFactory } from "@/components/game/engine/runtime";
-import type {
-	QuestionDefinitionFor,
-	QuestionTypeSpec,
-} from "@/components/game/types/question";
+import {
+	EntityFactory,
+	QuestionDefinition,
+	type QuestionTypeSpec,
+	SpaceFactory,
+} from "@/components/game/engine/runtime";
 import {
 	TCP_BEHAVIORS,
 	type TcpBehaviorContext,
@@ -36,7 +37,7 @@ type TcpQuestionSpec = QuestionTypeSpec & {
 	conditionValue: never;
 };
 
-export const TCP_DEFINITION: QuestionDefinitionFor<TcpQuestionSpec> = {
+export const TCP_DEFINITION = QuestionDefinition<TcpQuestionSpec>({
 	meta: {
 		id: QUESTION_ID,
 		title: QUESTION_TITLE,
@@ -69,4 +70,4 @@ export const TCP_DEFINITION: QuestionDefinitionFor<TcpQuestionSpec> = {
 	],
 	phaseRules: [],
 	behaviors: TCP_BEHAVIORS,
-};
+});

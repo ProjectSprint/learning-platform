@@ -1,14 +1,12 @@
 import {
+	BehaviorDefinition,
+	BehaviorRule,
 	buildEntityArrivedTrigger,
 	chooseLaneForExecution,
 	createEntityPayloadWriter,
+	type EffectContext,
 	findEntitySpace,
 } from "@/components/game/engine/runtime";
-import type {
-	BehaviorDefinitionFor,
-	BehaviorRuleFor,
-	EffectContext,
-} from "@/components/game/types/behavior";
 import type {
 	EntityUpdatedEvent,
 	GameEvent,
@@ -400,8 +398,8 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 	});
 }
 
-const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
-	{
+const rules = [
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
 		id: "cores.app-arrived-open",
 		on: buildEntityArrivedTrigger(SPACE_IDS.open, "app"),
 		handler: (ctx) => {
@@ -409,8 +407,8 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 			if (!entityId) return;
 			handleAppEnteredOpen(ctx, entityId);
 		},
-	},
-	{
+	}),
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
 		id: "cores.request-midpoint-waits-for-io",
 		on: { event: "ENTITY_UPDATED", entityType: "subtask" },
 		guard: ({ event, entity }) => {
@@ -458,8 +456,8 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 			});
 			ctx.world.addToSpace(ioRequestId, SPACE_IDS.storage);
 		},
-	},
-	{
+	}),
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
 		id: "cores.storage-midpoint-swaps-response",
 		on: { event: "ENTITY_UPDATED", entityType: "subtask" },
 		guard: ({ event, entity }) => {
@@ -480,8 +478,8 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 			});
 			updateEntityData(ctx, ioRequestId, { ioState: "response" });
 		},
-	},
-	{
+	}),
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
 		id: "cores.storage-complete-resumes-request",
 		on: { event: "ENTITY_LEFT_SPACE", space: SPACE_IDS.storage },
 		handler: (ctx) => {
@@ -511,8 +509,8 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 			});
 			ctx.world.deleteEntities([event.entityId]);
 		},
-	},
-	{
+	}),
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
 		id: "cores.part-left-core",
 		on: { event: "ENTITY_LEFT_SPACE" },
 		guard: ({ event }) => {
@@ -550,13 +548,13 @@ const rules: BehaviorRuleFor<CoresBehaviorContext, CoresTriggerSpec>[] = [
 			setPartIndex(ctx, laneId, nextIndex);
 			moveNextPartToCore(ctx, laneId);
 		},
-	},
+	}),
 ];
 
-export const CORES_BEHAVIORS: BehaviorDefinitionFor<
+export const CORES_BEHAVIORS = BehaviorDefinition<
 	CoresBehaviorContext,
 	CoresTriggerSpec
-> = {
+>({
 	initialContext: {
 		pipelineState: "idle",
 		openedCount: 0,
@@ -575,4 +573,4 @@ export const CORES_BEHAVIORS: BehaviorDefinitionFor<
 		navigateAway: false,
 	},
 	rules,
-};
+});
