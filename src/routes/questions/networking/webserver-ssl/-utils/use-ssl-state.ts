@@ -5,7 +5,11 @@
 
 import { useCallback, useMemo } from "react";
 import { useGameState } from "@/components/game/engine/game-provider";
-import { entityIsInSpace } from "@/components/game/engine/runtime";
+import {
+	entityIsInSpace,
+	isGridSpace,
+	selectEntitiesByType,
+} from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { GridSpaceData } from "@/components/game/types/space";
 import { DEFAULT_DOMAIN } from "./constants";
@@ -14,20 +18,18 @@ export const useSslState = () => {
 	const state = useGameState();
 
 	// Get space grids
+	const browserRaw = state.spaces.browser;
 	const browserSpace =
-		state.spaces.browser?.kind === "grid" ? state.spaces.browser : undefined;
+		browserRaw && isGridSpace(browserRaw) ? browserRaw : undefined;
+	const port80Raw = state.spaces["port-80"];
 	const port80Space =
-		state.spaces["port-80"]?.kind === "grid"
-			? state.spaces["port-80"]
-			: undefined;
+		port80Raw && isGridSpace(port80Raw) ? port80Raw : undefined;
+	const letsencryptRaw = state.spaces.letsencrypt;
 	const letsencryptSpace =
-		state.spaces.letsencrypt?.kind === "grid"
-			? state.spaces.letsencrypt
-			: undefined;
+		letsencryptRaw && isGridSpace(letsencryptRaw) ? letsencryptRaw : undefined;
+	const port443Raw = state.spaces["port-443"];
 	const port443Space =
-		state.spaces["port-443"]?.kind === "grid"
-			? state.spaces["port-443"]
-			: undefined;
+		port443Raw && isGridSpace(port443Raw) ? port443Raw : undefined;
 
 	// Get entities in each space
 	const getEntitiesInSpace = useCallback(
@@ -61,11 +63,8 @@ export const useSslState = () => {
 		[port443Space, getEntitiesInSpace],
 	);
 	const domainEntities = useMemo(
-		() =>
-			Object.values(state.entities).filter(
-				(entity) => entity.type === "domain",
-			),
-		[state.entities],
+		() => selectEntitiesByType(state, "domain"),
+		[state],
 	);
 	const browserItems = useMemo(
 		() => browserEntities.map((entity) => entity.type),

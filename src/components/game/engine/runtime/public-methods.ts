@@ -5,7 +5,10 @@ import type {
 	ModalEventTrigger,
 	TerminalEventTrigger,
 } from "@/components/game/types/behavior";
-import type { EntityData as StoredEntityData } from "@/components/game/types/entity";
+import type {
+	EntityData as StoredEntityData,
+	EntityData as StoredEntityDataForRead,
+} from "@/components/game/types/entity";
 import type {
 	ConditionContext,
 	PhaseResolution,
@@ -15,6 +18,7 @@ import type {
 	RuntimeApiResult,
 	WorldApi,
 } from "@/components/game/types/runtime";
+import type { GridPosition } from "@/components/game/types/space";
 import type {
 	GameEvent,
 	GameState,
@@ -25,7 +29,13 @@ import { resolvePhase } from "../../internal/domain/question";
 import {
 	getEntity,
 	getEntitySpaceId,
+	getSpace,
 	getSpaceEntityIds,
+	selectEntitiesByType as internalSelectEntitiesByType,
+	selectEntityStateValue as internalSelectEntityStateValue,
+	selectGridEmptyPositions as internalSelectGridEmptyPositions,
+	selectSpaceIsEmpty as internalSelectSpaceIsEmpty,
+	selectSpaceIsFull as internalSelectSpaceIsFull,
 	isEntityInSpace,
 } from "../../internal/domain/read";
 import {
@@ -87,6 +97,76 @@ export const entityIsInSpace = (
 		return false;
 	}
 	return isEntityInSpace(state, entityId, spaceId);
+};
+
+/**
+ * Returns the entity data for a given ID, or undefined if not found.
+ */
+export const lookupEntity = (
+	state: GameState,
+	entityId: string,
+): StoredEntityDataForRead | undefined => {
+	return getEntity(state, entityId);
+};
+
+/**
+ * Returns the space data for a given ID, or undefined if not found.
+ */
+export const lookupSpace = (state: GameState, spaceId: string) => {
+	return getSpace(state, spaceId);
+};
+
+/**
+ * Returns all entities matching the given type string.
+ * Replaces `Object.values(state.entities).filter(e => e.type === type)`.
+ */
+export const selectEntitiesByType = (
+	state: GameState,
+	type: string,
+): StoredEntityDataForRead[] => {
+	return internalSelectEntitiesByType(state, type);
+};
+
+/**
+ * Returns a single entity state value by key, or undefined.
+ */
+export const selectEntityStateValue = <T = unknown>(
+	state: GameState,
+	entityId: string,
+	key: string,
+): T | undefined => {
+	return internalSelectEntityStateValue<T>(state, entityId, key);
+};
+
+/**
+ * Returns all empty grid positions for a grid space.
+ * Replaces local `findEmptyGridPosition` implementations.
+ */
+export const selectGridEmptyPositions = (
+	state: GameState,
+	spaceId: string,
+): GridPosition[] => {
+	return internalSelectGridEmptyPositions(state, spaceId);
+};
+
+/**
+ * True when a space has reached its maximum capacity.
+ */
+export const selectSpaceIsFull = (
+	state: GameState,
+	spaceId: string,
+): boolean => {
+	return internalSelectSpaceIsFull(state, spaceId);
+};
+
+/**
+ * True when a space contains no entities.
+ */
+export const selectSpaceIsEmpty = (
+	state: GameState,
+	spaceId: string,
+): boolean => {
+	return internalSelectSpaceIsEmpty(state, spaceId);
 };
 
 /**

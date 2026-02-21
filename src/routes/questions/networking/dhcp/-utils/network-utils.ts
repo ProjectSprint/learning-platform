@@ -1,8 +1,17 @@
-// Network utility functions for IP validation and network topology analysis
-// Contains functions for parsing IP ranges, validating IPs, and building network snapshots
+// Network topology analysis utilities for DHCP question
+// IP utility functions are re-exported from the shared networking utils
 
 import type { SpaceItemLocation } from "@/components/game/engine/game-provider";
-import { DHCP_SPACE_IDS, PRIVATE_IP_RANGES } from "./constants";
+import { DHCP_SPACE_IDS } from "./constants";
+
+export {
+	calculateIpRangeSize,
+	isPrivateIp,
+	isValidIp,
+	parseIpRangeBase,
+	parseIpToNumber,
+	validateIpRange,
+} from "../../-utils/network-utils";
 
 export type DeviceConnection = {
 	fromId: string;
@@ -10,114 +19,6 @@ export type DeviceConnection = {
 };
 
 export type BoardPlacements = Record<string, SpaceItemLocation[]>;
-
-/**
- * Validates that an IP address string is valid
- * @param ip - IP address string (e.g., "192.168.1.100")
- * @returns true if valid, false otherwise
- */
-export const isValidIp = (ip: string): boolean => {
-	const parts = ip.split(".");
-	if (parts.length !== 4) return false;
-	return parts.every((part) => {
-		const num = Number.parseInt(part, 10);
-		return !Number.isNaN(num) && num >= 0 && num <= 255 && part === String(num);
-	});
-};
-
-/**
- * Validates that an IP address is in a private range
- * @param ip - IP address string
- * @returns true if private, false otherwise
- */
-export const isPrivateIp = (ip: string): boolean => {
-	return PRIVATE_IP_RANGES.some((range) => range.test(ip));
-};
-
-/**
- * Parses an IP address string to a numeric value for comparison
- * @param ip - IP address string
- * @returns numeric representation of the IP
- */
-export const parseIpToNumber = (ip: string): number => {
-	const parts = ip.split(".").map((p) => Number.parseInt(p, 10));
-	return (
-		((parts[0] << 24) >>> 0) + (parts[1] << 16) + (parts[2] << 8) + parts[3]
-	);
-};
-
-/**
- * Extracts the base IP (first 3 octets) from a start IP address
- * @param startIp - Start IP address string (e.g., "192.168.1.100")
- * @returns Base IP address (e.g., "192.168.1") or null if invalid
- */
-export const parseIpRangeBase = (startIp?: string | null): string | null => {
-	if (!startIp || !isValidIp(startIp) || !isPrivateIp(startIp)) {
-		return null;
-	}
-
-	const octets = startIp.split(".").map((value) => Number.parseInt(value, 10));
-	return `${octets[0]}.${octets[1]}.${octets[2]}`;
-};
-
-/**
- * Calculates the number of addresses in an IP range
- * @param startIp - Start IP address
- * @param endIp - End IP address
- * @returns Number of addresses in the range, or 0 if invalid
- */
-export const calculateIpRangeSize = (
-	startIp: string,
-	endIp: string,
-): number => {
-	if (!isValidIp(startIp) || !isValidIp(endIp)) {
-		return 0;
-	}
-	const start = parseIpToNumber(startIp);
-	const end = parseIpToNumber(endIp);
-	if (end < start) {
-		return 0;
-	}
-	return end - start + 1;
-};
-
-/**
- * Validates an IP range configuration
- * @param startIp - Start IP address
- * @param endIp - End IP address
- * @returns Object with isValid flag and optional error message
- */
-export const validateIpRange = (
-	startIp: string,
-	endIp: string,
-): { isValid: boolean; error?: string } => {
-	if (!isValidIp(startIp)) {
-		return { isValid: false, error: "Invalid start IP format." };
-	}
-	if (!isValidIp(endIp)) {
-		return { isValid: false, error: "Invalid end IP format." };
-	}
-	if (!isPrivateIp(startIp)) {
-		return { isValid: false, error: "Start IP must be a private IP." };
-	}
-	if (!isPrivateIp(endIp)) {
-		return { isValid: false, error: "End IP must be a private IP." };
-	}
-
-	const startNum = parseIpToNumber(startIp);
-	const endNum = parseIpToNumber(endIp);
-
-	if (endNum < startNum) {
-		return { isValid: false, error: "End IP must be greater than start IP." };
-	}
-
-	const rangeSize = endNum - startNum + 1;
-	if (rangeSize < 2) {
-		return { isValid: false, error: "Range must have at least 2 addresses." };
-	}
-
-	return { isValid: true };
-};
 
 /**
  * Analyzes the network topology to identify key devices and their connections

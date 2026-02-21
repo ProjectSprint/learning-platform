@@ -9,9 +9,9 @@ import {
 	type ModalSubmissionContract,
 	parseModalSubmission,
 	type ScheduledEffectContext,
+	selectGridEmptyPositions,
 } from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
-import type { GridSpaceData } from "@/components/game/types/space";
 import {
 	FILE_ITEM_ID,
 	MESSAGE_PACKET_IDS,
@@ -179,39 +179,6 @@ const uniquePush = (values: string[], value: string) =>
 const formatSeqList = (seqs: number[]) =>
 	seqs.map((seq) => `#${seq}`).join(", ");
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-	typeof value === "object" && value !== null;
-
-const isGridSpace = (space: unknown): space is GridSpaceData => {
-	if (!isRecord(space)) return false;
-	return (
-		"rows" in space &&
-		"cols" in space &&
-		"entityPositions" in space &&
-		typeof space.rows === "number" &&
-		typeof space.cols === "number"
-	);
-};
-
-const findEmptyGridPosition = (space: GridSpaceData) => {
-	const occupied = new Set(
-		Object.values(space.entityPositions).map(
-			(position) => `${position.row}-${position.col}`,
-		),
-	);
-
-	for (let row = 0; row < space.rows; row += 1) {
-		for (let col = 0; col < space.cols; col += 1) {
-			const key = `${row}-${col}`;
-			if (!occupied.has(key)) {
-				return { row, col };
-			}
-		}
-	}
-
-	return null;
-};
-
 const appendServerLog = (ctx: TcpCtx | ScheduledTcpCtx, content: string) => {
 	const timestamp = Date.now();
 	ctx.updateContext((state) => {
@@ -329,15 +296,11 @@ const moveEntityToGrid = (
 	entityId: string,
 	spaceId: string,
 ) => {
-	const space = ctx.state.spaces[spaceId];
-	if (!isGridSpace(space)) {
+	const emptyPositions = selectGridEmptyPositions(ctx.state, spaceId);
+	if (emptyPositions.length === 0) {
 		return false;
 	}
-	const position = findEmptyGridPosition(space);
-	if (!position) {
-		return false;
-	}
-	return moveEntityToSpace(ctx, entityId, spaceId, position);
+	return moveEntityToSpace(ctx, entityId, spaceId, emptyPositions[0]);
 };
 
 const ensureInInventory = (ctx: TcpCtx | ScheduledTcpCtx, entityId: string) => {

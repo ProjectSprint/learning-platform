@@ -34,10 +34,9 @@ import {
 	findEntitySpace,
 	useQuestionRuntime,
 } from "@/components/game/engine/runtime";
-import type { EntityStatus } from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
-
+import { toEntityStatus } from "../-utils/board-helpers";
 import {
 	DEFAULT_DOMAIN,
 	INVENTORY_POOL_CONFIG,
@@ -63,9 +62,6 @@ const WEB_SSL_SPACE_IDS = {
 	letsencrypt: "letsencrypt",
 	port443: "port-443",
 } as const;
-
-const toEntityStatus = (status: BoardItemStatus): EntityStatus =>
-	status === "normal" ? undefined : status;
 
 export const WebServerSslQuestion = ({ onQuestionComplete }: QuestionProps) => {
 	return (

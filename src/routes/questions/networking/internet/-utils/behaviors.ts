@@ -8,6 +8,7 @@ import {
 	type ModalSubmissionContract,
 	parseModalSubmission,
 	parseTerminalInput,
+	selectEntitiesByType,
 	type TerminalInputContract,
 } from "@/components/game/engine/runtime";
 import type { GameState } from "@/components/game/types/state";
@@ -220,10 +221,9 @@ const INTERNET_SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
 
 /** Derive internet connectivity status from current game state. */
 function deriveStatus(state: GameState) {
-	const entities = Object.values(state.entities);
-	const routerLan = entities.find((e) => e.type === "router-lan");
-	const routerNat = entities.find((e) => e.type === "router-nat");
-	const routerWan = entities.find((e) => e.type === "router-wan");
+	const routerLan = selectEntitiesByType(state, "router-lan")[0];
+	const routerNat = selectEntitiesByType(state, "router-nat")[0];
+	const routerWan = selectEntitiesByType(state, "router-wan")[0];
 
 	const lanConfig = routerLan?.data ?? {};
 	const dhcpEnabled = lanConfig.dhcpEnabled === true;
@@ -264,7 +264,7 @@ function deriveStatus(state: GameState) {
 		natEnabled &&
 		hasValidPppoeCredentials;
 
-	const pc = entities.find((e) => e.type === "pc");
+	const pc = selectEntitiesByType(state, "pc")[0];
 	const pcIp = typeof pc?.data?.ip === "string" ? pc.data.ip : null;
 
 	return {

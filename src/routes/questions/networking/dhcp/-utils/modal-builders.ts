@@ -5,7 +5,7 @@ import type {
 	ModalFieldValidator,
 	ModalInstance,
 } from "@/components/game/engine";
-import { PRIVATE_IP_RANGES } from "./constants";
+import { PRIVATE_IP_RANGES } from "../../-utils/network-utils";
 
 const getStringValue = (
 	allValues: Record<string, unknown>,

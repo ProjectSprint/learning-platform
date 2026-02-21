@@ -10,10 +10,16 @@ import type {
 	SpaceItemLocation,
 } from "@/components/game/engine/game-provider";
 import { useGameState } from "@/components/game/engine/game-provider";
-import { createEntityPayloadWriter } from "@/components/game/engine/runtime";
+import {
+	createEntityPayloadWriter,
+	isGridSpace,
+	listSpaceEntityIds,
+	lookupEntity,
+} from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { WorldApi } from "@/components/game/types/runtime";
 import type { GridSpaceData } from "@/components/game/types/space";
+import { toBoardItemStatus } from "../../-utils/board-helpers";
 import { DHCP_SPACE_IDS } from "./constants";
 import {
 	type BoardPlacements,
@@ -40,13 +46,6 @@ type DhcpEntityStateByType = {
 		ip: string | null;
 		status: BoardItemStatus;
 	};
-};
-
-const toBoardItemStatus = (value: unknown): BoardItemStatus => {
-	if (value === "success" || value === "error" || value === "warning") {
-		return value;
-	}
-	return "normal";
 };
 
 /**
@@ -93,7 +92,7 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 		const result: Record<string, GridSpaceData | undefined> = {};
 		for (const spaceId of Object.values(DHCP_SPACE_IDS)) {
 			const space = state.spaces[spaceId];
-			result[spaceId] = space?.kind === "grid" ? space : undefined;
+			result[spaceId] = space && isGridSpace(space) ? space : undefined;
 		}
 		return result;
 	}, [state.spaces]);
@@ -112,8 +111,9 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 			if (!space) continue;
 
 			const items: SpaceItemLocation[] = [];
-			for (const entity of Object.values(state.entities)) {
-				if (entity.id in space.entityPositions) {
+			for (const entityId of listSpaceEntityIds(state, spaceId)) {
+				const entity = lookupEntity(state, entityId);
+				if (entity) {
 					const boardItem = entityToBoardItem(entity, space);
 					if (boardItem) {
 						items.push(boardItem);
@@ -125,7 +125,7 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 		}
 
 		return result;
-	}, [spaces, state.entities]);
+	}, [spaces, state]);
 
 	const placedItems = useMemo(
 		() => Object.values(placements).flat(),

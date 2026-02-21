@@ -10,10 +10,14 @@ import type {
 	SpaceItemLocation,
 } from "@/components/game/engine/game-provider";
 import { useGameState } from "@/components/game/engine/game-provider";
-import { createEntityPayloadWriter } from "@/components/game/engine/runtime";
+import {
+	createEntityPayloadWriter,
+	isGridSpace,
+} from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { WorldApi } from "@/components/game/types/runtime";
 import type { GridSpaceData } from "@/components/game/types/space";
+import { toBoardItemStatus } from "../../-utils/board-helpers";
 import {
 	GOOGLE_IP,
 	type InternetSpaceKey,
@@ -45,13 +49,6 @@ type InternetEntityStateByType = {
 	google: { status: BoardItemStatus };
 	cable: { status: BoardItemStatus };
 	fiber: { status: BoardItemStatus };
-};
-
-const toBoardItemStatus = (value: unknown): BoardItemStatus => {
-	if (value === "success" || value === "error" || value === "warning") {
-		return value;
-	}
-	return "normal";
 };
 
 const SPACE_IDS: InternetSpaceKey[] = [
@@ -119,7 +116,7 @@ export const useInternetState = ({
 		};
 		for (const spaceId of SPACE_IDS) {
 			const space = state.spaces[spaceId];
-			result[spaceId] = space?.kind === "grid" ? space : undefined;
+			result[spaceId] = space && isGridSpace(space) ? space : undefined;
 		}
 		return result;
 	}, [state.spaces]);

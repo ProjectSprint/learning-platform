@@ -5,12 +5,7 @@ import type {
 	ModalFieldValidator,
 	ModalInstance,
 } from "@/components/game/engine";
-
-const PRIVATE_IP_RANGES = [
-	/^10\./,
-	/^172\.(1[6-9]|2\d|3[01])\./,
-	/^192\.168\./,
-];
+import { PRIVATE_IP_RANGES } from "../../-utils/network-utils";
 
 const VALID_DNS_SERVERS = [
 	"8.8.8.8",

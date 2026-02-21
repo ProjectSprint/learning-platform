@@ -1,4 +1,7 @@
-import { useSyncExternalStore } from "react";
+import {
+	createProgressStore,
+	useProgressSnapshot,
+} from "../../-utils/create-progress-store";
 
 export type SoftwareQuestionId = "cores-and-threads";
 
@@ -36,73 +39,15 @@ export const getNextQuestionPath = (id: SoftwareQuestionId) => {
 export const getFirstQuestionPath = () =>
 	SOFTWARE_QUESTIONS[0]?.path ?? "/questions/software";
 
-type ModuleProgressState = {
-	completedIds: SoftwareQuestionId[];
-};
+export const softwareProgressStore = createProgressStore<SoftwareQuestionId>();
 
-const createDefaultState = (): ModuleProgressState => ({
-	completedIds: [],
-});
-
-let progressState = createDefaultState();
-const listeners = new Set<() => void>();
-
-const emitChange = () => {
-	for (const listener of listeners) {
-		listener();
-	}
-};
-
-const getState = () => progressState;
-
-const setState = (next: ModuleProgressState) => {
-	progressState = {
-		completedIds: Array.from(new Set(next.completedIds)),
-	};
-	emitChange();
-};
-
-const markComplete = (id: SoftwareQuestionId) => {
-	if (progressState.completedIds.includes(id)) return;
-	setState({ completedIds: [...progressState.completedIds, id] });
-};
-
-const reset = () => {
-	setState(createDefaultState());
-};
-
-const subscribe = (listener: () => void) => {
-	listeners.add(listener);
-	return () => {
-		listeners.delete(listener);
-	};
-};
-
-export const softwareProgressStore = {
-	getState,
-	setState,
-	markComplete,
-	reset,
-	subscribe,
-};
-
-export const useSoftwareProgress = () => {
-	const snapshot = useSyncExternalStore(
-		softwareProgressStore.subscribe,
-		softwareProgressStore.getState,
-		softwareProgressStore.getState,
-	);
-
-	return {
-		completedIds: snapshot.completedIds,
-		completedCount: snapshot.completedIds.length,
-		totalQuestions: SOFTWARE_QUESTIONS.length,
-	};
-};
+export const useSoftwareProgress = () =>
+	useProgressSnapshot(softwareProgressStore, SOFTWARE_QUESTIONS.length);
 
 export const getSoftwareProgressState = () => softwareProgressStore.getState();
-export const setSoftwareProgressState = (next: ModuleProgressState) =>
-	softwareProgressStore.setState(next);
+export const setSoftwareProgressState = (next: {
+	completedIds: SoftwareQuestionId[];
+}) => softwareProgressStore.setState(next);
 export const markSoftwareQuestionComplete = (id: SoftwareQuestionId) =>
 	softwareProgressStore.markComplete(id);
 export const resetSoftwareProgress = () => softwareProgressStore.reset();

@@ -1,4 +1,7 @@
-import { useSyncExternalStore } from "react";
+import {
+	createProgressStore,
+	useProgressSnapshot,
+} from "../../-utils/create-progress-store";
 
 export type NetworkingQuestionId =
 	| "tcp"
@@ -63,74 +66,17 @@ export const getNextQuestionPath = (id: NetworkingQuestionId) => {
 export const getFirstQuestionPath = () =>
 	NETWORKING_QUESTIONS[0]?.path ?? "/questions/networking";
 
-type ModuleProgressState = {
-	completedIds: NetworkingQuestionId[];
-};
+export const networkingProgressStore =
+	createProgressStore<NetworkingQuestionId>();
 
-const createDefaultState = (): ModuleProgressState => ({
-	completedIds: [],
-});
-
-let progressState = createDefaultState();
-const listeners = new Set<() => void>();
-
-const emitChange = () => {
-	for (const listener of listeners) {
-		listener();
-	}
-};
-
-const getState = () => progressState;
-
-const setState = (next: ModuleProgressState) => {
-	progressState = {
-		completedIds: Array.from(new Set(next.completedIds)),
-	};
-	emitChange();
-};
-
-const markComplete = (id: NetworkingQuestionId) => {
-	if (progressState.completedIds.includes(id)) return;
-	setState({ completedIds: [...progressState.completedIds, id] });
-};
-
-const reset = () => {
-	setState(createDefaultState());
-};
-
-const subscribe = (listener: () => void) => {
-	listeners.add(listener);
-	return () => {
-		listeners.delete(listener);
-	};
-};
-
-export const networkingProgressStore = {
-	getState,
-	setState,
-	markComplete,
-	reset,
-	subscribe,
-};
-
-export const useNetworkingProgress = () => {
-	const snapshot = useSyncExternalStore(
-		networkingProgressStore.subscribe,
-		networkingProgressStore.getState,
-		networkingProgressStore.getState,
-	);
-
-	return {
-		completedIds: snapshot.completedIds,
-		completedCount: snapshot.completedIds.length,
-		totalQuestions: NETWORKING_QUESTIONS.length,
-	};
-};
+export const useNetworkingProgress = () =>
+	useProgressSnapshot(networkingProgressStore, NETWORKING_QUESTIONS.length);
 
 export const getNetworkingProgressState = () =>
 	networkingProgressStore.getState();
-export const setNetworkingProgressState = (next: ModuleProgressState) =>
-	networkingProgressStore.setState(next);
+export const setNetworkingProgressState = (next: {
+	completedIds: NetworkingQuestionId[];
+}) => networkingProgressStore.setState(next);
 export const markNetworkingQuestionComplete = (id: NetworkingQuestionId) =>
 	networkingProgressStore.markComplete(id);
 export const resetNetworkingProgress = () => networkingProgressStore.reset();

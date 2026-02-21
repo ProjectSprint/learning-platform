@@ -69,7 +69,14 @@ export {
 	entityIsInSpace,
 	findEntitySpace,
 	listSpaceEntityIds,
+	lookupEntity,
+	lookupSpace,
 	parseModalSubmission,
 	parseTerminalInput,
+	selectEntitiesByType,
+	selectEntityStateValue,
+	selectGridEmptyPositions,
+	selectSpaceIsEmpty,
+	selectSpaceIsFull,
 } from "./public-methods";
 export { bootstrapQuestion, useQuestionRuntime } from "./runtime-lifecycle";

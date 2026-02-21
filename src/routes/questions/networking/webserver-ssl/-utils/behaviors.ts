@@ -7,6 +7,7 @@ import {
 	buildTerminalInputTrigger,
 	createEntityPayloadWriter,
 	findEntitySpace,
+	isGridSpace,
 	type ModalSubmissionContract,
 	parseModalSubmission,
 	parseTerminalInput,
@@ -127,10 +128,11 @@ const SSL_SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
 
 /** Derive SSL terminal state from game state. */
 function deriveSslStatus(state: GameState) {
-	const port80Space =
-		state.spaces["port-80"]?.kind === "grid" ? state.spaces["port-80"] : null;
+	const port80Raw = state.spaces["port-80"];
+	const port80Space = port80Raw && isGridSpace(port80Raw) ? port80Raw : null;
+	const port443Raw = state.spaces["port-443"];
 	const port443Space =
-		state.spaces["port-443"]?.kind === "grid" ? state.spaces["port-443"] : null;
+		port443Raw && isGridSpace(port443Raw) ? port443Raw : null;
 
 	const getTypes = (space: typeof port80Space) => {
 		if (!space) return [];
@@ -224,10 +226,9 @@ const rules = [
 		handler: ({ entity, state, interaction }) => {
 			if (!entity) return;
 			const ssl = deriveSslStatus(state);
+			const port80Raw = state.spaces["port-80"];
 			const port80Space =
-				state.spaces["port-80"]?.kind === "grid"
-					? state.spaces["port-80"]
-					: null;
+				port80Raw && isGridSpace(port80Raw) ? port80Raw : null;
 			const port80Types = port80Space
 				? Object.keys(port80Space.entityPositions).map((entityId) => {
 						const current = state.entities[entityId];
@@ -263,10 +264,9 @@ const rules = [
 		on: buildEntityClickTrigger("webserver-443"),
 		handler: ({ entity, state, interaction }) => {
 			if (!entity) return;
+			const port443Raw = state.spaces["port-443"];
 			const port443Space =
-				state.spaces["port-443"]?.kind === "grid"
-					? state.spaces["port-443"]
-					: null;
+				port443Raw && isGridSpace(port443Raw) ? port443Raw : null;
 			const port443Types = port443Space
 				? Object.keys(port443Space.entityPositions).map((entityId) => {
 						const current = state.entities[entityId];
