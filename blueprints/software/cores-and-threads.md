@@ -124,25 +124,25 @@ Use this blueprint as the implementation-aligned specification for the current c
 
 ### 1.10 Modal Terms
 
-| Term ID | Modal ID | Runtime State |
-|---|---|---|
-| `MODAL_WALL` | `core-wall` | Builder exists but not triggered by current behaviors |
-| `MODAL_SCHEDULER` | `scheduler-explain` | Builder exists but not triggered by current behaviors |
-| `MODAL_SINGLE_LIMIT` | `single-thread-limit` | Builder exists but not triggered by current behaviors |
-| `MODAL_PARALLEL_INTRO` | `parallel-intro` | Builder exists but not triggered by current behaviors |
-| `MODAL_CONFLICT` | `parallel-conflict` | Builder exists but not triggered by current behaviors |
-| `MODAL_LOCK_INTRO` | `parallel-lock-intro` | Builder exists but not triggered by current behaviors |
-| `MODAL_COMPLETE` | `parallel-complete` | Builder exists but not triggered by current behaviors |
+| Term ID | Modal ID | Source Constant | Runtime State |
+|---|---|---|---|
+| `MODAL_WALL` | `core-wall` | `MODAL_IDS.wall` | Builder exists but not triggered by current behaviors |
+| `MODAL_SCHEDULER` | `scheduler-explain` | `MODAL_IDS.scheduler` | Builder exists but not triggered by current behaviors |
+| `MODAL_SINGLE_LIMIT` | `single-thread-limit` | `MODAL_IDS.singleLimit` | Builder exists but not triggered by current behaviors |
+| `MODAL_PARALLEL_INTRO` | `parallel-intro` | `MODAL_IDS.parallelIntro` | Builder exists but not triggered by current behaviors |
+| `MODAL_CONFLICT` | `parallel-conflict` | `MODAL_IDS.conflict` | Builder exists but not triggered by current behaviors |
+| `MODAL_LOCK_INTRO` | `parallel-lock-intro` | `MODAL_IDS.lockIntro` | Builder exists but not triggered by current behaviors |
+| `MODAL_COMPLETE` | `parallel-complete` | `MODAL_IDS.complete` | Builder exists but not triggered by current behaviors |
 
 ### 1.11 Timing Terms
 
 | Term ID | Value | Meaning |
 |---|---|---|
-| `TIMER_PARSING_MS` | `1000` | Delay before moving from parsing to allocating |
-| `TIMER_ALLOCATING_MS` | `1200` | Delay before creating execution parts and starting lane run |
-| `TIMER_EXECUTION_SPLIT_SETTLE_MS` | `250` | Delay before first part enters selected lane |
-| `TIMER_NOTICE_MS` | `1800` | Auto-clear delay for transient notice text |
-| `TIMER_PATH_DURATION_SECONDS` | `6` | Path traversal duration for each core lane |
+| `PARSING_MS` | `1000` | Delay before moving from parsing to allocating |
+| `ALLOCATING_MS` | `1200` | Delay before creating execution parts and starting lane run |
+| `EXECUTION_SPLIT_SETTLE_MS` | `250` | Delay before first part enters selected lane (local to behaviors) |
+| `NOTICE_MS` | `1800` | Auto-clear delay for transient notice text |
+| `CORE_STEP_DURATION_SECONDS` | `6` | Path traversal duration for each core lane (in constants.ts) |
 
 ### 1.12 Event Terms
 
@@ -176,9 +176,9 @@ Use this blueprint as the implementation-aligned specification for the current c
 
 ### 1.15 Counter and Threshold Terms
 
-| Term ID | Value | Meaning |
-|---|---|---|
-| `COUNT_OPENED_FOR_DUAL_CORE_PROMPT` | `2` | Threshold that sets `dualCorePromptVisible` |
+| Term ID | Value | Source Constant | Meaning |
+|---|---|---|---|
+| `OPENED_APPS_FOR_DUAL_CORE_PROMPT` | `2` | constants.ts | Threshold that sets `dualCorePromptVisible` |
 
 ### 1.16 Lane Routing Terms
 
@@ -293,7 +293,7 @@ The question declares seven spaces:
 1. App launch and parse/allocation timers
 2. Execution parts run on available lane
 3. Opened app counter increments
-4. Dual-core prompt flag flips at `COUNT_OPENED_FOR_DUAL_CORE_PROMPT`
+4. Dual-core prompt flag flips at `OPENED_APPS_FOR_DUAL_CORE_PROMPT`
 
 ### 2.6 Modal Declaration
 
@@ -449,7 +449,7 @@ Behavior when lane has no remaining parts:
 #### 3.4.2 Dual-Core Prompt Milestone
 
 Behavior:
-- If `openedCount >= COUNT_OPENED_FOR_DUAL_CORE_PROMPT` and flag is still false:
+- If `openedCount >= OPENED_APPS_FOR_DUAL_CORE_PROMPT` and flag is still false:
   - Set `dualCorePromptVisible=true`.
   - Show info notice: `You now have two opened apps. Next step: introduce dual-core scheduling.`
 
@@ -496,7 +496,7 @@ Notice logic:
 | Current State | Event | Preconditions | Immediate Effects | Next State |
 |---|---|---|---|---|
 | lane execution complete | internal next-part check | no remaining part IDs | app -> `SPACE_OPENED`, app -> `STATUS_OPENED`, clear lane active app | lane idle |
-| opened count update | internal threshold check | reached `COUNT_OPENED_FOR_DUAL_CORE_PROMPT` first time | set `dualCorePromptVisible=true`, show info notice | dual-core milestone unlocked |
+| opened count update | internal threshold check | reached `OPENED_APPS_FOR_DUAL_CORE_PROMPT` first time | set `dualCorePromptVisible=true`, show info notice | dual-core milestone unlocked |
 
 ### 4.5 Behavior-Driven Scenario Flow
 
@@ -553,17 +553,17 @@ Notice logic:
 
 | Timing Term | Declared In | Used In Logic Sections |
 |---|---|---|
-| `TIMER_PARSING_MS` | 1.11 | 3.2.2, 4.2 |
-| `TIMER_ALLOCATING_MS` | 1.11 | 3.2.2, 4.2 |
-| `TIMER_EXECUTION_SPLIT_SETTLE_MS` | 1.11 | 3.2.3 |
-| `TIMER_NOTICE_MS` | 1.11 | 3.5 |
-| `TIMER_PATH_DURATION_SECONDS` | 1.11 | 2.7, 3.3 |
+| `PARSING_MS` | 1.11, constants.ts | 3.2.2, 4.2 |
+| `ALLOCATING_MS` | 1.11, constants.ts | 3.2.2, 4.2 |
+| `NOTICE_MS` | 1.11, constants.ts | 3.5 |
+| `CORE_STEP_DURATION_SECONDS` | 1.11, constants.ts | 2.7, 3.3 |
+| `EXECUTION_SPLIT_SETTLE_MS` | behaviors.ts (local) | 3.2.3 |
 
 ### 5.6 Counter Terms -> Logic Usage
 
 | Counter Term | Declared In | Used In Logic Sections |
 |---|---|---|
-| `COUNT_OPENED_FOR_DUAL_CORE_PROMPT` | 1.15 | 2.5.3, 3.4.2, 4.4 |
+| `OPENED_APPS_FOR_DUAL_CORE_PROMPT` | 1.15, constants.ts | 2.5.3, 3.4.2, 4.4 |
 
 ### 5.7 Lane Routing Terms -> Logic Usage
 
@@ -585,7 +585,7 @@ Notice logic:
 7. Completed parts must be deleted after leaving their assigned core lane.
 8. App completion must move app to `SPACE_OPENED` and set `appStatus=opened`.
 9. Core 2 must remain unavailable for lane selection until dual-core unlock milestone is reached.
-10. Dual-core unlock threshold must use `COUNT_OPENED_FOR_DUAL_CORE_PROMPT`, not literal values in logic.
+10. Dual-core unlock threshold must use `OPENED_APPS_FOR_DUAL_CORE_PROMPT`, not literal values in logic.
 11. If all enabled lanes are occupied, dropping an app into open must fail fast and return app to pool.
 
 ---
@@ -616,7 +616,7 @@ Notice logic:
 - Every referenced `SPACE_*` exists in runtime definition spaces.
 - Every behavior event in matrices maps to real behavior triggers/guards.
 - Timers in logic map to constants.
-- Unlock threshold references `COUNT_OPENED_FOR_DUAL_CORE_PROMPT`.
+- Unlock threshold references `OPENED_APPS_FOR_DUAL_CORE_PROMPT`.
 - If modal flow is documented as active, behavior rules must call modal runtime APIs.
 
 ### 8.3 Quality Gates
