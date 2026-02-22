@@ -13,8 +13,10 @@ import { useGameState } from "@/components/game/engine/game-provider";
 import {
 	createEntityPayloadWriter,
 	isGridSpace,
+	isModalOpen,
 	listSpaceEntityIds,
 	lookupEntity,
+	selectEntityStateValue,
 } from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { WorldApi } from "@/components/game/types/runtime";
@@ -165,19 +167,17 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 	);
 	// Check state.ip since IPs are stored in entity.state.ip, not entity.data.ip
 	const pc1HasIp = Boolean(
-		network.pc1 && state.entities[network.pc1.id]?.state.ip,
+		network.pc1 && selectEntityStateValue(state, network.pc1.id, "ip"),
 	);
 	const pc2HasIp = Boolean(
-		network.pc2 && state.entities[network.pc2.id]?.state.ip,
+		network.pc2 && selectEntityStateValue(state, network.pc2.id, "ip"),
 	);
 	const pc2Ip = network.pc2
-		? typeof state.entities[network.pc2.id]?.state.ip === "string"
-			? state.entities[network.pc2.id]?.state.ip
-			: null
+		? (selectEntityStateValue<string>(state, network.pc2.id, "ip") ?? null)
 		: null;
 
-	const routerSettingsOpen = Object.values(state.overlay.modals).some(
-		(entry) => entry.visible && entry.instance.id?.startsWith("router-config"),
+	const routerSettingsOpen = isModalOpen(state, (id) =>
+		id.startsWith("router-config"),
 	);
 
 	const questionStatus = state.question.status;
@@ -211,7 +211,7 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 		// Update router status
 		if (network.router) {
 			const desiredRouterStatus = routerConfigured ? "success" : "error";
-			const entity = stateRef.current.entities[network.router.id];
+			const entity = lookupEntity(stateRef.current, network.router.id);
 			if (entity && entity.state.status !== desiredRouterStatus) {
 				payloadWriter.updateState(network.router.id, "router", {
 					status: desiredRouterStatus,
@@ -223,7 +223,7 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 		for (const cable of network.cables) {
 			const isConnected = network.connectedCableIds.has(cable.id);
 			const desiredStatus = isConnected ? "success" : "warning";
-			const entity = stateRef.current.entities[cable.id];
+			const entity = lookupEntity(stateRef.current, cable.id);
 			if (entity && entity.state.status !== desiredStatus) {
 				payloadWriter.updateState(cable.id, "cable", {
 					status: desiredStatus,
@@ -235,7 +235,7 @@ export const useNetworkState = ({ dragEngine, world }: UseNetworkStateArgs) => {
 		for (const pc of [network.pc1, network.pc2]) {
 			if (!pc) continue;
 
-			const entity = stateRef.current.entities[pc.id];
+			const entity = lookupEntity(stateRef.current, pc.id);
 			if (!entity) continue;
 
 			const shouldHaveIp =

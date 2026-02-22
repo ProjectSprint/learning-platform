@@ -158,10 +158,3 @@ export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
 	name: "hardwares",
 	metadata: { visible: true },
 };
-
-// Private IP address ranges for validation
-export const PRIVATE_IP_RANGES = [
-	/^10\./,
-	/^172\.(1[6-9]|2\d|3[01])\./,
-	/^192\.168\./,
-];

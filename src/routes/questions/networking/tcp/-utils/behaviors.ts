@@ -6,6 +6,7 @@ import {
 	createEntityPayloadWriter,
 	type EffectContext,
 	findEntitySpace,
+	lookupEntity,
 	type ModalSubmissionContract,
 	parseModalSubmission,
 	type ScheduledEffectContext,
@@ -697,7 +698,7 @@ const handleFileMtuReject = (
 };
 
 const handlePacketRejected = (ctx: TcpCtx, packetId: string) => {
-	const entity = ctx.state.entities[packetId];
+	const entity = lookupEntity(ctx.state, packetId);
 	const fileKey = entity?.data?.fileKey === "notes" ? "notes" : "message";
 	updateEntityState(ctx, packetId, {
 		tcpState: "processing",
@@ -930,7 +931,7 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 			`tcp.internet.server-flag.${entityId}`,
 			INTERNET_TRAVEL_MS,
 			(scheduledCtx) => {
-				const refreshed = scheduledCtx.state.entities[entityId];
+				const refreshed = lookupEntity(scheduledCtx.state, entityId);
 				if (!refreshed) return;
 				if (refreshed.type === "syn-ack-flag") {
 					handleSynAckArrival(scheduledCtx);

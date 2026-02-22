@@ -8,6 +8,7 @@ import {
 	type ModalSubmissionContract,
 	parseModalSubmission,
 	parseTerminalInput,
+	selectEntityStateValue,
 	type TerminalInputContract,
 } from "@/components/game/engine/runtime";
 import type { DhcpSpaceKey } from "./constants";
@@ -131,7 +132,7 @@ const rules = [
 			if (!entity) return;
 			const currentData = {
 				...entity.data,
-				ip: state.entities[entity.id]?.state.ip ?? entity.data.ip,
+				ip: selectEntityStateValue(state, entity.id, "ip") ?? entity.data.ip,
 			};
 			interaction.openModal(buildPcConfigModal(entity.id, currentData));
 		},
@@ -187,7 +188,7 @@ const rules = [
 					"dhcp.terminal.onboarding.delay",
 					100,
 					({ terminal: sTerm }) => {
-						const rawPc2Ip = state.entities["pc-2"]?.state.ip;
+						const rawPc2Ip = selectEntityStateValue(state, "pc-2", "ip");
 						const pc2Ip = typeof rawPc2Ip === "string" ? rawPc2Ip : null;
 						const lines = [
 							"Terminal - Network diagnostic utility",
@@ -238,7 +239,7 @@ const rules = [
 			const command = parsed.value;
 
 			if (command.kind === "help") {
-				const rawPc2Ip = state.entities["pc-2"]?.state.ip;
+				const rawPc2Ip = selectEntityStateValue(state, "pc-2", "ip");
 				const pc2Ip = typeof rawPc2Ip === "string" ? rawPc2Ip : null;
 				const lines = [
 					"Terminal - Network diagnostic utility",
@@ -282,7 +283,7 @@ const rules = [
 			}
 
 			const target = command.target;
-			const rawPc2Ip = state.entities["pc-2"]?.state.ip;
+			const rawPc2Ip = selectEntityStateValue(state, "pc-2", "ip");
 			const pc2Ip = typeof rawPc2Ip === "string" ? rawPc2Ip : null;
 
 			if (pc2Ip && target === pc2Ip) {

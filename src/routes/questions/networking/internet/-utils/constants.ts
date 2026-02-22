@@ -262,13 +262,6 @@ export const INVENTORY_POOL_CONFIG: PoolSpaceConfig<
 	metadata: { visible: true },
 };
 
-// Private IP address ranges for validation
-export const PRIVATE_IP_RANGES = [
-	/^10\./,
-	/^172\.(1[6-9]|2\d|3[01])\./,
-	/^192\.168\./,
-];
-
 // Public DNS servers for validation
 export const PUBLIC_DNS_SERVERS = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"];
 

@@ -68,6 +68,7 @@ export {
 	deriveQuestionPhase,
 	entityIsInSpace,
 	findEntitySpace,
+	isModalOpen,
 	listSpaceEntityIds,
 	lookupEntity,
 	lookupSpace,

@@ -1,7 +1,4 @@
-import {
-	createProgressStore,
-	useProgressSnapshot,
-} from "../../-utils/create-progress-store";
+import { useSyncExternalStore } from "react";
 
 export type NetworkingQuestionId =
 	| "tcp"
@@ -66,17 +63,37 @@ export const getNextQuestionPath = (id: NetworkingQuestionId) => {
 export const getFirstQuestionPath = () =>
 	NETWORKING_QUESTIONS[0]?.path ?? "/questions/networking";
 
-export const networkingProgressStore =
-	createProgressStore<NetworkingQuestionId>();
+// --- Progress store ---
 
-export const useNetworkingProgress = () =>
-	useProgressSnapshot(networkingProgressStore, NETWORKING_QUESTIONS.length);
+let completedIds: NetworkingQuestionId[] = [];
+const listeners = new Set<() => void>();
 
-export const getNetworkingProgressState = () =>
-	networkingProgressStore.getState();
-export const setNetworkingProgressState = (next: {
-	completedIds: NetworkingQuestionId[];
-}) => networkingProgressStore.setState(next);
-export const markNetworkingQuestionComplete = (id: NetworkingQuestionId) =>
-	networkingProgressStore.markComplete(id);
-export const resetNetworkingProgress = () => networkingProgressStore.reset();
+const emitChange = () => {
+	for (const listener of listeners) {
+		listener();
+	}
+};
+
+const getSnapshot = () => completedIds;
+
+const subscribe = (listener: () => void) => {
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
+};
+
+export const markNetworkingQuestionComplete = (id: NetworkingQuestionId) => {
+	if (completedIds.includes(id)) return;
+	completedIds = [...new Set([...completedIds, id])];
+	emitChange();
+};
+
+export const useNetworkingProgress = () => {
+	const ids = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+	return {
+		completedIds: ids,
+		completedCount: ids.length,
+		totalQuestions: NETWORKING_QUESTIONS.length,
+	};
+};

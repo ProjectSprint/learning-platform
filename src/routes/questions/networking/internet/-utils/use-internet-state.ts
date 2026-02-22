@@ -13,6 +13,8 @@ import { useGameState } from "@/components/game/engine/game-provider";
 import {
 	createEntityPayloadWriter,
 	isGridSpace,
+	isModalOpen,
+	lookupEntity,
 } from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { WorldApi } from "@/components/game/types/runtime";
@@ -239,17 +241,14 @@ export const useInternetState = ({
 		network.google !== undefined;
 
 	// Modal states
-	const routerLanSettingsOpen = Object.values(state.overlay.modals).some(
-		(entry) =>
-			entry.visible && entry.instance.id?.startsWith("router-lan-config"),
+	const routerLanSettingsOpen = isModalOpen(state, (id) =>
+		id.startsWith("router-lan-config"),
 	);
-	const routerNatSettingsOpen = Object.values(state.overlay.modals).some(
-		(entry) =>
-			entry.visible && entry.instance.id?.startsWith("router-nat-config"),
+	const routerNatSettingsOpen = isModalOpen(state, (id) =>
+		id.startsWith("router-nat-config"),
 	);
-	const routerWanSettingsOpen = Object.values(state.overlay.modals).some(
-		(entry) =>
-			entry.visible && entry.instance.id?.startsWith("router-wan-config"),
+	const routerWanSettingsOpen = isModalOpen(state, (id) =>
+		id.startsWith("router-wan-config"),
 	);
 
 	const questionStatus = state.question.status;
@@ -269,7 +268,7 @@ export const useInternetState = ({
 			const startLastOctet = startOctets[3];
 			const desiredIp = `${baseOctets.join(".")}.${startLastOctet}`;
 
-			const entity = stateRef.current.entities[network.pc.id];
+			const entity = lookupEntity(stateRef.current, network.pc.id);
 			const currentIp = entity?.state.ip ?? null;
 
 			if (currentIp !== desiredIp) {
@@ -279,7 +278,7 @@ export const useInternetState = ({
 			network.pc &&
 			(!routerLanConfigured || !network.pcConnectedToRouterLan)
 		) {
-			const entity = stateRef.current.entities[network.pc.id];
+			const entity = lookupEntity(stateRef.current, network.pc.id);
 			const currentIp = entity?.state.ip ?? null;
 			if (currentIp !== null) {
 				payloadWriter.updateState(network.pc.id, "pc", { ip: null });
@@ -299,7 +298,7 @@ export const useInternetState = ({
 
 		// PC status
 		if (network.pc) {
-			const entity = stateRef.current.entities[network.pc.id];
+			const entity = lookupEntity(stateRef.current, network.pc.id);
 			const hasPcIp = typeof entity?.state.ip === "string";
 			let desiredStatus: "error" | "warning" | "success";
 			if (!hasPcIp) {

@@ -1,4 +1,9 @@
 import type { SpaceItemLocation } from "@/components/game/engine/game-provider";
+import {
+	calculateIpRangeSize,
+	isValidIp,
+	parseIpToNumber,
+} from "../../-utils/network-utils";
 import type { DeviceConnection } from "./network-utils";
 
 export interface NetworkState {
@@ -16,26 +21,6 @@ export interface NetworkState {
 	pc1HasIp: boolean;
 	pc2HasIp: boolean;
 }
-
-const isValidIP = (ip: string): boolean => {
-	const parts = ip.split(".");
-	if (parts.length !== 4) return false;
-	return parts.every((part) => {
-		const num = Number.parseInt(part, 10);
-		return !Number.isNaN(num) && num >= 0 && num <= 255;
-	});
-};
-
-const parseIP = (ip: string): number => {
-	const parts = ip.split(".").map((p) => Number.parseInt(p, 10));
-	return (
-		((parts[0] << 24) >>> 0) + (parts[1] << 16) + (parts[2] << 8) + parts[3]
-	);
-};
-
-const calculateRange = (startIP: string, endIP: string): number => {
-	return parseIP(endIP) - parseIP(startIP) + 1;
-};
 
 export const getContextualHint = (state: NetworkState): string => {
 	const {
@@ -116,16 +101,16 @@ export const getContextualHint = (state: NetworkState): string => {
 
 	// Validate IP range when router settings are open
 	if (routerSettingsOpen && startIp && endIp) {
-		if (!isValidIP(startIp)) {
+		if (!isValidIp(startIp)) {
 			return "❌ Invalid start IP - each number must be between 0-255";
 		}
-		if (!isValidIP(endIp)) {
+		if (!isValidIp(endIp)) {
 			return "❌ Invalid end IP - each number must be between 0-255";
 		}
-		if (parseIP(startIp) > parseIP(endIp)) {
+		if (parseIpToNumber(startIp) > parseIpToNumber(endIp)) {
 			return "❌ Start IP must be lower than End IP";
 		}
-		if (calculateRange(startIp, endIp) < 2) {
+		if (calculateIpRangeSize(startIp, endIp) < 2) {
 			return "❌ Range too small - you need at least 2 addresses for 2 PCs";
 		}
 	}

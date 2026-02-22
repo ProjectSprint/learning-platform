@@ -6,6 +6,7 @@ import {
 	createEntityPayloadWriter,
 	type EffectContext,
 	findEntitySpace,
+	lookupEntity,
 } from "@/components/game/engine/runtime";
 import type {
 	EntityUpdatedEvent,
@@ -210,7 +211,7 @@ function createExecutionParts(
 		const partId = `${appId}-exec-${part.step}`;
 		partIds.push(partId);
 		const shouldPauseAtMidpoint = part.step === "request";
-		if (!ctx.state.entities[partId]) {
+		if (!lookupEntity(ctx.state, partId)) {
 			ctx.world.createEntity({
 				id: partId,
 				name: part.label,
@@ -354,7 +355,7 @@ function handleAppEnteredOpen(ctx: Ctx, appId: string) {
 
 	const app = APP_BY_ID[appId];
 	if (!app) return;
-	const appEntity = ctx.state.entities[appId];
+	const appEntity = lookupEntity(ctx.state, appId);
 	if (!appEntity) return;
 
 	const appStatus = appEntity.data.appStatus;
@@ -427,7 +428,7 @@ const rules = [
 			if (!isEntityUpdatedEvent(ctx.event)) return;
 			const event = ctx.event;
 			const partId = event.entityId;
-			const partEntity = ctx.state.entities[partId];
+			const partEntity = lookupEntity(ctx.state, partId);
 			if (!partEntity) return;
 
 			const ownerAppId = partEntity.data.ownerAppId;
@@ -485,7 +486,7 @@ const rules = [
 		handler: (ctx) => {
 			if (ctx.event.type !== "ENTITY_LEFT_SPACE") return;
 			const event = ctx.event;
-			const ioRequestEntity = ctx.state.entities[event.entityId];
+			const ioRequestEntity = lookupEntity(ctx.state, event.entityId);
 			if (!ioRequestEntity) return;
 			if (ioRequestEntity.data.ioRole !== "storage") return;
 
@@ -494,7 +495,7 @@ const rules = [
 					? ioRequestEntity.data.ownerPartId
 					: undefined;
 			if (!ownerPartId) return;
-			const ownerPartEntity = ctx.state.entities[ownerPartId];
+			const ownerPartEntity = lookupEntity(ctx.state, ownerPartId);
 			if (!ownerPartEntity) {
 				ctx.world.deleteEntities([event.entityId]);
 				return;
@@ -526,7 +527,7 @@ const rules = [
 			const laneId = event.spaceId;
 			if (!isCoreLaneId(laneId)) return;
 
-			const partEntity = ctx.state.entities[partId];
+			const partEntity = lookupEntity(ctx.state, partId);
 			if (!partEntity) return;
 
 			const ownerAppId =

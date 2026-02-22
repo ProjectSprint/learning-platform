@@ -170,6 +170,21 @@ export const selectSpaceIsEmpty = (
 };
 
 /**
+ * True when at least one visible modal has an `instance.id` matching the predicate.
+ */
+export const isModalOpen = (
+	state: GameState,
+	predicate: (modalId: string) => boolean,
+): boolean => {
+	return Object.values(state.overlay.modals).some(
+		(entry) =>
+			entry.visible &&
+			entry.instance.id != null &&
+			predicate(entry.instance.id),
+	);
+};
+
+/**
  * Builds a behavior trigger for entity click interactions.
  */
 export const buildEntityClickTrigger = <

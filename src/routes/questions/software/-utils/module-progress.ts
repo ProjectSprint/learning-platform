@@ -1,7 +1,4 @@
-import {
-	createProgressStore,
-	useProgressSnapshot,
-} from "../../-utils/create-progress-store";
+import { useSyncExternalStore } from "react";
 
 export type SoftwareQuestionId = "cores-and-threads";
 
@@ -39,15 +36,37 @@ export const getNextQuestionPath = (id: SoftwareQuestionId) => {
 export const getFirstQuestionPath = () =>
 	SOFTWARE_QUESTIONS[0]?.path ?? "/questions/software";
 
-export const softwareProgressStore = createProgressStore<SoftwareQuestionId>();
+// --- Progress store ---
 
-export const useSoftwareProgress = () =>
-	useProgressSnapshot(softwareProgressStore, SOFTWARE_QUESTIONS.length);
+let completedIds: SoftwareQuestionId[] = [];
+const listeners = new Set<() => void>();
 
-export const getSoftwareProgressState = () => softwareProgressStore.getState();
-export const setSoftwareProgressState = (next: {
-	completedIds: SoftwareQuestionId[];
-}) => softwareProgressStore.setState(next);
-export const markSoftwareQuestionComplete = (id: SoftwareQuestionId) =>
-	softwareProgressStore.markComplete(id);
-export const resetSoftwareProgress = () => softwareProgressStore.reset();
+const emitChange = () => {
+	for (const listener of listeners) {
+		listener();
+	}
+};
+
+const getSnapshot = () => completedIds;
+
+const subscribe = (listener: () => void) => {
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
+};
+
+export const markSoftwareQuestionComplete = (id: SoftwareQuestionId) => {
+	if (completedIds.includes(id)) return;
+	completedIds = [...new Set([...completedIds, id])];
+	emitChange();
+};
+
+export const useSoftwareProgress = () => {
+	const ids = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+	return {
+		completedIds: ids,
+		completedCount: ids.length,
+		totalQuestions: SOFTWARE_QUESTIONS.length,
+	};
+};

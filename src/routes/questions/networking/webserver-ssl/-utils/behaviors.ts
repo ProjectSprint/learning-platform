@@ -8,6 +8,7 @@ import {
 	createEntityPayloadWriter,
 	findEntitySpace,
 	isGridSpace,
+	lookupEntity,
 	type ModalSubmissionContract,
 	parseModalSubmission,
 	parseTerminalInput,
@@ -137,7 +138,7 @@ function deriveSslStatus(state: GameState) {
 	const getTypes = (space: typeof port80Space) => {
 		if (!space) return [];
 		return Object.keys(space.entityPositions).map((entityId) => {
-			const entity = state.entities[entityId];
+			const entity = lookupEntity(state, entityId);
 			return entity?.type ?? "";
 		});
 	};
@@ -169,7 +170,7 @@ function deriveSslStatus(state: GameState) {
 	let port80Domain = DEFAULT_DOMAIN;
 	if (port80Space) {
 		for (const entityId of Object.keys(port80Space.entityPositions)) {
-			const entity = state.entities[entityId];
+			const entity = lookupEntity(state, entityId);
 			if (entity?.type === "domain" && typeof entity.data.domain === "string") {
 				port80Domain = entity.data.domain;
 				break;
@@ -231,7 +232,7 @@ const rules = [
 				port80Raw && isGridSpace(port80Raw) ? port80Raw : null;
 			const port80Types = port80Space
 				? Object.keys(port80Space.entityPositions).map((entityId) => {
-						const current = state.entities[entityId];
+						const current = lookupEntity(state, entityId);
 						return current?.type ?? "";
 					})
 				: [];
@@ -269,7 +270,7 @@ const rules = [
 				port443Raw && isGridSpace(port443Raw) ? port443Raw : null;
 			const port443Types = port443Space
 				? Object.keys(port443Space.entityPositions).map((entityId) => {
-						const current = state.entities[entityId];
+						const current = lookupEntity(state, entityId);
 						return current?.type ?? "";
 					})
 				: [];

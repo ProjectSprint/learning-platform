@@ -98,12 +98,12 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/questions/networking/': typeof QuestionsNetworkingIndexRoute
   '/questions/software/': typeof QuestionsSoftwareIndexRoute
-  '/questions/networking/dhcp': typeof QuestionsNetworkingDhcpIndexRoute
-  '/questions/networking/internet': typeof QuestionsNetworkingInternetIndexRoute
-  '/questions/networking/tcp': typeof QuestionsNetworkingTcpIndexRoute
-  '/questions/networking/udp': typeof QuestionsNetworkingUdpIndexRoute
-  '/questions/networking/webserver-ssl': typeof QuestionsNetworkingWebserverSslIndexRoute
-  '/questions/software/cores-and-threads': typeof QuestionsSoftwareCoresAndThreadsIndexRoute
+  '/questions/networking/dhcp/': typeof QuestionsNetworkingDhcpIndexRoute
+  '/questions/networking/internet/': typeof QuestionsNetworkingInternetIndexRoute
+  '/questions/networking/tcp/': typeof QuestionsNetworkingTcpIndexRoute
+  '/questions/networking/udp/': typeof QuestionsNetworkingUdpIndexRoute
+  '/questions/networking/webserver-ssl/': typeof QuestionsNetworkingWebserverSslIndexRoute
+  '/questions/software/cores-and-threads/': typeof QuestionsSoftwareCoresAndThreadsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -141,12 +141,12 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/questions/networking/'
     | '/questions/software/'
-    | '/questions/networking/dhcp'
-    | '/questions/networking/internet'
-    | '/questions/networking/tcp'
-    | '/questions/networking/udp'
-    | '/questions/networking/webserver-ssl'
-    | '/questions/software/cores-and-threads'
+    | '/questions/networking/dhcp/'
+    | '/questions/networking/internet/'
+    | '/questions/networking/tcp/'
+    | '/questions/networking/udp/'
+    | '/questions/networking/webserver-ssl/'
+    | '/questions/software/cores-and-threads/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -229,42 +229,42 @@ declare module '@tanstack/react-router' {
     '/questions/software/cores-and-threads/': {
       id: '/questions/software/cores-and-threads/'
       path: '/cores-and-threads'
-      fullPath: '/questions/software/cores-and-threads'
+      fullPath: '/questions/software/cores-and-threads/'
       preLoaderRoute: typeof QuestionsSoftwareCoresAndThreadsIndexRouteImport
       parentRoute: typeof QuestionsSoftwareRouteRoute
     }
     '/questions/networking/webserver-ssl/': {
       id: '/questions/networking/webserver-ssl/'
       path: '/webserver-ssl'
-      fullPath: '/questions/networking/webserver-ssl'
+      fullPath: '/questions/networking/webserver-ssl/'
       preLoaderRoute: typeof QuestionsNetworkingWebserverSslIndexRouteImport
       parentRoute: typeof QuestionsNetworkingRouteRoute
     }
     '/questions/networking/udp/': {
       id: '/questions/networking/udp/'
       path: '/udp'
-      fullPath: '/questions/networking/udp'
+      fullPath: '/questions/networking/udp/'
       preLoaderRoute: typeof QuestionsNetworkingUdpIndexRouteImport
       parentRoute: typeof QuestionsNetworkingRouteRoute
     }
     '/questions/networking/tcp/': {
       id: '/questions/networking/tcp/'
       path: '/tcp'
-      fullPath: '/questions/networking/tcp'
+      fullPath: '/questions/networking/tcp/'
       preLoaderRoute: typeof QuestionsNetworkingTcpIndexRouteImport
       parentRoute: typeof QuestionsNetworkingRouteRoute
     }
     '/questions/networking/internet/': {
       id: '/questions/networking/internet/'
       path: '/internet'
-      fullPath: '/questions/networking/internet'
+      fullPath: '/questions/networking/internet/'
       preLoaderRoute: typeof QuestionsNetworkingInternetIndexRouteImport
       parentRoute: typeof QuestionsNetworkingRouteRoute
     }
     '/questions/networking/dhcp/': {
       id: '/questions/networking/dhcp/'
       path: '/dhcp'
-      fullPath: '/questions/networking/dhcp'
+      fullPath: '/questions/networking/dhcp/'
       preLoaderRoute: typeof QuestionsNetworkingDhcpIndexRouteImport
       parentRoute: typeof QuestionsNetworkingRouteRoute
     }
