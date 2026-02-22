@@ -160,9 +160,12 @@ const CoresAndThreadsGame = ({
 		onCommand: handleTerminalCommand,
 	});
 
+	// Terminal visibility based on game state phase
+	const shouldShowTerminal = state.phase === "boot";
+
 	// Initialize terminal in boot phase, close when server starts
 	useEffect(() => {
-		if (behaviorContext.phase === "boot") {
+		if (shouldShowTerminal) {
 			openTerminal();
 			clearHistory();
 			setPrompt("$");
@@ -172,7 +175,7 @@ const CoresAndThreadsGame = ({
 			closeTerminal();
 		}
 	}, [
-		behaviorContext.phase,
+		shouldShowTerminal,
 		terminal.visible,
 		openTerminal,
 		closeTerminal,
