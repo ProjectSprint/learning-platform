@@ -6,54 +6,56 @@ import {
 	createEntityPayloadWriter,
 	type EffectContext,
 	findEntitySpace,
+	listSpaceEntityIds,
 	lookupEntity,
 } from "@/components/game/engine/runtime";
 import type {
 	EntityUpdatedEvent,
 	GameEvent,
+	GameState,
 } from "@/components/game/types/state";
 
 import {
-	ALLOCATING_MS,
-	APP_BY_ID,
-	APP_IDS,
-	EXECUTION_PARTS,
-	NOTICE_MS,
-	OPENED_APPS_FOR_DUAL_CORE_PROMPT,
-	PARSING_MS,
+	getLaneSpaceId,
+	LANE_IDS,
+	MAX_CORES,
+	QUEUE_CAPACITY,
+	REQUEST_COLORS,
+	REQUEST_ICONS,
 	SPACE_IDS,
+	TIMER_NOTICE_MS,
+	TIMER_REQUEST_SPAWN_MS,
+	TIMER_SPAWN_SPIKE_MS,
+	TIMER_TIMEOUT_THRESHOLD_MS,
 } from "./constants";
-import type { AppKey } from "./types";
-
-type CoreLaneId = typeof SPACE_IDS.core1 | typeof SPACE_IDS.core2;
-const CORE_LANES: CoreLaneId[] = [SPACE_IDS.core1, SPACE_IDS.core2];
-const EXECUTION_SPLIT_SETTLE_MS = 250;
-
-export type CoresPhase = "single-core";
-export type CoresSpaceId = (typeof SPACE_IDS)[keyof typeof SPACE_IDS];
-export type CoresEntityType = "app" | "subtask";
+import type {
+	CoreLaneId,
+	CoresPhase,
+	IoSubtaskStatus,
+	RequestMethod,
+	RequestPath,
+	RequestStatus,
+} from "./types";
 
 type CoresTriggerSpec = {
-	spaceId: CoresSpaceId;
-	entityType: CoresEntityType;
-	modalId: never;
-	modalActionId: never;
+	spaceId: string;
+	entityType: "request" | "io-subtask" | "core" | "thread";
+	modalId: string;
+	modalActionId: string;
 	phase: CoresPhase;
 };
 
 export type CoresBehaviorContext = {
-	pipelineState: "idle" | "parsing" | "allocating" | "executing";
-	openedCount: number;
-	dualCorePromptVisible: boolean;
-	activeLane1AppId: string | null;
-	activeLane1AppKey: AppKey | null;
-	activeLane2AppId: string | null;
-	activeLane2AppKey: AppKey | null;
-	partIds1: string[];
-	partIds2: string[];
-	partIndex1: number;
-	partIndex2: number;
-	laneCursor: number;
+	phase: CoresPhase;
+	serverRunning: boolean;
+	requestsPerSec: number;
+	queueDepth: number;
+	timeoutCount: number;
+	coreCount: number;
+	threadsEnabled: boolean;
+	lastSpawnTime: number;
+	lastTimeoutTime: number | null;
+	masteryStartTime: number | null;
 	noticeMessage: string | null;
 	noticeTone: "info" | "error" | null;
 	navigateAway: boolean;
@@ -77,477 +79,390 @@ const updateEntityData = (
 	payloadWriter.updateData(entityId, "coresEntity", data);
 };
 
-function getActiveLaneApp(
-	ctx: { context: CoresBehaviorContext },
-	laneId: CoreLaneId,
-): { appId: string; appKey: AppKey } | null {
-	if (laneId === SPACE_IDS.core1) {
-		if (!ctx.context.activeLane1AppId || !ctx.context.activeLane1AppKey) {
-			return null;
-		}
-		return {
-			appId: ctx.context.activeLane1AppId,
-			appKey: ctx.context.activeLane1AppKey,
-		};
-	}
-	if (!ctx.context.activeLane2AppId || !ctx.context.activeLane2AppKey) {
-		return null;
-	}
-	return {
-		appId: ctx.context.activeLane2AppId,
-		appKey: ctx.context.activeLane2AppKey,
-	};
-}
-
-function setActiveLaneApp(
-	ctx: { updateContext: Ctx["updateContext"] },
-	laneId: CoreLaneId,
-	app: { appId: string; appKey: AppKey } | null,
-) {
-	ctx.updateContext((c) => {
-		if (laneId === SPACE_IDS.core1) {
-			c.activeLane1AppId = app?.appId ?? null;
-			c.activeLane1AppKey = app?.appKey ?? null;
-		} else {
-			c.activeLane2AppId = app?.appId ?? null;
-			c.activeLane2AppKey = app?.appKey ?? null;
-		}
-	});
-}
-
-function getPartIds(
-	ctx: { context: CoresBehaviorContext },
-	laneId: CoreLaneId,
-): string[] {
-	return laneId === SPACE_IDS.core1
-		? ctx.context.partIds1
-		: ctx.context.partIds2;
-}
-
-function getPartIndex(
-	ctx: { context: CoresBehaviorContext },
-	laneId: CoreLaneId,
-): number {
-	return laneId === SPACE_IDS.core1
-		? ctx.context.partIndex1
-		: ctx.context.partIndex2;
-}
-
-function setPartIndex(
-	ctx: { updateContext: Ctx["updateContext"] },
-	laneId: CoreLaneId,
-	index: number,
-) {
-	ctx.updateContext((c) => {
-		if (laneId === SPACE_IDS.core1) {
-			c.partIndex1 = index;
-		} else {
-			c.partIndex2 = index;
-		}
-	});
-}
-
-function isDualCoreUnlocked(ctx: { context: CoresBehaviorContext }): boolean {
-	return (
-		ctx.context.dualCorePromptVisible ||
-		ctx.context.openedCount >= OPENED_APPS_FOR_DUAL_CORE_PROMPT
-	);
-}
-
-function selectAvailableLane(
-	ctx: Pick<Ctx, "context" | "updateContext">,
-): CoreLaneId | null {
-	const enabledLanes = isDualCoreUnlocked(ctx) ? CORE_LANES : [SPACE_IDS.core1];
-	const selection = chooseLaneForExecution({
-		lanes: CORE_LANES,
-		enabledLanes,
-		policy: isDualCoreUnlocked(ctx) ? "round_robin" : "first_free",
-		cursor: ctx.context.laneCursor,
-		isOccupied: (laneId) => getActiveLaneApp(ctx, laneId) !== null,
-	});
-	ctx.updateContext((c) => {
-		c.laneCursor = selection.cursor;
-	});
-	return selection.laneId;
-}
-
-function hasAnyActiveLane(ctx: { context: CoresBehaviorContext }): boolean {
-	return CORE_LANES.some((laneId) => getActiveLaneApp(ctx, laneId) !== null);
-}
-
 const isEntityUpdatedEvent = (event: GameEvent): event is EntityUpdatedEvent =>
 	event.type === "ENTITY_UPDATED";
 
-const isCoreLaneId = (value: unknown): value is CoreLaneId =>
-	value === SPACE_IDS.core1 || value === SPACE_IDS.core2;
+const getRequestSpaceId = (
+	method: RequestMethod,
+	path: RequestPath,
+): string => {
+	if (method === "GET" && path === "/") return SPACE_IDS.diskPath;
+	if (method === "POST" && path === "/login") return SPACE_IDS.dbPath;
+	return SPACE_IDS.diskPath;
+};
 
-function showNotice(
+const showNotice = (
 	ctx: Pick<Ctx, "updateContext" | "schedule">,
 	message: string,
 	tone: "info" | "error",
-) {
+) => {
 	ctx.updateContext((c) => {
 		c.noticeMessage = message;
 		c.noticeTone = tone;
 	});
-	ctx.schedule("core:notice-clear", NOTICE_MS, (sctx) => {
+	ctx.schedule("cores:notice-clear", TIMER_NOTICE_MS, (sctx) => {
 		sctx.updateContext((c) => {
 			c.noticeMessage = null;
 			c.noticeTone = null;
 		});
 	});
-}
+};
 
-function createExecutionParts(
+const spawnRequest = (
 	ctx: Pick<Ctx, "state" | "world" | "updateContext">,
-	appId: string,
-	appKey: AppKey,
-	laneId: CoreLaneId,
-) {
-	const partIds: string[] = [];
-	const targetRow = laneId === SPACE_IDS.core1 ? 0 : 1;
-
-	for (const [index, part] of EXECUTION_PARTS.entries()) {
-		const partId = `${appId}-exec-${part.step}`;
-		partIds.push(partId);
-		const shouldPauseAtMidpoint = part.step === "request";
-		if (!lookupEntity(ctx.state, partId)) {
-			ctx.world.createEntity({
-				id: partId,
-				name: part.label,
-				allowedPlaces: [
-					SPACE_IDS.execution,
-					SPACE_IDS.core1,
-					SPACE_IDS.core2,
-					SPACE_IDS.storage,
-				],
-				icon: { icon: part.icon, color: part.color },
-				draggable: false,
-				data: {
-					type: "subtask",
-					appKey,
-					step: part.step,
-					partStatus: "queued",
-					laneId,
-					ownerAppId: appId,
-					pathPauseAtMidpoint: shouldPauseAtMidpoint,
-					pathResumeToken: 0,
-				},
-			});
-		}
-
-		// Re-apply critical execution flags every run so stale entities cannot
-		// keep an old midpoint-pause configuration.
-		ctx.world.updateEntity(partId, {
-			name: part.label,
-		});
-		updateEntityData(ctx, partId, {
-			appKey,
-			step: part.step,
-			partStatus: "queued",
-			laneId,
-			ownerAppId: appId,
-			pathPauseAtMidpoint: shouldPauseAtMidpoint,
-			pathResumeToken: 0,
-		});
-		const currentSpaceId = findEntitySpace(ctx.state, partId);
-		if (currentSpaceId) {
-			ctx.world.removeFromSpace(partId, currentSpaceId);
-		}
-		ctx.world.addToSpace(partId, SPACE_IDS.execution, {
-			row: targetRow,
-			col: index,
-		});
-	}
-
-	ctx.updateContext((c) => {
-		if (laneId === SPACE_IDS.core1) {
-			c.partIds1 = partIds;
-			c.partIndex1 = 0;
-		} else {
-			c.partIds2 = partIds;
-			c.partIndex2 = 0;
-		}
-	});
-}
-
-function moveNextPartToCore(
-	ctx: Pick<Ctx, "state" | "world" | "updateContext" | "context" | "schedule">,
-	laneId: CoreLaneId,
-) {
-	const app = getActiveLaneApp(ctx, laneId);
-	if (!app) return;
-
-	const partIndex = getPartIndex(ctx, laneId);
-	const partIds = getPartIds(ctx, laneId);
-	const partId = partIds[partIndex];
-
-	if (!partId) {
-		const currentSpaceId = findEntitySpace(ctx.state, app.appId);
-		if (currentSpaceId) {
-			ctx.world.removeFromSpace(app.appId, currentSpaceId);
-		}
-		ctx.world.moveEntityToGrid(app.appId, SPACE_IDS.opened);
-		updateEntityData(ctx, app.appId, { appStatus: "opened" });
-
-		const nextOpened = ctx.context.openedCount + 1;
-		setActiveLaneApp(ctx, laneId, null);
-		ctx.updateContext((c) => {
-			if (laneId === SPACE_IDS.core1) {
-				c.partIds1 = [];
-				c.partIndex1 = 0;
-			} else {
-				c.partIds2 = [];
-				c.partIndex2 = 0;
-			}
-			c.openedCount = nextOpened;
-			c.pipelineState = hasAnyActiveLane(ctx) ? "executing" : "idle";
-		});
-
-		if (
-			nextOpened >= OPENED_APPS_FOR_DUAL_CORE_PROMPT &&
-			!ctx.context.dualCorePromptVisible
-		) {
-			ctx.updateContext((c) => {
-				c.dualCorePromptVisible = true;
-			});
-			showNotice(
-				ctx,
-				"You now have two opened apps. Next step: introduce dual-core scheduling.",
-				"info",
-			);
-		}
+	method: RequestMethod,
+	path: RequestPath,
+) => {
+	const queueEntities = listSpaceEntityIds(ctx.state, SPACE_IDS.requestQueue);
+	if (queueEntities.length >= QUEUE_CAPACITY) {
 		return;
 	}
 
-	updateEntityData(ctx, partId, { partStatus: "executing" });
-	ctx.world.moveEntity(partId, laneId);
-}
+	const timestamp = Date.now();
+	const requestId = `req-${timestamp}`;
+	const spaceId = getRequestSpaceId(method, path);
 
-function beginExecution(
-	ctx: Pick<Ctx, "state" | "world" | "updateContext" | "context" | "schedule">,
-	appId: string,
-	appKey: AppKey,
-	laneId: CoreLaneId,
-) {
-	ctx.updateContext((c) => {
-		c.pipelineState = "executing";
-	});
-	updateEntityData(ctx, appId, { appStatus: "allocating" });
-	createExecutionParts(ctx, appId, appKey, laneId);
-
-	const currentSpaceId = findEntitySpace(ctx.state, appId);
-	if (currentSpaceId) {
-		ctx.world.removeFromSpace(appId, currentSpaceId);
-	}
-
-	ctx.schedule(
-		`core:start-core:${laneId}`,
-		EXECUTION_SPLIT_SETTLE_MS,
-		(sctx) => {
-			moveNextPartToCore(sctx, laneId);
+	ctx.world.createEntity({
+		id: requestId,
+		name: `${method} ${path}`,
+		allowedPlaces: [
+			SPACE_IDS.requestQueue,
+			SPACE_IDS.diskPath,
+			SPACE_IDS.dbPath,
+			SPACE_IDS.completed,
+		],
+		icon: {
+			icon: REQUEST_ICONS[method],
+			color: REQUEST_COLORS[method],
 		},
-	);
-}
+		draggable: false,
+		data: {
+			type: "request",
+			method,
+			path,
+			status: "queued" as RequestStatus,
+			spawnTime: timestamp,
+			targetSpaceId: spaceId,
+		},
+	});
 
-function handleAppEnteredOpen(ctx: Ctx, appId: string) {
-	if (!APP_IDS.has(appId)) return;
+	ctx.world.addToSpace(requestId, SPACE_IDS.requestQueue);
+	ctx.updateContext((c) => {
+		c.lastSpawnTime = timestamp;
+		c.queueDepth = queueEntities.length + 1;
+	});
+};
 
-	const app = APP_BY_ID[appId];
-	if (!app) return;
-	const appEntity = lookupEntity(ctx.state, appId);
-	if (!appEntity) return;
+const calculateRPS = (ctx: { context: CoresBehaviorContext }): number => {
+	if (!ctx.context.serverRunning) return 0;
+	const baseRPS = ctx.context.requestsPerSec || 1;
+	return ctx.context.timeoutCount > 0 ? baseRPS * 4 : baseRPS;
+};
 
-	const appStatus = appEntity.data.appStatus;
-	if (appStatus !== "ready") return;
+const selectAvailableLane = (
+	ctx: Pick<Ctx, "state" | "context" | "updateContext">,
+): CoreLaneId | null => {
+	const enabledLanes = LANE_IDS.slice(0, ctx.context.coreCount || 1);
+	const selection = chooseLaneForExecution({
+		lanes: LANE_IDS,
+		enabledLanes,
+		policy: enabledLanes.length > 1 ? "round_robin" : "first_free",
+		cursor: 0,
+		isOccupied: (laneId) => {
+			const laneSpaceId = getLaneSpaceId(laneId as CoreLaneId);
+			const laneSpace = lookupEntity(ctx.state, laneSpaceId);
+			if (!laneSpace) return true;
+			return false;
+		},
+	});
+	return selection.laneId as CoreLaneId | null;
+};
 
-	const currentSpaceId = findEntitySpace(ctx.state, appId);
-	if (currentSpaceId !== SPACE_IDS.open) return;
+const createIoSubtask = (
+	ctx: Pick<Ctx, "state" | "world">,
+	ownerRequestId: string,
+	laneId: CoreLaneId,
+) => {
+	const ioId = `io-${ownerRequestId}`;
+	const ioPath = Math.random() > 0.5 ? SPACE_IDS.diskPath : SPACE_IDS.dbPath;
 
-	const laneId = selectAvailableLane(ctx);
-	if (!laneId) {
-		ctx.world.moveEntity(appId, SPACE_IDS.appPool);
-		updateEntityData(ctx, appId, { appStatus: "ready" });
-		showNotice(
-			ctx,
-			"All available cores are busy. Wait for a lane to free up.",
-			"error",
-		);
+	ctx.world.createEntity({
+		id: ioId,
+		name: "I/O Operation",
+		allowedPlaces: [ioPath],
+		icon: { icon: "mdi:harddisk", color: "#9CA3AF" },
+		draggable: false,
+		data: {
+			type: "io-subtask",
+			ioStatus: "request" as IoSubtaskStatus,
+			ownerRequestId,
+			laneId,
+			pathPauseAtMidpoint: false,
+			pathResumeToken: 0,
+		},
+	});
+	ctx.world.addToSpace(ioId, ioPath);
+};
+
+const handleIoMidpoint = (ctx: Ctx, requestId: string) => {
+	const request = lookupEntity(ctx.state, requestId);
+	if (!request || request.data.type !== "request") return;
+
+	const laneId = request.data.laneId as CoreLaneId;
+	if (!laneId) return;
+
+	if (ctx.context.threadsEnabled) {
+		updateEntityData(ctx, requestId, {
+			status: "waiting-io" as RequestStatus,
+		});
+		ctx.world.moveEntity(requestId, SPACE_IDS.ioWait);
+		createIoSubtask(ctx, requestId, laneId);
+	} else {
+		updateEntityData(ctx, requestId, {
+			status: "waiting-io" as RequestStatus,
+		});
+		createIoSubtask(ctx, requestId, laneId);
+	}
+};
+
+const checkTimeouts = (ctx: Ctx) => {
+	const queueEntities = listSpaceEntityIds(ctx.state, SPACE_IDS.requestQueue);
+	const now = Date.now();
+
+	for (const entityId of queueEntities) {
+		const entity = lookupEntity(ctx.state, entityId);
+		if (!entity || entity.data.type !== "request") continue;
+
+		const spawnTime = entity.data.spawnTime as number;
+		if (now - spawnTime > TIMER_TIMEOUT_THRESHOLD_MS) {
+			updateEntityData(ctx, entityId, {
+				status: "timeout" as RequestStatus,
+			});
+			ctx.world.moveEntity(entityId, SPACE_IDS.completed);
+			ctx.updateContext((c) => {
+				c.timeoutCount++;
+				c.lastTimeoutTime = now;
+			});
+		}
+	}
+};
+
+const checkMastery = (ctx: Ctx) => {
+	if (!ctx.context.threadsEnabled) return;
+	if (ctx.context.timeoutCount > 0) {
+		ctx.updateContext((c) => {
+			c.masteryStartTime = null;
+		});
 		return;
 	}
 
-	setActiveLaneApp(ctx, laneId, { appId, appKey: app.appKey });
-	ctx.updateContext((c) => {
-		c.pipelineState = "parsing";
-	});
-	updateEntityData(ctx, appId, { appStatus: "parsing" });
-
-	ctx.schedule(`core:parse:${appId}`, PARSING_MS, (sctx) => {
-		const currentApp = getActiveLaneApp(sctx, laneId);
-		if (!currentApp || currentApp.appId !== appId) return;
-
-		sctx.updateContext((c) => {
-			c.pipelineState = "allocating";
+	if (!ctx.context.masteryStartTime) {
+		ctx.updateContext((c) => {
+			c.masteryStartTime = Date.now();
 		});
-		updateEntityData(sctx, appId, { appStatus: "allocating" });
+	} else {
+		const elapsed = Date.now() - ctx.context.masteryStartTime;
+		if (elapsed > 10000) {
+			ctx.updateContext((c) => {
+				c.navigateAway = true;
+			});
+		}
+	}
+};
 
-		sctx.schedule(`core:alloc:${appId}`, ALLOCATING_MS, (actx) => {
-			const latestApp = getActiveLaneApp(actx, laneId);
-			if (!latestApp || latestApp.appId !== appId) return;
-			beginExecution(actx, appId, app.appKey, laneId);
-		});
-	});
-}
+const startSpawnLoop = (ctx: Ctx) => {
+	const scheduleNextSpawn = (sctx: {
+		state: GameState;
+		world: Ctx["world"];
+		updateContext: Ctx["updateContext"];
+		schedule: Ctx["schedule"];
+		context: CoresBehaviorContext;
+	}) => {
+		if (!sctx.context.serverRunning) return;
+
+		const rps = calculateRPS(sctx);
+		const interval = rps > 1 ? TIMER_SPAWN_SPIKE_MS : TIMER_REQUEST_SPAWN_MS;
+
+		const method: RequestMethod = Math.random() > 0.5 ? "GET" : "POST";
+		const path: RequestPath = method === "GET" ? "/" : "/login";
+		spawnRequest(sctx, method, path);
+
+		checkTimeouts(sctx as unknown as Ctx);
+		checkMastery(sctx as unknown as Ctx);
+
+		// Reschedule next spawn
+		sctx.schedule(
+			"cores:spawn-loop",
+			interval,
+			scheduleNextSpawn as unknown as Parameters<typeof sctx.schedule>[2],
+		);
+	};
+
+	// Initial schedule
+	const rps = calculateRPS(ctx);
+	const interval = rps > 1 ? TIMER_SPAWN_SPIKE_MS : TIMER_REQUEST_SPAWN_MS;
+	ctx.schedule(
+		"cores:spawn-loop",
+		interval,
+		scheduleNextSpawn as unknown as Parameters<typeof ctx.schedule>[2],
+	);
+};
 
 const rules = [
 	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
-		id: "cores.app-arrived-open",
-		on: buildEntityArrivedTrigger(SPACE_IDS.open, "app"),
+		id: "cores.start-server",
+		on: { event: "PHASE_CHANGED" },
+		guard: ({ context, event }) =>
+			event.type === "PHASE_CHANGED" &&
+			context.phase === "single-core-success" &&
+			!context.serverRunning,
 		handler: (ctx) => {
-			const entityId = ctx.provenance.entityId;
-			if (!entityId) return;
-			handleAppEnteredOpen(ctx, entityId);
+			ctx.updateContext((c) => {
+				c.serverRunning = true;
+			});
+			startSpawnLoop(ctx);
+		},
+	}),
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
+		id: "cores.auto-pickup-requests",
+		on: { event: "ENTITY_ARRIVED_AT_SPACE", space: SPACE_IDS.requestQueue },
+		guard: ({ context }) => context.serverRunning,
+		handler: (ctx) => {
+			// Check queue for requests that can be picked up
+			const queueEntities = listSpaceEntityIds(
+				ctx.state,
+				SPACE_IDS.requestQueue,
+			);
+			for (const requestId of queueEntities) {
+				const request = lookupEntity(ctx.state, requestId);
+				if (!request || request.data.type !== "request") continue;
+
+				const status = request.data.status as RequestStatus;
+				if (status !== "queued") continue;
+
+				const laneId = selectAvailableLane(ctx);
+				if (!laneId) break; // No available lanes, stop trying
+
+				const laneSpaceId = getLaneSpaceId(laneId);
+				updateEntityData(ctx, requestId, {
+					status: "processing" as RequestStatus,
+					laneId,
+				});
+				ctx.world.moveEntity(requestId, laneSpaceId);
+
+				ctx.updateContext((c) => {
+					c.queueDepth = Math.max(0, c.queueDepth - 1);
+				});
+			}
 		},
 	}),
 	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
 		id: "cores.request-midpoint-waits-for-io",
-		on: { event: "ENTITY_UPDATED", entityType: "subtask" },
+		on: { event: "ENTITY_UPDATED", entityType: "request" },
 		guard: ({ event, entity }) => {
 			if (!isEntityUpdatedEvent(event)) return false;
 			if (typeof event.updates.data?.pathMidpointTick !== "number")
 				return false;
 			if (!entity) return false;
-			return (
-				entity.data.step === "request" &&
-				(entity.data.laneId === SPACE_IDS.core1 ||
-					entity.data.laneId === SPACE_IDS.core2) &&
-				typeof entity.data.ownerAppId === "string"
-			);
+			return entity.data.status === "processing";
 		},
 		handler: (ctx) => {
 			if (!isEntityUpdatedEvent(ctx.event)) return;
-			const event = ctx.event;
-			const partId = event.entityId;
-			const partEntity = lookupEntity(ctx.state, partId);
-			if (!partEntity) return;
-
-			const ownerAppId = partEntity.data.ownerAppId;
-			if (typeof ownerAppId !== "string") return;
-			const laneId = partEntity.data.laneId;
-			if (!isCoreLaneId(laneId)) return;
-			const ioRequestId = `io-request:${ownerAppId}:${laneId}:${event.actionId}`;
-
-			updateEntityData(ctx, partId, { partStatus: "waiting-io" });
-			ctx.world.createEntity({
-				id: ioRequestId,
-				name: "File request",
-				allowedPlaces: [SPACE_IDS.storage],
-				icon: { icon: "mdi:file-search-outline", color: "#60A5FA" },
-				draggable: false,
-				data: {
-					type: "subtask",
-					ioRole: "storage",
-					ioState: "request",
-					ownerPartId: partId,
-					ownerAppId,
-					laneId,
-					pathPauseAtMidpoint: false,
-					pathResumeToken: 0,
-				},
-			});
-			ctx.world.addToSpace(ioRequestId, SPACE_IDS.storage);
+			const requestId = ctx.event.entityId;
+			handleIoMidpoint(ctx, requestId);
 		},
 	}),
 	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
-		id: "cores.storage-midpoint-swaps-response",
-		on: { event: "ENTITY_UPDATED", entityType: "subtask" },
-		guard: ({ event, entity }) => {
-			if (!isEntityUpdatedEvent(event)) return false;
-			if (typeof event.updates.data?.pathMidpointTick !== "number")
-				return false;
-			if (!entity) return false;
-			return (
-				entity.data.ioRole === "storage" && entity.data.ioState === "request"
-			);
-		},
-		handler: (ctx) => {
-			if (!isEntityUpdatedEvent(ctx.event)) return;
-			const event = ctx.event;
-			const ioRequestId = event.entityId;
-			ctx.world.updateEntity(ioRequestId, {
-				name: "File response",
-			});
-			updateEntityData(ctx, ioRequestId, { ioState: "response" });
-		},
-	}),
-	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
-		id: "cores.storage-complete-resumes-request",
-		on: { event: "ENTITY_LEFT_SPACE", space: SPACE_IDS.storage },
-		handler: (ctx) => {
-			if (ctx.event.type !== "ENTITY_LEFT_SPACE") return;
-			const event = ctx.event;
-			const ioRequestEntity = lookupEntity(ctx.state, event.entityId);
-			if (!ioRequestEntity) return;
-			if (ioRequestEntity.data.ioRole !== "storage") return;
-
-			const ownerPartId =
-				typeof ioRequestEntity.data.ownerPartId === "string"
-					? ioRequestEntity.data.ownerPartId
-					: undefined;
-			if (!ownerPartId) return;
-			const ownerPartEntity = lookupEntity(ctx.state, ownerPartId);
-			if (!ownerPartEntity) {
-				ctx.world.deleteEntities([event.entityId]);
-				return;
-			}
-
-			const prevToken = ownerPartEntity.data.pathResumeToken;
-			const nextResumeToken = typeof prevToken === "number" ? prevToken + 1 : 1;
-
-			updateEntityData(ctx, ownerPartId, {
-				partStatus: "executing",
-				pathResumeToken: nextResumeToken,
-			});
-			ctx.world.deleteEntities([event.entityId]);
-		},
-	}),
-	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
-		id: "cores.part-left-core",
+		id: "cores.io-complete-resumes-request",
 		on: { event: "ENTITY_LEFT_SPACE" },
-		guard: ({ event }) => {
+		guard: ({ event, state }) => {
 			if (event.type !== "ENTITY_LEFT_SPACE") return false;
-			return (
-				event.spaceId === SPACE_IDS.core1 || event.spaceId === SPACE_IDS.core2
-			);
+			const entity = lookupEntity(state, event.entityId);
+			return entity?.data.type === "io-subtask";
 		},
 		handler: (ctx) => {
 			if (ctx.event.type !== "ENTITY_LEFT_SPACE") return;
-			const event = ctx.event;
-			const partId = event.entityId;
-			const laneId = event.spaceId;
-			if (!isCoreLaneId(laneId)) return;
+			const ioEntity = lookupEntity(ctx.state, ctx.event.entityId);
+			if (!ioEntity) return;
 
-			const partEntity = lookupEntity(ctx.state, partId);
-			if (!partEntity) return;
+			const ownerRequestId = ioEntity.data.ownerRequestId as string;
+			const laneId = ioEntity.data.laneId as CoreLaneId;
 
-			const ownerAppId =
-				typeof partEntity.data.ownerAppId === "string"
-					? partEntity.data.ownerAppId
-					: undefined;
-			const partLaneId =
-				typeof partEntity.data.laneId === "string"
-					? partEntity.data.laneId
-					: undefined;
-			if (!ownerAppId || partLaneId !== laneId) return;
+			ctx.world.deleteEntities([ctx.event.entityId]);
 
-			ctx.world.deleteEntities([partId]);
+			const request = lookupEntity(ctx.state, ownerRequestId);
+			if (!request) return;
 
-			const activeApp = getActiveLaneApp(ctx, laneId);
-			if (!activeApp || activeApp.appId !== ownerAppId) return;
+			const currentSpaceId = findEntitySpace(ctx.state, ownerRequestId);
+			if (currentSpaceId === SPACE_IDS.ioWait) {
+				const laneSpaceId = getLaneSpaceId(laneId);
+				updateEntityData(ctx, ownerRequestId, {
+					status: "processing" as RequestStatus,
+				});
+				ctx.world.moveEntity(ownerRequestId, laneSpaceId);
+			}
+		},
+	}),
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
+		id: "cores.request-left-core-complete",
+		on: { event: "ENTITY_LEFT_SPACE" },
+		guard: ({ event, state }) => {
+			if (event.type !== "ENTITY_LEFT_SPACE") return false;
+			const isLane = LANE_IDS.some(
+				(laneId) => getLaneSpaceId(laneId) === event.spaceId,
+			);
+			if (!isLane) return false;
+			const entity = lookupEntity(state, event.entityId);
+			return entity?.data.type === "request";
+		},
+		handler: (ctx) => {
+			if (ctx.event.type !== "ENTITY_LEFT_SPACE") return;
+			const requestId = ctx.event.entityId;
 
-			const nextIndex = getPartIndex(ctx, laneId) + 1;
-			setPartIndex(ctx, laneId, nextIndex);
-			moveNextPartToCore(ctx, laneId);
+			updateEntityData(ctx, requestId, {
+				status: "complete" as RequestStatus,
+			});
+			ctx.world.moveEntity(requestId, SPACE_IDS.completed);
+		},
+	}),
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
+		id: "cores.core-dropped-upgrade",
+		on: buildEntityArrivedTrigger(SPACE_IDS.upgrade, "core"),
+		handler: (ctx) => {
+			const entityId = ctx.provenance.entityId;
+			if (!entityId) return;
+
+			if (ctx.context.coreCount < MAX_CORES) {
+				ctx.updateContext((c) => {
+					c.coreCount++;
+				});
+				ctx.world.deleteEntities([entityId]);
+				showNotice(
+					ctx,
+					`Added CPU Core! Now running ${ctx.context.coreCount} cores.`,
+					"info",
+				);
+			}
+		},
+	}),
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
+		id: "cores.thread-dropped-upgrade",
+		on: buildEntityArrivedTrigger(SPACE_IDS.upgrade, "thread"),
+		handler: (ctx) => {
+			const entityId = ctx.provenance.entityId;
+			if (!entityId) return;
+
+			if (!ctx.context.threadsEnabled) {
+				ctx.updateContext((c) => {
+					c.threadsEnabled = true;
+				});
+				ctx.world.deleteEntities([entityId]);
+				showNotice(
+					ctx,
+					"Threading enabled! I/O operations now free up lanes.",
+					"info",
+				);
+			}
 		},
 	}),
 ];
@@ -557,18 +472,16 @@ export const CORES_BEHAVIORS = BehaviorDefinition<
 	CoresTriggerSpec
 >({
 	initialContext: {
-		pipelineState: "idle",
-		openedCount: 0,
-		dualCorePromptVisible: false,
-		activeLane1AppId: null,
-		activeLane1AppKey: null,
-		activeLane2AppId: null,
-		activeLane2AppKey: null,
-		partIds1: [],
-		partIds2: [],
-		partIndex1: 0,
-		partIndex2: 0,
-		laneCursor: -1,
+		phase: "boot",
+		serverRunning: false,
+		requestsPerSec: 1,
+		queueDepth: 0,
+		timeoutCount: 0,
+		coreCount: 1,
+		threadsEnabled: false,
+		lastSpawnTime: 0,
+		lastTimeoutTime: null,
+		masteryStartTime: null,
 		noticeMessage: null,
 		noticeTone: null,
 		navigateAway: false,

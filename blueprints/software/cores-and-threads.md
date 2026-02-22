@@ -1,7 +1,7 @@
-# Parallel & Concurrency Blueprint
+# Cores & Threads Blueprint
 
-Declaration-first blueprint for `parallel-multicore`.
-This document mirrors the current implementation in `src/routes/questions/software/cores-and-threads`.
+Declaration-first blueprint for `cores-and-threads`.
+This document defines the target design for the web-server-based teaching arc.
 
 Canonical engine references:
 - `src/components/game/doc/README.md`
@@ -16,19 +16,20 @@ Canonical engine references:
 
 ### 0.1 Purpose
 
-Use this blueprint as the implementation-aligned specification for the current cores-and-threads question.
+This blueprint defines the full redesign of the cores-and-threads question around a web server teaching arc. The learner observes a real backend phenomenon — request handling under load — and discovers why threading exists through structured, escalating failure.
 
 ### 0.2 Mandatory Reading Order
 
 1. Section `1) Canonical Term Dictionary`
-2. Section `2) Declarative Specification`
-3. Section `3) Lifecycle and Logic Specification`
-4. Section `4) Transition Matrices`
-5. Section `5) Term-to-Logic Link Index`
-6. Section `6) Hard Invariants`
-7. Section `7) Non-Goals`
-8. Section `8) Authoring and Verification Protocol`
-9. Section `9) Product Gap Register`
+2. Section `2) Teaching Arc`
+3. Section `3) Declarative Specification`
+4. Section `4) Lifecycle and Logic Specification`
+5. Section `5) Transition Matrices`
+6. Section `6) Paperclip Character Contract`
+7. Section `7) Hard Invariants`
+8. Section `8) Non-Goals`
+9. Section `9) Authoring and Verification Protocol`
+10. Section `10) Product Gap Register`
 
 ### 0.3 No-Synonym Rule
 
@@ -37,8 +38,8 @@ Use this blueprint as the implementation-aligned specification for the current c
 
 ### 0.4 Scope Boundary
 
-- This file captures the behavior currently implemented in code.
-- Do not assume planned phases are active unless behavior rules and UI wiring exist.
+- This blueprint is the target design. Sections marked `GAP_*` track unimplemented behavior.
+- Do not assume a phase is active unless behavior rules and UI wiring both exist.
 
 ---
 
@@ -48,113 +49,109 @@ Use this blueprint as the implementation-aligned specification for the current c
 
 | Term ID | Exact Value | Meaning |
 |---|---|---|
-| `QUESTION_ID` | `parallel-multicore` | Unique question identifier |
-| `QUESTION_TITLE` | `🖥️ Open Apps on a Single Core` | Display title |
-| `QUESTION_DESCRIPTION` | `Open apps and see how one core processes execution work in sequence.` | Display description |
+| `QUESTION_ID` | `cores-and-threads` | Unique question identifier |
+| `QUESTION_TITLE` | `🖥️ Your Web Server` | Display title |
+| `QUESTION_DESCRIPTION` | `Run a web server and discover why threads exist.` | Display description |
 
-### 1.2 Mode Terms
+### 1.2 Phase Terms
 
 | Term ID | Value | Meaning |
 |---|---|---|
-| `MODE_SINGLE_CORE` | `single-core` | Only declared runtime phase; sequential execution lesson |
-| `MODE_DUAL_CORE_UNLOCKED` | context flag | Milestone state where Core 2 lane can receive whole-app execution |
+| `PHASE_BOOT` | `boot` | Server is off. Learner starts it. |
+| `PHASE_SINGLE_CORE_SUCCESS` | `single-core-success` | One core handles low traffic successfully. |
+| `PHASE_OVERLOAD` | `overload` | Traffic spikes. Queue backs up. Requests time out. |
+| `PHASE_ADD_CORES` | `add-cores` | Learner adds cores. Traffic handled. |
+| `PHASE_IO_WALL` | `io-wall` | Higher traffic exposes cores blocked on IO. |
+| `PHASE_THREADS` | `threads` | Learner adds threads. IO wait freed. System snappy. |
+| `PHASE_COMPLETE` | `complete` | Mastery demonstrated. Question complete. |
 
 ### 1.3 Space Terms
 
 | Term ID | Space ID | Kind | Meaning |
 |---|---|---|---|
-| `SPACE_APP_POOL` | `app-pool` | `pool` | Source inventory for draggable apps |
-| `SPACE_OPEN` | `open` | `grid` | Drop gate that starts an app pipeline |
-| `SPACE_EXECUTION` | `execution` | `grid` | Per-lane execution part queue (`request`, `process`, `compose`) |
-| `SPACE_CORE_1` | `core-1` | `path` | Core lane 1 execution path |
-| `SPACE_CORE_2` | `core-2` | `path` | Core lane 2 execution path (hidden until unlock in UI) |
-| `SPACE_STORAGE` | `storage` | `path` | I/O round-trip path used by `request` part midpoint pause |
-| `SPACE_OPENED` | `opened` | `grid` | Destination for fully opened apps |
+| `SPACE_REQUEST_QUEUE` | `request-queue` | `pool` | Incoming HTTP requests waiting to be picked up |
+| `SPACE_SERVER_LANE` | `server-lane-{n}` | `path` | One webserver listener lane per active core |
+| `SPACE_DB_PATH` | `db-path` | `path` | U-shaped path simulating database query + IO wait |
+| `SPACE_DISK_PATH` | `disk-path` | `path` | U-shaped path simulating disk read + IO wait |
+| `SPACE_IO_WAIT` | `io-wait` | `grid` | Holding grid for requests paused during IO (visible after thread unlock) |
+| `SPACE_UPGRADE` | `upgrade` | `grid` | Drop target for core and thread items from inventory |
+| `SPACE_INVENTORY` | `inventory` | `pool` | Learner's available upgrade items (cores, threads) |
+| `SPACE_COMPLETED` | `completed` | `grid` | Destination for fully served requests |
 
-### 1.4 Pool Semantics Terms
+### 1.4 Entity Family Terms
 
-| Term ID | Meaning |
-|---|---|
-| `POOL_DRAG_GATED_BY_LANE` | App drag from pool is blocked if no enabled lane is free |
-| `POOL_ENTITY_SET_STATIC` | App inventory is static; entities move between spaces |
-
-### 1.5 Entity Family Terms
-
-| Term ID | Family | Count | Required Metadata |
-|---|---|---|---|
-| `ENTITY_APP` | `app` | 5 | `appKey`, `appStatus` |
-| `ENTITY_PART` | `subtask` | 3 per active app | `step`, `partStatus`, `laneId`, `ownerAppId`, `pathPauseAtMidpoint`, `pathResumeToken` |
-| `ENTITY_IO_REQUEST` | `subtask` | transient | `ioRole`, `ioState`, `ownerPartId`, `ownerAppId`, `laneId` |
-
-### 1.6 App Catalogue
-
-| App ID | App Key | App Name | Status Flow |
-|---|---|---|---|
-| `APP_WORD` | `word` | `Word Editor` | `ready -> parsing -> allocating -> opened` |
-| `APP_CALC` | `calc` | `Calculator` | `ready -> parsing -> allocating -> opened` |
-| `APP_PAINT` | `paint` | `Paint` | `ready -> parsing -> allocating -> opened` |
-| `APP_MUSIC` | `music` | `Music Player` | `ready -> parsing -> allocating -> opened` |
-| `APP_VIDEO` | `video` | `Video Editor` | `ready -> parsing -> allocating -> opened` |
-
-### 1.7 Execution Part Catalogue
-
-| Part Step | Label | Runtime Meaning |
+| Term ID | Family | Meaning |
 |---|---|---|
-| `PART_REQUEST` | `Requesting dependencies` | Starts on core path, pauses at midpoint, dispatches storage request |
-| `PART_PROCESS` | `Processing dependencies` | Core execution segment after request resolves |
-| `PART_COMPOSE` | `UI composition` | Final core execution segment before app moves to opened |
+| `ENTITY_REQUEST` | `request` | An HTTP request travelling through the system |
+| `ENTITY_IO_SUBTASK` | `io-subtask` | Transient entity travelling the db or disk path |
+| `ENTITY_CORE` | `core` | Draggable upgrade item; adds a server lane when dropped |
+| `ENTITY_THREAD` | `thread` | Draggable upgrade item; enables IO offloading when dropped |
 
-### 1.8 Status Terms
+### 1.5 Request Catalogue
+
+| Request Type | Path | IO Behaviour | Teaching Moment |
+|---|---|---|---|
+| `GET /` | `SPACE_SERVER_LANE` → `SPACE_DISK_PATH` → `SPACE_COMPLETED` | Pauses at disk IO midpoint | Disk wait halts core |
+| `POST /login` | `SPACE_SERVER_LANE` → `SPACE_DB_PATH` → `SPACE_COMPLETED` | Pauses at db IO midpoint | DB query wait halts core |
+
+### 1.6 Request Status Terms
 
 | Term ID | UI Label | Meaning |
 |---|---|---|
-| `STATUS_READY` | `Ready` | App sits in pool and can be launched |
-| `STATUS_PARSING` | `Parsing` | App is in parse timer stage |
-| `STATUS_ALLOCATING` | `Allocating` | App is in allocation timer stage |
-| `STATUS_OPENED` | `Opened` | App completed execution and moved to opened grid |
-| `STATUS_PART_QUEUED` | `Waiting` | Part is staged in execution grid |
-| `STATUS_PART_WAITING_IO` | `Waiting for I/O` | Request part paused until storage response returns |
-| `STATUS_PART_EXECUTING` | `Processing` | Part is actively moving in core path |
+| `STATUS_QUEUED` | `Queued` | Request is in `SPACE_REQUEST_QUEUE` |
+| `STATUS_PROCESSING` | `Processing` | Request is moving through server lane |
+| `STATUS_IO_WAIT` | `Waiting for I/O` | Request is paused, IO subtask in flight |
+| `STATUS_COMPLETED` | `Done` | Request fully served |
+| `STATUS_TIMEOUT` | `Timed out` | Request waited too long in queue and failed |
 
-### 1.9 Phase Terms
+### 1.7 Upgrade Item Terms
 
-| Term ID | Phase Value | Meaning |
-|---|---|---|
-| `PHASE_SINGLE_CORE` | `single-core` | Only runtime phase used by definition and behaviors |
-
-### 1.10 Modal Terms
-
-| Term ID | Modal ID | Source Constant | Runtime State |
+| Term ID | Item ID | Inventory Count | Effect When Dropped |
 |---|---|---|---|
-| `MODAL_WALL` | `core-wall` | `MODAL_IDS.wall` | Builder exists but not triggered by current behaviors |
-| `MODAL_SCHEDULER` | `scheduler-explain` | `MODAL_IDS.scheduler` | Builder exists but not triggered by current behaviors |
-| `MODAL_SINGLE_LIMIT` | `single-thread-limit` | `MODAL_IDS.singleLimit` | Builder exists but not triggered by current behaviors |
-| `MODAL_PARALLEL_INTRO` | `parallel-intro` | `MODAL_IDS.parallelIntro` | Builder exists but not triggered by current behaviors |
-| `MODAL_CONFLICT` | `parallel-conflict` | `MODAL_IDS.conflict` | Builder exists but not triggered by current behaviors |
-| `MODAL_LOCK_INTRO` | `parallel-lock-intro` | `MODAL_IDS.lockIntro` | Builder exists but not triggered by current behaviors |
-| `MODAL_COMPLETE` | `parallel-complete` | `MODAL_IDS.complete` | Builder exists but not triggered by current behaviors |
+| `ITEM_CORE` | `core-{n}` | Starts at 0; given to learner at `PHASE_ADD_CORES` | Adds one `SPACE_SERVER_LANE` path |
+| `ITEM_THREAD` | `thread-{n}` | Starts at 0; given to learner at `PHASE_THREADS` | Enables IO offloading for all server lanes |
 
-### 1.11 Timing Terms
+### 1.8 Metric Terms
+
+| Term ID | Meaning | Used By Gates |
+|---|---|---|
+| `METRIC_REQUESTS_PER_SEC` | Current throughput | Phase transition condition |
+| `METRIC_QUEUE_DEPTH` | Number of requests waiting in `SPACE_REQUEST_QUEUE` | Overload trigger |
+| `METRIC_TIMEOUT_COUNT` | Total timed-out requests | Overload failure condition |
+| `METRIC_CORE_COUNT` | Number of active server lanes | Unlock and gate conditions |
+| `METRIC_THREADS_ENABLED` | Whether thread offloading is active | Phase 5 gate |
+
+### 1.9 Timing Terms
 
 | Term ID | Value | Meaning |
 |---|---|---|
-| `PARSING_MS` | `1000` | Delay before moving from parsing to allocating |
-| `ALLOCATING_MS` | `1200` | Delay before creating execution parts and starting lane run |
-| `EXECUTION_SPLIT_SETTLE_MS` | `250` | Delay before first part enters selected lane (local to behaviors) |
-| `NOTICE_MS` | `1800` | Auto-clear delay for transient notice text |
-| `CORE_STEP_DURATION_SECONDS` | `6` | Path traversal duration for each core lane (in constants.ts) |
+| `TIMER_REQUEST_SPAWN_MS` | `1200` | Interval between new requests spawning in phase 1 |
+| `TIMER_SPAWN_SPIKE_MS` | `300` | Interval during traffic spike in phase 2 |
+| `TIMER_IO_DURATION_MS` | `4000` | Time request spends blocked at IO path |
+| `TIMER_IO_OFFLOAD_MS` | `400` | Time IO subtask takes when thread offloading is active |
+| `TIMER_TIMEOUT_THRESHOLD_MS` | `3000` | Time in queue before request times out |
+| `TIMER_NOTICE_MS` | `2000` | Auto-clear for transient notice text |
 
-### 1.12 Event Terms
+### 1.10 Modal Terms
+
+| Term ID | Modal ID | When Triggered |
+|---|---|---|
+| `MODAL_BOOT_PROMPT` | `boot-prompt` | `PHASE_BOOT` start |
+| `MODAL_OVERLOAD_HIT` | `overload-hit` | First timeout event |
+| `MODAL_CORES_INTRO` | `cores-intro` | `PHASE_ADD_CORES` entry |
+| `MODAL_IO_WALL_HIT` | `io-wall-hit` | IO wall failure condition met |
+| `MODAL_THREADS_INTRO` | `threads-intro` | `PHASE_THREADS` entry |
+| `MODAL_COMPLETE` | `complete` | Mastery gate passed |
+
+### 1.11 Paperclip Character Terms
 
 | Term ID | Meaning |
 |---|---|
-| `EVENT_APP_ARRIVED_OPEN` | App entity arrives in `SPACE_OPEN` |
-| `EVENT_PART_PATH_MIDPOINT` | `ENTITY_UPDATED` with `pathMidpointTick` for part |
-| `EVENT_IO_PATH_MIDPOINT` | `ENTITY_UPDATED` with `pathMidpointTick` for storage request |
-| `EVENT_ENTITY_LEFT_STORAGE` | `ENTITY_LEFT_SPACE` from `SPACE_STORAGE` |
-| `EVENT_ENTITY_LEFT_CORE` | `ENTITY_LEFT_SPACE` from `SPACE_CORE_1` or `SPACE_CORE_2` |
+| `CLIP_LINE` | A single paperclip character dialogue line |
+| `CLIP_TRIGGER` | The game event that causes the line to appear |
+| `CLIP_TONE` | `observe` / `question` / `diagnose` / `affirm` |
 
-### 1.13 Component Terms
+### 1.12 Component Terms
 
 | Term ID | Component/Hook |
 |---|---|
@@ -167,459 +164,360 @@ Use this blueprint as the implementation-aligned specification for the current c
 | `COMP_HINT` | `ContextualHint` + `useContextualHint` |
 | `COMP_DRAG_OVERLAY` | `DragOverlay` |
 | `COMP_DRAWER_LAYOUT` | `DrawerLayout` |
-
-### 1.14 Shared Resource Terms
-
-| Term ID | Resource Name | Used By | Meaning |
-|---|---|---|---|
-| `RESOURCE_STORAGE` | `Storage` | `PART_REQUEST` and `ENTITY_IO_REQUEST` | Simulated dependency request/response round trip |
-
-### 1.15 Counter and Threshold Terms
-
-| Term ID | Value | Source Constant | Meaning |
-|---|---|---|---|
-| `OPENED_APPS_FOR_DUAL_CORE_PROMPT` | `2` | constants.ts | Threshold that sets `dualCorePromptVisible` |
-
-### 1.16 Lane Routing Terms
-
-| Term ID | Meaning |
-|---|---|
-| `LANE_POLICY_SINGLE` | `first_free` over `SPACE_CORE_1` only |
-| `LANE_POLICY_DUAL` | `round_robin` over `SPACE_CORE_1` + `SPACE_CORE_2` when unlocked |
-
-### 1.17 Gap Terms
-
-| Term ID | Meaning |
-|---|---|
-| `GAP_MODAL_FLOW_WIRING` | Modal builders exist but runtime does not open them |
-| `GAP_PARALLEL_AND_LOCK_PHASES` | Parallel split/conflict/lock journey not implemented in behaviors |
-| `GAP_COMPLETION_HANDOFF` | `onQuestionComplete` callback is passed but not invoked in page logic |
+| `COMP_PAPERCLIP` | `PaperclipCharacter` — renders dialogue bubble |
+| `COMP_METRICS_BAR` | `MetricsBar` — displays live `METRIC_*` counters |
 
 ---
 
-## 2) Declarative Specification
+## 2) Teaching Arc
 
-### 2.1 Meta Declaration
+This section is the canonical narrative. Implementation must honour this arc exactly.
 
-- `QUESTION_ID` equals `parallel-multicore`.
+### 2.1 Arc Summary
+
+The learner runs a web server. They start it, watch it succeed, watch it break under load, add cores to partially fix it, discover cores alone cannot solve IO blocking, then add threads to solve the root problem. Each phase ends when the learner either causes or witnesses a specific consequence that makes the next concept necessary.
+
+### 2.2 Phase 1 — Boot (`PHASE_BOOT`)
+
+**Goal:** Give the learner ownership over the system before anything breaks.
+
+The screen shows a dark, idle server. No requests are flowing. A terminal-style prompt reads `./start-server`. The learner clicks or interacts with it. This is the only action they can take.
+
+On boot, `PHASE_SINGLE_CORE_SUCCESS` begins automatically.
+
+**Why this matters:** The learner must feel they turned it on. When it breaks later, it is their server that broke.
+
+### 2.3 Phase 2 — Single Core Success (`PHASE_SINGLE_CORE_SUCCESS`)
+
+**Goal:** Establish the mental model of how requests travel through the system before anything fails.
+
+Requests arrive in `SPACE_REQUEST_QUEUE` one at a time at `TIMER_REQUEST_SPAWN_MS` intervals. The single `SPACE_SERVER_LANE` picks them up automatically. Each request routes to either `SPACE_DISK_PATH` (GET /) or `SPACE_DB_PATH` (POST /login) for IO, pauses visibly during IO, then completes and moves to `SPACE_COMPLETED`.
+
+The learner does nothing except observe. The IO pause is visible — the request stops mid-path, a subtask entity travels the U-shape and returns, then the request continues.
+
+`METRIC_REQUESTS_PER_SEC` counter is visible and green. `METRIC_QUEUE_DEPTH` stays at 0 or 1.
+
+After a short success window (configurable, ~8 seconds), the system automatically enters `PHASE_OVERLOAD`.
+
+**What the learner sees:** Requests flow smoothly. IO causes a visible pause. One request at a time through the lane. This is normal.
+
+### 2.4 Phase 3 — Overload (`PHASE_OVERLOAD`)
+
+**Goal:** Make the learner feel the failure, not just see it. The failure must be caused by the architecture they just watched succeed, not by an arbitrary event.
+
+Request spawn interval drops to `TIMER_SPAWN_SPIKE_MS`. The queue fills faster than the single lane can process. Because requests block on IO, the lane is frozen while new requests pile up behind it.
+
+After `TIMER_TIMEOUT_THRESHOLD_MS`, queued requests begin timing out. Their status flips to `STATUS_TIMEOUT` and they disappear from the queue with a visual failure state.
+
+`METRIC_TIMEOUT_COUNT` climbs. `METRIC_QUEUE_DEPTH` is deep and red. The paperclip character reacts.
+
+The learner has no action available during this phase. They watch. The helplessness is intentional — it surfaces the architectural question.
+
+`MODAL_OVERLOAD_HIT` fires on the first timeout. The modal names the problem: the single core is blocking on IO and everything else waits. It presents the option to add cores. On acknowledgement, `PHASE_ADD_CORES` begins.
+
+**What the learner feels:** Their server is failing and they can do nothing. They need a lever.
+
+### 2.5 Phase 4 — Add Cores (`PHASE_ADD_CORES`)
+
+**Goal:** Let the learner fix the immediate problem and feel the win — but plant the seed of the next problem.
+
+One or two `ENTITY_CORE` items appear in `SPACE_INVENTORY`. The learner can drag a core to `SPACE_UPGRADE`. Each dropped core adds one `SPACE_SERVER_LANE` path.
+
+With more lanes, requests are distributed and the queue clears. `METRIC_TIMEOUT_COUNT` stops climbing. The system feels fast again.
+
+However, cores visually freeze during IO wait. The lanes are occupied but not processing. If the learner watches long enough — or if the system runs another small traffic ramp — cores pile up on IO waits and the queue starts backing up again.
+
+The paperclip notices aloud that the cores are just sitting there waiting.
+
+`PHASE_IO_WALL` begins when `METRIC_TIMEOUT_COUNT` increments again after cores were added, or after a scripted observation window.
+
+**What the learner discovers:** More cores helped but the cores themselves are the bottleneck when they block on IO. The problem is not how many cores, it's what the cores do while waiting.
+
+### 2.6 Phase 5 — IO Wall (`PHASE_IO_WALL`)
+
+**Goal:** Sharpen the diagnosis. The learner must see that the cores are idle-but-occupied during IO, not overworked.
+
+`MODAL_IO_WALL_HIT` fires. It names the observation: every core is waiting for IO. The CPU is free but the lanes are blocked. It introduces the concept of a thread — something that lets the core hand off the IO wait and pick up the next request instead.
+
+`SPACE_IO_WAIT` grid becomes visible on screen. This is where a request will park while its IO completes, freeing the lane.
+
+`PHASE_THREADS` begins on modal acknowledgement.
+
+**What the learner understands:** The bottleneck is not throughput capacity — it is blocked waiting time. A different tool is needed.
+
+### 2.7 Phase 6 — Threads (`PHASE_THREADS`)
+
+**Goal:** Let the learner apply the solution and observe the before/after difference through the same system they already know.
+
+`ENTITY_THREAD` items appear in `SPACE_INVENTORY`. The learner drags a thread item to `SPACE_UPGRADE`. `METRIC_THREADS_ENABLED` flips to true.
+
+With threads enabled, when a request reaches IO mid-path instead of freezing the lane, it moves to `SPACE_IO_WAIT`. The IO subtask travels its path independently. The lane immediately picks up the next request from the queue. When IO completes, the waiting request returns to an available lane and finishes.
+
+The queue stays shallow. Cores stay busy with real work. `METRIC_TIMEOUT_COUNT` stops. The system is visibly more efficient.
+
+`MODAL_COMPLETE` fires once the mastery gate passes. The paperclip character affirms the discovery.
+
+**What the learner experiences:** The same traffic load that broke the system is now handled cleanly. The only difference is that cores no longer wait — they hand off blocking work and keep moving.
+
+---
+
+## 3) Declarative Specification
+
+### 3.1 Meta Declaration
+
+- `QUESTION_ID` equals `cores-and-threads`.
 - `QUESTION_TITLE` and `QUESTION_DESCRIPTION` match constants.
 
-### 2.2 Space Declaration
+### 3.2 Space Declaration
 
-#### 2.2.1 Space Set
+#### 3.2.1 Space Set
 
-The question declares seven spaces:
-- `SPACE_APP_POOL`
-- `SPACE_OPEN`
-- `SPACE_EXECUTION`
-- `SPACE_CORE_1`
-- `SPACE_CORE_2`
-- `SPACE_STORAGE`
-- `SPACE_OPENED`
+| Space Term | Phase Visibility |
+|---|---|
+| `SPACE_REQUEST_QUEUE` | All phases from `PHASE_SINGLE_CORE_SUCCESS` |
+| `SPACE_SERVER_LANE` (1 initially) | All phases from `PHASE_SINGLE_CORE_SUCCESS` |
+| `SPACE_DISK_PATH` | All phases from `PHASE_SINGLE_CORE_SUCCESS` |
+| `SPACE_DB_PATH` | All phases from `PHASE_SINGLE_CORE_SUCCESS` |
+| `SPACE_IO_WAIT` | Revealed at `PHASE_IO_WALL` |
+| `SPACE_UPGRADE` | Revealed at `PHASE_ADD_CORES` |
+| `SPACE_INVENTORY` | Revealed at `PHASE_ADD_CORES` |
+| `SPACE_COMPLETED` | All phases from `PHASE_SINGLE_CORE_SUCCESS` |
 
-#### 2.2.2 Space Roles
+#### 3.2.2 Space Roles
 
 | Space Term | Role | Allowed Interaction |
 |---|---|---|
-| `SPACE_APP_POOL` | App source inventory | Drag apps out if lane gate allows |
-| `SPACE_OPEN` | Launch gate | Receives app drop to start pipeline |
-| `SPACE_EXECUTION` | Queue visualization | Displays generated execution parts |
-| `SPACE_CORE_1` | Lane 1 execution path | Processes parts selected for lane 1 |
-| `SPACE_CORE_2` | Lane 2 execution path | Processes parts when dual-core unlock is active |
-| `SPACE_STORAGE` | I/O path | Handles transient request/response entity |
-| `SPACE_OPENED` | Finished app destination | Receives apps after all parts complete |
-
-#### 2.2.3 Space Bootstrap Guard Contract
-
-- UI renders board only when all declared spaces exist in `state.spaces` (`boardReady`).
-
-#### 2.2.4 Space Visibility Rules
-
-| Space Term | Before Dual-Core Unlock | After Dual-Core Unlock |
-|---|---|---|
-| `SPACE_APP_POOL` | visible | visible |
-| `SPACE_OPEN` | visible | visible |
-| `SPACE_EXECUTION` | visible | visible |
-| `SPACE_CORE_1` | visible | visible |
-| `SPACE_CORE_2` | hidden in UI | visible |
-| `SPACE_STORAGE` | visible | visible |
-| `SPACE_OPENED` | visible | visible |
-
-### 2.3 Entity Declaration
-
-#### 2.3.1 Entity Family Inventory
-
-| Entity Term | Required IDs and Count | Initial Presence |
-|---|---|---|
-| `ENTITY_APP` | 5 fixed app entities | All in `SPACE_APP_POOL` |
-| `ENTITY_PART` | 3 generated part entities per active app | Generated when execution begins |
-| `ENTITY_IO_REQUEST` | transient request entity | Generated only on request midpoint |
-
-#### 2.3.2 Entity Metadata Contract
-
-- `ENTITY_APP` carries `appKey` and `appStatus`.
-- `ENTITY_PART` carries owner app identity, lane identity, part step, and path pause/resume fields.
-- `ENTITY_IO_REQUEST` carries owner part/app and storage request state.
-
-#### 2.3.3 Placement Contract
-
-- App start: `SPACE_APP_POOL`.
-- App drop: `SPACE_OPEN`.
-- During execution: app removed from open, parts created in `SPACE_EXECUTION`, moved through core lane.
-- Completion: app moves to `SPACE_OPENED`.
-
-### 2.4 Pool and Group Declaration
-
-#### 2.4.1 Pool Update Principles
-
-- Drag from pool is denied when no enabled lane is available.
-- Entities are moved between spaces rather than recreated for app inventory.
-
-### 2.5 Mode and Phase Declaration
-
-#### 2.5.1 Mode Declaration
-
-| Mode Term | Objective |
-|---|---|
-| `MODE_SINGLE_CORE` | Teach sequential pipeline behavior |
-| `MODE_DUAL_CORE_UNLOCKED` | Expose milestone that allows lane routing to Core 2 |
-
-#### 2.5.2 Active Phase Order
-
-1. `PHASE_SINGLE_CORE`
-
-#### 2.5.3 Milestone Flow Inside `PHASE_SINGLE_CORE`
-
-1. App launch and parse/allocation timers
-2. Execution parts run on available lane
-3. Opened app counter increments
-4. Dual-core prompt flag flips at `OPENED_APPS_FOR_DUAL_CORE_PROMPT`
-
-### 2.6 Modal Declaration
-
-| Modal Term | Availability Context | Runtime Behavior |
-|---|---|---|
-| `MODAL_WALL` | modal builder utility | Not opened by behavior rules |
-| `MODAL_SCHEDULER` | modal builder utility | Not opened by behavior rules |
-| `MODAL_SINGLE_LIMIT` | modal builder utility | Not opened by behavior rules |
-| `MODAL_PARALLEL_INTRO` | modal builder utility | Not opened by behavior rules |
-| `MODAL_CONFLICT` | modal builder utility | Not opened by behavior rules |
-| `MODAL_LOCK_INTRO` | modal builder utility | Not opened by behavior rules |
-| `MODAL_COMPLETE` | modal builder utility | Not opened by behavior rules |
-
-### 2.7 Component Declaration
-
-#### 2.7.1 Component Capability Map
-
-| Component Term | Primary Capability |
-|---|---|
-| `COMP_GAME_PROVIDER` | Runtime context root |
-| `COMP_GAME_BOARD` | Board container |
-| `COMP_GRID_SPACE` | Open/Execution/Opened grids |
-| `COMP_POOL_SPACE` | App drawer pool |
-| `COMP_PATH_SPACE` | Core and storage lanes |
-| `COMP_MODAL` | Global modal mount |
-| `COMP_HINT` | Hint text derived from pipeline state |
-| `COMP_DRAG_OVERLAY` | Drag preview |
-| `COMP_DRAWER_LAYOUT` | Bottom drawer host for app pool |
-
-#### 2.7.2 Component Behavior Contract
-
-| Component Term | Must Do | Must Not Do |
-|---|---|---|
-| `COMP_GAME_PROVIDER` | Wrap question runtime consumers | Mount below runtime hook use |
-| `COMP_GAME_BOARD` | Render spaces only when `boardReady` | Render partial board before space bootstrap |
-| `COMP_POOL_SPACE` | Gate app drag with lane availability callback | Allow drag when all enabled lanes are occupied |
-| `COMP_GRID_SPACE` | Display app/part statuses based on entity data | Invent statuses not set in data |
-| `COMP_PATH_SPACE` | Render core/storage progression paths | Alter scheduling policy in UI layer |
-| `COMP_MODAL` | Stay mounted for future behavior-driven modals | Assume modal flow exists without behavior wiring |
-
-### 2.8 AI Authoring Contract
-
-#### 2.8.1 AI Allowed Actions
-
-- Extend flow only if behavior rules and UI wiring are added together.
-- Keep Section 1 terms canonical.
-
-#### 2.8.2 AI Disallowed Assumptions
-
-- Do not assume parallel split/conflict/lock phases are live.
-- Do not assume `onQuestionComplete` is currently invoked.
-
-#### 2.8.3 AI Style Contract
-
-- Describe behavior as `state + event -> effect`.
-- Keep timing and lane-routing behavior explicit.
-
-#### 2.8.4 AI Gap Handling Contract
-
-- Record planned-but-unwired behavior under Section 9 before adding assumptions.
-
----
-
-## 3) Lifecycle and Logic Specification
-
-### 3.1 Runtime Lifecycle Sequence
-
-1. Runtime bootstraps all declared spaces and app entities.
-2. UI computes `boardReady` and renders board only when all spaces are present.
-3. User drags app to `SPACE_OPEN`.
-4. Behavior rule assigns lane according to unlock state and occupancy.
-5. App status advances `ready -> parsing -> allocating` via timers.
-6. Execution parts are generated and run through selected core lane.
-7. Request part midpoint creates storage request and pauses owner part.
-8. Storage response completion resumes owner part and execution continues.
-9. After all parts complete, app moves to `SPACE_OPENED`, count increments, and unlock notice may appear.
-
-### 3.2 App Launch and Scheduling Logic
-
-#### 3.2.1 Launch Guard
-
-Entry Conditions:
-- Event is `EVENT_APP_ARRIVED_OPEN`.
-- Entity is known `ENTITY_APP` with `appStatus=ready`.
-
-Behavior:
-- Select lane using `LANE_POLICY_SINGLE` before unlock.
-- Select lane using `LANE_POLICY_DUAL` after unlock.
-- If no lane is free, move app back to `SPACE_APP_POOL` and show error notice.
-
-#### 3.2.2 Parse and Allocation Stages
-
-Behavior:
-- Set app status to `STATUS_PARSING`, wait `TIMER_PARSING_MS`.
-- Then set app status to `STATUS_ALLOCATING`, wait `TIMER_ALLOCATING_MS`.
-- Start execution bootstrap for selected lane.
-
-#### 3.2.3 Execution Part Creation
-
-Behavior:
-- Create/reinitialize three `ENTITY_PART` entities from `PART_REQUEST`, `PART_PROCESS`, `PART_COMPOSE`.
-- Place parts into `SPACE_EXECUTION` row 0 for lane 1, row 1 for lane 2.
-- Move first part to lane path after `TIMER_EXECUTION_SPLIT_SETTLE_MS`.
-
-### 3.3 Core and Storage Progression Logic
-
-#### 3.3.1 Request Midpoint I/O Pause
-
-Trigger:
-- `EVENT_PART_PATH_MIDPOINT` on `PART_REQUEST` while part is on core lane.
-
-Behavior:
-- Mark owner part as `STATUS_PART_WAITING_IO`.
-- Create `ENTITY_IO_REQUEST` in `SPACE_STORAGE` with `ioState=request`.
-
-#### 3.3.2 Storage Midpoint Response Swap
-
-Trigger:
-- `EVENT_IO_PATH_MIDPOINT` for storage request entity.
-
-Behavior:
-- Rename entity to `File response` and set `ioState=response`.
-
-#### 3.3.3 Storage Completion Resume
-
-Trigger:
-- `EVENT_ENTITY_LEFT_STORAGE` for storage request entity.
-
-Behavior:
-- Set owner part back to `STATUS_PART_EXECUTING`.
-- Increment owner part `pathResumeToken` to resume path.
-- Delete storage request entity.
-
-#### 3.3.4 Part Completion and Next-Part Advance
-
-Trigger:
-- `EVENT_ENTITY_LEFT_CORE` for part entity from its assigned lane.
-
-Behavior:
-- Delete completed part entity.
-- Increment lane part index.
-- Move next part to same lane; if none remain, finalize app open.
-
-### 3.4 Opened App Finalization and Unlock Logic
-
-#### 3.4.1 Finalize App
-
-Behavior when lane has no remaining parts:
-- Move app to `SPACE_OPENED` and set `STATUS_OPENED`.
-- Clear lane active-app context and lane part state.
-- Increment `openedCount`.
-
-#### 3.4.2 Dual-Core Prompt Milestone
-
-Behavior:
-- If `openedCount >= OPENED_APPS_FOR_DUAL_CORE_PROMPT` and flag is still false:
-  - Set `dualCorePromptVisible=true`.
-  - Show info notice: `You now have two opened apps. Next step: introduce dual-core scheduling.`
-
-### 3.5 Hint and Notice Logic
-
-Hint mapping by `pipelineState`:
-- `idle` -> `Drag an app into Open to launch it.`
-- `parsing` -> `OS is parsing the binary header.`
-- `allocating` -> `Preparing execution resources.`
-- `executing` -> `Active cores are processing app parts.`
-
-Notice logic:
-- Notices are written by behavior rules and auto-cleared after `TIMER_NOTICE_MS`.
-
----
-
-## 4) Transition Matrices
-
-### 4.1 Launch and Lane Selection Matrix
-
-| Current State | Event | Preconditions | Immediate Effects | Next State |
-|---|---|---|---|---|
-| `PHASE_SINGLE_CORE` | `EVENT_APP_ARRIVED_OPEN` | app `STATUS_READY`, lane available | choose lane, set active lane app, app -> `STATUS_PARSING` | `pipelineState=parsing` |
-| `PHASE_SINGLE_CORE` | `EVENT_APP_ARRIVED_OPEN` | app `STATUS_READY`, no lane available | move app back to pool, show error notice | `pipelineState` unchanged |
-
-### 4.2 Timer-Driven Pipeline Matrix
-
-| Current State | Event | Preconditions | Immediate Effects | Next State |
-|---|---|---|---|---|
-| `pipelineState=parsing` | parsing timer done | active app still on lane context | app -> `STATUS_ALLOCATING` | `pipelineState=allocating` |
-| `pipelineState=allocating` | allocation timer done | active app still on lane context | create parts, queue first part launch | `pipelineState=executing` |
-
-### 4.3 Core/Storage Execution Matrix
-
-| Current State | Event | Preconditions | Immediate Effects | Next State |
-|---|---|---|---|---|
-| part on core lane | `EVENT_PART_PATH_MIDPOINT` | part step is `PART_REQUEST` | part -> `STATUS_PART_WAITING_IO`, create storage request | waiting for storage response |
-| storage request in path | `EVENT_IO_PATH_MIDPOINT` | `ioState=request` | `ioState=response` | continue storage path |
-| storage request leaves storage | `EVENT_ENTITY_LEFT_STORAGE` | owner part exists | owner part resumes, delete storage request | part continues in core path |
-| part leaves core lane | `EVENT_ENTITY_LEFT_CORE` | part belongs to active lane app | delete part, advance index, move next part | next part or finalize app |
-
-### 4.4 App Finalization Matrix
-
-| Current State | Event | Preconditions | Immediate Effects | Next State |
-|---|---|---|---|---|
-| lane execution complete | internal next-part check | no remaining part IDs | app -> `SPACE_OPENED`, app -> `STATUS_OPENED`, clear lane active app | lane idle |
-| opened count update | internal threshold check | reached `OPENED_APPS_FOR_DUAL_CORE_PROMPT` first time | set `dualCorePromptVisible=true`, show info notice | dual-core milestone unlocked |
-
-### 4.5 Behavior-Driven Scenario Flow
-
-| Scenario ID | Given | When | Then |
+| `SPACE_REQUEST_QUEUE` | Incoming request buffer | No manual drag. System-spawned only. |
+| `SPACE_SERVER_LANE` | Request processing path | No manual drag. Automatic pickup from queue. |
+| `SPACE_DISK_PATH` | Disk IO simulation path (U-shape) | No manual drag. Triggered by GET / requests. |
+| `SPACE_DB_PATH` | Database IO simulation path (U-shape) | No manual drag. Triggered by POST /login requests. |
+| `SPACE_IO_WAIT` | Parked IO-waiting requests | No manual drag. Populated by thread offload behavior. |
+| `SPACE_UPGRADE` | Upgrade drop target | Learner drops `ENTITY_CORE` and `ENTITY_THREAD` here. |
+| `SPACE_INVENTORY` | Learner upgrade inventory | Learner drags items from here to `SPACE_UPGRADE`. |
+| `SPACE_COMPLETED` | Finished requests | No manual drag. System-assigned on completion. |
+
+### 3.3 Entity Declaration
+
+#### 3.3.1 Entity Inventory
+
+| Entity Term | Count | Initial Placement | Lifecycle |
 |---|---|---|---|
-| `BDD_SINGLE_PIPELINE` | app in pool, no active lane | user drops app to open | app parses, allocates, then executes 3 parts in sequence |
-| `BDD_IO_WAIT_LOOP` | request part reaches midpoint | midpoint update event fires | request pauses, storage request/response completes, request resumes |
-| `BDD_LANE_BUSY_REJECT` | all enabled lanes occupied | user drops another app | app returns to pool and error notice appears |
-| `BDD_DUAL_UNLOCK_PROMPT` | openedCount becomes `2` | second app finishes | dual-core prompt flag turns on and UI reveals Core 2 lane |
+| `ENTITY_REQUEST` | Spawned by system | `SPACE_REQUEST_QUEUE` | queue → lane → IO path → completed or timeout |
+| `ENTITY_IO_SUBTASK` | Transient, one per IO pause | spawned into IO path | travels IO path, deleted on return |
+| `ENTITY_CORE` | 1–2 given at `PHASE_ADD_CORES` | `SPACE_INVENTORY` | dragged to `SPACE_UPGRADE`, consumed |
+| `ENTITY_THREAD` | 1 given at `PHASE_THREADS` | `SPACE_INVENTORY` | dragged to `SPACE_UPGRADE`, consumed |
+
+#### 3.3.2 Request Routing Contract
+
+- `GET /` requests route to `SPACE_DISK_PATH` for IO.
+- `POST /login` requests route to `SPACE_DB_PATH` for IO.
+- IO routing is determined at request creation time, not at lane entry.
+
+#### 3.3.3 Request Metadata Contract
+
+- `ENTITY_REQUEST` carries: `requestType`, `requestStatus`, `spawnTime`, `ioPath`, `ownerLaneId`.
+- `ENTITY_IO_SUBTASK` carries: `ownerRequestId`, `ioPath`, `ioState` (`pending` / `returning`).
+
+### 3.4 Phase Declaration
+
+#### 3.4.1 Phase Order
+
+1. `PHASE_BOOT`
+2. `PHASE_SINGLE_CORE_SUCCESS`
+3. `PHASE_OVERLOAD`
+4. `PHASE_ADD_CORES`
+5. `PHASE_IO_WALL`
+6. `PHASE_THREADS`
+7. `PHASE_COMPLETE`
+
+#### 3.4.2 Phase Transition Conditions
+
+| From | To | Condition |
+|---|---|---|
+| `PHASE_BOOT` | `PHASE_SINGLE_CORE_SUCCESS` | Learner activates start-server command |
+| `PHASE_SINGLE_CORE_SUCCESS` | `PHASE_OVERLOAD` | Auto after success window (~8s) |
+| `PHASE_OVERLOAD` | `PHASE_ADD_CORES` | Learner acknowledges `MODAL_OVERLOAD_HIT` |
+| `PHASE_ADD_CORES` | `PHASE_IO_WALL` | `METRIC_TIMEOUT_COUNT` increments again after core was added, or observation window ends |
+| `PHASE_IO_WALL` | `PHASE_THREADS` | Learner acknowledges `MODAL_IO_WALL_HIT` |
+| `PHASE_THREADS` | `PHASE_COMPLETE` | Mastery gate: `METRIC_THREADS_ENABLED=true` and `METRIC_TIMEOUT_COUNT` has not incremented for 10 seconds |
+
+### 3.5 Upgrade Mechanic Declaration
+
+- `SPACE_UPGRADE` accepts `ENTITY_CORE` and `ENTITY_THREAD` drops.
+- Dropping `ENTITY_CORE` adds one `SPACE_SERVER_LANE` to the system. `METRIC_CORE_COUNT` increments.
+- Dropping `ENTITY_THREAD` sets `METRIC_THREADS_ENABLED=true`. All server lanes gain IO offload behavior.
+- Each upgrade item is consumed on drop and removed from inventory.
 
 ---
 
-## 5) Term-to-Logic Link Index
+## 4) Lifecycle and Logic Specification
 
-### 5.1 Space Terms -> Logic Usage
+### 4.1 Boot Phase Logic
 
-| Space Term | Declared In | Used In Logic Sections |
-|---|---|---|
-| `SPACE_APP_POOL` | 1.3, 2.2 | 3.2.1, 4.1 |
-| `SPACE_OPEN` | 1.3, 2.2 | 3.1, 3.2, 4.1 |
-| `SPACE_EXECUTION` | 1.3, 2.2 | 3.2.3 |
-| `SPACE_CORE_1` | 1.3, 2.2 | 3.2.1, 3.3, 4.3 |
-| `SPACE_CORE_2` | 1.3, 2.2 | 2.2.4, 3.2.1, 4.5 |
-| `SPACE_STORAGE` | 1.3, 2.2 | 3.3, 4.3 |
-| `SPACE_OPENED` | 1.3, 2.2 | 3.4.1, 4.4 |
+1. Screen shows idle server, no spawning, no animation.
+2. Start-server command UI is the only interactive element.
+3. Learner activates it. `PHASE_SINGLE_CORE_SUCCESS` begins.
+4. `MODAL_BOOT_PROMPT` fires before learner can interact, framing the scenario.
 
-### 5.2 Entity Terms -> Logic Usage
+### 4.2 Request Spawn Logic
 
-| Entity Term | Declared In | Used In Logic Sections |
-|---|---|---|
-| `ENTITY_APP` | 1.5, 2.3 | 3.2, 3.4, 4.1, 4.4 |
-| `ENTITY_PART` | 1.5, 2.3 | 3.2.3, 3.3, 4.3 |
-| `ENTITY_IO_REQUEST` | 1.5, 2.3 | 3.3.1, 3.3.2, 3.3.3, 4.3 |
+- In `PHASE_SINGLE_CORE_SUCCESS`: spawn one request every `TIMER_REQUEST_SPAWN_MS`.
+- In `PHASE_OVERLOAD` and beyond: spawn one request every `TIMER_SPAWN_SPIKE_MS`.
+- Request type alternates or is pseudo-randomly selected between `GET /` and `POST /login`.
+- Spawned request appears in `SPACE_REQUEST_QUEUE` with `STATUS_QUEUED`.
 
-### 5.3 Phase Terms -> Logic Usage
+### 4.3 Lane Pickup Logic
 
-| Phase Term | Declared In | Used In Logic Sections |
-|---|---|---|
-| `PHASE_SINGLE_CORE` | 1.9, 2.5 | 3.*, 4.* |
+- Each `SPACE_SERVER_LANE` runs a pickup loop: if not occupied, take the first `STATUS_QUEUED` request from `SPACE_REQUEST_QUEUE`.
+- When `METRIC_THREADS_ENABLED=false` (no threads): lane is occupied until IO completes and request reaches `SPACE_COMPLETED`.
+- When `METRIC_THREADS_ENABLED=true` (threads active): lane is freed when request offloads to `SPACE_IO_WAIT`, available to pick up next request immediately.
 
-### 5.4 Modal Terms -> Logic Usage
+### 4.4 IO Path Logic
 
-| Modal Term | Declared In | Used In Logic Sections |
-|---|---|---|
-| `MODAL_WALL` | 1.10, 2.6 | 2.6, 9.1 |
-| `MODAL_SCHEDULER` | 1.10, 2.6 | 2.6, 9.1 |
-| `MODAL_SINGLE_LIMIT` | 1.10, 2.6 | 2.6, 9.1 |
-| `MODAL_PARALLEL_INTRO` | 1.10, 2.6 | 2.6, 9.1 |
-| `MODAL_CONFLICT` | 1.10, 2.6 | 2.6, 9.1 |
-| `MODAL_LOCK_INTRO` | 1.10, 2.6 | 2.6, 9.1 |
-| `MODAL_COMPLETE` | 1.10, 2.6 | 2.6, 9.1 |
+#### 4.4.1 Without Threads
 
-### 5.5 Timing Terms -> Logic Usage
+1. Request travels `SPACE_SERVER_LANE` and pauses at IO midpoint.
+2. `ENTITY_IO_SUBTASK` is created and travels IO path (`SPACE_DISK_PATH` or `SPACE_DB_PATH`).
+3. Owner request status set to `STATUS_IO_WAIT`. Lane is blocked.
+4. IO subtask returns. Owner request resumes. Lane stays blocked throughout.
+5. Request completes, moves to `SPACE_COMPLETED`. Lane freed.
 
-| Timing Term | Declared In | Used In Logic Sections |
-|---|---|---|
-| `PARSING_MS` | 1.11, constants.ts | 3.2.2, 4.2 |
-| `ALLOCATING_MS` | 1.11, constants.ts | 3.2.2, 4.2 |
-| `NOTICE_MS` | 1.11, constants.ts | 3.5 |
-| `CORE_STEP_DURATION_SECONDS` | 1.11, constants.ts | 2.7, 3.3 |
-| `EXECUTION_SPLIT_SETTLE_MS` | behaviors.ts (local) | 3.2.3 |
+#### 4.4.2 With Threads
 
-### 5.6 Counter Terms -> Logic Usage
+1. Request travels `SPACE_SERVER_LANE` and reaches IO point.
+2. Request moves to `SPACE_IO_WAIT`. Lane is immediately freed.
+3. `ENTITY_IO_SUBTASK` is created and travels IO path.
+4. Lane picks up next queued request immediately.
+5. IO subtask returns. Request moves from `SPACE_IO_WAIT` back to any free lane.
+6. Request completes, moves to `SPACE_COMPLETED`.
 
-| Counter Term | Declared In | Used In Logic Sections |
-|---|---|---|
-| `OPENED_APPS_FOR_DUAL_CORE_PROMPT` | 1.15, constants.ts | 2.5.3, 3.4.2, 4.4 |
+### 4.5 Timeout Logic
 
-### 5.7 Lane Routing Terms -> Logic Usage
+- Every `ENTITY_REQUEST` in `SPACE_REQUEST_QUEUE` tracks `spawnTime`.
+- If `now - spawnTime > TIMER_TIMEOUT_THRESHOLD_MS`, request status flips to `STATUS_TIMEOUT`.
+- Timed-out request is removed from queue with a visible failure animation.
+- `METRIC_TIMEOUT_COUNT` increments.
 
-| Lane Term | Declared In | Used In Logic Sections |
-|---|---|---|
-| `LANE_POLICY_SINGLE` | 1.16 | 3.2.1 |
-| `LANE_POLICY_DUAL` | 1.16 | 3.2.1 |
+### 4.6 Metrics Logic
+
+- `METRIC_REQUESTS_PER_SEC`: rolling count of requests reaching `SPACE_COMPLETED` in last second.
+- `METRIC_QUEUE_DEPTH`: live count of entities in `SPACE_REQUEST_QUEUE`.
+- `METRIC_TIMEOUT_COUNT`: cumulative count of `STATUS_TIMEOUT` events.
+- `METRIC_CORE_COUNT`: count of active `SPACE_SERVER_LANE` spaces.
+- `METRIC_THREADS_ENABLED`: boolean, flipped by thread upgrade drop.
+
+All metrics are read from behavior context. `COMP_METRICS_BAR` renders them.
 
 ---
 
-## 6) Hard Invariants
+## 5) Transition Matrices
 
-1. The only declared runtime phase is `PHASE_SINGLE_CORE`.
-2. App launch processing must require `appStatus=ready` at drop time.
-3. Parsing must always precede allocating, and allocating must precede execution part movement.
-4. Exactly three execution parts are generated per active app run: request, process, compose.
-5. Request midpoint must pause execution and create a storage request entity.
-6. Storage completion must resume the paused owner part via `pathResumeToken` increment.
-7. Completed parts must be deleted after leaving their assigned core lane.
-8. App completion must move app to `SPACE_OPENED` and set `appStatus=opened`.
-9. Core 2 must remain unavailable for lane selection until dual-core unlock milestone is reached.
-10. Dual-core unlock threshold must use `OPENED_APPS_FOR_DUAL_CORE_PROMPT`, not literal values in logic.
-11. If all enabled lanes are occupied, dropping an app into open must fail fast and return app to pool.
+### 5.1 Phase Transition Matrix
+
+| Current Phase | Trigger | Condition | Next Phase |
+|---|---|---|---|
+| `PHASE_BOOT` | Learner action | start-server activated | `PHASE_SINGLE_CORE_SUCCESS` |
+| `PHASE_SINGLE_CORE_SUCCESS` | Timer | success window elapsed | `PHASE_OVERLOAD` |
+| `PHASE_OVERLOAD` | Modal action | `MODAL_OVERLOAD_HIT` acknowledged | `PHASE_ADD_CORES` |
+| `PHASE_ADD_CORES` | Metric or timer | second timeout after core added | `PHASE_IO_WALL` |
+| `PHASE_IO_WALL` | Modal action | `MODAL_IO_WALL_HIT` acknowledged | `PHASE_THREADS` |
+| `PHASE_THREADS` | Mastery gate | threads enabled + no timeout for 10s | `PHASE_COMPLETE` |
+
+### 5.2 Request Lifecycle Matrix
+
+| Current State | Event | Condition | Effect | Next State |
+|---|---|---|---|---|
+| `STATUS_QUEUED` | Lane pickup | lane free | request enters lane | `STATUS_PROCESSING` |
+| `STATUS_QUEUED` | Timeout check | age > `TIMER_TIMEOUT_THRESHOLD_MS` | removed, `METRIC_TIMEOUT_COUNT++` | `STATUS_TIMEOUT` |
+| `STATUS_PROCESSING` | IO midpoint reached | threads disabled | lane blocked, IO subtask spawned | `STATUS_IO_WAIT` |
+| `STATUS_PROCESSING` | IO midpoint reached | threads enabled | request parks in `SPACE_IO_WAIT`, lane freed | `STATUS_IO_WAIT` |
+| `STATUS_IO_WAIT` | IO subtask returns | owner request found | request resumes in lane | `STATUS_PROCESSING` |
+| `STATUS_PROCESSING` | Lane end reached | all steps done | moved to `SPACE_COMPLETED` | `STATUS_COMPLETED` |
+
+### 5.3 Upgrade Drop Matrix
+
+| Item Dropped | Space | Condition | Effect |
+|---|---|---|---|
+| `ENTITY_CORE` | `SPACE_UPGRADE` | `PHASE_ADD_CORES` active | add one `SPACE_SERVER_LANE`, `METRIC_CORE_COUNT++`, consume item |
+| `ENTITY_THREAD` | `SPACE_UPGRADE` | `PHASE_THREADS` active | `METRIC_THREADS_ENABLED=true`, consume item |
 
 ---
 
-## 7) Non-Goals
+## 6) Paperclip Character Contract
 
-1. This implementation does not execute modal learning flow in runtime.
-2. This implementation does not model explicit multi-phase progression beyond `single-core`.
-3. This implementation does not implement manual subtask drag assignment to cores.
-4. This implementation does not implement race-condition conflict or lock simulation.
-5. This implementation does not invoke question completion callback from gameplay flow.
+The paperclip character speaks in reactions and questions. It never gives instructions. It models the learner's own confusion back at them and names what is observable — not what to do about it.
+
+### 6.1 Dialogue Script
+
+| `CLIP_TRIGGER` | `CLIP_TONE` | `CLIP_LINE` |
+|---|---|---|
+| `PHASE_SINGLE_CORE_SUCCESS` start | `observe` | "Smooth. Requests are flowing." |
+| First IO pause visible | `observe` | "Huh. It stopped. Waiting for something." |
+| `PHASE_OVERLOAD` start | `observe` | "The queue is growing." |
+| First `STATUS_TIMEOUT` | `question` | "Users are complaining. But why is everything just... waiting?" |
+| Core added in `PHASE_ADD_CORES` | `observe` | "More lanes. That helped." |
+| Core visibly frozen on IO | `question` | "That core isn't doing anything. It's just... sitting there." |
+| `PHASE_IO_WALL` trigger | `diagnose` | "More cores, same problem. The cores aren't the bottleneck." |
+| Thread added in `PHASE_THREADS` | `observe` | "The lane didn't stop. It just handed the wait off." |
+| Mastery gate passed | `affirm` | "Now the cores work while they wait. That's the trick." |
+
+### 6.2 Dialogue Rules
+
+- One line per trigger. Never more than one line at a time.
+- Never repeat the same line in the same session.
+- Dialogue does not appear during modal display.
+- Tone must follow the arc: observe → question → diagnose → affirm. Never jump to affirm early.
 
 ---
 
-## 8) Authoring and Verification Protocol
+## 7) Hard Invariants
 
-### 8.1 Authoring Steps
+1. The learner must boot the server manually before any requests spawn.
+2. `PHASE_OVERLOAD` must begin automatically — the learner takes no action to cause the spike.
+3. No upgrade items are available before their designated phase.
+4. `ENTITY_CORE` drops must each add exactly one `SPACE_SERVER_LANE`.
+5. `ENTITY_THREAD` drop must set `METRIC_THREADS_ENABLED=true` globally for all lanes.
+6. Without threads, a lane occupied by a request in `STATUS_IO_WAIT` must not accept new requests.
+7. With threads, a lane must free immediately when a request moves to `SPACE_IO_WAIT`.
+8. `METRIC_TIMEOUT_COUNT` must be cumulative and never reset between phases.
+9. The paperclip character must never give instructions — only observations, questions, and diagnoses.
+10. `onQuestionComplete` must only be called after mastery gate conditions are met in `PHASE_COMPLETE`.
+11. Request routing to IO path (`disk` vs `db`) is fixed at spawn time by request type.
+12. Phases must advance in declared order. No phase may be skipped.
+
+---
+
+## 8) Non-Goals
+
+1. This design does not simulate multi-threaded race conditions or locking.
+2. This design does not model OS-level thread scheduling internals.
+3. This design does not allow the learner to manually route requests.
+4. This design does not include a performance scoring system.
+5. This design does not simulate actual network latency or TCP behaviour.
+6. The IO path duration is deliberately exaggerated for visibility. It does not represent real IO timing.
+
+---
+
+## 9) Authoring and Verification Protocol
+
+### 9.1 Authoring Steps
 
 1. Update Section 1 terms before changing semantics.
-2. Keep Section 2 declarations synchronized with runtime definition.
-3. Update Section 3 logic for behavior rule changes.
-4. Update Section 4 matrices for event/transition changes.
-5. Update Section 5 links and Section 6 invariants.
-6. Record unfinished behavior under Section 9.
+2. Keep Section 3 declarations synchronized with runtime definition.
+3. Update Section 4 logic for behavior rule changes.
+4. Update Section 5 matrices for event/transition changes.
+5. Update Section 6 paperclip script when new triggers are added.
+6. Record unfinished behavior under Section 10.
 
-### 8.2 Consistency Checks
+### 9.2 Consistency Checks
 
 - Every referenced `SPACE_*` exists in runtime definition spaces.
-- Every behavior event in matrices maps to real behavior triggers/guards.
-- Timers in logic map to constants.
-- Unlock threshold references `OPENED_APPS_FOR_DUAL_CORE_PROMPT`.
-- If modal flow is documented as active, behavior rules must call modal runtime APIs.
+- Every phase in Section 3.4.1 has a corresponding transition row in Section 5.1.
+- Every modal in Section 1.10 has a defined trigger condition.
+- Paperclip lines in Section 6.1 map to real game events.
+- Upgrade effects in Section 3.5 match Section 5.3 matrix rows.
 
-### 8.3 Quality Gates
+### 9.3 Quality Gates
 
 When code behavior changes, run:
 - `pnpm check:biome`
@@ -627,36 +525,33 @@ When code behavior changes, run:
 
 For docs-only updates:
 - Validate section order and term consistency.
-- Validate table rows map to current constants/behaviors.
+- Validate table rows map to current constants and behaviors.
 
 ---
 
-## 9) Product Gap Register
+## 10) Product Gap Register
 
-### 9.1 `GAP_MODAL_FLOW_WIRING`
+### 10.1 `GAP_FULL_IMPLEMENTATION`
 
-- Current default: modal builders are defined but not used by behavior rules.
-- Next step options:
-  - Wire modal sequence to milestone and phase transitions.
-  - Remove unused modal builders until flow is implemented.
+- Current state: this blueprint defines target design. No implementation exists yet.
+- Previous implementation (`parallel-multicore`) used apps and a single-core lane model.
+- Migration requires: new space definitions, request entity model, spawn behavior, IO path behavior, upgrade mechanic, metrics bar, paperclip component, and phase state machine.
 
-### 9.2 `GAP_PARALLEL_AND_LOCK_PHASES`
+### 10.2 `GAP_PAPERCLIP_COMPONENT`
 
-- Current default: no parallel split, race-condition conflict, or lock mechanism in active behavior rules.
-- Next step options:
-  - Implement new phases and transitions in behavior context.
-  - Keep scope intentionally limited to sequential + unlock teaser.
+- `COMP_PAPERCLIP` is specified but not yet implemented.
+- Requires: dialogue state in behavior context, render component, trigger wiring in behavior rules.
 
-### 9.3 `GAP_COMPLETION_HANDOFF`
+### 10.3 `GAP_METRICS_BAR`
 
-- Current default: route provides `onQuestionComplete`, but gameplay never calls it.
-- Next step options:
-  - Trigger completion from milestone/modal action.
-  - Add explicit completion control in UI.
+- `COMP_METRICS_BAR` is specified but not yet implemented.
+- Requires: live reads from behavior context for all `METRIC_*` values.
 
-### 9.4 `GAP_DUAL_CORE_TEACHING_DEPTH`
+### 10.4 `GAP_THREAD_OFFLOAD_PATH`
 
-- Current default: dual-core unlock reveals lane and routing policy, but no dedicated explanatory phase.
-- Next step options:
-  - Add scripted dual-core demonstration step with visible scheduler explanation.
-  - Keep current lightweight notice-only teaching.
+- `SPACE_IO_WAIT` grid and thread-offload lane behavior are specified but not yet implemented.
+- This is the most complex new behavior: freeing lanes mid-request and re-routing after IO completes.
+
+### 10.5 `GAP_MASTERY_GATE`
+
+- Mastery gate condition (threads enabled + no timeout for 10s) is specified but not yet wired to `onQuestionComplete`.

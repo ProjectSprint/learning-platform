@@ -1,31 +1,28 @@
 import {
-	EntityFactory,
 	QuestionDefinition,
 	type QuestionTypeSpec,
 	SpaceFactory,
 } from "@/components/game/engine/runtime";
-
+import { CORES_BEHAVIORS, type CoresBehaviorContext } from "./behaviors";
 import {
-	CORES_BEHAVIORS,
-	type CoresBehaviorContext,
-	type CoresEntityType,
-	type CoresPhase,
-	type CoresSpaceId,
-} from "./behaviors";
-import {
-	APP_ITEMS,
-	APP_POOL_CONFIG,
-	CORE1_PATH_CONFIG,
-	CORE2_PATH_CONFIG,
-	EXECUTION_GRID_CONFIG,
-	OPEN_GRID_CONFIG,
-	OPENED_GRID_CONFIG,
+	COMPLETED_CONFIG,
+	createLaneConfig,
+	DB_PATH_CONFIG,
+	DISK_PATH_CONFIG,
+	INVENTORY_CONFIG,
+	IO_WAIT_CONFIG,
+	LANE_IDS,
 	QUESTION_DESCRIPTION,
 	QUESTION_ID,
 	QUESTION_TITLE,
-	SPACE_IDS,
-	STORAGE_PATH_CONFIG,
+	REQUEST_QUEUE_CONFIG,
+	UPGRADE_CONFIG,
 } from "./constants";
+import type { CoresPhase } from "./types";
+
+type CoresEntityType = "request" | "io-subtask" | "core" | "thread";
+// Use string for spaceId to avoid strict type conflicts with SpaceFactory
+type CoresSpaceId = string;
 
 type CoresQuestionSpec = QuestionTypeSpec & {
 	conditionKey: never;
@@ -43,19 +40,28 @@ export const CORES_THREADS_DEFINITION = QuestionDefinition<CoresQuestionSpec>({
 		title: QUESTION_TITLE,
 		description: QUESTION_DESCRIPTION,
 	},
-	initialPhase: "single-core",
+	initialPhase: "boot",
 	spaces: [
-		SpaceFactory.pool(APP_POOL_CONFIG),
-		SpaceFactory.grid(OPEN_GRID_CONFIG),
-		SpaceFactory.grid(EXECUTION_GRID_CONFIG),
-		SpaceFactory.path(CORE1_PATH_CONFIG),
-		SpaceFactory.path(CORE2_PATH_CONFIG),
-		SpaceFactory.path(STORAGE_PATH_CONFIG),
-		SpaceFactory.grid(OPENED_GRID_CONFIG),
+		// Request queue (source)
+		SpaceFactory.pool(REQUEST_QUEUE_CONFIG),
+		// Server lanes (dynamic based on core count)
+		...LANE_IDS.map((laneId) => SpaceFactory.path(createLaneConfig(laneId))),
+		// I/O paths
+		SpaceFactory.path(DISK_PATH_CONFIG),
+		SpaceFactory.path(DB_PATH_CONFIG),
+		// I/O wait area (for threads)
+		SpaceFactory.grid(IO_WAIT_CONFIG),
+		// Upgrade drop zone
+		SpaceFactory.grid(UPGRADE_CONFIG),
+		// Inventory for cores/threads
+		SpaceFactory.pool(INVENTORY_CONFIG),
+		// Completed requests
+		SpaceFactory.grid(COMPLETED_CONFIG),
 	],
-	entities: APP_ITEMS.map((item) =>
-		EntityFactory.itemInSpace(item, SPACE_IDS.appPool),
-	),
+	entities: [
+		// Start with empty - requests spawn dynamically
+	],
+	// Phase rules - transitions handled by behavior rules for now
 	phaseRules: [],
 	behaviors: CORES_BEHAVIORS,
 });

@@ -22,75 +22,63 @@ const action = (
 	validate: false,
 });
 
-export const buildSingleWallModal = (): ModalInstance => ({
-	id: MODAL_IDS.wall,
-	title: "CPU Wall Hit",
+export const buildBootPromptModal = (): ModalInstance => ({
+	id: MODAL_IDS.bootPrompt,
+	title: "Welcome to Your Web Server",
 	content: [
-		text("Your single core is maxed out and every app waits in line."),
-		text("Add a second core to keep more work moving."),
+		text("You are about to run a web server and discover why threads exist."),
+		text("Press Start Server to begin processing HTTP requests."),
+	],
+	actions: [action("start", "Start Server")],
+});
+
+export const buildOverloadHitModal = (): ModalInstance => ({
+	id: MODAL_IDS.overloadHit,
+	title: "Server Overload!",
+	content: [
+		text("Requests are timing out because the single core can't keep up."),
+		text("Add more CPU cores to process requests in parallel."),
 	],
 	actions: [action("add-core", "Add Core")],
 });
 
-export const buildSchedulerModal = (): ModalInstance => ({
-	id: MODAL_IDS.scheduler,
-	title: "Second Core Needs a Scheduler",
+export const buildCoresIntroModal = (): ModalInstance => ({
+	id: MODAL_IDS.coresIntro,
+	title: "Multiple Cores Enabled",
 	content: [
-		text("Core 2 exists, but apps still route to Core 1 by default."),
-		text("Enable scheduler logic to route whole apps to free cores."),
-	],
-	actions: [action("enable-scheduler", "Enable Scheduler")],
-});
-
-export const buildSingleThreadLimitModal = (): ModalInstance => ({
-	id: MODAL_IDS.singleLimit,
-	title: "Single Thread Limit",
-	content: [
-		text("Video Editor is still bottlenecked on one core."),
-		text("To go faster, independent subtasks must run on separate cores."),
+		text("You now have multiple cores processing requests!"),
+		text("Watch as requests are distributed across available lanes."),
 	],
 	actions: [action("continue", "Continue")],
 });
 
-export const buildParallelIntroModal = (): ModalInstance => ({
-	id: MODAL_IDS.parallelIntro,
-	title: "Parallel Mode",
+export const buildIoWallHitModal = (): ModalInstance => ({
+	id: MODAL_IDS.ioWallHit,
+	title: "I/O Wall Hit",
 	content: [
-		text("You are now the scheduler."),
-		text("Assign independent subtasks to different cores."),
+		text("Requests are stuck waiting for I/O operations to complete."),
+		text("Enable threading to free up lanes during I/O waits."),
 	],
-	actions: [action("enable-splitting", "Start Parallel Split")],
+	actions: [action("enable-threads", "Enable Threads")],
 });
 
-export const buildConflictModal = (): ModalInstance => ({
-	id: MODAL_IDS.conflict,
-	title: "Race Condition",
+export const buildThreadsIntroModal = (): ModalInstance => ({
+	id: MODAL_IDS.threadsIntro,
+	title: "Threading Enabled",
 	content: [
-		text("Both cores touched GPU at the same time and corrupted output."),
-		text("Shared resources need synchronization."),
+		text("Threading is now active!"),
+		text("Requests can now move to I/O wait, freeing lanes for new requests."),
 	],
 	actions: [action("continue", "Continue")],
-});
-
-export const buildLockIntroModal = (): ModalInstance => ({
-	id: MODAL_IDS.lockIntro,
-	title: "Enable Locks",
-	content: [
-		text("A lock serializes shared GPU access."),
-		text("One task runs, the other waits safely."),
-	],
-	actions: [action("enable-locks", "Enable Locks")],
 });
 
 export const buildCompleteModal = (): ModalInstance => ({
 	id: MODAL_IDS.complete,
 	title: "Completed: Cores and Threads",
 	content: [
+		text("You learned about CPU cores, request processing, and threading."),
 		text(
-			"You learned sequential execution, scheduling, parallelism, and locking.",
-		),
-		text(
-			"This is the core reason software architecture matters on multi-core CPUs.",
+			"This is the core reason why modern servers use both multiple cores and threads.",
 		),
 	],
 	actions: [action("complete", "Complete")],

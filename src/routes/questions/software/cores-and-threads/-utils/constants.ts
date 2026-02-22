@@ -1,190 +1,159 @@
-import type { Item } from "@/components/game/engine/game-provider";
 import type {
 	GridSpaceConfig,
 	PathSpaceConfig,
 	PoolSpaceConfig,
 } from "@/components/game/types/space";
 
-import type { AppDefinition, ExecutionStep } from "./types";
+import type { CoreLaneId } from "./types";
 
-export const QUESTION_ID = "parallel-multicore";
-export const QUESTION_TITLE = "🖥️ Open Apps on a Single Core";
+export const QUESTION_ID = "cores-and-threads";
+export const QUESTION_TITLE = "🖥️ Your Web Server";
 export const QUESTION_DESCRIPTION =
-	"Open apps and see how one core processes execution work in sequence.";
+	"Run a web server and discover why threads exist.";
 
 export const SPACE_IDS = {
-	appPool: "app-pool",
-	open: "open",
-	execution: "execution",
-	core1: "core-1",
-	core2: "core-2",
-	storage: "storage",
-	opened: "opened",
+	requestQueue: "request-queue",
+	serverLanePrefix: "server-lane",
+	diskPath: "disk-path",
+	dbPath: "db-path",
+	ioWait: "io-wait",
+	upgrade: "upgrade",
+	inventory: "inventory",
+	completed: "completed",
 } as const;
 
-type CoresSpaceId = (typeof SPACE_IDS)[keyof typeof SPACE_IDS];
+export const LANE_IDS: CoreLaneId[] = ["lane-1", "lane-2", "lane-3", "lane-4"];
 
-export const APP_POOL_CONFIG: PoolSpaceConfig<CoresSpaceId> = {
-	id: SPACE_IDS.appPool,
-	name: "Apps",
+export const getLaneSpaceId = (laneId: CoreLaneId): string =>
+	`${SPACE_IDS.serverLanePrefix}-${laneId}`;
+
+export const REQUEST_QUEUE_CONFIG: PoolSpaceConfig<string> = {
+	id: SPACE_IDS.requestQueue,
+	name: "Request Queue",
 	metadata: { visible: true },
 };
 
-export const OPEN_GRID_CONFIG: GridSpaceConfig<CoresSpaceId> = {
-	id: SPACE_IDS.open,
-	name: "Open",
-	rows: 1,
-	cols: 1,
-	metrics: { cellWidth: 72, cellHeight: 72, gapX: 4, gapY: 4 },
-	maxCapacity: 1,
-};
-
-export const EXECUTION_GRID_CONFIG: GridSpaceConfig<CoresSpaceId> = {
-	id: SPACE_IDS.execution,
-	name: "Execution",
+export const IO_WAIT_CONFIG: GridSpaceConfig<string> = {
+	id: SPACE_IDS.ioWait,
+	name: "I/O Wait",
 	rows: 2,
-	cols: 3,
+	cols: 4,
 	metrics: { cellWidth: 68, cellHeight: 68, gapX: 6, gapY: 6 },
-	maxCapacity: 6,
+	maxCapacity: 8,
 };
 
-export const OPENED_GRID_CONFIG: GridSpaceConfig<CoresSpaceId> = {
-	id: SPACE_IDS.opened,
-	name: "Opened",
+export const UPGRADE_CONFIG: GridSpaceConfig<string> = {
+	id: SPACE_IDS.upgrade,
+	name: "Upgrade Zone",
 	rows: 1,
-	cols: 5,
-	metrics: { cellWidth: 72, cellHeight: 72, gapX: 6, gapY: 6 },
-	maxCapacity: 5,
+	cols: 2,
+	metrics: { cellWidth: 80, cellHeight: 80, gapX: 8, gapY: 8 },
+	maxCapacity: 2,
 };
 
-export const CORE1_PATH_CONFIG: PathSpaceConfig<CoresSpaceId> = {
-	id: SPACE_IDS.core1,
-	name: "Core 1",
+export const COMPLETED_CONFIG: GridSpaceConfig<string> = {
+	id: SPACE_IDS.completed,
+	name: "Completed",
+	rows: 1,
+	cols: 10,
+	metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+	maxCapacity: 10,
+};
+
+export const INVENTORY_CONFIG: PoolSpaceConfig<string> = {
+	id: SPACE_IDS.inventory,
+	name: "Upgrades",
+	metadata: { visible: true },
+};
+
+export const createLaneConfig = (
+	laneId: CoreLaneId,
+): PathSpaceConfig<string> => ({
+	id: getLaneSpaceId(laneId),
+	name: `Server Lane ${laneId.split("-")[1]}`,
 	path: "M 12 60 L 308 60",
 	viewBox: "0 0 320 120",
-	duration: 6,
+	duration: 3,
 	speedMultiplier: 1,
 	showDropzone: false,
 	maxCapacity: 1,
-};
+});
 
-export const CORE2_PATH_CONFIG: PathSpaceConfig<CoresSpaceId> = {
-	id: SPACE_IDS.core2,
-	name: "Core 2",
-	path: "M 12 60 L 308 60",
-	viewBox: "0 0 320 120",
-	duration: 6,
-	speedMultiplier: 1,
-	showDropzone: false,
-	maxCapacity: 1,
-};
-
-export const STORAGE_PATH_CONFIG: PathSpaceConfig<CoresSpaceId> = {
-	id: SPACE_IDS.storage,
-	name: "Storage",
-	path: "M 52 20 L 52 132 Q 52 160 80 160 L 240 160 Q 268 160 268 132 L 268 20",
-	viewBox: "0 0 320 180",
-	duration: 2.4,
+export const DISK_PATH_CONFIG: PathSpaceConfig<string> = {
+	id: SPACE_IDS.diskPath,
+	name: "Disk I/O",
+	path: "M 40 20 L 40 140",
+	viewBox: "0 0 80 160",
+	duration: 2,
 	speedMultiplier: 1,
 	showDropzone: false,
 };
 
-export const APPS: AppDefinition[] = [
-	{
-		appKey: "word",
-		entityId: "app-word",
-		name: "Word Editor",
-		icon: "twemoji:memo",
-		color: "#60A5FA",
-	},
-	{
-		appKey: "calc",
-		entityId: "app-calc",
-		name: "Calculator",
-		icon: "twemoji:abacus",
-		color: "#34D399",
-	},
-	{
-		appKey: "paint",
-		entityId: "app-paint",
-		name: "Paint",
-		icon: "twemoji:artist-palette",
-		color: "#FBBF24",
-	},
-	{
-		appKey: "music",
-		entityId: "app-music",
-		name: "Music Player",
-		icon: "twemoji:musical-note",
-		color: "#A78BFA",
-	},
-	{
-		appKey: "video",
-		entityId: "app-video",
-		name: "Video Editor",
-		icon: "twemoji:clapper-board",
-		color: "#F87171",
-	},
-];
+export const DB_PATH_CONFIG: PathSpaceConfig<string> = {
+	id: SPACE_IDS.dbPath,
+	name: "Database I/O",
+	path: "M 40 20 L 40 140",
+	viewBox: "0 0 80 160",
+	duration: 2,
+	speedMultiplier: 1,
+	showDropzone: false,
+};
 
-const appAllowedPlaces = [SPACE_IDS.appPool, SPACE_IDS.open, SPACE_IDS.opened];
+// Timing Constants
+export const TIMER_REQUEST_SPAWN_MS = 1200;
+export const TIMER_SPAWN_SPIKE_MS = 300;
+export const TIMER_IO_DURATION_MS = 4000;
+export const TIMER_IO_OFFLOAD_MS = 400;
+export const TIMER_TIMEOUT_THRESHOLD_MS = 3000;
+export const TIMER_NOTICE_MS = 2000;
+export const TIMER_SUCCESS_WINDOW_MS = 5000;
+export const TIMER_MASTERY_DURATION_MS = 10000;
 
-export const APP_ITEMS: Item[] = APPS.map((app) => ({
-	id: app.entityId,
-	type: "app",
-	name: app.name,
-	icon: { icon: app.icon, color: app.color },
-	allowedPlaces: appAllowedPlaces,
-	data: {
-		appKey: app.appKey,
-		appStatus: "ready",
-	},
-}));
+// Capacity and Thresholds
+export const QUEUE_CAPACITY = 8;
+export const INITIAL_RPS = 1;
+export const RPS_SPIKE_MULTIPLIER = 4;
+export const MAX_CORES = 4;
 
-export const APP_BY_ID = Object.fromEntries(
-	APPS.map((app) => [app.entityId, app]),
-);
-
-export const APP_IDS = new Set(APP_ITEMS.map((item) => item.id));
-
-export const EXECUTION_PARTS: Array<{
-	step: ExecutionStep;
-	label: string;
-	icon: string;
-	color: string;
-}> = [
-	{
-		step: "request",
-		label: "Requesting dependencies",
-		icon: "mdi:package-variant-closed",
-		color: "#60A5FA",
-	},
-	{
-		step: "process",
-		label: "Processing dependencies",
-		icon: "mdi:cog-outline",
-		color: "#F59E0B",
-	},
-	{
-		step: "compose",
-		label: "UI composition",
-		icon: "mdi:view-dashboard-outline",
-		color: "#34D399",
-	},
-];
-
-export const PARSING_MS = 1000;
-export const ALLOCATING_MS = 1200;
-export const NOTICE_MS = 1800;
-export const CORE_STEP_DURATION_SECONDS = 6;
-export const OPENED_APPS_FOR_DUAL_CORE_PROMPT = 2;
-
+// Modal IDs
 export const MODAL_IDS = {
-	wall: "core-wall",
-	scheduler: "scheduler-explain",
-	singleLimit: "single-thread-limit",
-	parallelIntro: "parallel-intro",
-	conflict: "parallel-conflict",
-	lockIntro: "parallel-lock-intro",
-	complete: "parallel-complete",
+	bootPrompt: "boot-prompt",
+	overloadHit: "overload-hit",
+	coresIntro: "cores-intro",
+	ioWallHit: "io-wall-hit",
+	threadsIntro: "threads-intro",
+	complete: "complete",
+} as const;
+
+// Icons and Visuals
+export const REQUEST_ICONS = {
+	GET: "mdi:file-document-outline",
+	POST: "mdi:account-arrow-right-outline",
+} as const;
+
+export const REQUEST_COLORS = {
+	GET: "#60A5FA",
+	POST: "#34D399",
+	processing: "#F59E0B",
+	waiting: "#A78BFA",
+	timeout: "#F87171",
+	complete: "#34D399",
+} as const;
+
+// Upgrade Items
+export const UPGRADE_ITEMS = {
+	core: {
+		id: "upgrade-core",
+		type: "core",
+		name: "CPU Core",
+		icon: "mdi:cpu-64-bit",
+		color: "#3B82F6",
+	},
+	thread: {
+		id: "upgrade-thread",
+		type: "thread",
+		name: "Thread Pool",
+		icon: "mdi:swap-horizontal",
+		color: "#8B5CF6",
+	},
 } as const;

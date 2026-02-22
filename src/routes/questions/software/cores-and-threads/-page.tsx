@@ -1,5 +1,13 @@
-import { Box, Grid, GridItem, Text } from "@chakra-ui/react";
-import { useCallback, useLayoutEffect, useMemo } from "react";
+import {
+	Box,
+	Button,
+	Flex,
+	Grid,
+	GridItem,
+	Switch,
+	Text,
+} from "@chakra-ui/react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
 	ContextualHint,
 	DragOverlay,
@@ -21,28 +29,34 @@ import { useQuestionRuntime } from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
 
-import type { CoresBehaviorContext } from "./-utils/behaviors";
 import {
-	APP_POOL_CONFIG,
-	CORE1_PATH_CONFIG,
-	CORE2_PATH_CONFIG,
-	EXECUTION_GRID_CONFIG,
-	OPEN_GRID_CONFIG,
-	OPENED_GRID_CONFIG,
+	COMPLETED_CONFIG,
+	DB_PATH_CONFIG,
+	DISK_PATH_CONFIG,
+	getLaneSpaceId,
+	INVENTORY_CONFIG,
+	IO_WAIT_CONFIG,
+	LANE_IDS,
 	QUESTION_DESCRIPTION,
 	QUESTION_TITLE,
+	REQUEST_QUEUE_CONFIG,
 	SPACE_IDS,
-	STORAGE_PATH_CONFIG,
+	UPGRADE_CONFIG,
 } from "./-utils/constants";
 import { CORES_THREADS_DEFINITION } from "./-utils/definition";
+import type { CoresPhase } from "./-utils/types";
 
-const INVENTORY_DRAWER_ID = "software-inventory-drawer";
+const INVENTORY_DRAWER_ID = "cores-inventory-drawer";
 
-const hintByState: Record<CoresBehaviorContext["pipelineState"], string> = {
-	idle: "Drag an app into Open to launch it.",
-	parsing: "OS is parsing the binary header.",
-	allocating: "Preparing execution resources.",
-	executing: "Active cores are processing app parts.",
+const hintByPhase: Record<CoresPhase, string> = {
+	boot: "Start the server to begin processing requests.",
+	"single-core-success": "Requests are being processed on a single core.",
+	overload: "The server is overloaded! Consider adding more cores.",
+	"add-cores": "Drag a CPU Core to the upgrade zone to add processing power.",
+	"io-wall":
+		"Requests are stuck waiting for I/O. Enable threading to free up lanes.",
+	threads: "Threading is enabled! I/O operations no longer block lanes.",
+	complete: "Excellent! You've mastered cores and threads.",
 };
 
 export const CoresAndThreadsQuestion = ({
@@ -55,32 +69,24 @@ export const CoresAndThreadsQuestion = ({
 	);
 };
 
-const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
-	// The runtime hook is the "brain" wiring:
-	// 1) validates + bootstraps CORES_THREADS_DEFINITION (spaces/entities),
-	// 2) subscribes to engine events for "cores-and-threads-page",
-	// 3) runs behavior rules from -utils/behaviors.ts,
-	// 4) returns the latest global game state + behavior-only context.
-	const { state, behaviorContext } = useQuestionRuntime(
+const CoresAndThreadsGame = ({
+	onQuestionComplete,
+}: {
+	onQuestionComplete: () => void;
+}) => {
+	const { state, behaviorContext, interactionSession } = useQuestionRuntime(
 		"cores-and-threads-page",
 		CORES_THREADS_DEFINITION,
 	);
-	// Explicit game context object (state + dispatch) passed to engine components.
 	const gameCtx = useGameCtx();
-	// Registers the generic drag engine lifecycle (progress/events for dragging).
-	// No direct return value is used here; this is an initialization side effect.
 	useDragEngine();
-	// Drawer manager API used to register the inventory panel in layout effect.
 	const { registerDrawer } = useDrawerManager();
 
-	// behaviorContext.pipelineState is maintained by behavior rules.
-	// This line maps state -> human hint text.
-	const hint = hintByState[behaviorContext.pipelineState];
-	// Writes hint text into hint store (with delay logic inside hook).
+	// Hint based on current phase
+	const hint = hintByPhase[behaviorContext.phase];
 	useContextualHint(hint);
 
-	// Normalizes optional notice payload from behavior context for rendering.
-	// useMemo avoids object recreation unless relevant fields changed.
+	// Notice from behavior context
 	const notice = useMemo(() => {
 		if (!behaviorContext.noticeMessage) return null;
 		return {
@@ -89,106 +95,117 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 		};
 	}, [behaviorContext.noticeMessage, behaviorContext.noticeTone]);
 
-	// Guard against rendering spaces before runtime bootstrap completes.
-	// If any required space is missing from state.spaces, board UI stays hidden.
+	// Board ready check
 	const boardReady = useMemo(() => {
 		const required = [
-			SPACE_IDS.appPool,
-			SPACE_IDS.open,
-			SPACE_IDS.execution,
-			SPACE_IDS.core1,
-			SPACE_IDS.core2,
-			SPACE_IDS.storage,
-			SPACE_IDS.opened,
+			SPACE_IDS.requestQueue,
+			...LANE_IDS.map(getLaneSpaceId),
+			SPACE_IDS.diskPath,
+			SPACE_IDS.dbPath,
+			SPACE_IDS.ioWait,
+			SPACE_IDS.upgrade,
+			SPACE_IDS.inventory,
+			SPACE_IDS.completed,
 		];
 		return required.every((id) => Boolean(state.spaces[id]));
 	}, [state.spaces]);
 
-	// Unlock flag is owned by behavior rules (set after enough opened apps).
-	const showCore2 = behaviorContext.dualCorePromptVisible;
-
-	// Read path-space occupancy directly from global state.
-	// Path spaces keep entityIds as the list currently moving through that lane.
-	const core1Space = state.spaces[SPACE_IDS.core1];
-	const isCore1Occupied =
-		core1Space?.kind === "path" && core1Space.entityIds.length > 0;
-	const core2Space = state.spaces[SPACE_IDS.core2];
-	const isCore2Occupied =
-		core2Space?.kind === "path" && core2Space.entityIds.length > 0;
-	// Drag gate policy:
-	// - before dual-core unlock: only core 1 availability matters,
-	// - after unlock: at least one of core 1/core 2 must be free.
-	const hasAvailableLane = showCore2
-		? !isCore1Occupied || !isCore2Occupied
-		: !isCore1Occupied;
-	// PoolSpace asks this callback before starting drag.
-	// Returning false blocks dragging apps out of the drawer.
-	const canDragAppFromPool = useCallback(
-		(_entity: { id: string }) => hasAvailableLane,
-		[hasAvailableLane],
+	// Metrics display
+	const metrics = useMemo(
+		() => ({
+			rps: behaviorContext.requestsPerSec,
+			queueDepth: behaviorContext.queueDepth,
+			timeoutCount: behaviorContext.timeoutCount,
+			coreCount: behaviorContext.coreCount,
+			threadsEnabled: behaviorContext.threadsEnabled,
+		}),
+		[behaviorContext],
 	);
 
-	// Presentation mapper: entity runtime data -> UI badge + label in GridSpace cards.
-	// This does not mutate state; it only determines visual status chips.
+	// Check for completion
+	useEffect(() => {
+		if (behaviorContext.navigateAway) {
+			onQuestionComplete();
+		}
+	}, [behaviorContext.navigateAway, onQuestionComplete]);
+
+	// Start server handler
+	const handleStartServer = useCallback(() => {
+		interactionSession.requestPhaseTransition(
+			"single-core-success",
+			"user.start",
+		);
+	}, [interactionSession]);
+
+	// Toggle threads handler
+	const handleToggleThreads = useCallback(() => {
+		// This would typically spawn a thread upgrade item or toggle directly
+		// For now, we'll rely on the upgrade drop mechanic
+	}, []);
+
+	// Entity label formatter
+	const getEntityLabel = useCallback((entity: EntityData) => {
+		return entity.name ?? entity.id;
+	}, []);
+
+	// Entity status formatter
 	const getEntityStatus = useCallback(
 		(entity: { data: Record<string, unknown> }) => {
-			const appStatus =
-				typeof entity.data.appStatus === "string"
-					? entity.data.appStatus
-					: undefined;
-			if (appStatus === "parsing") {
-				return { status: "warning" as const, message: "Parsing" };
+			const type = entity.data.type;
+			if (type === "request") {
+				const status = entity.data.status as string;
+				switch (status) {
+					case "queued":
+						return { status: "info" as const, message: "Queued" };
+					case "processing":
+						return { status: "warning" as const, message: "Processing" };
+					case "waiting-io":
+						return { status: "warning" as const, message: "Waiting I/O" };
+					case "timeout":
+						return { status: "error" as const, message: "Timeout" };
+					case "complete":
+						return { status: "success" as const, message: "Complete" };
+				}
 			}
-			if (appStatus === "allocating") {
-				return { status: "warning" as const, message: "Allocating" };
+			if (type === "io-subtask") {
+				const ioStatus = entity.data.ioStatus as string;
+				return {
+					status:
+						ioStatus === "request" ? ("info" as const) : ("success" as const),
+					message: ioStatus === "request" ? "Requesting" : "Responding",
+				};
 			}
-			if (appStatus === "opened") {
-				return { status: "success" as const, message: "Opened" };
-			}
-
-			const partStatus =
-				typeof entity.data.partStatus === "string"
-					? entity.data.partStatus
-					: undefined;
-			if (partStatus === "queued") {
-				return { status: "info" as const, message: "Waiting" };
-			}
-			if (partStatus === "waiting-io") {
-				return { status: "warning" as const, message: "Waiting for I/O" };
-			}
-			if (partStatus === "executing") {
-				return { status: "warning" as const, message: "Processing" };
-			}
-
 			return {};
 		},
 		[],
 	);
 
-	// Register the bottom "Apps" drawer before paint to avoid first-frame flicker.
-	// The drawer content itself is rendered later via <DrawerLayout drawerId=...>.
-	useLayoutEffect(() => {
+	// Register drawers
+	useEffect(() => {
 		registerDrawer({
 			id: INVENTORY_DRAWER_ID,
 			contentType: "space",
-			spaceId: SPACE_IDS.appPool,
-			spaceIds: [SPACE_IDS.appPool],
-			title: "Apps",
+			spaceId: SPACE_IDS.inventory,
+			spaceIds: [SPACE_IDS.inventory],
+			title: "Upgrades",
 			position: "bottom",
-			initialState: "expanded",
-			expandedSize: { base: "62vh", md: "40vh" },
-			foldedSize: { sm: "25vh" },
-			mouseAware: true,
+			initialState: "folded",
+			expandedSize: { base: "30vh", md: "25vh" },
 			showFloatingButton: true,
-			floatingButtonLabel: "Apps",
+			floatingButtonLabel: "Upgrades",
 		});
 	}, [registerDrawer]);
 
-	// Shared label formatter for all spaces showing entities.
-	const getEntityLabel = (entity: EntityData) => entity.name ?? entity.id;
+	// Phase-aware UI visibility
+	const showUpgradeZone =
+		behaviorContext.phase === "add-cores" ||
+		behaviorContext.phase === "threads";
+	const showIoWait = behaviorContext.threadsEnabled;
+	const showInventory =
+		behaviorContext.phase === "add-cores" ||
+		behaviorContext.phase === "threads";
 
 	return (
-		// Page shell (visual layout only).
 		<Box
 			as="main"
 			display="flex"
@@ -197,8 +214,9 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 			color="gray.100"
 			px={{ base: 4, md: 10, lg: 16 }}
 			py={{ base: 4, md: 6 }}
+			height="100vh"
 		>
-			{/* Static question copy from constants. */}
+			{/* Header */}
 			<Box mb={4}>
 				<Text
 					fontSize={{ base: "2xl", md: "4xl" }}
@@ -212,217 +230,208 @@ const CoresAndThreadsGame = (_props: { onQuestionComplete: () => void }) => {
 				</Text>
 			</Box>
 
-			{/* GameBoard provides board registry + arrow/space coordination contexts. */}
-			<GameBoard>
-				{/* Render board content only after all declared spaces exist in state. */}
-				{boardReady ? (
+			{/* Metrics Bar */}
+			{boardReady && (
+				<MetricsBar
+					metrics={metrics}
+					onToggleThreads={handleToggleThreads}
+					phase={behaviorContext.phase}
+				/>
+			)}
+
+			{/* Boot Phase UI */}
+			{behaviorContext.phase === "boot" && (
+				<Flex justify="center" align="center" flex={1}>
+					<Box display="flex" flexDirection="column" gap={6}>
+						<Text fontSize="xl" color="gray.300">
+							Server is offline
+						</Text>
+						<Button colorScheme="blue" size="lg" onClick={handleStartServer}>
+							Start Server
+						</Button>
+					</Box>
+				</Flex>
+			)}
+
+			{/* Active Game Board */}
+			{behaviorContext.phase !== "boot" && boardReady && (
+				<GameBoard>
 					<Grid
-						templateColumns={{
-							base: "1fr",
-							lg: "1.2fr 1fr",
-						}}
+						templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
 						gap={{ base: 3, md: 4 }}
+						height="100%"
 					>
-						{/* Left column: control-plane style spaces and summary info. */}
+						{/* Left Column */}
 						<GridItem>
-							<InfoCard
-								title="Single Core Simulation"
-								value={`Opened apps: ${behaviorContext.openedCount}`}
-								subtitle="Flow: Open -> Execution -> Core 1 -> Opened"
-							/>
-							{/* behaviorContext notice channel (set/cleared by behavior scheduler). */}
-							{notice ? (
-								<Text
-									fontSize="sm"
-									mt={2}
-									color={notice.tone === "error" ? "red.300" : "blue.300"}
-								>
-									{notice.message}
-								</Text>
-							) : null}
-							{/* Secondary prompt toggled by behavior when dual-core is unlocked. */}
-							{behaviorContext.dualCorePromptVisible ? (
-								<Text mt={2} fontSize="sm" color="teal.300">
-									Next lesson prompt: introduce dual-core scheduling now.
-								</Text>
-							) : null}
-							<Box mt={3}>
-								{/* "Open" is the app entry gate where app-arrived behavior triggers. */}
-								<GridSpace
+							<Box display="flex" flexDirection="column" gap={3}>
+								{/* Request Queue */}
+								<PoolSpace
 									ctx={gameCtx}
-									config={OPEN_GRID_CONFIG}
-									title="Open"
-									getEntityLabel={getEntityLabel}
-									getEntityStatus={getEntityStatus}
+									config={REQUEST_QUEUE_CONFIG}
+									title="Request Queue"
 								/>
-							</Box>
-							<Box mt={3}>
-								{/* Execution queue grid for subtask parts created by behavior rules. */}
-								<GridSpace
-									ctx={gameCtx}
-									config={EXECUTION_GRID_CONFIG}
-									title="Execution"
-									responsiveSize={{
-										base: [3, showCore2 ? 2 : 1],
-									}}
-									getEntityLabel={getEntityLabel}
-									getEntityStatus={getEntityStatus}
-								/>
+
+								{/* Notice */}
+								{notice && (
+									<Box
+										p={3}
+										bg={notice.tone === "error" ? "red.900" : "blue.900"}
+										borderRadius="md"
+									>
+										<Text
+											fontSize="sm"
+											color={notice.tone === "error" ? "red.200" : "blue.200"}
+										>
+											{notice.message}
+										</Text>
+									</Box>
+								)}
+
+								{/* Upgrade Zone */}
+								{showUpgradeZone && (
+									<GridSpace
+										ctx={gameCtx}
+										config={UPGRADE_CONFIG}
+										title="Drop Upgrades Here"
+										getEntityLabel={getEntityLabel}
+									/>
+								)}
+
+								{/* I/O Wait (visible when threads enabled) */}
+								{showIoWait && (
+									<GridSpace
+										ctx={gameCtx}
+										config={IO_WAIT_CONFIG}
+										title="I/O Wait"
+										getEntityLabel={getEntityLabel}
+										getEntityStatus={getEntityStatus}
+									/>
+								)}
 							</Box>
 						</GridItem>
 
+						{/* Right Column - Server Lanes */}
 						<GridItem>
-							<Box
-								bg="gray.900"
-								borderRadius="md"
-								border="1px solid"
-								borderColor="gray.800"
-								p={3}
-							>
-								<Text
-									fontSize="sm"
-									fontWeight="semibold"
-									color="gray.100"
-									mb={2}
-								>
-									Core 1 Queue
+							<Box display="flex" flexDirection="column" gap={3}>
+								<Text fontSize="sm" fontWeight="semibold" color="gray.300">
+									Server Lanes
 								</Text>
-								<Text fontSize="xs" color="gray.400" mb={3}>
-									Each execution part takes 6 seconds and runs sequentially.
-								</Text>
-								<PathSpace
-									ctx={gameCtx}
-									config={CORE1_PATH_CONFIG}
-									title="Core 1"
-									speedMultiplier={1}
-								/>
-							</Box>
-
-							{showCore2 ? (
-								<Box
-									mt={3}
-									bg="gray.900"
-									borderRadius="md"
-									border="1px solid"
-									borderColor="gray.800"
-									p={3}
-								>
-									<Text
-										fontSize="sm"
-										fontWeight="semibold"
-										color="gray.100"
-										mb={2}
-									>
-										Core 2 Queue
-									</Text>
-									<Text fontSize="xs" color="gray.400" mb={3}>
-										Dual-core lane is now visible for the next lesson.
-									</Text>
+								{/* Dynamic lanes based on core count */}\t{" "}
+								{LANE_IDS.slice(0, behaviorContext.coreCount).map((laneId) => (
 									<PathSpace
+										key={laneId}
 										ctx={gameCtx}
-										config={CORE2_PATH_CONFIG}
-										title="Core 2"
-										speedMultiplier={1}
+										config={{
+											id: getLaneSpaceId(laneId),
+											name: `Lane ${laneId.split("-")[1]}`,
+											path: "M 12 60 L 308 60",
+											viewBox: "0 0 320 120",
+											duration: 3,
+											speedMultiplier: 1,
+											showDropzone: false,
+											maxCapacity: 1,
+										}}
+										title={`Lane ${laneId.split("-")[1]}`}
 									/>
-								</Box>
-							) : null}
-
-							<Box mt={3}>
-								{/* Storage path represents I/O wait/response round-trip lane. */}
-								<Box
-									bg="gray.900"
-									borderRadius="md"
-									border="1px solid"
-									borderColor="gray.800"
-									p={3}
-								>
-									<Text
-										fontSize="sm"
-										fontWeight="semibold"
-										color="gray.100"
-										mb={2}
-									>
-										Storage
-									</Text>
-									<Text fontSize="xs" color="gray.400" mb={3}>
-										Handles file request/response before CPU continues.
-									</Text>
-									<PathSpace
-										ctx={gameCtx}
-										config={STORAGE_PATH_CONFIG}
-										title="Storage"
-										speedMultiplier={1}
-									/>
-								</Box>
-							</Box>
-
-							<Box mt={3}>
-								{/* Terminal destination for apps once all execution parts finish. */}
+								))}
+								{/* I/O Paths */}
+								<Flex gap={4}>
+									<Box flex={1}>
+										<PathSpace
+											ctx={gameCtx}
+											config={DISK_PATH_CONFIG}
+											title="Disk I/O"
+										/>
+									</Box>
+									<Box flex={1}>
+										<PathSpace
+											ctx={gameCtx}
+											config={DB_PATH_CONFIG}
+											title="Database I/O"
+										/>
+									</Box>
+								</Flex>
+								{/* Completed */}
 								<GridSpace
 									ctx={gameCtx}
-									config={OPENED_GRID_CONFIG}
-									title="Opened"
+									config={COMPLETED_CONFIG}
+									title="Completed"
 									getEntityLabel={getEntityLabel}
 									getEntityStatus={getEntityStatus}
 								/>
 							</Box>
 						</GridItem>
 					</Grid>
-				) : null}
 
-				{/* Renders hint text that useContextualHint writes into hint store. */}
-				<ContextualHint />
-				{/* Visual drag preview while pointer drag is active. */}
-				<DragOverlay getEntityLabel={(entityType) => entityType} />
-				{/* DrawerLayout binds to registered drawer ID and renders pool inside it. */}
-				<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
-					<PoolSpace
-						ctx={gameCtx}
-						config={APP_POOL_CONFIG}
-						title="Apps"
-						// Hard gate from current lane availability.
-						isEntityDraggable={canDragAppFromPool}
-					/>
-				</DrawerLayout>
-			</GameBoard>
+					<ContextualHint />
+					<DragOverlay getEntityLabel={(entityType) => entityType} />
 
-			{/* Global modal mount; behavior rules can open/close dialog flows through runtime. */}
-			<Modal />
+					{/* Inventory Drawer */}
+					{showInventory && (
+						<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
+							<PoolSpace
+								ctx={gameCtx}
+								config={INVENTORY_CONFIG}
+								title="Upgrades"
+							/>
+						</DrawerLayout>
+					)}
+
+					<Modal />
+				</GameBoard>
+			)}
 		</Box>
 	);
 };
 
-const InfoCard = ({
-	title,
-	value,
-	subtitle,
+// Metrics Bar Component
+const MetricsBar = ({
+	metrics,
+	onToggleThreads,
+	phase,
 }: {
-	title: string;
-	value: string;
-	subtitle: string;
+	metrics: {
+		rps: number;
+		queueDepth: number;
+		timeoutCount: number;
+		coreCount: number;
+		threadsEnabled: boolean;
+	};
+	onToggleThreads: () => void;
+	phase: CoresPhase;
 }) => {
 	return (
-		<Box
-			bg="gray.900"
-			borderRadius="md"
-			border="1px solid"
-			borderColor="gray.800"
-			p={3}
-		>
-			<Text
-				fontSize="xs"
-				color="gray.500"
-				textTransform="uppercase"
-				letterSpacing="0.08em"
-			>
-				{title}
-			</Text>
-			<Text mt={1} fontSize="sm" fontWeight="semibold" color="gray.100">
-				{value}
-			</Text>
-			<Text mt={1} fontSize="xs" color="gray.400">
-				{subtitle}
-			</Text>
-		</Box>
+		<Flex gap={4} p={4} bg="gray.900" borderRadius="md" mb={4} wrap="wrap">
+			<MetricItem label="RPS" value={metrics.rps.toString()} />
+			<MetricItem label="Queue" value={metrics.queueDepth.toString()} />
+			<MetricItem label="Timeouts" value={metrics.timeoutCount.toString()} />
+			<MetricItem label="Cores" value={metrics.coreCount.toString()} />
+			{phase === "threads" && (
+				<Flex align="center" gap={2}>
+					<Text fontSize="sm" color="gray.400">
+						Threads
+					</Text>
+					<Switch.Root
+						checked={metrics.threadsEnabled}
+						onCheckedChange={onToggleThreads}
+						colorPalette="purple"
+					>
+						<Switch.HiddenInput />
+						<Switch.Control />
+					</Switch.Root>
+				</Flex>
+			)}
+		</Flex>
 	);
 };
+
+const MetricItem = ({ label, value }: { label: string; value: string }) => (
+	<Box>
+		<Text fontSize="xs" color="gray.500" textTransform="uppercase">
+			{label}
+		</Text>
+		<Text fontSize="lg" fontWeight="bold" color="gray.100">
+			{value}
+		</Text>
+	</Box>
+);
