@@ -8,6 +8,7 @@ import { useGameState } from "@/components/game/engine/game-provider";
 import {
 	entityIsInSpace,
 	isGridSpace,
+	isModalOpen,
 	selectEntitiesByType,
 } from "@/components/game/engine/runtime";
 import type { EntityData } from "@/components/game/types/entity";
@@ -188,13 +189,11 @@ export const useSslState = () => {
 
 	const letsencryptModalOpen = useMemo(
 		() =>
-			Object.values(state.overlay.modals).some(
-				(entry) =>
-					entry.visible &&
-					(entry.instance.id?.includes("letsencrypt") ||
-						entry.instance.id?.includes("certificate")),
+			isModalOpen(
+				state,
+				(id) => id.includes("letsencrypt") || id.includes("certificate"),
 			),
-		[state.overlay],
+		[state],
 	);
 
 	return {
