@@ -1,12 +1,4 @@
-import {
-	Box,
-	Button,
-	Flex,
-	Grid,
-	GridItem,
-	Switch,
-	Text,
-} from "@chakra-ui/react";
+import { Box, Flex, Grid, GridItem, Switch, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo } from "react";
 import {
 	ContextualHint,
@@ -17,8 +9,14 @@ import {
 	Modal,
 	PathSpace,
 	PoolSpace,
+	TerminalInput,
+	TerminalLayout,
+	TerminalView,
 	useContextualHint,
 	useDragEngine,
+	useTerminalEngine,
+	useTerminalInput,
+	useTerminalStore,
 } from "@/components/game/engine";
 import {
 	GameProvider,
@@ -49,7 +47,7 @@ import type { CoresPhase } from "./-utils/types";
 const INVENTORY_DRAWER_ID = "cores-inventory-drawer";
 
 const hintByPhase: Record<CoresPhase, string> = {
-	boot: "Start the server to begin processing requests.",
+	boot: "Type ./main in the terminal to start the server.",
 	"single-core-success": "Requests are being processed on a single core.",
 	overload: "The server is overloaded! Consider adding more cores.",
 	"add-cores": "Drag a CPU Core to the upgrade zone to add processing power.",
@@ -129,13 +127,43 @@ const CoresAndThreadsGame = ({
 		}
 	}, [behaviorContext.navigateAway, onQuestionComplete]);
 
-	// Start server handler
-	const handleStartServer = useCallback(() => {
-		interactionSession.requestPhaseTransition(
-			"single-core-success",
-			"user.start",
-		);
-	}, [interactionSession]);
+	// Terminal setup for boot phase
+	const { terminal, openTerminal, setPrompt, addOutput, clearHistory } =
+		useTerminalStore();
+	const terminalInput = useTerminalInput();
+
+	// Terminal command handler
+	const handleTerminalCommand = useCallback(
+		(input: string) => {
+			if (input.trim() === "./main") {
+				addOutput("Starting server...", "info");
+				addOutput("Server started successfully!", "output");
+				interactionSession.requestPhaseTransition(
+					"single-core-success",
+					"terminal.start",
+				);
+			} else {
+				addOutput(`Command not found: ${input}`, "error");
+				addOutput("Try typing: ./main", "info");
+			}
+		},
+		[interactionSession, addOutput],
+	);
+
+	useTerminalEngine({
+		onCommand: handleTerminalCommand,
+	});
+
+	// Initialize terminal in boot phase
+	useEffect(() => {
+		if (behaviorContext.phase === "boot") {
+			openTerminal();
+			clearHistory();
+			setPrompt("$");
+			addOutput("Web Server Control Terminal", "info");
+			addOutput("Type ./main to start the server", "info");
+		}
+	}, [behaviorContext.phase, openTerminal, setPrompt, addOutput, clearHistory]);
 
 	// Toggle threads handler
 	const handleToggleThreads = useCallback(() => {
@@ -239,16 +267,29 @@ const CoresAndThreadsGame = ({
 				/>
 			)}
 
-			{/* Boot Phase UI */}
+			{/* Boot Phase UI with Terminal */}
 			{behaviorContext.phase === "boot" && (
 				<Flex justify="center" align="center" flex={1}>
-					<Box display="flex" flexDirection="column" gap={6}>
-						<Text fontSize="xl" color="gray.300">
-							Server is offline
-						</Text>
-						<Button colorScheme="blue" size="lg" onClick={handleStartServer}>
-							Start Server
-						</Button>
+					<Box width="100%" maxWidth="800px" height="400px">
+						<TerminalLayout
+							visible={terminal.visible}
+							view={
+								<TerminalView
+									history={terminal.history}
+									prompt={terminal.prompt}
+									isCompleted={false}
+								/>
+							}
+							input={
+								<TerminalInput
+									value={terminalInput.value}
+									onChange={terminalInput.onChange}
+									onKeyDown={terminalInput.onKeyDown}
+									inputRef={terminalInput.inputRef}
+									placeholder="Type ./main to start"
+								/>
+							}
+						/>
 					</Box>
 				</Flex>
 			)}
