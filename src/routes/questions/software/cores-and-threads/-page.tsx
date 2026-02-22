@@ -128,8 +128,14 @@ const CoresAndThreadsGame = ({
 	}, [behaviorContext.navigateAway, onQuestionComplete]);
 
 	// Terminal setup for boot phase
-	const { terminal, openTerminal, setPrompt, addOutput, clearHistory } =
-		useTerminalStore();
+	const {
+		terminal,
+		openTerminal,
+		closeTerminal,
+		setPrompt,
+		addOutput,
+		clearHistory,
+	} = useTerminalStore();
 	const terminalInput = useTerminalInput();
 
 	// Terminal command handler
@@ -154,7 +160,7 @@ const CoresAndThreadsGame = ({
 		onCommand: handleTerminalCommand,
 	});
 
-	// Initialize terminal in boot phase
+	// Initialize terminal in boot phase, close when server starts
 	useEffect(() => {
 		if (behaviorContext.phase === "boot") {
 			openTerminal();
@@ -162,8 +168,18 @@ const CoresAndThreadsGame = ({
 			setPrompt("$");
 			addOutput("Web Server Control Terminal", "info");
 			addOutput("Type ./main to start the server", "info");
+		} else if (terminal.visible) {
+			closeTerminal();
 		}
-	}, [behaviorContext.phase, openTerminal, setPrompt, addOutput, clearHistory]);
+	}, [
+		behaviorContext.phase,
+		terminal.visible,
+		openTerminal,
+		closeTerminal,
+		setPrompt,
+		addOutput,
+		clearHistory,
+	]);
 
 	// Toggle threads handler
 	const handleToggleThreads = useCallback(() => {
