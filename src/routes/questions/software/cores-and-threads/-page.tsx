@@ -300,130 +300,134 @@ const CoresAndThreadsGame = ({
 
 			{/* Active Game Board */}
 			{state.phase !== "boot" && (
-				<GameBoard>
-					<Grid
-						templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
-						gap={{ base: 3, md: 4 }}
-						height="100%"
-					>
-						{/* Left Column */}
-						<GridItem>
-							<Box display="flex" flexDirection="column" gap={3}>
-								{/* Request Queue */}
-								<PoolSpace
-									ctx={gameCtx}
-									config={REQUEST_QUEUE_CONFIG}
-									title="Request Queue"
-								/>
-
-								{/* Notice */}
-								{notice && (
-									<Box
-										p={3}
-										bg={notice.tone === "error" ? "red.900" : "blue.900"}
-										borderRadius="md"
-									>
-										<Text
-											fontSize="sm"
-											color={notice.tone === "error" ? "red.200" : "blue.200"}
-										>
-											{notice.message}
-										</Text>
-									</Box>
-								)}
-
-								{/* Upgrade Zone */}
-								{showUpgradeZone && (
-									<GridSpace
+				<Box flex={1} minH={0}>
+					<GameBoard>
+						<Grid
+							templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
+							gap={{ base: 3, md: 4 }}
+							height="100%"
+						>
+							{/* Left Column */}
+							<GridItem>
+								<Box display="flex" flexDirection="column" gap={3}>
+									{/* Request Queue */}
+									<PoolSpace
 										ctx={gameCtx}
-										config={UPGRADE_CONFIG}
-										title="Drop Upgrades Here"
-										getEntityLabel={getEntityLabel}
+										config={REQUEST_QUEUE_CONFIG}
+										title="Request Queue"
 									/>
-								)}
 
-								{/* I/O Wait (visible when threads enabled) */}
-								{showIoWait && (
+									{/* Notice */}
+									{notice && (
+										<Box
+											p={3}
+											bg={notice.tone === "error" ? "red.900" : "blue.900"}
+											borderRadius="md"
+										>
+											<Text
+												fontSize="sm"
+												color={notice.tone === "error" ? "red.200" : "blue.200"}
+											>
+												{notice.message}
+											</Text>
+										</Box>
+									)}
+
+									{/* Upgrade Zone */}
+									{showUpgradeZone && (
+										<GridSpace
+											ctx={gameCtx}
+											config={UPGRADE_CONFIG}
+											title="Drop Upgrades Here"
+											getEntityLabel={getEntityLabel}
+										/>
+									)}
+
+									{/* I/O Wait (visible when threads enabled) */}
+									{showIoWait && (
+										<GridSpace
+											ctx={gameCtx}
+											config={IO_WAIT_CONFIG}
+											title="I/O Wait"
+											getEntityLabel={getEntityLabel}
+											getEntityStatus={getEntityStatus}
+										/>
+									)}
+								</Box>
+							</GridItem>
+
+							{/* Right Column - Server Lanes */}
+							<GridItem>
+								<Box display="flex" flexDirection="column" gap={3}>
+									<Text fontSize="sm" fontWeight="semibold" color="gray.300">
+										Server Lanes
+									</Text>
+									{/* Dynamic lanes based on core count */}{" "}
+									{LANE_IDS.slice(0, behaviorContext.coreCount).map(
+										(laneId) => (
+											<PathSpace
+												key={laneId}
+												ctx={gameCtx}
+												config={{
+													id: getLaneSpaceId(laneId),
+													name: `Lane ${laneId.split("-")[1]}`,
+													path: "M 12 60 L 308 60",
+													viewBox: "0 0 320 120",
+													duration: 3,
+													speedMultiplier: 1,
+													showDropzone: false,
+													maxCapacity: 1,
+												}}
+												title={`Lane ${laneId.split("-")[1]}`}
+											/>
+										),
+									)}
+									{/* I/O Paths */}
+									<Flex gap={4}>
+										<Box flex={1}>
+											<PathSpace
+												ctx={gameCtx}
+												config={DISK_PATH_CONFIG}
+												title="Disk I/O"
+											/>
+										</Box>
+										<Box flex={1}>
+											<PathSpace
+												ctx={gameCtx}
+												config={DB_PATH_CONFIG}
+												title="Database I/O"
+											/>
+										</Box>
+									</Flex>
+									{/* Completed */}
 									<GridSpace
 										ctx={gameCtx}
-										config={IO_WAIT_CONFIG}
-										title="I/O Wait"
+										config={COMPLETED_CONFIG}
+										title="Completed"
 										getEntityLabel={getEntityLabel}
 										getEntityStatus={getEntityStatus}
 									/>
-								)}
-							</Box>
-						</GridItem>
+								</Box>
+							</GridItem>
+						</Grid>
 
-						{/* Right Column - Server Lanes */}
-						<GridItem>
-							<Box display="flex" flexDirection="column" gap={3}>
-								<Text fontSize="sm" fontWeight="semibold" color="gray.300">
-									Server Lanes
-								</Text>
-								{/* Dynamic lanes based on core count */}{" "}
-								{LANE_IDS.slice(0, behaviorContext.coreCount).map((laneId) => (
-									<PathSpace
-										key={laneId}
-										ctx={gameCtx}
-										config={{
-											id: getLaneSpaceId(laneId),
-											name: `Lane ${laneId.split("-")[1]}`,
-											path: "M 12 60 L 308 60",
-											viewBox: "0 0 320 120",
-											duration: 3,
-											speedMultiplier: 1,
-											showDropzone: false,
-											maxCapacity: 1,
-										}}
-										title={`Lane ${laneId.split("-")[1]}`}
-									/>
-								))}
-								{/* I/O Paths */}
-								<Flex gap={4}>
-									<Box flex={1}>
-										<PathSpace
-											ctx={gameCtx}
-											config={DISK_PATH_CONFIG}
-											title="Disk I/O"
-										/>
-									</Box>
-									<Box flex={1}>
-										<PathSpace
-											ctx={gameCtx}
-											config={DB_PATH_CONFIG}
-											title="Database I/O"
-										/>
-									</Box>
-								</Flex>
-								{/* Completed */}
-								<GridSpace
+						<ContextualHint />
+						<DragOverlay getEntityLabel={(entityType) => entityType} />
+
+						{/* Inventory Drawer */}
+						{showInventory && (
+							<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
+								<PoolSpace
 									ctx={gameCtx}
-									config={COMPLETED_CONFIG}
-									title="Completed"
-									getEntityLabel={getEntityLabel}
-									getEntityStatus={getEntityStatus}
+									config={INVENTORY_CONFIG}
+									title="Upgrades"
 								/>
-							</Box>
-						</GridItem>
-					</Grid>
+							</DrawerLayout>
+						)}
 
-					<ContextualHint />
-					<DragOverlay getEntityLabel={(entityType) => entityType} />
-
-					{/* Inventory Drawer */}
-					{showInventory && (
-						<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
-							<PoolSpace
-								ctx={gameCtx}
-								config={INVENTORY_CONFIG}
-								title="Upgrades"
-							/>
-						</DrawerLayout>
-					)}
-
-					<Modal />
-				</GameBoard>
+						<Modal />
+					</GameBoard>
+				</Box>
 			)}
 		</Box>
 	);

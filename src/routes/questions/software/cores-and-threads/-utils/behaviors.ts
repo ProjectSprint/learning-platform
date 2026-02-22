@@ -314,11 +314,12 @@ const rules = [
 		on: { event: "PHASE_CHANGED" },
 		guard: ({ context, event }) =>
 			event.type === "PHASE_CHANGED" &&
-			context.phase === "single-core-success" &&
+			event.to === "single-core-success" &&
 			!context.serverRunning,
 		handler: (ctx) => {
 			ctx.updateContext((c) => {
 				c.serverRunning = true;
+				c.phase = "single-core-success";
 			});
 			startSpawnLoop(ctx);
 		},
