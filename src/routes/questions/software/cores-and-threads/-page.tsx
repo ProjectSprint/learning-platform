@@ -93,21 +93,6 @@ const CoresAndThreadsGame = ({
 		};
 	}, [behaviorContext.noticeMessage, behaviorContext.noticeTone]);
 
-	// Board ready check
-	const boardReady = useMemo(() => {
-		const required = [
-			SPACE_IDS.requestQueue,
-			...LANE_IDS.map(getLaneSpaceId),
-			SPACE_IDS.diskPath,
-			SPACE_IDS.dbPath,
-			SPACE_IDS.ioWait,
-			SPACE_IDS.upgrade,
-			SPACE_IDS.inventory,
-			SPACE_IDS.completed,
-		];
-		return required.every((id) => Boolean(state.spaces[id]));
-	}, [state.spaces]);
-
 	// Metrics display
 	const metrics = useMemo(
 		() => ({
@@ -278,7 +263,7 @@ const CoresAndThreadsGame = ({
 			</Box>
 
 			{/* Metrics Bar */}
-			{boardReady && (
+			{state.phase !== "boot" && (
 				<MetricsBar
 					metrics={metrics}
 					onToggleThreads={handleToggleThreads}
@@ -314,7 +299,7 @@ const CoresAndThreadsGame = ({
 			)}
 
 			{/* Active Game Board */}
-			{behaviorContext.phase !== "boot" && boardReady && (
+			{state.phase !== "boot" && (
 				<GameBoard>
 					<Grid
 						templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
@@ -376,7 +361,7 @@ const CoresAndThreadsGame = ({
 								<Text fontSize="sm" fontWeight="semibold" color="gray.300">
 									Server Lanes
 								</Text>
-								{/* Dynamic lanes based on core count */}\t{" "}
+								{/* Dynamic lanes based on core count */}{" "}
 								{LANE_IDS.slice(0, behaviorContext.coreCount).map((laneId) => (
 									<PathSpace
 										key={laneId}
