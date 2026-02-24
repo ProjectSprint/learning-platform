@@ -79,6 +79,7 @@ export type CoresBehaviorContext = {
   navigateAway: boolean;
   ioOperationsInProgress: Map<string, string>;
   spawnRateMs: number;
+  spawnStartTime: number | null;
   pendingRequests: EntityArray;
   // Item spawn tracking
   marketingSpawned: boolean;
@@ -172,7 +173,15 @@ const calculateSpawnInterval = (ctx: {
   context: CoresBehaviorContext;
 }): number => {
   if (!ctx.context.serverRunning) return Infinity;
-  return ctx.context.spawnRateMs;
+  const base = ctx.context.spawnRateMs;
+  const startTime = ctx.context.spawnStartTime ?? Date.now();
+  const elapsed = Date.now() - startTime;
+  // ~30s cycle: cos(0)=1 → starts HIGH-RATE (fast), then eases to slow
+  const cosVal = Math.cos(elapsed / 4775); // 4775 = 30000 / (2π)
+  const oscillation = cosVal * 0.5;
+  const interval = Math.round(base * (1 - oscillation));
+  console.log(`[spawn] elapsed=${elapsed}ms cos=${cosVal.toFixed(3)} base=${base} interval=${interval} phase=${cosVal > 0 ? "HIGH-RATE (fast)" : "LOW-RATE (slow)"}`);
+  return interval;
 };
 
 const selectAvailableLane = (
@@ -522,6 +531,7 @@ const rules = [
         c.phase = "single-core-success";
         c.phaseStartTime = Date.now();
         c.spawnRateMs = TIMER_REQUEST_SPAWN_MS;
+        c.spawnStartTime = Date.now();
       });
 
       // Place a locked core indicator in the upgrade zone to show the active core
@@ -953,6 +963,7 @@ export const CORES_BEHAVIORS = BehaviorDefinition<
     navigateAway: false,
     ioOperationsInProgress: new Map(),
     spawnRateMs: TIMER_REQUEST_SPAWN_MS,
+    spawnStartTime: null,
     pendingRequests: createEntityArray(),
     marketingSpawned: false,
     inboundMarketingSpawned: false,
