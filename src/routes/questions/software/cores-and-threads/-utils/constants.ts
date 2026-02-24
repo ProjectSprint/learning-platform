@@ -18,19 +18,23 @@ export const SPACE_IDS = {
 	dbPath: "db-path",
 	ioWait: "io-wait",
 	upgrade: "upgrade",
+	growthFactor: "growth-factor",
 	inventory: "inventory",
-	completed: "completed",
 } as const;
 
-export const LANE_IDS: CoreLaneId[] = ["lane-1", "lane-2", "lane-3", "lane-4"];
+// Only 2 lanes max (cores)
+export const LANE_IDS: CoreLaneId[] = ["lane-1", "lane-2"];
 
 export const getLaneSpaceId = (laneId: CoreLaneId): string =>
 	`${SPACE_IDS.serverLanePrefix}-${laneId}`;
 
-export const REQUEST_QUEUE_CONFIG: PoolSpaceConfig<string> = {
+export const REQUEST_QUEUE_CONFIG: GridSpaceConfig<string> = {
 	id: SPACE_IDS.requestQueue,
 	name: "Request Queue",
-	metadata: { visible: true },
+	rows: 2,
+	cols: 4,
+	metrics: { cellWidth: 68, cellHeight: 68, gapX: 6, gapY: 6 },
+	maxCapacity: 8,
 };
 
 export const IO_WAIT_CONFIG: GridSpaceConfig<string> = {
@@ -51,13 +55,13 @@ export const UPGRADE_CONFIG: GridSpaceConfig<string> = {
 	maxCapacity: 2,
 };
 
-export const COMPLETED_CONFIG: GridSpaceConfig<string> = {
-	id: SPACE_IDS.completed,
-	name: "Completed",
+export const GROWTH_FACTOR_CONFIG: GridSpaceConfig<string> = {
+	id: SPACE_IDS.growthFactor,
+	name: "Growth Factor",
 	rows: 1,
-	cols: 10,
-	metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
-	maxCapacity: 10,
+	cols: 2,
+	metrics: { cellWidth: 80, cellHeight: 80, gapX: 8, gapY: 8 },
+	maxCapacity: 2,
 };
 
 export const INVENTORY_CONFIG: PoolSpaceConfig<string> = {
@@ -68,22 +72,25 @@ export const INVENTORY_CONFIG: PoolSpaceConfig<string> = {
 
 export const createLaneConfig = (
 	laneId: CoreLaneId,
+	isThreaded = false,
 ): PathSpaceConfig<string> => ({
 	id: getLaneSpaceId(laneId),
-	name: `Server Lane ${laneId.split("-")[1]}`,
+	name: `Server Lane ${laneId.split("-")[1]}${isThreaded ? " (Threaded)" : ""}`,
 	path: "M 12 60 L 308 60",
 	viewBox: "0 0 320 120",
-	duration: 3,
+	duration: 2,
 	speedMultiplier: 1,
 	showDropzone: false,
 	maxCapacity: 1,
 });
 
+// U-shaped paths for I/O operations (down, wait, up)
 export const DISK_PATH_CONFIG: PathSpaceConfig<string> = {
 	id: SPACE_IDS.diskPath,
 	name: "Disk I/O",
-	path: "M 40 20 L 40 140",
-	viewBox: "0 0 80 160",
+	// U shape: start -> down -> across -> up
+	path: "M 40 20 L 40 80 L 120 80 L 120 20",
+	viewBox: "0 0 160 100",
 	duration: 2,
 	speedMultiplier: 1,
 	showDropzone: false,
@@ -92,38 +99,27 @@ export const DISK_PATH_CONFIG: PathSpaceConfig<string> = {
 export const DB_PATH_CONFIG: PathSpaceConfig<string> = {
 	id: SPACE_IDS.dbPath,
 	name: "Database I/O",
-	path: "M 40 20 L 40 140",
-	viewBox: "0 0 80 160",
+	// U shape: start -> down -> across -> up
+	path: "M 40 20 L 40 80 L 120 80 L 120 20",
+	viewBox: "0 0 160 100",
 	duration: 2,
 	speedMultiplier: 1,
 	showDropzone: false,
 };
 
-// Timing Constants
-export const TIMER_REQUEST_SPAWN_MS = 1200;
-export const TIMER_SPAWN_SPIKE_MS = 300;
-export const TIMER_IO_DURATION_MS = 4000;
-export const TIMER_IO_OFFLOAD_MS = 400;
-export const TIMER_TIMEOUT_THRESHOLD_MS = 3000;
-export const TIMER_NOTICE_MS = 2000;
-export const TIMER_SUCCESS_WINDOW_MS = 5000;
-export const TIMER_MASTERY_DURATION_MS = 10000;
+// Timing Constants - Balanced for 1 core stability
+// 1 core: ~5s total (3s travel + 2s I/O), so spawn every 5s to match completion rate
+export const TIMER_REQUEST_SPAWN_MS = 5000; // Normal spawn rate - matches 1 core processing time
+export const TIMER_SPAWN_SPIKE_MS = 1000; // Overload spawn rate (5x faster)
+export const TIMER_MASSIVE_SPIKE_MS = 1000; // Same as overload for io-wall phase
+export const TIMER_TIMEOUT_THRESHOLD_MS = 8000; // Request timeout (8s fixed)
+export const TIMER_TIMEOUT_VISUAL_MS = 1500; // How long the "timeout" visual state shows before removal
+export const TIMER_ITEM_SPAWN_DELAY = 5000; // 5 seconds before items appear
 
 // Capacity and Thresholds
 export const QUEUE_CAPACITY = 8;
-export const INITIAL_RPS = 1;
-export const RPS_SPIKE_MULTIPLIER = 4;
-export const MAX_CORES = 4;
-
-// Modal IDs
-export const MODAL_IDS = {
-	bootPrompt: "boot-prompt",
-	overloadHit: "overload-hit",
-	coresIntro: "cores-intro",
-	ioWallHit: "io-wall-hit",
-	threadsIntro: "threads-intro",
-	complete: "complete",
-} as const;
+export const MAX_CORES = 2; // Max 2 cores
+export const MAX_THREADED_LANES = 2; // Max 2 threaded lanes
 
 // Icons and Visuals
 export const REQUEST_ICONS = {
@@ -134,10 +130,6 @@ export const REQUEST_ICONS = {
 export const REQUEST_COLORS = {
 	GET: "#60A5FA",
 	POST: "#34D399",
-	processing: "#F59E0B",
-	waiting: "#A78BFA",
-	timeout: "#F87171",
-	complete: "#34D399",
 } as const;
 
 // Upgrade Items
@@ -155,5 +147,19 @@ export const UPGRADE_ITEMS = {
 		name: "Thread Pool",
 		icon: "mdi:swap-horizontal",
 		color: "#8B5CF6",
+	},
+	marketing: {
+		id: "upgrade-marketing",
+		type: "marketing",
+		name: "Marketing",
+		icon: "mdi:bullhorn",
+		color: "#F59E0B",
+	},
+	inboundMarketing: {
+		id: "upgrade-inbound-marketing",
+		type: "inbound-marketing",
+		name: "Inbound Marketing",
+		icon: "mdi:trending-up",
+		color: "#EF4444",
 	},
 } as const;

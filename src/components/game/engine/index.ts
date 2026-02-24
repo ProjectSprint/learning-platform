@@ -40,4 +40,5 @@ export {
 export { useTerminalInput } from "../internal/presentation/terminal/use-terminal-input";
 export { TerminalView } from "../internal/presentation/terminal/view";
 export * from "./components";
+export * from "./entity-array";
 export * from "./hooks";

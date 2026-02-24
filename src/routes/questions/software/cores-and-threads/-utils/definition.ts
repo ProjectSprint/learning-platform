@@ -5,10 +5,10 @@ import {
 } from "@/components/game/engine/runtime";
 import { CORES_BEHAVIORS, type CoresBehaviorContext } from "./behaviors";
 import {
-	COMPLETED_CONFIG,
 	createLaneConfig,
 	DB_PATH_CONFIG,
 	DISK_PATH_CONFIG,
+	GROWTH_FACTOR_CONFIG,
 	INVENTORY_CONFIG,
 	IO_WAIT_CONFIG,
 	LANE_IDS,
@@ -20,8 +20,13 @@ import {
 } from "./constants";
 import type { CoresPhase } from "./types";
 
-type CoresEntityType = "request" | "io-subtask" | "core" | "thread";
-// Use string for spaceId to avoid strict type conflicts with SpaceFactory
+type CoresEntityType =
+	| "request"
+	| "io-subtask"
+	| "core"
+	| "thread"
+	| "marketing"
+	| "inbound-marketing";
 type CoresSpaceId = string;
 
 type CoresQuestionSpec = QuestionTypeSpec & {
@@ -43,7 +48,7 @@ export const CORES_THREADS_DEFINITION = QuestionDefinition<CoresQuestionSpec>({
 	initialPhase: "boot",
 	spaces: [
 		// Request queue (source)
-		SpaceFactory.pool(REQUEST_QUEUE_CONFIG),
+		SpaceFactory.grid(REQUEST_QUEUE_CONFIG),
 		// Server lanes (dynamic based on core count)
 		...LANE_IDS.map((laneId) => SpaceFactory.path(createLaneConfig(laneId))),
 		// I/O paths
@@ -51,17 +56,14 @@ export const CORES_THREADS_DEFINITION = QuestionDefinition<CoresQuestionSpec>({
 		SpaceFactory.path(DB_PATH_CONFIG),
 		// I/O wait area (for threads)
 		SpaceFactory.grid(IO_WAIT_CONFIG),
-		// Upgrade drop zone
+		// Upgrade drop zone (for cores)
 		SpaceFactory.grid(UPGRADE_CONFIG),
-		// Inventory for cores/threads
+		// Growth Factor gateway (for marketing items)
+		SpaceFactory.grid(GROWTH_FACTOR_CONFIG),
+		// Inventory for cores/threads/marketing
 		SpaceFactory.pool(INVENTORY_CONFIG),
-		// Completed requests
-		SpaceFactory.grid(COMPLETED_CONFIG),
 	],
-	entities: [
-		// Start with empty - requests spawn dynamically
-	],
-	// Phase rules - transitions handled by behavior rules for now
+	entities: [],
 	phaseRules: [],
 	behaviors: CORES_BEHAVIORS,
 });

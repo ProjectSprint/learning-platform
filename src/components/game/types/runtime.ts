@@ -185,6 +185,7 @@ export type WorldApi = {
 		entityId: string,
 		updates: {
 			name?: string;
+			draggable?: boolean;
 			data?: Record<string, unknown>;
 			visual?: Record<string, unknown>;
 		},

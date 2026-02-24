@@ -2,7 +2,6 @@ export type CoresPhase =
 	| "boot"
 	| "single-core-success"
 	| "overload"
-	| "add-cores"
 	| "io-wall"
 	| "threads"
 	| "complete";
@@ -19,14 +18,22 @@ export type RequestStatus =
 
 export type IoSubtaskStatus = "request" | "response";
 
-export type CoreLaneId = "lane-1" | "lane-2" | "lane-3" | "lane-4";
+export type CoreLaneId = "lane-1" | "lane-2";
+
+export type IoSpaceId = "disk-path" | "db-path";
+
+export type UpgradeItemType =
+	| "core"
+	| "thread"
+	| "marketing"
+	| "inbound-marketing";
 
 export type Metrics = {
 	requestsPerSec: number;
 	queueDepth: number;
 	timeoutCount: number;
 	coreCount: number;
-	threadsEnabled: boolean;
+	threadedLaneCount: number;
 };
 
 export type Notice = {

@@ -1,4 +1,4 @@
-import { Box, Flex, Grid, GridItem, Switch, Text } from "@chakra-ui/react";
+import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo } from "react";
 import {
 	ContextualHint,
@@ -28,9 +28,9 @@ import type { EntityData } from "@/components/game/types/entity";
 import type { QuestionProps } from "@/components/module";
 
 import {
-	COMPLETED_CONFIG,
 	DB_PATH_CONFIG,
 	DISK_PATH_CONFIG,
+	GROWTH_FACTOR_CONFIG,
 	getLaneSpaceId,
 	INVENTORY_CONFIG,
 	IO_WAIT_CONFIG,
@@ -48,13 +48,15 @@ const INVENTORY_DRAWER_ID = "cores-inventory-drawer";
 
 const hintByPhase: Record<CoresPhase, string> = {
 	boot: "Type ./main in the terminal to start the server.",
-	"single-core-success": "Requests are being processed on a single core.",
-	overload: "The server is overloaded! Consider adding more cores.",
-	"add-cores": "Drag a CPU Core to the upgrade zone to add processing power.",
+	"single-core-success":
+		"Server is running! A Marketing item will appear in your Items drawer — drag it into Growth Factor to simulate a traffic spike.",
+	overload:
+		"🔥 Traffic is surging! Requests are flooding in faster than one core can handle.",
 	"io-wall":
-		"Requests are stuck waiting for I/O. Enable threading to free up lanes.",
-	threads: "Threading is enabled! I/O operations no longer block lanes.",
-	complete: "Excellent! You've mastered cores and threads.",
+		"💥 Both cores are blocked waiting on I/O! Drag a Thread Pool from Items onto each server lane to offload I/O and free up the lanes.",
+	threads:
+		"Thread each lane by dragging a Thread Pool onto it. Threaded lanes hand off I/O waits so the lane can pick up the next request immediately.",
+	complete: "🎉 You've mastered cores and threads!",
 };
 
 export const CoresAndThreadsQuestion = ({
@@ -80,18 +82,10 @@ const CoresAndThreadsGame = ({
 	useDragEngine();
 	const { registerDrawer } = useDrawerManager();
 
-	// Hint based on current phase
-	const hint = hintByPhase[behaviorContext.phase];
+	// Hint: behavior-set override takes precedence over the ambient phase hint
+	const hint =
+		behaviorContext.hintOverride ?? hintByPhase[behaviorContext.phase];
 	useContextualHint(hint);
-
-	// Notice from behavior context
-	const notice = useMemo(() => {
-		if (!behaviorContext.noticeMessage) return null;
-		return {
-			message: behaviorContext.noticeMessage,
-			tone: behaviorContext.noticeTone ?? ("info" as const),
-		};
-	}, [behaviorContext.noticeMessage, behaviorContext.noticeTone]);
 
 	// Metrics display
 	const metrics = useMemo(
@@ -100,7 +94,7 @@ const CoresAndThreadsGame = ({
 			queueDepth: behaviorContext.queueDepth,
 			timeoutCount: behaviorContext.timeoutCount,
 			coreCount: behaviorContext.coreCount,
-			threadsEnabled: behaviorContext.threadsEnabled,
+			threadedLaneCount: behaviorContext.threadedLanes?.length || 0,
 		}),
 		[behaviorContext],
 	);
@@ -169,12 +163,6 @@ const CoresAndThreadsGame = ({
 		clearHistory,
 	]);
 
-	// Toggle threads handler
-	const handleToggleThreads = useCallback(() => {
-		// This would typically spawn a thread upgrade item or toggle directly
-		// For now, we'll rely on the upgrade drop mechanic
-	}, []);
-
 	// Entity label formatter
 	const getEntityLabel = useCallback((entity: EntityData) => {
 		return entity.name ?? entity.id;
@@ -190,7 +178,7 @@ const CoresAndThreadsGame = ({
 					case "queued":
 						return { status: "info" as const, message: "Queued" };
 					case "processing":
-						return { status: "warning" as const, message: "Processing" };
+						return {};
 					case "waiting-io":
 						return { status: "warning" as const, message: "Waiting I/O" };
 					case "timeout":
@@ -219,23 +207,19 @@ const CoresAndThreadsGame = ({
 			contentType: "space",
 			spaceId: SPACE_IDS.inventory,
 			spaceIds: [SPACE_IDS.inventory],
-			title: "Upgrades",
+			title: "Items",
 			position: "bottom",
 			initialState: "folded",
 			expandedSize: { base: "30vh", md: "25vh" },
 			showFloatingButton: true,
-			floatingButtonLabel: "Upgrades",
+			floatingButtonLabel: "Items",
 		});
 	}, [registerDrawer]);
 
 	// Phase-aware UI visibility
-	const showUpgradeZone =
-		behaviorContext.phase === "add-cores" ||
-		behaviorContext.phase === "threads";
-	const showIoWait = behaviorContext.threadsEnabled;
-	const showInventory =
-		behaviorContext.phase === "add-cores" ||
-		behaviorContext.phase === "threads";
+	const showIoWait =
+		behaviorContext.threadedLanes?.length > 0 ||
+		behaviorContext.phase === "io-wall";
 
 	return (
 		<Box
@@ -264,11 +248,7 @@ const CoresAndThreadsGame = ({
 
 			{/* Metrics Bar */}
 			{state.phase !== "boot" && (
-				<MetricsBar
-					metrics={metrics}
-					onToggleThreads={handleToggleThreads}
-					phase={behaviorContext.phase}
-				/>
+				<MetricsBar metrics={metrics} phase={behaviorContext.phase} />
 			)}
 
 			{/* Boot Phase UI with Terminal */}
@@ -311,39 +291,31 @@ const CoresAndThreadsGame = ({
 							<GridItem>
 								<Box display="flex" flexDirection="column" gap={3}>
 									{/* Request Queue */}
-									<PoolSpace
+									<GridSpace
 										ctx={gameCtx}
 										config={REQUEST_QUEUE_CONFIG}
 										title="Request Queue"
+										getEntityLabel={getEntityLabel}
+										getEntityStatus={getEntityStatus}
 									/>
 
-									{/* Notice */}
-									{notice && (
-										<Box
-											p={3}
-											bg={notice.tone === "error" ? "red.900" : "blue.900"}
-											borderRadius="md"
-										>
-											<Text
-												fontSize="sm"
-												color={notice.tone === "error" ? "red.200" : "blue.200"}
-											>
-												{notice.message}
-											</Text>
-										</Box>
-									)}
+									{/* Growth Factor Gateway */}
+									<GridSpace
+										ctx={gameCtx}
+										config={GROWTH_FACTOR_CONFIG}
+										title="Growth Factor"
+										getEntityLabel={getEntityLabel}
+									/>
 
-									{/* Upgrade Zone */}
-									{showUpgradeZone && (
-										<GridSpace
-											ctx={gameCtx}
-											config={UPGRADE_CONFIG}
-											title="Drop Upgrades Here"
-											getEntityLabel={getEntityLabel}
-										/>
-									)}
+									{/* Upgrade Zone (cores) */}
+									<GridSpace
+										ctx={gameCtx}
+										config={UPGRADE_CONFIG}
+										title="CPU Cores"
+										getEntityLabel={getEntityLabel}
+									/>
 
-									{/* I/O Wait (visible when threads enabled) */}
+									{/* I/O Wait */}
 									{showIoWait && (
 										<GridSpace
 											ctx={gameCtx}
@@ -360,29 +332,36 @@ const CoresAndThreadsGame = ({
 							<GridItem>
 								<Box display="flex" flexDirection="column" gap={3}>
 									<Text fontSize="sm" fontWeight="semibold" color="gray.300">
-										Server Lanes
+										Server Lanes (Cores: {behaviorContext.coreCount}/2)
 									</Text>
-									{/* Dynamic lanes based on core count */}{" "}
+									{/* Dynamic lanes based on core count */}
 									{LANE_IDS.slice(0, behaviorContext.coreCount).map(
-										(laneId) => (
-											<PathSpace
-												key={laneId}
-												ctx={gameCtx}
-												config={{
-													id: getLaneSpaceId(laneId),
-													name: `Lane ${laneId.split("-")[1]}`,
-													path: "M 12 60 L 308 60",
-													viewBox: "0 0 320 120",
-													duration: 3,
-													speedMultiplier: 1,
-													showDropzone: false,
-													maxCapacity: 1,
-												}}
-												title={`Lane ${laneId.split("-")[1]}`}
-											/>
-										),
+										(laneId) => {
+											const isThreaded =
+												behaviorContext.threadedLanes?.includes(laneId);
+											return (
+												<PathSpace
+													key={laneId}
+													ctx={gameCtx}
+													config={{
+														id: getLaneSpaceId(laneId),
+														name: `Lane ${laneId.split("-")[1]}${isThreaded ? " ⚡" : ""}`,
+														path: "M 12 60 L 308 60",
+														viewBox: "0 0 320 120",
+														duration: 3,
+														speedMultiplier: 1,
+														showDropzone: false,
+														maxCapacity: 1,
+													}}
+													title={`Lane ${laneId.split("-")[1]}${isThreaded ? " (Threaded)" : ""}`}
+												/>
+											);
+										},
 									)}
 									{/* I/O Paths */}
+									<Text fontSize="xs" color="gray.500" mt={2}>
+										I/O Operations
+									</Text>
 									<Flex gap={4}>
 										<Box flex={1}>
 											<PathSpace
@@ -399,14 +378,6 @@ const CoresAndThreadsGame = ({
 											/>
 										</Box>
 									</Flex>
-									{/* Completed */}
-									<GridSpace
-										ctx={gameCtx}
-										config={COMPLETED_CONFIG}
-										title="Completed"
-										getEntityLabel={getEntityLabel}
-										getEntityStatus={getEntityStatus}
-									/>
 								</Box>
 							</GridItem>
 						</Grid>
@@ -415,15 +386,13 @@ const CoresAndThreadsGame = ({
 						<DragOverlay getEntityLabel={(entityType) => entityType} />
 
 						{/* Inventory Drawer */}
-						{showInventory && (
-							<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
-								<PoolSpace
-									ctx={gameCtx}
-									config={INVENTORY_CONFIG}
-									title="Upgrades"
-								/>
-							</DrawerLayout>
-						)}
+						<DrawerLayout drawerId={INVENTORY_DRAWER_ID}>
+							<PoolSpace
+								ctx={gameCtx}
+								config={INVENTORY_CONFIG}
+								title="Items"
+							/>
+						</DrawerLayout>
 
 						<Modal />
 					</GameBoard>
@@ -436,7 +405,6 @@ const CoresAndThreadsGame = ({
 // Metrics Bar Component
 const MetricsBar = ({
 	metrics,
-	onToggleThreads,
 	phase,
 }: {
 	metrics: {
@@ -444,9 +412,8 @@ const MetricsBar = ({
 		queueDepth: number;
 		timeoutCount: number;
 		coreCount: number;
-		threadsEnabled: boolean;
+		threadedLaneCount: number;
 	};
-	onToggleThreads: () => void;
 	phase: CoresPhase;
 }) => {
 	return (
@@ -454,21 +421,11 @@ const MetricsBar = ({
 			<MetricItem label="RPS" value={metrics.rps.toString()} />
 			<MetricItem label="Queue" value={metrics.queueDepth.toString()} />
 			<MetricItem label="Timeouts" value={metrics.timeoutCount.toString()} />
-			<MetricItem label="Cores" value={metrics.coreCount.toString()} />
-			{phase === "threads" && (
-				<Flex align="center" gap={2}>
-					<Text fontSize="sm" color="gray.400">
-						Threads
-					</Text>
-					<Switch.Root
-						checked={metrics.threadsEnabled}
-						onCheckedChange={onToggleThreads}
-						colorPalette="purple"
-					>
-						<Switch.HiddenInput />
-						<Switch.Control />
-					</Switch.Root>
-				</Flex>
+			<MetricItem label="Cores" value={`${metrics.coreCount}/2`} />
+			{(phase === "io-wall" ||
+				phase === "threads" ||
+				metrics.threadedLaneCount > 0) && (
+				<MetricItem label="Threaded" value={`${metrics.threadedLaneCount}/2`} />
 			)}
 		</Flex>
 	);
