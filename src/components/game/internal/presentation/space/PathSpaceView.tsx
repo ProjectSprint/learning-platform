@@ -340,13 +340,23 @@ export const PathSpaceView = ({
 			};
 			setEntitySizes((prev) => ({ ...prev, [entity.id]: renderSize }));
 			setEntityOpacities((prev) => ({ ...prev, [entity.id]: 1 }));
+
+			const startProgress =
+				typeof entity.data.pathStartProgress === "number"
+					? Math.max(0, Math.min(1, entity.data.pathStartProgress))
+					: 0;
+			const initialPoint =
+				startProgress > 0
+					? pathElement.getPointAtLength(pathLength * startProgress)
+					: pathStart;
+
 			setEntityPositions((prev) => ({
 				...prev,
-				[entity.id]: { x: pathStart.x, y: pathStart.y },
+				[entity.id]: { x: initialPoint.x, y: initialPoint.y },
 			}));
 			resumeTokensRef.current.set(entity.id, getResumeToken(entity));
 
-			const state = { progress: 0, opacity: 1 };
+			const state = { progress: startProgress, opacity: 1 };
 			const timeline = gsap.timeline({
 				onComplete: () => {
 					timelinesRef.current.delete(entity.id);
@@ -370,21 +380,28 @@ export const PathSpaceView = ({
 			});
 
 			const pauseAtMidpoint = entity.data.pathPauseAtMidpoint === true;
+			const startsAtOrPastMidpoint = startProgress >= 0.5;
+
 			if (pauseAtMidpoint) {
-				timeline.to(state, {
-					progress: 0.5,
-					duration: space.duration / 2,
-					ease: "power2.inOut",
-					onUpdate: () => {
-						const point = pathElement.getPointAtLength(
-							pathLength * state.progress,
-						);
-						setEntityPositions((prev) => ({
-							...prev,
-							[entity.id]: { x: point.x, y: point.y },
-						}));
-					},
-				});
+				if (!startsAtOrPastMidpoint) {
+					// First half: animate from startProgress to midpoint
+					const firstHalfDuration = (space.duration / 2) * (1 - startProgress * 2);
+					timeline.to(state, {
+						progress: 0.5,
+						duration: firstHalfDuration,
+						ease: "power2.inOut",
+						onUpdate: () => {
+							const point = pathElement.getPointAtLength(
+								pathLength * state.progress,
+							);
+							setEntityPositions((prev) => ({
+								...prev,
+								[entity.id]: { x: point.x, y: point.y },
+							}));
+						},
+					});
+				}
+				// Fire midpoint notification, pause, then play second half on resume
 				timeline.add(() => {
 					if (!midpointNotifiedRef.current.has(entity.id)) {
 						midpointNotifiedRef.current.add(entity.id);
@@ -408,9 +425,10 @@ export const PathSpaceView = ({
 					},
 				});
 			} else {
+				const remainingDuration = space.duration * (1 - startProgress);
 				timeline.to(state, {
 					progress: 1,
-					duration: space.duration,
+					duration: remainingDuration,
 					ease: "power2.inOut",
 					onUpdate: () => {
 						const point = pathElement.getPointAtLength(

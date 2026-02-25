@@ -81,7 +81,7 @@ export const createLaneConfig = (
 	duration: 2,
 	speedMultiplier: 1,
 	showDropzone: false,
-	maxCapacity: 1,
+	maxCapacity: 2, // 1 request + 1 thread pool (thread is deleted immediately after drop)
 });
 
 // U-shaped paths for I/O operations (down, wait, up)
@@ -115,6 +115,7 @@ export const TIMER_MASSIVE_SPIKE_MS = 1000; // Same as overload for io-wall phas
 export const TIMER_TIMEOUT_THRESHOLD_MS = 8000; // Request timeout (8s fixed)
 export const TIMER_TIMEOUT_VISUAL_MS = 1500; // How long the "timeout" visual state shows before removal
 export const TIMER_ITEM_SPAWN_DELAY = 5000; // 5 seconds before items appear
+export const MASTERY_REQUEST_THRESHOLD = 100; // Requests to complete after threading before game ends
 
 // Capacity and Thresholds
 export const QUEUE_CAPACITY = 8;
@@ -158,7 +159,7 @@ export const UPGRADE_ITEMS = {
 	inboundMarketing: {
 		id: "upgrade-inbound-marketing",
 		type: "inbound-marketing",
-		name: "Inbound Marketing",
+		name: "Viral",
 		icon: "mdi:trending-up",
 		color: "#EF4444",
 	},

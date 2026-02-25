@@ -25,6 +25,7 @@ import type {
 import {
   getLaneSpaceId,
   LANE_IDS,
+  MASTERY_REQUEST_THRESHOLD,
   MAX_CORES,
   MAX_THREADED_LANES,
   QUEUE_CAPACITY,
@@ -80,12 +81,20 @@ export type CoresBehaviorContext = {
   ioOperationsInProgress: Map<string, string>;
   spawnRateMs: number;
   spawnStartTime: number | null;
+  spawnHighRate: boolean;
   pendingRequests: EntityArray;
   // Item spawn tracking
   marketingSpawned: boolean;
   inboundMarketingSpawned: boolean;
   coresSpawned: boolean;
   threadsSpawned: boolean;
+  // Thread pool dropzone
+  showLaneDropzone: boolean;
+  ioWallTimeoutSeen: boolean;
+  // Mastery tracking
+  requestsCompletedAfterThreading: number;
+  // IO-ready queue (atomic, same pattern as pendingRequests)
+  ioReadyRequests: EntityArray;
 };
 
 type Ctx = EffectContext<CoresBehaviorContext>;
@@ -169,19 +178,19 @@ const spawnRequest = (
   });
 };
 
+const SPAWN_RATE_TOGGLE_MS = 9000; // switch between fast and slow every 9s
+const SPAWN_DELAY_HIGH_MULTIPLIER = 0.8; // high traffic: 80% of base delay → ~4000ms between spawns
+const SPAWN_DELAY_LOW_MULTIPLIER = 1.9;  // low traffic: 190% of base delay → ~9500ms between spawns
+
 const calculateSpawnInterval = (ctx: {
   context: CoresBehaviorContext;
 }): number => {
   if (!ctx.context.serverRunning) return Infinity;
   const base = ctx.context.spawnRateMs;
-  const startTime = ctx.context.spawnStartTime ?? Date.now();
-  const elapsed = Date.now() - startTime;
-  // ~30s cycle: cos(0)=1 → starts HIGH-RATE (fast), then eases to slow
-  const cosVal = Math.cos(elapsed / 4775); // 4775 = 30000 / (2π)
-  const oscillation = cosVal * 0.5;
-  const interval = Math.round(base * (1 - oscillation));
-  console.log(`[spawn] elapsed=${elapsed}ms cos=${cosVal.toFixed(3)} base=${base} interval=${interval} phase=${cosVal > 0 ? "HIGH-RATE (fast)" : "LOW-RATE (slow)"}`);
-  return interval;
+  const delayMultiplier = ctx.context.spawnHighRate
+    ? SPAWN_DELAY_HIGH_MULTIPLIER
+    : SPAWN_DELAY_LOW_MULTIPLIER;
+  return Math.round(base * delayMultiplier);
 };
 
 const selectAvailableLane = (
@@ -203,34 +212,49 @@ const selectAvailableLane = (
 };
 
 /**
- * Pick the next pending request from the EntityArray and move it to the first
- * available lane immediately — no dwell timer. The atomic arrayShift inside
- * updateContext prevents double-assign when multiple event handlers fire with
- * the same state snapshot.
+ * Pick the next item to process and assign it to the first available lane.
+ * Priority: io-ready requests from IO wait first, then queue (FIFO).
  */
 const pickupFromQueue = (ctx: Ctx) => {
   const laneId = selectAvailableLane(ctx);
-  if (!laneId) return;
+  if (!laneId) {
+    return;
+  }
 
-  // Atomically dequeue from the head (FIFO). A second concurrent call will
-  // get a different ID or null because contextRef is updated synchronously.
+  const laneSpaceId = getLaneSpaceId(laneId);
+
+  // Priority: io-ready requests (atomic shift prevents double-assign)
+  let ioReadyId: string | null = null;
+  ctx.updateContext((c) => {
+    if (c.ioReadyRequests) ioReadyId = arrayShift(c.ioReadyRequests);
+  });
+
+  if (ioReadyId) {
+    ctx.world.moveEntity(ioReadyId, laneSpaceId);
+    updateEntityData(ctx, ioReadyId, {
+      status: "processing" as RequestStatus,
+      laneId,
+      pathStartProgress: 0.5, // start from midpoint — plays only the second half
+      pathPauseAtMidpoint: false,
+    });
+    return;
+  }
+
+  // Fall back to request queue (FIFO). Atomically dequeue to prevent double-assign.
   let capturedId: string | null = null;
   ctx.updateContext((c) => {
     capturedId = arrayShift(c.pendingRequests);
   });
   if (!capturedId) return;
-
   const entity = lookupEntity(ctx.state, capturedId);
   if (!entity) return;
-
-  const laneSpaceId = getLaneSpaceId(laneId);
-  const isThreaded = ctx.context.threadedLanes.includes(laneId);
 
   ctx.world.moveEntity(capturedId, laneSpaceId);
   updateEntityData(ctx, capturedId, {
     status: "processing" as RequestStatus,
     laneId,
-    pathPauseAtMidpoint: !isThreaded,
+    pathStartProgress: 0,
+    pathPauseAtMidpoint: true,
   });
 
   ctx.updateContext((c) => {
@@ -289,6 +313,7 @@ const handleLaneMidpoint = (ctx: Ctx, requestId: string) => {
   const ioCompleted = request.data.ioCompleted as boolean;
   const targetIoSpaceId = request.data.targetIoSpaceId as IoSpaceId;
 
+
   if (!laneId || !needsIo || ioCompleted) return;
 
   // Check if this lane is threaded
@@ -334,7 +359,8 @@ const checkTimeouts = (ctx: Ctx) => {
       ctx.updateContext((c) => {
         c.timeoutCount++;
         c.lastTimeoutTime = now;
-        arrayRemove(c.pendingRequests, entityId); // keep array in sync
+        arrayRemove(c.pendingRequests, entityId); // keep arrays in sync
+        arrayRemove(c.ioReadyRequests, entityId);
       });
       // Delete after a short visual delay
       const capturedId = entityId;
@@ -352,6 +378,21 @@ const checkTimeouts = (ctx: Ctx) => {
         setHint(
           ctx,
           "💥 Requests are timing out! A CPU Core just appeared in your Items drawer — drag it into the CPU Cores zone.",
+        );
+      }
+
+      // On first timeout during io-wall, spawn threads and enable lane dropzones
+      if (!ctx.context.ioWallTimeoutSeen && ctx.context.phase === "io-wall") {
+        ctx.updateContext((c) => {
+          c.ioWallTimeoutSeen = true;
+          c.showLaneDropzone = true;
+        });
+        if (!ctx.context.threadsSpawned) {
+          spawnThreads(ctx);
+        }
+        setHint(
+          ctx,
+          "💥 Both cores are blocked waiting on I/O! A Thread Pool just appeared in your Items drawer — drag it onto each server lane to offload I/O.",
         );
       }
     }
@@ -378,11 +419,28 @@ const startSpawnLoop = (ctx: Ctx) => {
 
     checkTimeouts(sctx as unknown as Ctx);
 
-    // Reschedule next spawn
+    // Reschedule next spawn using current rate (rate-toggle loop updates spawnHighRate separately)
     sctx.schedule(
       "cores:spawn-loop",
       interval,
       scheduleNextSpawn as unknown as Parameters<typeof sctx.schedule>[2],
+    );
+  };
+
+  // Rate-toggle loop: every 8s, flip between HIGH-RATE and LOW-RATE
+  const scheduleRateToggle = (sctx: {
+    updateContext: Ctx["updateContext"];
+    schedule: Ctx["schedule"];
+    context: CoresBehaviorContext;
+  }) => {
+    if (!sctx.context.serverRunning) return;
+    sctx.updateContext((c) => {
+      c.spawnHighRate = !c.spawnHighRate;
+    });
+    sctx.schedule(
+      "cores:rate-toggle",
+      SPAWN_RATE_TOGGLE_MS,
+      scheduleRateToggle as unknown as Parameters<typeof sctx.schedule>[2],
     );
   };
 
@@ -392,6 +450,16 @@ const startSpawnLoop = (ctx: Ctx) => {
     "cores:spawn-loop",
     interval,
     scheduleNextSpawn as unknown as Parameters<typeof ctx.schedule>[2],
+  );
+
+  // Kick off rate-toggle loop (start in HIGH-RATE, toggle after 8s)
+  ctx.updateContext((c) => {
+    c.spawnHighRate = true;
+  });
+  ctx.schedule(
+    "cores:rate-toggle",
+    SPAWN_RATE_TOGGLE_MS,
+    scheduleRateToggle as unknown as Parameters<typeof ctx.schedule>[2],
   );
 };
 
@@ -444,7 +512,7 @@ const spawnInboundMarketing = (ctx: Ctx) => {
   });
   setHint(
     ctx,
-    "🚀 Inbound Marketing is in your Items drawer — drag it into Growth Factor to trigger viral traffic!",
+    "🚀 Viral is in your Items drawer — drag it into Growth Factor to trigger viral traffic!",
   );
 };
 
@@ -613,8 +681,10 @@ const rules = [
       const entityId = ctx.provenance.entityId;
       if (!entityId) return;
 
-      // Consume the item
-      ctx.world.deleteEntities([entityId]);
+      // Keep the item visible but lock it in place (non-draggable)
+      ctx.world.updateEntity(entityId, { draggable: false });
+
+      setHint(ctx, "🚀 Viral campaign launched! Watch the traffic surge...");
 
       // Transition to io-wall
       ctx.setPhase("io-wall", "inbound-marketing.applied");
@@ -635,20 +705,33 @@ const rules = [
         c.spawnRateMs = TIMER_MASSIVE_SPIKE_MS;
       });
 
-      // Spawn threads for user to add
-      if (!ctx.context.threadsSpawned) {
-        spawnThreads(ctx);
-      }
+      // Threads will be spawned on first timeout in this phase
     },
   }),
 
-  // Phase 4: Threads -> Complete when all lanes threaded
+  // Phase 4: All lanes threaded -> enter "threads" observation phase
   BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
     id: "cores.auto-complete",
     on: { event: "ENTITY_UPDATED" },
     guard: ({ context }) =>
-      (context.phase === "io-wall" || context.phase === "threads") &&
+      context.phase === "io-wall" &&
       context.threadedLanes.length >= MAX_THREADED_LANES,
+    handler: (ctx) => {
+      ctx.setPhase("threads", "all-lanes-threaded");
+      setHint(
+        ctx,
+        `✨ Both lanes are threaded! Watch I/O wait in action — complete ${MASTERY_REQUEST_THRESHOLD} more requests to finish.`,
+      );
+    },
+  }),
+
+  // Mastery check: complete game after enough requests served post-threading
+  BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
+    id: "cores.mastery-check",
+    on: { event: "ENTITY_LEFT_SPACE" },
+    guard: ({ context }) =>
+      context.phase === "threads" &&
+      context.requestsCompletedAfterThreading >= MASTERY_REQUEST_THRESHOLD,
     handler: (ctx) => {
       ctx.setPhase("complete", "mastery.achieved");
     },
@@ -679,12 +762,14 @@ const rules = [
     },
   }),
 
-  // When a request finishes a lane (leaves it), try to pick up the next queued request
+  // When a request finishes a lane (path animation completes → ENTITY_LEFT_SPACE), delete it
+  // and immediately try to fill the now-free lane.
+  // NOTE: programmatic moves (moveEntity → ENTITY_MOVED) are handled by
+  // cores.pickup-on-request-moved-from-lane below.
   BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
     id: "cores.pickup-on-lane-free",
     on: { event: "ENTITY_LEFT_SPACE" },
-    guard: ({ event, state, context }) => {
-      if (!context.serverRunning) return false;
+    guard: ({ event, state }) => {
       if (event.type !== "ENTITY_LEFT_SPACE") return false;
       // Only react when a request leaves a server lane (lane becomes free)
       const isLane = LANE_IDS.some(
@@ -695,6 +780,17 @@ const rules = [
       return entity?.data.type === "request";
     },
     handler: (ctx) => {
+      if (ctx.event.type !== "ENTITY_LEFT_SPACE") return;
+      const requestId = ctx.event.entityId;
+
+      // Track completed requests for mastery check
+      if (ctx.context.phase === "threads") {
+        ctx.updateContext((c) => {
+          c.requestsCompletedAfterThreading++;
+        });
+      }
+
+      ctx.world.deleteEntities([requestId]);
       pickupFromQueue(ctx);
     },
   }),
@@ -704,6 +800,24 @@ const rules = [
   BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
     id: "cores.pickup-on-iowait-leave",
     on: { event: "ENTITY_LEFT_SPACE", space: SPACE_IDS.ioWait },
+    guard: ({ context }) => context.serverRunning,
+    handler: (ctx) => {
+      pickupFromQueue(ctx);
+    },
+  }),
+
+  // When a request is programmatically moved to io-wait (mid-path offload by handleLaneMidpoint),
+  // the engine fires ENTITY_MOVED (toSpaceId = ioWait). ENTITY_LEFT_SPACE does NOT fire for the
+  // source lane, so cores.pickup-on-lane-free never triggers. This rule catches the arrival at
+  // io-wait and immediately tries to fill the now-free lane. By the time this event is processed
+  // stateRef.current reflects the entity in io-wait, so selectAvailableLane sees the lane empty.
+  BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
+    id: "cores.pickup-on-request-arrived-at-iowait",
+    on: {
+      event: "ENTITY_ARRIVED_AT_SPACE",
+      space: SPACE_IDS.ioWait,
+      entityType: "request",
+    },
     guard: ({ context }) => context.serverRunning,
     handler: (ctx) => {
       pickupFromQueue(ctx);
@@ -813,12 +927,16 @@ const rules = [
           const currentSpaceId = findEntitySpace(ctx.state, ownerRequestId);
 
           if (isThreaded && currentSpaceId === SPACE_IDS.ioWait) {
-            const laneSpaceId = getLaneSpaceId(laneId);
+            // Mark as ready in IO wait and enqueue atomically
             updateEntityData(ctx, ownerRequestId, {
-              status: "processing" as RequestStatus,
+              status: "io-ready" as RequestStatus,
               ioCompleted: true,
             });
-            ctx.world.moveEntity(ownerRequestId, laneSpaceId);
+            ctx.updateContext((c) => {
+              arrayPush(c.ioReadyRequests, ownerRequestId);
+            });
+            // Trigger a pickup attempt: if a lane is free, grab this request immediately
+            pickupFromQueue(ctx as unknown as Ctx);
           } else if (!isThreaded) {
             // Resume by incrementing pathResumeToken
             const currentToken = (request.data.pathResumeToken as number) ?? 0;
@@ -830,28 +948,6 @@ const rules = [
           }
         }
       }
-    },
-  }),
-
-  // Request completes when it reaches end of lane
-  BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
-    id: "cores.request-complete",
-    on: { event: "ENTITY_LEFT_SPACE" },
-    guard: ({ event, state }) => {
-      if (event.type !== "ENTITY_LEFT_SPACE") return false;
-      const isLane = LANE_IDS.some(
-        (laneId) => getLaneSpaceId(laneId) === event.spaceId,
-      );
-      if (!isLane) return false;
-      const entity = lookupEntity(state, event.entityId);
-      return entity?.data.type === "request";
-    },
-    handler: (ctx) => {
-      if (ctx.event.type !== "ENTITY_LEFT_SPACE") return;
-      const requestId = ctx.event.entityId;
-
-      // Request completed - just delete it
-      ctx.world.deleteEntities([requestId]);
     },
   }),
 
@@ -871,8 +967,8 @@ const rules = [
       if (ctx.context.coreCount < MAX_CORES) {
         ctx.updateContext((c) => {
           c.coreCount++;
-          // Second core added: slow spawn back to processing capacity (no more timeouts)
-          c.spawnRateMs = TIMER_REQUEST_SPAWN_MS;
+          // Second core added: double spawn rate to reflect increased server capacity
+          c.spawnRateMs = TIMER_REQUEST_SPAWN_MS / 2;
           c.requestsPerSec = 1;
         });
         // Lock in place instead of deleting — stays visible as Core 2 indicator
@@ -882,7 +978,7 @@ const rules = [
         });
         setHint(
           ctx,
-          "✅ Core 2 is active! Watch both lanes process requests in parallel. Now trigger more traffic — drop Inbound Marketing into Growth Factor.",
+          "✅ Core 2 is active! Watch both lanes process requests in parallel. Now trigger more traffic — drop Viral into Growth Factor.",
         );
         // Immediately try to fill the newly unlocked lane
         pickupFromQueue(ctx);
@@ -918,6 +1014,8 @@ const rules = [
       if (!laneId) return;
 
       if (ctx.context.threadedLanes.includes(laneId)) {
+        // Bounce the thread back to inventory so the user can try the other lane
+        ctx.world.moveEntity(threadEntityId, SPACE_IDS.inventory);
         setHint(
           ctx,
           `Lane ${laneId.split("-")[1]} is already threaded — drag the Thread Pool onto the other lane.`,
@@ -932,9 +1030,29 @@ const rules = [
           // All lanes threaded: slow spawn back to processing capacity
           c.spawnRateMs = TIMER_REQUEST_SPAWN_MS;
           c.requestsPerSec = 1;
+          c.showLaneDropzone = false;
         }
       });
       ctx.world.deleteEntities([threadEntityId]);
+
+      // Offload any requests already frozen at midpoint in this lane to IO wait.
+      // Their IO subtasks are already running — we just need to free the lane.
+      const laneSpaceId = getLaneSpaceId(laneId);
+      const laneEntities = listSpaceEntityIds(ctx.state, laneSpaceId);
+      for (const reqId of laneEntities) {
+        const req = lookupEntity(ctx.state, reqId);
+        if (!req || req.data.type !== "request") continue;
+        const needsIo = req.data.needsIo as boolean;
+        const ioCompleted = req.data.ioCompleted as boolean;
+        if (needsIo && !ioCompleted) {
+          updateEntityData(ctx, reqId, { status: "waiting-io" as RequestStatus });
+          ctx.world.moveEntity(reqId, SPACE_IDS.ioWait);
+        }
+      }
+
+      // Try to fill the newly freed lane
+      pickupFromQueue(ctx);
+
       setHint(
         ctx,
         `✨ Lane ${laneId.split("-")[1]} threaded! Now thread the other lane too — drag the second Thread Pool onto it.`,
@@ -964,11 +1082,16 @@ export const CORES_BEHAVIORS = BehaviorDefinition<
     ioOperationsInProgress: new Map(),
     spawnRateMs: TIMER_REQUEST_SPAWN_MS,
     spawnStartTime: null,
+    spawnHighRate: true,
     pendingRequests: createEntityArray(),
     marketingSpawned: false,
     inboundMarketingSpawned: false,
     coresSpawned: false,
     threadsSpawned: false,
+    showLaneDropzone: false,
+    ioWallTimeoutSeen: false,
+    requestsCompletedAfterThreading: 0,
+    ioReadyRequests: createEntityArray(),
   },
   rules,
 });

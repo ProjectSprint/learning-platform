@@ -13,6 +13,7 @@ export type RequestStatus =
 	| "queued"
 	| "processing"
 	| "waiting-io"
+	| "io-ready"
 	| "timeout"
 	| "complete";
 

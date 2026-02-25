@@ -180,7 +180,9 @@ const CoresAndThreadsGame = ({
 					case "processing":
 						return {};
 					case "waiting-io":
-						return { status: "warning" as const, message: "Waiting I/O" };
+						return { status: "warning" as const, message: "Waiting IO" };
+					case "io-ready":
+						return { status: "success" as const, message: "Ready" };
 					case "timeout":
 						return { status: "error" as const, message: "Timeout" };
 					case "complete":
@@ -283,11 +285,11 @@ const CoresAndThreadsGame = ({
 				<Box flex={1} minH={0}>
 					<GameBoard>
 						<Grid
-							templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
+							templateColumns={{ base: "1fr", xl: "1fr 1fr" }}
 							gap={{ base: 3, md: 4 }}
 							height="100%"
 						>
-							{/* Left Column */}
+							{/* Col 1: Request Queue + Growth Factor */}
 							<GridItem>
 								<Box display="flex" flexDirection="column" gap={3}>
 									{/* Request Queue */}
@@ -306,7 +308,12 @@ const CoresAndThreadsGame = ({
 										title="Growth Factor"
 										getEntityLabel={getEntityLabel}
 									/>
+								</Box>
+							</GridItem>
 
+							{/* Col 2: CPU Cores + Server Lanes */}
+							<GridItem>
+								<Box display="flex" flexDirection="column" gap={3}>
 									{/* Upgrade Zone (cores) */}
 									<GridSpace
 										ctx={gameCtx}
@@ -325,16 +332,11 @@ const CoresAndThreadsGame = ({
 											getEntityStatus={getEntityStatus}
 										/>
 									)}
-								</Box>
-							</GridItem>
 
-							{/* Right Column - Server Lanes */}
-							<GridItem>
-								<Box display="flex" flexDirection="column" gap={3}>
+									{/* Server Lanes */}
 									<Text fontSize="sm" fontWeight="semibold" color="gray.300">
 										Server Lanes (Cores: {behaviorContext.coreCount}/2)
 									</Text>
-									{/* Dynamic lanes based on core count */}
 									{LANE_IDS.slice(0, behaviorContext.coreCount).map(
 										(laneId) => {
 											const isThreaded =
@@ -350,14 +352,15 @@ const CoresAndThreadsGame = ({
 														viewBox: "0 0 320 120",
 														duration: 3,
 														speedMultiplier: 1,
-														showDropzone: false,
-														maxCapacity: 1,
+														maxCapacity: 2,
 													}}
+													showDropzone={behaviorContext.showLaneDropzone && !isThreaded}
 													title={`Lane ${laneId.split("-")[1]}${isThreaded ? " (Threaded)" : ""}`}
 												/>
 											);
 										},
 									)}
+
 									{/* I/O Paths */}
 									<Text fontSize="xs" color="gray.500" mt={2}>
 										I/O Operations
