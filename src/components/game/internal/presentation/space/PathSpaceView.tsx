@@ -102,6 +102,28 @@ export const PathSpaceView = ({
 		() => parseViewBox(space.viewBox),
 		[space.viewBox],
 	);
+
+	const [svgContainerWidth, setSvgContainerWidth] = useState(0);
+	const [svgContainerHeight, setSvgContainerHeight] = useState(0);
+
+	// Compute the actual SVG scale and centering offset produced by
+	// preserveAspectRatio="xMidYMid meet" so entity cards stay aligned
+	// with the visible path regardless of the container's aspect ratio.
+	const svgTransform = useMemo(() => {
+		if (svgContainerWidth <= 0 || svgContainerHeight <= 0) {
+			return { scale: 1, offsetX: 0, offsetY: 0 };
+		}
+		const scale = Math.min(
+			svgContainerWidth / viewBoxSize.width,
+			svgContainerHeight / viewBoxSize.height,
+		);
+		return {
+			scale,
+			offsetX: (svgContainerWidth - viewBoxSize.width * scale) / 2,
+			offsetY: (svgContainerHeight - viewBoxSize.height * scale) / 2,
+		};
+	}, [svgContainerWidth, svgContainerHeight, viewBoxSize]);
+
 	const renderedPath = path ?? space.path;
 	const getResumeToken = useCallback((entity: EntityData): number => {
 		const raw = entity.data.pathResumeToken;
@@ -117,6 +139,19 @@ export const PathSpaceView = ({
 		const pathStart = pathElement.getPointAtLength(0);
 		setPathStartPoint({ x: pathStart.x, y: pathStart.y });
 	}, [renderedPath]);
+
+	useEffect(() => {
+		const element = trackRef.current;
+		if (!element) return;
+		const update = () => {
+			setSvgContainerWidth(element.clientWidth);
+			setSvgContainerHeight(element.clientHeight);
+		};
+		update();
+		const observer = new ResizeObserver(update);
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, []);
 
 	useEffect(() => {
 		void renderedPath;
@@ -385,7 +420,8 @@ export const PathSpaceView = ({
 			if (pauseAtMidpoint) {
 				if (!startsAtOrPastMidpoint) {
 					// First half: animate from startProgress to midpoint
-					const firstHalfDuration = (space.duration / 2) * (1 - startProgress * 2);
+					const firstHalfDuration =
+						(space.duration / 2) * (1 - startProgress * 2);
 					timeline.to(state, {
 						progress: 0.5,
 						duration: firstHalfDuration,
@@ -579,8 +615,8 @@ export const PathSpaceView = ({
 							tabIndex={0}
 							aria-label={`Drop items into ${space.name ?? space.id}`}
 							position="absolute"
-							left={`${(pathStartPoint.x / viewBoxSize.width) * 100}%`}
-							top={`${(pathStartPoint.y / viewBoxSize.height) * 100}%`}
+							left={`${svgTransform.offsetX + pathStartPoint.x * svgTransform.scale}px`}
+							top={`${svgTransform.offsetY + pathStartPoint.y * svgTransform.scale}px`}
 							transform="translate(-50%, -50%)"
 							w={`${DROPZONE_CELL_WIDTH}px`}
 							h={`${DROPZONE_CELL_HEIGHT}px`}
@@ -611,8 +647,8 @@ export const PathSpaceView = ({
 							<Box
 								key={entity.id}
 								position="absolute"
-								left={`${(point.x / viewBoxSize.width) * 100}%`}
-								top={`${(point.y / viewBoxSize.height) * 100}%`}
+								left={`${svgTransform.offsetX + point.x * svgTransform.scale}px`}
+								top={`${svgTransform.offsetY + point.y * svgTransform.scale}px`}
 								transform="translate(-50%, -50%)"
 								bg="gray.700"
 								color="gray.100"

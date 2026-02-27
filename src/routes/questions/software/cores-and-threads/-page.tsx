@@ -354,7 +354,9 @@ const CoresAndThreadsGame = ({
 														speedMultiplier: 1,
 														maxCapacity: 2,
 													}}
-													showDropzone={behaviorContext.showLaneDropzone && !isThreaded}
+													showDropzone={
+														behaviorContext.showLaneDropzone && !isThreaded
+													}
 													title={`Lane ${laneId.split("-")[1]}${isThreaded ? " (Threaded)" : ""}`}
 												/>
 											);
