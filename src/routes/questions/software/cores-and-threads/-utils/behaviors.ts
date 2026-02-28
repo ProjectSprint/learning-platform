@@ -36,6 +36,7 @@ import {
 	TIMER_MASSIVE_SPIKE_MS,
 	TIMER_REQUEST_SPAWN_MS,
 	TIMER_SPAWN_SPIKE_MS,
+	TIMER_THREADS_SPAWN_MS,
 	TIMER_TIMEOUT_THRESHOLD_MS,
 	TIMER_TIMEOUT_VISUAL_MS,
 	UPGRADE_ITEMS,
@@ -1067,8 +1068,13 @@ const rules = [
 			ctx.mutate((c) => {
 				c.threadedLanes.push(laneId);
 				if (allLanesThreaded) {
-					// All lanes threaded: slow spawn back to processing capacity
-					c.spawnRateMs = TIMER_REQUEST_SPAWN_MS;
+					// All lanes threaded: set spawn rate to a moderate pace so the queue
+					// stays visibly populated (1–3 items) without causing timeouts.
+					// Threaded lane throughput is ~2 req/s combined; effective timeout is
+					// 16s (TIMER_TIMEOUT_THRESHOLD_MS × 2 because coresSpawned=true), so
+					// 2000ms base (→ 1600ms high / 3800ms low with the toggle multipliers)
+					// keeps the queue active and educational without overflow.
+					c.spawnRateMs = TIMER_THREADS_SPAWN_MS;
 					c.requestsPerSec = 1;
 					c.showLaneDropzone = false;
 					// Update context.phase immediately so ENTITY_UPDATED events in the

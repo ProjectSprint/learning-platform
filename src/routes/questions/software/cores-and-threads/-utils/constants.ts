@@ -112,6 +112,10 @@ export const DB_PATH_CONFIG: PathSpaceConfig<string> = {
 export const TIMER_REQUEST_SPAWN_MS = 5000; // Normal spawn rate - matches 1 core processing time
 export const TIMER_SPAWN_SPIKE_MS = 1000; // Overload spawn rate (5x faster)
 export const TIMER_MASSIVE_SPIKE_MS = 1000; // Same as overload for io-wall phase
+export const TIMER_THREADS_SPAWN_MS = 2000; // Post-threading spawn rate — fast enough to keep the queue visibly
+// populated (1–3 items), slow enough to avoid timeouts (effective
+// timeout is 16s since coresSpawned=true; threaded lane throughput
+// is ~2 req/s combined, so queue drains without overflow)
 export const TIMER_TIMEOUT_THRESHOLD_MS = 8000; // Request timeout (8s fixed)
 export const TIMER_TIMEOUT_VISUAL_MS = 1500; // How long the "timeout" visual state shows before removal
 export const TIMER_ITEM_SPAWN_DELAY = 5000; // 5 seconds before items appear
