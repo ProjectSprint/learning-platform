@@ -182,7 +182,7 @@ const formatSeqList = (seqs: number[]) =>
 
 const appendServerLog = (ctx: TcpCtx | ScheduledTcpCtx, content: string) => {
 	const timestamp = Date.now();
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.serverStatus = content;
 		state.serverLog = [
 			...state.serverLog,
@@ -197,9 +197,9 @@ const appendServerLog = (ctx: TcpCtx | ScheduledTcpCtx, content: string) => {
 };
 
 const syncSplitterVisibility = (ctx: TcpCtx | ScheduledTcpCtx) => {
-	const messageFileSpaceId = findEntitySpace(ctx.state, FILE_ITEM_ID);
-	const notesFileSpaceId = findEntitySpace(ctx.state, NOTES_FILE_ITEM_ID);
-	ctx.updateContext((state) => {
+	const messageFileSpaceId = findEntitySpace(ctx.snapshot, FILE_ITEM_ID);
+	const notesFileSpaceId = findEntitySpace(ctx.snapshot, NOTES_FILE_ITEM_ID);
+	ctx.mutate((state) => {
 		const shouldShowMessageSplitter =
 			state.messageSplitterUnlocked && Boolean(messageFileSpaceId);
 		state.splitterVisible =
@@ -208,7 +208,7 @@ const syncSplitterVisibility = (ctx: TcpCtx | ScheduledTcpCtx) => {
 };
 
 const updateBufferDisplay = (ctx: TcpCtx | ScheduledTcpCtx) => {
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		const total = state.expectedTotal;
 		const received = toSet(state.receivedSeqs);
 		const waiting = toSet(state.waitingSeqs);
@@ -228,7 +228,7 @@ const updateBufferDisplay = (ctx: TcpCtx | ScheduledTcpCtx) => {
 };
 
 const resetBufferState = (ctx: TcpCtx | ScheduledTcpCtx, total: number) => {
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.receivedSeqs = [];
 		state.waitingSeqs = [];
 		state.expectedTotal = total;
@@ -246,7 +246,7 @@ const updateEntityState = (
 	const payloadWriter = createEntityPayloadWriter<
 		TcpEntityDataByType,
 		TcpEntityStateByType
-	>(ctx.world);
+	>(ctx.cmd);
 	const status = updates.status;
 	const dataUpdates: Record<string, unknown> = { ...updates };
 	delete dataUpdates.status;
@@ -263,7 +263,7 @@ const setEntityDraggable = (
 	entityId: string,
 	draggable: boolean,
 ) => {
-	ctx.world.updateEntity(entityId, { visual: { draggable } });
+	ctx.cmd.patchEntity(entityId, { visual: { draggable } });
 };
 
 const updatePacketDisplayName = (
@@ -271,7 +271,7 @@ const updatePacketDisplayName = (
 	entityId: string,
 	displayName: string,
 ) => {
-	ctx.world.updateEntity(entityId, { name: displayName });
+	ctx.cmd.patchEntity(entityId, { name: displayName });
 };
 
 const moveEntityToSpace = (
@@ -280,15 +280,15 @@ const moveEntityToSpace = (
 	spaceId: string,
 	position?: { row: number; col: number },
 ) => {
-	const fromSpaceId = findEntitySpace(ctx.state, entityId);
+	const fromSpaceId = findEntitySpace(ctx.snapshot, entityId);
 	if (fromSpaceId === spaceId) {
 		return true;
 	}
 	if (!fromSpaceId) {
-		ctx.world.addToSpace(entityId, spaceId, position);
+		ctx.cmd.placeInSpace(entityId, spaceId, position);
 		return true;
 	}
-	ctx.world.moveEntity(entityId, spaceId, position);
+	ctx.cmd.moveEntity(entityId, spaceId, position);
 	return true;
 };
 
@@ -297,7 +297,7 @@ const moveEntityToGrid = (
 	entityId: string,
 	spaceId: string,
 ) => {
-	const emptyPositions = selectGridEmptyPositions(ctx.state, spaceId);
+	const emptyPositions = selectGridEmptyPositions(ctx.snapshot, spaceId);
 	if (emptyPositions.length === 0) {
 		return false;
 	}
@@ -388,9 +388,9 @@ const addPacketsToInventory = (
 };
 
 const buildAckMessage = (ctx: TcpCtx | ScheduledTcpCtx) => {
-	const total = ctx.context.expectedTotal;
-	const received = toSet(ctx.context.receivedSeqs);
-	const waiting = toSet(ctx.context.waitingSeqs);
+	const total = ctx.store.expectedTotal;
+	const received = toSet(ctx.store.receivedSeqs);
+	const waiting = toSet(ctx.store.waitingSeqs);
 	const missing: number[] = [];
 	for (let seq = 1; seq <= total; seq += 1) {
 		if (!received.has(seq) && !waiting.has(seq)) {
@@ -425,20 +425,20 @@ const buildAckMessage = (ctx: TcpCtx | ScheduledTcpCtx) => {
 };
 
 const triggerResend = (ctx: TcpCtx | ScheduledTcpCtx, missingSeq: number) => {
-	if (ctx.context.resendTargetSeq === missingSeq) {
+	if (ctx.store.resendTargetSeq === missingSeq) {
 		return;
 	}
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.resendTargetSeq = missingSeq;
 	});
-	ctx.setPhase("resend", "tcp.behavior");
+	ctx.cmd.setPhase("resend", "tcp.behavior");
 	const packetId = getPacketIdForSeq("notes", missingSeq);
 	if (packetId) {
 		updatePacketDisplayName(ctx, packetId, `Packet #${missingSeq} (Resend?)`);
 	}
 	ctx.once("tcp.modal.duplicate", () => {
-		ctx.interaction.openModal(buildDuplicateAckModal(missingSeq));
-		ctx.updateContext((state) => {
+		ctx.cmd.openModal(buildDuplicateAckModal(missingSeq));
+		ctx.mutate((state) => {
 			state.modalsShown.duplicate = true;
 		});
 	});
@@ -447,7 +447,7 @@ const triggerResend = (ctx: TcpCtx | ScheduledTcpCtx, missingSeq: number) => {
 const logAckMessage = (ctx: TcpCtx | ScheduledTcpCtx) => {
 	const { ackNumber, message } = buildAckMessage(ctx);
 	appendServerLog(ctx, message);
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		if (state.ackTracking.lastAck === ackNumber) {
 			state.ackTracking.duplicates += 1;
 		} else {
@@ -458,8 +458,8 @@ const logAckMessage = (ctx: TcpCtx | ScheduledTcpCtx) => {
 
 	if (
 		ctx.phase === "loss" &&
-		ctx.context.ackTracking.duplicates >= 3 &&
-		ctx.context.resendTargetSeq === null
+		ctx.store.ackTracking.duplicates >= 3 &&
+		ctx.store.resendTargetSeq === null
 	) {
 		triggerResend(ctx, ackNumber);
 	}
@@ -469,10 +469,10 @@ const handleFileComplete = (
 	ctx: TcpCtx | ScheduledTcpCtx,
 	fileKey: "message" | "notes",
 ) => {
-	if (ctx.context.completedFiles[fileKey]) {
+	if (ctx.store.completedFiles[fileKey]) {
 		return;
 	}
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.completedFiles[fileKey] = true;
 	});
 	appendServerLog(ctx, "Processing...");
@@ -481,23 +481,23 @@ const handleFileComplete = (
 			appendServerLog(scheduledCtx, "📄 message.txt received successfully!");
 			appendServerLog(scheduledCtx, "Waiting for notes.txt packets...");
 			ensureInInventory(scheduledCtx, NOTES_FILE_ITEM_ID);
-			scheduledCtx.updateContext((state) => {
+			scheduledCtx.mutate((state) => {
 				state.splitterVisible = true;
 			});
 			resetBufferState(scheduledCtx, NOTES_PACKET_IDS.length);
-			scheduledCtx.setPhase("notes", "tcp.behavior");
+			scheduledCtx.cmd.setPhase("notes", "tcp.behavior");
 			return;
 		}
 
 		appendServerLog(scheduledCtx, "📄 notes.txt received successfully!");
 		ensureInTcpTools(scheduledCtx, TCP_TOOL_ITEMS.fin.id);
-		scheduledCtx.updateContext((state) => {
+		scheduledCtx.mutate((state) => {
 			state.lossScenarioActive = false;
 		});
-		scheduledCtx.setPhase("closing", "tcp.behavior");
+		scheduledCtx.cmd.setPhase("closing", "tcp.behavior");
 		scheduledCtx.once("tcp.modal.close", () => {
-			scheduledCtx.interaction.openModal(buildCloseConnectionModal());
-			scheduledCtx.updateContext((state) => {
+			scheduledCtx.cmd.openModal(buildCloseConnectionModal());
+			scheduledCtx.mutate((state) => {
 				state.modalsShown.close = true;
 			});
 		});
@@ -508,12 +508,12 @@ const scheduleBufferedRelease = (
 	ctx: TcpCtx | ScheduledTcpCtx,
 	fileKey: "message" | "notes",
 ) => {
-	if (ctx.context.bufferReleaseInProgress) {
+	if (ctx.store.bufferReleaseInProgress) {
 		return;
 	}
-	const total = ctx.context.expectedTotal;
-	const received = toSet(ctx.context.receivedSeqs);
-	const waiting = toSet(ctx.context.waitingSeqs);
+	const total = ctx.store.expectedTotal;
+	const received = toSet(ctx.store.receivedSeqs);
+	const waiting = toSet(ctx.store.waitingSeqs);
 
 	let nextSeq = 1;
 	while (nextSeq <= total && received.has(nextSeq)) {
@@ -530,7 +530,7 @@ const scheduleBufferedRelease = (
 		return;
 	}
 
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.bufferReleaseInProgress = true;
 	});
 
@@ -543,11 +543,11 @@ const scheduleBufferedRelease = (
 					`tcp.buffer.release.step.${seq}`,
 					index * BUFFER_STEP_DELAY_MS,
 					(stepCtx) => {
-						const waitingSet = toSet(stepCtx.context.waitingSeqs);
-						const receivedSet = toSet(stepCtx.context.receivedSeqs);
+						const waitingSet = toSet(stepCtx.store.waitingSeqs);
+						const receivedSet = toSet(stepCtx.store.receivedSeqs);
 						waitingSet.delete(seq);
 						receivedSet.add(seq);
-						stepCtx.updateContext((state) => {
+						stepCtx.mutate((state) => {
 							state.waitingSeqs = toSortedArray(waitingSet);
 							state.receivedSeqs = toSortedArray(receivedSet);
 							if (index === releaseSeqs.length - 1) {
@@ -566,8 +566,7 @@ const scheduleBufferedRelease = (
 						updateBufferDisplay(stepCtx);
 						logAckMessage(stepCtx);
 						if (
-							stepCtx.context.receivedSeqs.length ===
-							stepCtx.context.expectedTotal
+							stepCtx.store.receivedSeqs.length === stepCtx.store.expectedTotal
 						) {
 							handleFileComplete(stepCtx, fileKey);
 						}
@@ -585,7 +584,7 @@ const handlePacketArrival = (
 	seq: number,
 ) => {
 	const total = getPacketTotalForFile(fileKey);
-	if (ctx.context.expectedTotal !== total) {
+	if (ctx.store.expectedTotal !== total) {
 		resetBufferState(ctx, total);
 	}
 
@@ -593,8 +592,8 @@ const handlePacketArrival = (
 		return;
 	}
 
-	const received = toSet(ctx.context.receivedSeqs);
-	const waiting = toSet(ctx.context.waitingSeqs);
+	const received = toSet(ctx.store.receivedSeqs);
+	const waiting = toSet(ctx.store.waitingSeqs);
 
 	let expected = 1;
 	while (expected <= total && received.has(expected)) {
@@ -603,7 +602,7 @@ const handlePacketArrival = (
 
 	if (seq > expected) {
 		waiting.add(seq);
-		ctx.updateContext((state) => {
+		ctx.mutate((state) => {
 			state.waitingSeqs = toSortedArray(waiting);
 		});
 		updateEntityState(ctx, packetId, {
@@ -612,15 +611,15 @@ const handlePacketArrival = (
 		});
 		updateBufferDisplay(ctx);
 		ctx.once("tcp.modal.hol", () => {
-			ctx.interaction.openModal(buildHolBlockingModal());
-			ctx.updateContext((state) => {
+			ctx.cmd.openModal(buildHolBlockingModal());
+			ctx.mutate((state) => {
 				state.modalsShown.hol = true;
 			});
 		});
 		logAckMessage(ctx);
 		if (
 			ctx.phase === "loss" &&
-			ctx.context.resendTargetSeq === null &&
+			ctx.store.resendTargetSeq === null &&
 			expected === LOSS_PACKET_SEQ &&
 			waiting.size >= 3
 		) {
@@ -632,7 +631,7 @@ const handlePacketArrival = (
 	if (seq === expected) {
 		received.add(seq);
 		waiting.delete(seq);
-		ctx.updateContext((state) => {
+		ctx.mutate((state) => {
 			state.receivedSeqs = toSortedArray(received);
 			state.waitingSeqs = toSortedArray(waiting);
 			if (state.resendTargetSeq === seq) {
@@ -682,13 +681,13 @@ const handleFileMtuReject = (
 				FILE_REJECT_DELAY_MS,
 				(innerCtx) => {
 					innerCtx.once("tcp.modal.mtu", () => {
-						innerCtx.interaction.openModal(buildMtuModal());
-						innerCtx.updateContext((state) => {
+						innerCtx.cmd.openModal(buildMtuModal());
+						innerCtx.mutate((state) => {
 							state.modalsShown.mtu = true;
 						});
 					});
-					innerCtx.setPhase("splitter", "tcp.behavior");
-					innerCtx.updateContext((state) => {
+					innerCtx.cmd.setPhase("splitter", "tcp.behavior");
+					innerCtx.mutate((state) => {
 						state.pendingFileReturn = { entityId, spaceId };
 					});
 				},
@@ -698,7 +697,7 @@ const handleFileMtuReject = (
 };
 
 const handlePacketRejected = (ctx: TcpCtx, packetId: string) => {
-	const entity = lookupEntity(ctx.state, packetId);
+	const entity = lookupEntity(ctx.snapshot, packetId);
 	const fileKey = entity?.data?.fileKey === "notes" ? "notes" : "message";
 	updateEntityState(ctx, packetId, {
 		tcpState: "processing",
@@ -724,23 +723,23 @@ const handlePacketRejected = (ctx: TcpCtx, packetId: string) => {
 					});
 					ensureInInventory(returnCtx, packetId);
 					if (fileKey === "message") {
-						returnCtx.updateContext((state) => {
+						returnCtx.mutate((state) => {
 							state.rejectedPackets = uniquePush(
 								state.rejectedPackets,
 								packetId,
 							);
 						});
 						if (
-							returnCtx.context.rejectedPackets.length ===
+							returnCtx.store.rejectedPackets.length ===
 							MESSAGE_PACKET_IDS.length
 						) {
 							returnCtx.once("tcp.modal.syn-intro", () => {
-								returnCtx.interaction.openModal(buildSynIntroModal());
-								returnCtx.updateContext((state) => {
+								returnCtx.cmd.openModal(buildSynIntroModal());
+								returnCtx.mutate((state) => {
 									state.modalsShown.synIntro = true;
 								});
 							});
-							returnCtx.setPhase("syn", "tcp.behavior");
+							returnCtx.cmd.setPhase("syn", "tcp.behavior");
 							updateEntityState(returnCtx, TCP_TOOL_ITEMS.syn.id, {
 								tcpState: "idle",
 								status: "normal",
@@ -788,8 +787,8 @@ const handlePacketLossReturn = (ctx: TcpCtx, entityId: string) => {
 	ctx.schedule(`tcp.loss.return.${entityId}`, LOSS_FADE_MS, (scheduledCtx) => {
 		ensureInInventory(scheduledCtx, entityId);
 		scheduledCtx.once("tcp.modal.loss", () => {
-			scheduledCtx.interaction.openModal(buildPacketLossModal());
-			scheduledCtx.updateContext((state) => {
+			scheduledCtx.cmd.openModal(buildPacketLossModal());
+			scheduledCtx.mutate((state) => {
 				state.modalsShown.loss = true;
 			});
 		});
@@ -820,16 +819,16 @@ const handleSynAckArrival = (ctx: TcpCtx | ScheduledTcpCtx) => {
 		status: "success",
 	});
 	lockInReceivedPool(ctx, SYSTEM_PACKET_ITEMS.synAck.id);
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.receivedPoolVisible = true;
 	});
 	ctx.once("tcp.modal.syn-ack", () => {
-		ctx.interaction.openModal(buildSynAckModal());
-		ctx.updateContext((state) => {
+		ctx.cmd.openModal(buildSynAckModal());
+		ctx.mutate((state) => {
 			state.modalsShown.synAck = true;
 		});
 	});
-	ctx.setPhase("ack", "tcp.behavior");
+	ctx.cmd.setPhase("ack", "tcp.behavior");
 	updateEntityState(ctx, TCP_TOOL_ITEMS.ack.id, {
 		tcpState: "idle",
 		status: "normal",
@@ -843,7 +842,7 @@ const handleAckArrival = (ctx: TcpCtx, ackId: string) => {
 		status: "success",
 	});
 	setEntityDraggable(ctx, ackId, false);
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.connectionActive = true;
 		state.connectionClosed = false;
 		state.sequenceEnabled = true;
@@ -856,12 +855,12 @@ const handleAckArrival = (ctx: TcpCtx, ackId: string) => {
 	resetBufferState(ctx, MESSAGE_PACKET_IDS.length);
 	appendServerLog(ctx, "🟢 Connected - Waiting for data...");
 	ctx.once("tcp.modal.handshake", () => {
-		ctx.interaction.openModal(buildHandshakeCompleteModal());
-		ctx.updateContext((state) => {
+		ctx.cmd.openModal(buildHandshakeCompleteModal());
+		ctx.mutate((state) => {
 			state.modalsShown.handshake = true;
 		});
 	});
-	ctx.setPhase("connected", "tcp.behavior");
+	ctx.cmd.setPhase("connected", "tcp.behavior");
 };
 
 const handleFinArrival = (ctx: TcpCtx, finId: string) => {
@@ -875,12 +874,12 @@ const handleFinArrival = (ctx: TcpCtx, finId: string) => {
 		status: "success",
 	});
 	lockInReceivedPool(ctx, SYSTEM_PACKET_ITEMS.finAck.id);
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.connectionActive = false;
 		state.connectionClosed = true;
 	});
 	appendServerLog(ctx, "🔴 Disconnected");
-	ctx.setPhase("terminal", "tcp.behavior");
+	ctx.cmd.setPhase("terminal", "tcp.behavior");
 };
 
 const handleFinAckArrival = (ctx: TcpCtx | ScheduledTcpCtx) => {
@@ -889,12 +888,12 @@ const handleFinAckArrival = (ctx: TcpCtx | ScheduledTcpCtx) => {
 		status: "success",
 	});
 	lockInReceivedPool(ctx, SYSTEM_PACKET_ITEMS.finAck.id);
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.connectionActive = false;
 		state.connectionClosed = true;
 	});
 	appendServerLog(ctx, "🔴 Disconnected");
-	ctx.setPhase("terminal", "tcp.behavior");
+	ctx.cmd.setPhase("terminal", "tcp.behavior");
 };
 
 const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
@@ -931,7 +930,7 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 			`tcp.internet.server-flag.${entityId}`,
 			INTERNET_TRAVEL_MS,
 			(scheduledCtx) => {
-				const refreshed = lookupEntity(scheduledCtx.state, entityId);
+				const refreshed = lookupEntity(scheduledCtx.snapshot, entityId);
 				if (!refreshed) return;
 				if (refreshed.type === "syn-ack-flag") {
 					handleSynAckArrival(scheduledCtx);
@@ -948,7 +947,7 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 			tcpState: "in-transit",
 			status: "warning",
 		});
-		ctx.setPhase("syn-wait", "tcp.behavior");
+		ctx.cmd.setPhase("syn-wait", "tcp.behavior");
 		scheduleMoveToServerWithRetry(
 			ctx,
 			entityId,
@@ -995,21 +994,21 @@ const handleInternetItem = (ctx: TcpCtx, entity: EntityData) => {
 		});
 
 		if (
-			ctx.context.lossScenarioActive &&
+			ctx.store.lossScenarioActive &&
 			fileKey === "notes" &&
 			seq === LOSS_PACKET_SEQ &&
-			!ctx.context.allowPacket2
+			!ctx.store.allowPacket2
 		) {
 			handlePacketLossReturn(ctx, entityId);
 			return;
 		}
 
-		if (ctx.phase === "resend" && ctx.context.resendTargetSeq === seq) {
-			ctx.updateContext((state) => {
+		if (ctx.phase === "resend" && ctx.store.resendTargetSeq === seq) {
+			ctx.mutate((state) => {
 				state.allowPacket2 = true;
 			});
 			updatePacketDisplayName(ctx, entityId, `Packet #${seq}`);
-			ctx.setPhase("loss", "tcp.behavior");
+			ctx.cmd.setPhase("loss", "tcp.behavior");
 		}
 
 		scheduleMoveToServerWithRetry(
@@ -1050,7 +1049,7 @@ const handleServerItem = (ctx: TcpCtx, entity: EntityData) => {
 	}
 
 	if (entity.type === "split-packet") {
-		if (!ctx.context.connectionActive) {
+		if (!ctx.store.connectionActive) {
 			handlePacketRejected(ctx, entityId);
 			return;
 		}
@@ -1059,21 +1058,21 @@ const handleServerItem = (ctx: TcpCtx, entity: EntityData) => {
 		const seq = typeof entity.data.seq === "number" ? entity.data.seq : 0;
 
 		if (
-			ctx.context.lossScenarioActive &&
+			ctx.store.lossScenarioActive &&
 			fileKey === "notes" &&
 			seq === LOSS_PACKET_SEQ &&
-			!ctx.context.allowPacket2
+			!ctx.store.allowPacket2
 		) {
 			handlePacketLossReturn(ctx, entityId);
 			return;
 		}
 
-		if (ctx.phase === "resend" && ctx.context.resendTargetSeq === seq) {
-			ctx.updateContext((state) => {
+		if (ctx.phase === "resend" && ctx.store.resendTargetSeq === seq) {
+			ctx.mutate((state) => {
 				state.allowPacket2 = true;
 			});
 			updatePacketDisplayName(ctx, entityId, `Packet #${seq}`);
-			ctx.setPhase("loss", "tcp.behavior");
+			ctx.cmd.setPhase("loss", "tcp.behavior");
 		}
 
 		handlePacketArrival(ctx, entityId, fileKey, seq);
@@ -1086,8 +1085,8 @@ const handleSplitterDrop = (ctx: TcpCtx, entity: EntityData) => {
 	}
 
 	const fileKey = entity.type === "notes-file" ? "notes" : "message";
-	ctx.world.deleteEntities([entity.id]);
-	ctx.updateContext((state) => {
+	ctx.cmd.destroyEntities([entity.id]);
+	ctx.mutate((state) => {
 		state.splitterVisible = false;
 	});
 
@@ -1097,22 +1096,22 @@ const handleSplitterDrop = (ctx: TcpCtx, entity: EntityData) => {
 			resetDisplayName: true,
 		});
 		addPacketsToInventory(ctx, "message");
-		ctx.updateContext((state) => {
+		ctx.mutate((state) => {
 			state.rejectedPackets = [];
 		});
-		ctx.setPhase("split-send", "tcp.behavior");
+		ctx.cmd.setPhase("split-send", "tcp.behavior");
 		resetBufferState(ctx, MESSAGE_PACKET_IDS.length);
 		return;
 	}
 
 	configurePackets(ctx, "notes", { seqEnabled: true, resetDisplayName: true });
 	addPacketsToInventory(ctx, "notes");
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.allowPacket2 = false;
 		state.resendTargetSeq = null;
 		state.lossScenarioActive = true;
 	});
-	ctx.setPhase("loss", "tcp.behavior");
+	ctx.cmd.setPhase("loss", "tcp.behavior");
 	resetBufferState(ctx, NOTES_PACKET_IDS.length);
 };
 
@@ -1145,17 +1144,17 @@ const rules = [
 		id: "tcp.modal.closed.mtu",
 		on: { event: "MODAL_CLOSED", modalId: "mtu-limit" },
 		handler: (ctx) => {
-			ctx.updateContext((state) => {
+			ctx.mutate((state) => {
 				state.messageSplitterUnlocked = true;
 			});
-			const pending = ctx.context.pendingFileReturn;
+			const pending = ctx.store.pendingFileReturn;
 			if (pending) {
 				ensureInInventory(ctx, pending.entityId);
 				updateEntityState(ctx, pending.entityId, {
 					tcpState: "ready",
 					status: "normal",
 				});
-				ctx.updateContext((state) => {
+				ctx.mutate((state) => {
 					state.pendingFileReturn = null;
 				});
 			}
@@ -1166,19 +1165,19 @@ const rules = [
 		id: "tcp.modal.closed.syn-ack",
 		on: { event: "MODAL_CLOSED", modalId: "syn-ack-received" },
 		handler: (ctx) => {
-			if (ctx.context.modalsShown.synAck && !ctx.context.modalsShown.ackIntro) {
-				ctx.updateContext((state) => {
+			if (ctx.store.modalsShown.synAck && !ctx.store.modalsShown.ackIntro) {
+				ctx.mutate((state) => {
 					state.modalsShown.ackIntro = true;
 				});
-				ctx.interaction.openModal(buildAckIntroModal());
+				ctx.cmd.openModal(buildAckIntroModal());
 			}
 		},
 	}),
 	BehaviorRule<TcpBehaviorContext, TcpTriggerSpec>({
 		id: "tcp.modal.closed.duplicate",
 		on: { event: "MODAL_CLOSED", modalId: "duplicate-acks" },
-		handler: ({ updateContext }) => {
-			updateContext((ctx) => {
+		handler: ({ mutate }) => {
+			mutate((ctx) => {
 				ctx.allowPacket2 = true;
 			});
 		},
@@ -1186,7 +1185,7 @@ const rules = [
 	BehaviorRule<TcpBehaviorContext, TcpTriggerSpec>({
 		id: "tcp.success-modal-navigate",
 		on: buildModalSubmitTrigger("tcp-success", "primary"),
-		handler: ({ event, updateContext }) => {
+		handler: ({ event, mutate }) => {
 			const parsed = parseModalSubmission(
 				event,
 				TCP_SUCCESS_NAVIGATION_CONTRACT,
@@ -1194,7 +1193,7 @@ const rules = [
 			if (!parsed || !parsed.ok) {
 				return;
 			}
-			updateContext((ctx) => {
+			mutate((ctx) => {
 				ctx.navigateAway = true;
 			});
 		},

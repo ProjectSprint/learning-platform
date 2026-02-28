@@ -15,8 +15,8 @@ import type {
 	PhaseRule,
 } from "@/components/game/types/question";
 import type {
+	CommandApi,
 	RuntimeApiResult,
-	WorldApi,
 } from "@/components/game/types/runtime";
 import type { GridPosition } from "@/components/game/types/space";
 import type {
@@ -51,7 +51,7 @@ import {
  * Derives the next phase from declarative rules and condition context.
  * Public business entrypoint for question phase transitions.
  */
-export const deriveQuestionPhase = <ConditionKey extends string>(
+export const resolveQuestionPhase = <ConditionKey extends string>(
 	rules: PhaseRule<ConditionKey>[],
 	context: ConditionContext<ConditionKey>,
 	currentPhase: string,
@@ -60,114 +60,138 @@ export const deriveQuestionPhase = <ConditionKey extends string>(
 	return resolvePhase(rules, context, currentPhase, fallbackPhase);
 };
 
+/** @deprecated Use resolveQuestionPhase instead */
+export const deriveQuestionPhase = resolveQuestionPhase;
+
 /**
- * Returns the current space containing an entity.
+ * Returns the current space ID containing an entity, or null if not found.
  * Performs a cheap existence check before evaluating placement.
  */
-export const findEntitySpace = (
-	state: GameState,
+export const getEntitySpaceId_public = (
+	snapshot: GameState,
 	entityId: string,
 ): string | null => {
-	if (!getEntity(state, entityId)) {
+	if (!getEntity(snapshot, entityId)) {
 		return null;
 	}
-	return getEntitySpaceId(state, entityId);
+	return getEntitySpaceId(snapshot, entityId);
 };
+
+/** @deprecated Use getEntitySpaceId_public instead */
+export const findEntitySpace = getEntitySpaceId_public;
 
 /**
  * Lists entity IDs currently contained in a space.
  */
-export const listSpaceEntityIds = (
-	state: GameState,
+export const getSpaceEntityIds_public = (
+	snapshot: GameState,
 	spaceId: string,
 ): string[] => {
-	return getSpaceEntityIds(state, spaceId);
+	return getSpaceEntityIds(snapshot, spaceId);
 };
 
-/**
- * True when an entity is currently placed in the specified space.
- * Uses both direct location check and read guard for stable behavior.
- */
-export const entityIsInSpace = (
-	state: GameState,
-	entityId: string,
-	spaceId: string,
-): boolean => {
-	if (findEntitySpace(state, entityId) !== spaceId) {
-		return false;
-	}
-	return isEntityInSpace(state, entityId, spaceId);
-};
+/** @deprecated Use getSpaceEntityIds_public instead */
+export const listSpaceEntityIds = getSpaceEntityIds_public;
 
 /**
  * Returns the entity data for a given ID, or undefined if not found.
  */
-export const lookupEntity = (
-	state: GameState,
+export const getEntity_public = (
+	snapshot: GameState,
 	entityId: string,
 ): StoredEntityDataForRead | undefined => {
-	return getEntity(state, entityId);
+	return getEntity(snapshot, entityId);
 };
+
+/** @deprecated Use getEntity_public instead */
+export const lookupEntity = getEntity_public;
 
 /**
  * Returns the space data for a given ID, or undefined if not found.
  */
-export const lookupSpace = (state: GameState, spaceId: string) => {
-	return getSpace(state, spaceId);
+export const getSpace_public = (snapshot: GameState, spaceId: string) => {
+	return getSpace(snapshot, spaceId);
 };
+
+/** @deprecated Use getSpace_public instead */
+export const lookupSpace = getSpace_public;
+
+/**
+ * True when an entity is currently placed in the specified space.
+ */
+export const isEntityInSpace_public = (
+	snapshot: GameState,
+	entityId: string,
+	spaceId: string,
+): boolean => {
+	if (getEntitySpaceId_public(snapshot, entityId) !== spaceId) {
+		return false;
+	}
+	return isEntityInSpace(snapshot, entityId, spaceId);
+};
+
+/** @deprecated Use isEntityInSpace_public instead */
+export const entityIsInSpace = isEntityInSpace_public;
 
 /**
  * Returns all entities matching the given type string.
- * Replaces `Object.values(state.entities).filter(e => e.type === type)`.
  */
-export const selectEntitiesByType = (
-	state: GameState,
+export const getEntitiesByType = (
+	snapshot: GameState,
 	type: string,
 ): StoredEntityDataForRead[] => {
-	return internalSelectEntitiesByType(state, type);
+	return internalSelectEntitiesByType(snapshot, type);
 };
+
+/** @deprecated Use getEntitiesByType instead */
+export const selectEntitiesByType = getEntitiesByType;
 
 /**
  * Returns a single entity state value by key, or undefined.
  */
-export const selectEntityStateValue = <T = unknown>(
-	state: GameState,
+export const getEntityStateValue = <T = unknown>(
+	snapshot: GameState,
 	entityId: string,
 	key: string,
 ): T | undefined => {
-	return internalSelectEntityStateValue<T>(state, entityId, key);
+	return internalSelectEntityStateValue<T>(snapshot, entityId, key);
 };
+
+/** @deprecated Use getEntityStateValue instead */
+export const selectEntityStateValue = getEntityStateValue;
 
 /**
  * Returns all empty grid positions for a grid space.
- * Replaces local `findEmptyGridPosition` implementations.
  */
-export const selectGridEmptyPositions = (
-	state: GameState,
+export const getGridEmptyPositions = (
+	snapshot: GameState,
 	spaceId: string,
 ): GridPosition[] => {
-	return internalSelectGridEmptyPositions(state, spaceId);
+	return internalSelectGridEmptyPositions(snapshot, spaceId);
 };
+
+/** @deprecated Use getGridEmptyPositions instead */
+export const selectGridEmptyPositions = getGridEmptyPositions;
 
 /**
  * True when a space has reached its maximum capacity.
  */
-export const selectSpaceIsFull = (
-	state: GameState,
-	spaceId: string,
-): boolean => {
-	return internalSelectSpaceIsFull(state, spaceId);
+export const isSpaceFull = (snapshot: GameState, spaceId: string): boolean => {
+	return internalSelectSpaceIsFull(snapshot, spaceId);
 };
+
+/** @deprecated Use isSpaceFull instead */
+export const selectSpaceIsFull = isSpaceFull;
 
 /**
  * True when a space contains no entities.
  */
-export const selectSpaceIsEmpty = (
-	state: GameState,
-	spaceId: string,
-): boolean => {
-	return internalSelectSpaceIsEmpty(state, spaceId);
+export const isSpaceEmpty = (snapshot: GameState, spaceId: string): boolean => {
+	return internalSelectSpaceIsEmpty(snapshot, spaceId);
 };
+
+/** @deprecated Use isSpaceEmpty instead */
+export const selectSpaceIsEmpty = isSpaceEmpty;
 
 /**
  * True when at least one visible modal has an `instance.id` matching the predicate.
@@ -183,6 +207,16 @@ export const isModalOpen = (
 			predicate(entry.instance.id),
 	);
 };
+
+/**
+ * Chooses a lane using the runtime lane scheduler policy.
+ */
+export const pickLane_public = <TLaneId extends string>(
+	input: LaneSchedulerInput<TLaneId>,
+): LaneSelectionResult<TLaneId> => pickLane(input);
+
+/** @deprecated Use pickLane_public instead */
+export const chooseLaneForExecution = pickLane_public;
 
 /**
  * Builds a behavior trigger for entity click interactions.
@@ -333,16 +367,16 @@ export const createEntityPayloadWriter = <
 	TDataByType extends Record<string, Record<string, unknown>>,
 	TStateByType extends Record<string, Record<string, unknown>>,
 >(
-	world: Pick<WorldApi, "updateEntity" | "updateEntityState">,
+	cmd: Pick<CommandApi, "patchEntity" | "patchEntityState">,
 ): EntityPayloadWriter<TDataByType, TStateByType> => {
 	return {
 		updateData(entityId, entityType, patch) {
 			void entityType;
-			return world.updateEntity(entityId, { data: patch });
+			return cmd.patchEntity(entityId, { data: patch });
 		},
 		updateState(entityId, entityType, patch) {
 			void entityType;
-			return world.updateEntityState(entityId, patch);
+			return cmd.patchEntityState(entityId, patch);
 		},
 	};
 };
@@ -368,19 +402,19 @@ export type EntityReader<
 	TStateByType extends Record<string, Record<string, unknown>>,
 > = {
 	get: <K extends keyof TDataByType & keyof TStateByType & string>(
-		state: GameState,
+		snapshot: GameState,
 		entityId: string,
 		entityType: K,
 	) => TypedEntity<TDataByType[K], TStateByType[K]> | null;
 
 	getData: <K extends keyof TDataByType & string>(
-		state: GameState,
+		snapshot: GameState,
 		entityId: string,
 		entityType: K,
 	) => TDataByType[K] | null;
 
 	getState: <K extends keyof TStateByType & string>(
-		state: GameState,
+		snapshot: GameState,
 		entityId: string,
 		entityType: K,
 	) => TStateByType[K] | null;
@@ -398,7 +432,7 @@ export type EntityReader<
  * Usage:
  * ```ts
  * const entities = createEntityReader<MyDataByType, MyStateByType>();
- * const router = entities.get(state, deviceId, "router");
+ * const router = entities.get(snapshot, deviceId, "router");
  * router?.data.dhcpEnabled; // typed boolean
  * ```
  */
@@ -406,19 +440,19 @@ export const createEntityReader = <
 	TDataByType extends Record<string, Record<string, unknown>>,
 	TStateByType extends Record<string, Record<string, unknown>>,
 >(): EntityReader<TDataByType, TStateByType> => ({
-	get(state, entityId, entityType) {
-		const e = state.entities[entityId];
+	get(snapshot, entityId, entityType) {
+		const e = snapshot.entities[entityId];
 		if (!e || e.type !== entityType) return null;
 		return e as TypedEntity<
 			TDataByType[typeof entityType],
 			TStateByType[typeof entityType]
 		>;
 	},
-	getData(state, entityId, entityType) {
-		return this.get(state, entityId, entityType)?.data ?? null;
+	getData(snapshot, entityId, entityType) {
+		return this.get(snapshot, entityId, entityType)?.data ?? null;
 	},
-	getState(state, entityId, entityType) {
-		return this.get(state, entityId, entityType)?.state ?? null;
+	getState(snapshot, entityId, entityType) {
+		return this.get(snapshot, entityId, entityType)?.state ?? null;
 	},
 	is(
 		entity,
@@ -498,10 +532,3 @@ export const buildEntityArrivedTrigger = <
 	entityType?: TEntityType,
 ): EntityEventTrigger<TSpaceId, TEntityType> =>
 	whenEntityArrivedAtSpace(spaceId, entityType);
-
-/**
- * Chooses a lane using the runtime lane scheduler policy.
- */
-export const chooseLaneForExecution = <TLaneId extends string>(
-	input: LaneSchedulerInput<TLaneId>,
-): LaneSelectionResult<TLaneId> => pickLane(input);

@@ -1,10 +1,5 @@
 import type { EntityData, ItemDataConfig } from "./entity";
-import type {
-	ExecutionFlowApi,
-	InteractionSessionApi,
-	ProgressApi,
-	WorldApi,
-} from "./runtime";
+import type { CommandApi } from "./runtime";
 import type { SpacePosition } from "./space";
 import type { GameEvent, GameState } from "./state";
 
@@ -103,52 +98,66 @@ export type EventProvenance = {
 	ruleId?: string;
 };
 
-export type GuardContext<TContext> = {
+/**
+ * Context passed to guard functions.
+ * `snapshot` is a stale point-in-time copy of Redux state.
+ * `store` is the live in-memory behavior store (read-only here).
+ */
+export type GuardCtx<TContext> = {
 	readonly event: GameEvent;
 	readonly provenance: EventProvenance;
 	readonly entity: EntityData | undefined;
-	readonly state: GameState;
+	readonly snapshot: GameState;
 	readonly phase: string;
-	readonly context: Readonly<TContext>;
+	readonly store: Readonly<TContext>;
 };
 
-export type EffectContext<TContext> = {
+/**
+ * Context passed to behavior rule handlers.
+ *
+ * CQRS contract:
+ * - `snapshot` — stale Redux state (read queries here, but may lag behind recent commands)
+ * - `store` — live in-memory behavior state (always current, mutations via `mutate`)
+ * - `cmd` — fire-and-forget command bus (dispatches to Redux, eventual consistency)
+ */
+export type HandlerCtx<TContext> = {
 	readonly event: GameEvent;
 	readonly provenance: EventProvenance;
 	readonly entity: EntityData | undefined;
-	readonly state: GameState;
+	readonly snapshot: GameState;
 	readonly phase: string;
-	context: TContext;
-	updateContext: (updater: (ctx: TContext) => void) => void;
-	world: WorldApi;
-	interaction: InteractionSessionApi;
-	flow: ExecutionFlowApi;
-	progress: ProgressApi;
+	store: TContext;
+	mutate: (updater: (ctx: TContext) => void) => void;
+	cmd: CommandApi;
 	delay: (ms: number) => Promise<void>;
 	once: (key: string, fn: () => void) => void;
-	terminal: {
-		writeOutput: (content: string, type?: "output" | "error") => void;
-		clearHistory: () => void;
-		finishEngine: () => void;
-	};
 	schedule: (
 		key: string,
 		ms: number,
-		fn: (ctx: ScheduledEffectContext<TContext>) => void | Promise<void>,
+		fn: (ctx: ScheduledCtx<TContext>) => void | Promise<void>,
 	) => void;
 	cancelSchedule: (key: string) => void;
-	setPhase: (phase: string, source?: string) => void;
-	moveToInventory: (entityId: string) => void;
-	moveToGrid: (entityId: string, spaceId: string) => boolean;
 };
 
-export type ScheduledEffectContext<TContext> = Omit<
-	EffectContext<TContext>,
+/**
+ * Context passed to scheduled callbacks.
+ * Same as HandlerCtx but without event/entity (no triggering event in scope).
+ */
+export type ScheduledCtx<TContext> = Omit<
+	HandlerCtx<TContext>,
 	"event" | "entity"
 > & {
-	readonly state: GameState;
+	readonly snapshot: GameState;
 	readonly phase: string;
 };
+
+// Kept for backward compatibility — use HandlerCtx and GuardCtx instead.
+/** @deprecated Use HandlerCtx instead */
+export type EffectContext<TContext> = HandlerCtx<TContext>;
+/** @deprecated Use GuardCtx instead */
+export type GuardContext<TContext> = GuardCtx<TContext>;
+/** @deprecated Use ScheduledCtx instead */
+export type ScheduledEffectContext<TContext> = ScheduledCtx<TContext>;
 
 export type BehaviorRule<
 	TContext,
@@ -156,8 +165,8 @@ export type BehaviorRule<
 > = {
 	id: string;
 	on: TTrigger;
-	guard?: (ctx: GuardContext<TContext>) => boolean;
-	handler: (ctx: EffectContext<TContext>) => void | Promise<void>;
+	guard?: (ctx: GuardCtx<TContext>) => boolean;
+	handler: (ctx: HandlerCtx<TContext>) => void | Promise<void>;
 };
 
 export type BehaviorDefinition<
@@ -338,14 +347,14 @@ export type BehaviorReactorDeps = {
 	state: GameState;
 	events: GameEvent[];
 	ack: () => void;
-	world: WorldApi;
-	interaction: InteractionSessionApi;
-	flow: ExecutionFlowApi;
-	progress: ProgressApi;
+	world: import("./runtime").WorldApi;
+	interaction: import("./runtime").InteractionSessionApi;
+	flow: import("./runtime").ExecutionFlowApi;
+	progress: import("./runtime").ProgressApi;
 	terminal?: TerminalBridge;
 	scheduler?: QuestionSchedulerApi;
 };
 
 export type BehaviorReactorResult<TContext> = {
-	context: TContext;
+	store: TContext;
 };

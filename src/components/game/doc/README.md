@@ -16,10 +16,18 @@ Maintenance order is backward from contract stability:
 1. One runtime per question page (`useQuestionRuntime(...)` once).
 2. `QuestionDefinition` is the source of truth for spaces/entities/phase rules/behaviors.
 3. Gameplay logic belongs in behavior rules, not route-level event loops.
-4. Mutations go through runtime wrappers (`world`, `progress`, `executionFlow`, `interactionSession`).
+4. Mutations go through `ctx.cmd.*` inside behavior handlers, or `runtime.cmd.*` outside.
 5. Route imports are restricted to the public facades listed below.
 
-### 1.2 Public import boundary
+### 1.2 CQRS Contract
+
+Handler context exposes three surfaces with distinct consistency guarantees:
+
+- **`ctx.snapshot`** — stale Redux point-in-time. Captured at the start of the event batch. `cmd` mutations do not update `snapshot` within the same handler.
+- **`ctx.cmd`** — eventual fire-and-forget dispatch. All mutations (entity, space, modal, phase, terminal) flow through this single flat surface.
+- **`ctx.store`** — live in-memory behavior state. Mutations via `ctx.mutate(fn)` are synchronously visible within the same handler tick.
+
+### 1.3 Public import boundary
 
 Route-level imports are limited to:
 
@@ -128,24 +136,28 @@ import {
   useDragEngine,
 } from "@/components/game/engine";
 import { GameProvider, useGameCtx } from "@/components/game/engine/game-provider";
-import { deriveQuestionPhase, useQuestionRuntime } from "@/components/game/engine/runtime";
+import { resolveQuestionPhase, useQuestionRuntime } from "@/components/game/engine/runtime";
 import type { ConditionContext } from "@/components/game/types/question";
 
 const PageInner = () => {
-  const { interactionSession, state } = useQuestionRuntime("demo-page", DEMO_DEFINITION);
+  const { cmd, snapshot, store } = useQuestionRuntime("demo-page", DEMO_DEFINITION);
   const dragEngine = useDragEngine();
   const gameCtx = useGameCtx();
 
   useEffect(() => {
+    if (store.navigateAway) onQuestionComplete();
+  }, [store.navigateAway]);
+
+  useEffect(() => {
     const context: ConditionContext<"dragStatus" | "questionStatus"> = {
       dragStatus: dragEngine.progress.status,
-      questionStatus: state.question.status,
+      questionStatus: snapshot.question.status,
     };
-    const resolved = deriveQuestionPhase(DEMO_DEFINITION.phaseRules, context, state.phase, "setup");
-    if (resolved.nextPhase !== state.phase) {
-      interactionSession.requestPhaseTransition(resolved.nextPhase, "demo.phase_rules");
+    const resolved = resolveQuestionPhase(DEMO_DEFINITION.phaseRules, context, snapshot.phase, "setup");
+    if (resolved.nextPhase !== snapshot.phase) {
+      cmd.setPhase(resolved.nextPhase, "demo.phase_rules");
     }
-  }, [dragEngine.progress.status, interactionSession, state.phase, state.question.status]);
+  }, [dragEngine.progress.status, cmd, snapshot.phase, snapshot.question.status]);
 
   return (
     <>
@@ -185,8 +197,8 @@ export const Page = () => (
 | `meta` | identity and display metadata | `useQuestionRuntime`, `bootstrapQuestion` |
 | `initialPhase` | initial runtime phase | `useQuestionRuntime`, `bootstrapQuestion` |
 | `spaces` | available spaces in state | `GridSpace`, `PoolSpace`, `PathSpace`, `CustomSpace` |
-| `entities` | initial entities and placement | `world.createEntity`, `world.addToSpace` |
-| `phaseRules` | declarative phase resolution | `deriveQuestionPhase`, `interactionSession.requestPhaseTransition` |
+| `entities` | initial entities and placement | `cmd.spawnEntity`, `cmd.placeInSpace` |
+| `phaseRules` | declarative phase resolution | `resolveQuestionPhase`, `cmd.setPhase` |
 | `behaviors` | event-driven gameplay logic | trigger builders + behavior reactor |
 | `dragRules` | drag gating policy | runtime drag gating evaluation |
 | `layoutRules` | visibility by context | runtime layout evaluation |
@@ -203,10 +215,10 @@ export const Page = () => (
 
 Primary mutation methods for space/entity relationships:
 
-- `world.addToSpace(entityId, spaceId, position?)`
-- `world.removeFromSpace(entityId, spaceId)`
-- `world.moveEntity(entityId, toSpaceId, position?)`
-- `world.moveEntityToGrid(entityId, spaceId)`
+- `cmd.placeInSpace(entityId, spaceId, position?)`
+- `cmd.removeFromSpace(entityId, spaceId)`
+- `cmd.moveEntity(entityId, toSpaceId, position?)`
+- `cmd.moveEntityToGrid(entityId, spaceId)`
 
 ### 3.3 Entity ADT (`EntityDefinition` / `ItemDataConfig`)
 
@@ -217,7 +229,7 @@ Primary mutation methods for space/entity relationships:
 
 Primary entity methods:
 
-- `world.createEntity`, `world.updateEntity`, `world.updateEntityState`, `world.deleteEntities`
+- `cmd.spawnEntity`, `cmd.patchEntity`, `cmd.patchEntityState`, `cmd.destroyEntities`
 - Read hooks: `useEntity*`, `useEntities*`, `useItem`
 
 ### 3.4 Behavior ADT (`BehaviorDefinition`)
@@ -319,7 +331,7 @@ const TERMINAL_CONTRACT: AppRegistry["terminal"]["shell"] = {
 // inside behavior handler
 const modal = parseModalSubmission(event, ROUTER_SAVE_CONTRACT);
 if (!modal || !modal.ok) return;
-const payloadWriter = createEntityPayloadWriter<DeviceDataByType, Record<string, never>>(world);
+const payloadWriter = createEntityPayloadWriter<DeviceDataByType, Record<string, never>>(cmd);
 payloadWriter.updateData(modal.value.deviceId, "router", {
   dhcpEnabled: modal.value.dhcpEnabled,
   startIp: modal.value.startIp,
@@ -357,14 +369,14 @@ Validation implementation:
 |---|---|---|---|---|
 | `useQuestionRuntime` | `useQuestionRuntime(engineId, definition?)` | `useQuestionRuntime("dhcp-page", DHCP_DEFINITION)` | Main runtime entrypoint | validates definition, bootstraps once, consumes events, runs behaviors, manages scheduler |
 | `bootstrapQuestion` | `bootstrapQuestion(definition, dispatch): void` | `bootstrapQuestion(def, dispatch)` | Deterministic bootstrap from definition | dispatches `SET_QUESTION`, `SET_PHASE`, `SPACE_CREATED`, `ENTITY_CREATED`, optional `ENTITY_ADDED` |
-| `deriveQuestionPhase` | `deriveQuestionPhase(rules, context, currentPhase, fallback?)` | `deriveQuestionPhase(def.phaseRules, ctx, state.phase, "setup")` | Resolve next phase from rules | none (pure) |
+| `resolveQuestionPhase` | `resolveQuestionPhase(rules, context, currentPhase, fallback?)` | `resolveQuestionPhase(def.phaseRules, ctx, snapshot.phase, "setup")` | Resolve next phase from rules | none (pure) |
 | `SpaceFactory` | `{ grid,pool,path,custom,queue,meter }` | `SpaceFactory.grid(config)` | Build typed `SpaceDefinition` entries | none (pure) |
 | `EntityFactory` | `{ config,item,itemInSpace }` | `EntityFactory.itemInSpace(item, "inventory")` | Build typed `EntityDefinition` entries | none (pure) |
 | `ConditionFactory` | `{ eq,flag,and,or,not }` | `ConditionFactory.eq("questionStatus", "completed")` | Build declarative conditions | none (pure) |
 | `PhaseRuleFactory` | `{ set,retain }` | `PhaseRuleFactory.set(cond, "completed")` | Build declarative phase rules | none (pure) |
-| `findEntitySpace` | `(state, entityId) => string \| null` | `findEntitySpace(state, "router-1")` | Find owning space for entity | none (pure) |
-| `listSpaceEntityIds` | `(state, spaceId) => string[]` | `listSpaceEntityIds(state, "inventory")` | List entity IDs in a space | none (pure) |
-| `entityIsInSpace` | `(state, entityId, spaceId) => boolean` | `entityIsInSpace(state, "pc-1", "pc-board")` | Membership check | none (pure) |
+| `getEntitySpaceId` | `(state, entityId) => string \| null` | `getEntitySpaceId(state, "router-1")` | Find owning space for entity | none (pure) |
+| `getSpaceEntityIds` | `(state, spaceId) => string[]` | `getSpaceEntityIds(state, "inventory")` | List entity IDs in a space | none (pure) |
+| `isEntityInSpace` | `(state, entityId, spaceId) => boolean` | `isEntityInSpace(state, "pc-1", "pc-board")` | Membership check | none (pure) |
 | `isItem` | type guard | `if (isItem(entity)) ...` | Narrow entity union to `ItemData` | none (pure) |
 | `isGridSpace` | type guard | `if (isGridSpace(space)) ...` | Narrow space union to `GridSpaceData` | none (pure) |
 | `buildEntityClickTrigger` | `(entityType?, spaceId?) => EventTrigger` | `buildEntityClickTrigger("router")` | Trigger factory for clicked entities | none (pure) |
@@ -374,48 +386,52 @@ Validation implementation:
 | `parseTerminalInput` | `(event, contract) => ParseResult \| null` | `parseTerminalInput(event, TERMINAL_CONTRACT)` | Parse and validate terminal command payloads into typed values | none (pure) |
 | `buildEntityPlacedTrigger` | `(spaceId?, entityType?) => EventTrigger` | `buildEntityPlacedTrigger("router-board", "router")` | Trigger factory for enter-space events | none (pure) |
 | `buildEntityArrivedTrigger` | `(spaceId?, entityType?) => EventTrigger` | `buildEntityArrivedTrigger("egress-path")` | Trigger factory for entered/moved arrival | none (pure) |
-| `chooseLaneForExecution` | `(input) => LaneSelectionResult` | `chooseLaneForExecution(input)` | Lane scheduler policy helper | none (pure) |
-| `createEntityReader` | `(world) => { find, byType, inSpace }` | `const read = createEntityReader(world)` | Typed entity read facade by id/type/space | none (pure) |
-| `createEntityPayloadWriter` | `(world) => { updateData, updateState }` | `createEntityPayloadWriter<DataMap, StateMap>(world)` | Typed writer facade for dynamic `data` and `state` payload updates | dispatches via `world.updateEntity`/`world.updateEntityState` |
+| `pickLane` | `(input) => LaneSelectionResult` | `pickLane(input)` | Lane scheduler policy helper | none (pure) |
+| `createEntityReader` | `(cmd) => { find, byType, inSpace }` | `const read = createEntityReader(cmd)` | Typed entity read facade by id/type/space | none (pure) |
+| `createEntityPayloadWriter` | `(cmd) => { updateData, updateState }` | `createEntityPayloadWriter<DataMap, StateMap>(cmd)` | Typed writer facade for dynamic `data` and `state` payload updates | dispatches via `cmd.patchEntity`/`cmd.patchEntityState` |
 
-### 4.2 Runtime object APIs returned by `useQuestionRuntime`
+### 4.2 `cmd` object (from `useQuestionRuntime` or `ctx.cmd` inside handlers)
 
-#### `world`
+All mutations go through the single flat `cmd` surface.
 
-| Method | Contract | Usage | Description | Side effects |
-|---|---|---|---|---|
-| `createEntity` | `(config) => RuntimeApiResult` | `world.createEntity(cfg)` | Create entity | dispatch `ENTITY_CREATED` |
-| `updateEntity` | `(entityId, updates) => RuntimeApiResult` | `world.updateEntity(id, { data: ... })` | Patch entity | dispatch `ENTITY_UPDATED` |
-| `updateEntityState` | `(entityId, state) => RuntimeApiResult` | `world.updateEntityState(id, { ip: ... })` | Patch dynamic state | dispatch `ENTITY_STATE_UPDATED` |
-| `deleteEntities` | `(entityIds) => RuntimeApiResult` | `world.deleteEntities([id])` | Delete entities | dispatch `ENTITIES_DELETED` |
-| `addToSpace` | `(entityId, spaceId, position?) => RuntimeApiResult` | `world.addToSpace(id, "inventory")` | Add entity to space | dispatch `ENTITY_ADDED` |
-| `removeFromSpace` | `(entityId, spaceId) => RuntimeApiResult` | `world.removeFromSpace(id, "board")` | Remove entity from space | dispatch `ENTITY_REMOVED` |
-| `moveEntity` | `(entityId, toSpaceId, position?) => RuntimeApiResult` | `world.moveEntity(id, "board")` | Move across spaces | dispatch `ENTITY_MOVED` or `ENTITY_ADDED` |
-| `moveEntityToGrid` | `(entityId, spaceId) => RuntimeApiResult` | `world.moveEntityToGrid(id, "board")` | Move to first empty grid slot | may dispatch move/add; returns failure when invalid/full |
-
-#### `progress`
+#### Entity and Space Commands
 
 | Method | Contract | Usage | Description | Side effects |
 |---|---|---|---|---|
-| `completeQuestion` | `() => RuntimeApiResult` | `progress.completeQuestion()` | Mark question completed | dispatch `COMPLETE_QUESTION` |
-| `setQuestion` | `({ id, status? }) => RuntimeApiResult` | `progress.setQuestion({ id: "q1" })` | Set question metadata/status | dispatch `SET_QUESTION` |
+| `spawnEntity` | `(config) => RuntimeApiResult` | `cmd.spawnEntity(cfg)` | Create entity | dispatch `ENTITY_CREATED` |
+| `patchEntity` | `(entityId, updates) => RuntimeApiResult` | `cmd.patchEntity(id, { data: ... })` | Patch entity | dispatch `ENTITY_UPDATED` |
+| `patchEntityState` | `(entityId, state) => RuntimeApiResult` | `cmd.patchEntityState(id, { ip: ... })` | Patch dynamic state | dispatch `ENTITY_STATE_UPDATED` |
+| `destroyEntities` | `(entityIds) => RuntimeApiResult` | `cmd.destroyEntities([id])` | Delete entities | dispatch `ENTITIES_DELETED` |
+| `placeInSpace` | `(entityId, spaceId, position?) => RuntimeApiResult` | `cmd.placeInSpace(id, "inventory")` | Add entity to space | dispatch `ENTITY_ADDED` |
+| `removeFromSpace` | `(entityId, spaceId) => RuntimeApiResult` | `cmd.removeFromSpace(id, "board")` | Remove entity from space | dispatch `ENTITY_REMOVED` |
+| `moveEntity` | `(entityId, toSpaceId, position?) => RuntimeApiResult` | `cmd.moveEntity(id, "board")` | Move across spaces | dispatch `ENTITY_MOVED` or `ENTITY_ADDED` |
+| `moveEntityToGrid` | `(entityId, spaceId) => RuntimeApiResult` | `cmd.moveEntityToGrid(id, "board")` | Move to first empty grid slot | may dispatch move/add; returns failure when invalid/full |
 
-#### `executionFlow`
+#### Interaction Commands
 
 | Method | Contract | Usage | Description | Side effects |
 |---|---|---|---|---|
-| `requestPhaseTransition` | `(phase, source) => RuntimeApiResult` | `executionFlow.requestPhaseTransition("terminal", "rule")` | Request validated phase change | dispatch `SET_PHASE` on success; may emit warnings on invalid intents |
-| `dispatchIntent` | `(intent) => RuntimeApiResult` | `executionFlow.dispatchIntent(intent)` | Low-level execution-flow dispatch | same as above |
+| `openModal` | `(modal) => RuntimeApiResult` | `cmd.openModal(modal)` | Open modal | dispatch `OPEN_MODAL` |
+| `closeModal` | `(modalId?) => RuntimeApiResult` | `cmd.closeModal("id")` | Close modal(s) | dispatch `CLOSE_MODAL` |
+| `setPhase` | `(phase, source?) => RuntimeApiResult` | `cmd.setPhase("terminal", "rule")` | Request validated phase change | dispatch `SET_PHASE` on success; may emit warnings on invalid intents |
+| `showTerminal` | `(visible) => RuntimeApiResult` | `cmd.showTerminal(true)` | Toggle terminal visibility flag | updates interaction state |
+| `setModalGateOpen` | `(open) => RuntimeApiResult` | `cmd.setModalGateOpen(false)` | Toggle modal gate flag | updates interaction state |
+| `dispatchIntent` | `(intent) => RuntimeApiResult` | `cmd.dispatchIntent(intent)` | Low-level execution-flow dispatch | same as setPhase path |
 
-#### `interactionSession`
+#### Progress Commands
 
 | Method | Contract | Usage | Description | Side effects |
 |---|---|---|---|---|
-| `openModal` | `(modal) => RuntimeApiResult` | `interactionSession.openModal(modal)` | Open modal | dispatch `OPEN_MODAL` |
-| `closeModal` | `(modalId?) => RuntimeApiResult` | `interactionSession.closeModal("id")` | Close modal(s) | dispatch `CLOSE_MODAL` |
-| `requestPhaseTransition` | `(phase, source) => RuntimeApiResult` | `interactionSession.requestPhaseTransition("playing", "phase_rules")` | Convenience phase request | execution-flow side effects |
-| `setTerminalVisible` | `(visible) => RuntimeApiResult` | `interactionSession.setTerminalVisible(true)` | Toggle terminal visibility flag | updates interaction state |
-| `setModalGateOpen` | `(open) => RuntimeApiResult` | `interactionSession.setModalGateOpen(false)` | Toggle modal gate flag | updates interaction state |
+| `completeQuestion` | `() => RuntimeApiResult` | `cmd.completeQuestion()` | Mark question completed | dispatch `COMPLETE_QUESTION` |
+| `setQuestionStatus` | `({ id, status? }) => RuntimeApiResult` | `cmd.setQuestionStatus({ id: "q1" })` | Set question metadata/status | dispatch `SET_QUESTION` |
+
+#### Terminal Commands
+
+| Method | Contract | Usage | Description | Side effects |
+|---|---|---|---|---|
+| `terminal.write` | `(content, type?) => void` | `cmd.terminal.write("output")` | Append to terminal | updates terminal provider |
+| `terminal.clearHistory` | `() => void` | `cmd.terminal.clearHistory()` | Clear terminal history | updates terminal provider |
+| `terminal.finish` | `() => void` | `cmd.terminal.finish()` | Signal terminal engine done | updates terminal provider |
 
 ### 4.3 Provider module: `@/components/game/engine/game-provider`
 
@@ -463,11 +479,11 @@ Validation implementation:
 
 | Intent | Use |
 |---|---|
-| Change phase from behavior | `interaction.requestPhaseTransition(...)` or `setPhase(...)` |
-| Complete question | `progress.completeQuestion()` |
-| Update entity data/state | `world.updateEntity(...)`, `world.updateEntityState(...)` |
+| Change phase from behavior | `ctx.cmd.setPhase(...)` |
+| Complete question | `ctx.cmd.completeQuestion()` |
+| Update entity data/state | `ctx.cmd.patchEntity(...)`, `ctx.cmd.patchEntityState(...)` |
 | Typed entity data/state update | `createEntityPayloadWriter(...).updateData/.updateState` |
-| Move entities between spaces | `world.addToSpace(...)`, `world.moveEntity(...)`, `world.removeFromSpace(...)` |
+| Move entities between spaces | `ctx.cmd.placeInSpace(...)`, `ctx.cmd.moveEntity(...)`, `ctx.cmd.removeFromSpace(...)` |
 | Handle modal submit | `buildModalSubmitTrigger(...)` + `parseModalSubmission(...)` + behavior handler |
 | Handle terminal command | `buildTerminalInputTrigger(...)` + `parseTerminalInput(...)` + behavior handler |
 
@@ -479,3 +495,4 @@ Validation implementation:
 | Rule never fires | Trigger mismatch or guard false | Section 3.4 + Section 4 runtime trigger builders |
 | Entity cannot drop | `allowedPlaces`, capacity, or placement guard | Section 3.2 and 3.3 |
 | Phase never changes | No explicit transition request on resolved phase | Section 2.3 and 4.2 |
+| `ctx.snapshot` shows old state | Expected — snapshot is stale by design; listen for resulting event in next rule | Section 1.2 CQRS Contract |

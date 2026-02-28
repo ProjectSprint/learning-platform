@@ -118,23 +118,21 @@ const rules = [
 	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.router-click",
 		on: buildEntityClickTrigger("router"),
-		handler: ({ entity, interaction }) => {
+		handler: ({ entity, cmd }) => {
 			if (!entity) return;
-			interaction.openModal(
-				buildRouterConfigModal(entity.id, entity.data ?? {}),
-			);
+			cmd.openModal(buildRouterConfigModal(entity.id, entity.data ?? {}));
 		},
 	}),
 	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.pc-click",
 		on: buildEntityClickTrigger("pc"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
 			const currentData = {
 				...entity.data,
-				ip: selectEntityStateValue(state, entity.id, "ip") ?? entity.data.ip,
+				ip: selectEntityStateValue(snapshot, entity.id, "ip") ?? entity.data.ip,
 			};
-			interaction.openModal(buildPcConfigModal(entity.id, currentData));
+			cmd.openModal(buildPcConfigModal(entity.id, currentData));
 		},
 	}),
 	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
@@ -143,7 +141,7 @@ const rules = [
 			undefined,
 			"save",
 		),
-		handler: ({ event, world, updateContext }) => {
+		handler: ({ event, cmd, mutate }) => {
 			const parsed = parseModalSubmission(event, ROUTER_CONFIG_SAVE_CONTRACT);
 			if (!parsed || !parsed.ok) {
 				return;
@@ -153,7 +151,7 @@ const rules = [
 			const payloadWriter = createEntityPayloadWriter<
 				DhcpEntityDataByType,
 				Record<string, never>
-			>(world);
+			>(cmd);
 
 			payloadWriter.updateData(deviceId, "router", {
 				dhcpEnabled,
@@ -161,7 +159,7 @@ const rules = [
 				endIp,
 			});
 
-			updateContext((ctx) => {
+			mutate((ctx) => {
 				ctx.lastConfiguredDeviceId = deviceId;
 			});
 		},
@@ -169,12 +167,12 @@ const rules = [
 	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.success-modal-navigate",
 		on: buildModalSubmitTrigger("success", "primary"),
-		handler: ({ event, updateContext }) => {
+		handler: ({ event, mutate }) => {
 			const parsed = parseModalSubmission(event, SUCCESS_NAVIGATION_CONTRACT);
 			if (!parsed || !parsed.ok) {
 				return;
 			}
-			updateContext((ctx) => {
+			mutate((ctx) => {
 				ctx.navigateAway = true;
 			});
 		},
@@ -182,13 +180,13 @@ const rules = [
 	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.terminal-onboarding",
 		on: { event: "PHASE_CHANGED", to: "terminal" },
-		handler: ({ state, schedule, once }) => {
+		handler: ({ snapshot, schedule, once }) => {
 			once("dhcp.terminal.onboarding", () => {
 				schedule(
 					"dhcp.terminal.onboarding.delay",
 					100,
-					({ terminal: sTerm }) => {
-						const rawPc2Ip = selectEntityStateValue(state, "pc-2", "ip");
+					({ cmd: { terminal: sTerm } }) => {
+						const rawPc2Ip = selectEntityStateValue(snapshot, "pc-2", "ip");
 						const pc2Ip = typeof rawPc2Ip === "string" ? rawPc2Ip : null;
 						const lines = [
 							"Terminal - Network diagnostic utility",
@@ -218,7 +216,7 @@ const rules = [
 							"",
 						];
 						for (const line of lines) {
-							sTerm.writeOutput(line);
+							sTerm.write(line);
 						}
 					},
 				);
@@ -228,9 +226,9 @@ const rules = [
 	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.terminal-command",
 		on: buildTerminalInputTrigger(),
-		guard: ({ phase, state }) =>
-			phase === "terminal" && state.question.status !== "completed",
-		handler: ({ event, state, terminal, interaction, progress }) => {
+		guard: ({ phase, snapshot }) =>
+			phase === "terminal" && snapshot.question.status !== "completed",
+		handler: ({ event, snapshot, cmd }) => {
 			const parsed = parseTerminalInput(event, DHCP_TERMINAL_COMMAND_CONTRACT);
 			if (!parsed || !parsed.ok) {
 				return;
@@ -239,7 +237,7 @@ const rules = [
 			const command = parsed.value;
 
 			if (command.kind === "help") {
-				const rawPc2Ip = selectEntityStateValue(state, "pc-2", "ip");
+				const rawPc2Ip = selectEntityStateValue(snapshot, "pc-2", "ip");
 				const pc2Ip = typeof rawPc2Ip === "string" ? rawPc2Ip : null;
 				const lines = [
 					"Terminal - Network diagnostic utility",
@@ -269,13 +267,13 @@ const rules = [
 					"",
 				];
 				for (const line of lines) {
-					terminal.writeOutput(line);
+					cmd.terminal.write(line);
 				}
 				return;
 			}
 
 			if (command.kind === "unknown") {
-				terminal.writeOutput(
+				cmd.terminal.write(
 					'Error: Unknown command. Type "help" for available commands.',
 					"error",
 				);
@@ -283,32 +281,32 @@ const rules = [
 			}
 
 			const target = command.target;
-			const rawPc2Ip = selectEntityStateValue(state, "pc-2", "ip");
+			const rawPc2Ip = selectEntityStateValue(snapshot, "pc-2", "ip");
 			const pc2Ip = typeof rawPc2Ip === "string" ? rawPc2Ip : null;
 
 			if (pc2Ip && target === pc2Ip) {
-				terminal.writeOutput(`Reply from ${pc2Ip}: bytes=32 time<1ms TTL=64`);
-				interaction.openModal(
+				cmd.terminal.write(`Reply from ${pc2Ip}: bytes=32 time<1ms TTL=64`);
+				cmd.openModal(
 					buildSuccessModal(
 						"Question complete",
 						"You connected two computers and verified their connection using ping.",
 						"Next question",
 					),
 				);
-				terminal.finishEngine();
-				progress.completeQuestion();
+				cmd.terminal.finish();
+				cmd.completeQuestion();
 				return;
 			}
 
-			terminal.writeOutput(`Error: Unknown target "${target}".`, "error");
+			cmd.terminal.write(`Error: Unknown target "${target}".`, "error");
 		},
 	}),
 	BehaviorRule<DhcpBehaviorContext, DhcpTriggerSpec>({
 		id: "dhcp.terminal-not-ready",
 		on: buildTerminalInputTrigger(),
 		guard: ({ phase }) => phase !== "terminal",
-		handler: ({ terminal }) => {
-			terminal.writeOutput("Error: Terminal is not ready yet.", "error");
+		handler: ({ cmd }) => {
+			cmd.terminal.write("Error: Terminal is not ready yet.", "error");
 		},
 	}),
 ];

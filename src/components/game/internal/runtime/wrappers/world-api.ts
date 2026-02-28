@@ -7,57 +7,57 @@ type WorldApiDeps = {
 };
 
 export const createWorldApi = ({ commands }: WorldApiDeps): WorldApi => ({
-	createEntity(config: ItemDataConfig) {
+	spawnEntity(config: ItemDataConfig) {
 		try {
 			commands.createEntity(config);
 			return runtimeOk();
 		} catch (error) {
 			return runtimeError(
-				`worldApi.createEntity: ${toRuntimeErrorMessage(error)}`,
+				`worldApi.spawnEntity: ${toRuntimeErrorMessage(error)}`,
 			);
 		}
 	},
 
-	updateEntity(entityId, updates) {
+	patchEntity(entityId, updates) {
 		try {
 			commands.updateEntity(entityId, updates);
 			return runtimeOk();
 		} catch (error) {
 			return runtimeError(
-				`worldApi.updateEntity: ${toRuntimeErrorMessage(error)}`,
+				`worldApi.patchEntity: ${toRuntimeErrorMessage(error)}`,
 			);
 		}
 	},
 
-	updateEntityState(entityId, state) {
+	patchEntityState(entityId, state) {
 		try {
 			commands.updateEntityState(entityId, state);
 			return runtimeOk();
 		} catch (error) {
 			return runtimeError(
-				`worldApi.updateEntityState: ${toRuntimeErrorMessage(error)}`,
+				`worldApi.patchEntityState: ${toRuntimeErrorMessage(error)}`,
 			);
 		}
 	},
 
-	deleteEntities(entityIds) {
+	destroyEntities(entityIds) {
 		try {
 			commands.deleteEntities(entityIds);
 			return runtimeOk();
 		} catch (error) {
 			return runtimeError(
-				`worldApi.deleteEntities: ${toRuntimeErrorMessage(error)}`,
+				`worldApi.destroyEntities: ${toRuntimeErrorMessage(error)}`,
 			);
 		}
 	},
 
-	addToSpace(entityId, spaceId, position) {
+	placeInSpace(entityId, spaceId, position) {
 		try {
 			commands.addToSpace(entityId, spaceId, position);
 			return runtimeOk();
 		} catch (error) {
 			return runtimeError(
-				`worldApi.addToSpace: ${toRuntimeErrorMessage(error)}`,
+				`worldApi.placeInSpace: ${toRuntimeErrorMessage(error)}`,
 			);
 		}
 	},

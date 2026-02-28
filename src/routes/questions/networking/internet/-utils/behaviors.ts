@@ -220,10 +220,10 @@ const INTERNET_SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
 };
 
 /** Derive internet connectivity status from current game state. */
-function deriveStatus(state: GameState) {
-	const routerLan = selectEntitiesByType(state, "router-lan")[0];
-	const routerNat = selectEntitiesByType(state, "router-nat")[0];
-	const routerWan = selectEntitiesByType(state, "router-wan")[0];
+function deriveStatus(snapshot: GameState) {
+	const routerLan = selectEntitiesByType(snapshot, "router-lan")[0];
+	const routerNat = selectEntitiesByType(snapshot, "router-nat")[0];
+	const routerWan = selectEntitiesByType(snapshot, "router-wan")[0];
 
 	const lanConfig = routerLan?.data ?? {};
 	const dhcpEnabled = lanConfig.dhcpEnabled === true;
@@ -264,7 +264,7 @@ function deriveStatus(state: GameState) {
 		natEnabled &&
 		hasValidPppoeCredentials;
 
-	const pc = selectEntitiesByType(state, "pc")[0];
+	const pc = selectEntitiesByType(snapshot, "pc")[0];
 	const pcIp = typeof pc?.data?.ip === "string" ? pc.data.ip : null;
 
 	return {
@@ -284,40 +284,34 @@ const rules = [
 	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.router-lan-click",
 		on: buildEntityClickTrigger("router-lan"),
-		handler: ({ entity, interaction }) => {
+		handler: ({ entity, cmd }) => {
 			if (!entity) return;
-			interaction.openModal(
-				buildRouterLanConfigModal(entity.id, entity.data ?? {}),
-			);
+			cmd.openModal(buildRouterLanConfigModal(entity.id, entity.data ?? {}));
 		},
 	}),
 	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.router-nat-click",
 		on: buildEntityClickTrigger("router-nat"),
-		handler: ({ entity, interaction }) => {
+		handler: ({ entity, cmd }) => {
 			if (!entity) return;
-			interaction.openModal(
-				buildRouterNatConfigModal(entity.id, entity.data ?? {}),
-			);
+			cmd.openModal(buildRouterNatConfigModal(entity.id, entity.data ?? {}));
 		},
 	}),
 	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.router-wan-click",
 		on: buildEntityClickTrigger("router-wan"),
-		handler: ({ entity, interaction }) => {
+		handler: ({ entity, cmd }) => {
 			if (!entity) return;
-			interaction.openModal(
-				buildRouterWanConfigModal(entity.id, entity.data ?? {}),
-			);
+			cmd.openModal(buildRouterWanConfigModal(entity.id, entity.data ?? {}));
 		},
 	}),
 	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.pc-click",
 		on: buildEntityClickTrigger("pc"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
-			const status = deriveStatus(state);
-			interaction.openModal(
+			const status = deriveStatus(snapshot);
+			cmd.openModal(
 				buildPcStatusModal(entity.id, {
 					ip: typeof entity.data.ip === "string" ? entity.data.ip : undefined,
 					status: status.googleReachable
@@ -330,10 +324,10 @@ const rules = [
 	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.igw-click",
 		on: buildEntityClickTrigger("igw"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
-			const status = deriveStatus(state);
-			interaction.openModal(
+			const status = deriveStatus(snapshot);
+			cmd.openModal(
 				buildIgwStatusModal(entity.id, {
 					status: status.hasValidPppoeCredentials
 						? "Authenticated"
@@ -345,10 +339,10 @@ const rules = [
 	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.dns-click",
 		on: buildEntityClickTrigger("dns"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
-			const status = deriveStatus(state);
-			interaction.openModal(
+			const status = deriveStatus(snapshot);
+			cmd.openModal(
 				buildDnsStatusModal(entity.id, {
 					ip: status.dnsServer ?? undefined,
 					status: status.hasValidDnsServer ? "Active" : "Unreachable",
@@ -359,9 +353,9 @@ const rules = [
 	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.google-click",
 		on: buildEntityClickTrigger("google"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
-			const status = deriveStatus(state);
+			const status = deriveStatus(snapshot);
 			let reason: string | undefined;
 			if (!status.hasValidDnsServer) {
 				reason = "DNS not configured";
@@ -370,7 +364,7 @@ const rules = [
 			} else if (!status.hasValidPppoeCredentials) {
 				reason = "WAN not connected";
 			}
-			interaction.openModal(
+			cmd.openModal(
 				buildGoogleStatusModal(entity.id, {
 					domain: "google.com",
 					ip: status.googleReachable ? status.googleIp : undefined,
@@ -388,7 +382,7 @@ const rules = [
 		guard: ({ event }) =>
 			event.type === "MODAL_SUBMITTED" &&
 			event.modalId.startsWith("router-lan-config-"),
-		handler: ({ event, world }) => {
+		handler: ({ event, cmd }) => {
 			const parsed = parseModalSubmission(event, ROUTER_LAN_SAVE_CONTRACT);
 			if (!parsed || !parsed.ok) {
 				return;
@@ -397,7 +391,7 @@ const rules = [
 			const payloadWriter = createEntityPayloadWriter<
 				InternetEntityDataByType,
 				Record<string, never>
-			>(world);
+			>(cmd);
 			payloadWriter.updateData(deviceId, "router-lan", {
 				dhcpEnabled,
 				startIp,
@@ -412,7 +406,7 @@ const rules = [
 		guard: ({ event }) =>
 			event.type === "MODAL_SUBMITTED" &&
 			event.modalId.startsWith("router-nat-config-"),
-		handler: ({ event, world }) => {
+		handler: ({ event, cmd }) => {
 			const parsed = parseModalSubmission(event, ROUTER_NAT_SAVE_CONTRACT);
 			if (!parsed || !parsed.ok) {
 				return;
@@ -421,7 +415,7 @@ const rules = [
 			const payloadWriter = createEntityPayloadWriter<
 				InternetEntityDataByType,
 				Record<string, never>
-			>(world);
+			>(cmd);
 			payloadWriter.updateData(deviceId, "router-nat", {
 				natEnabled,
 			});
@@ -433,7 +427,7 @@ const rules = [
 		guard: ({ event }) =>
 			event.type === "MODAL_SUBMITTED" &&
 			event.modalId.startsWith("router-wan-config-"),
-		handler: ({ event, world }) => {
+		handler: ({ event, cmd }) => {
 			const parsed = parseModalSubmission(event, ROUTER_WAN_SAVE_CONTRACT);
 			if (!parsed || !parsed.ok) {
 				return;
@@ -442,7 +436,7 @@ const rules = [
 			const payloadWriter = createEntityPayloadWriter<
 				InternetEntityDataByType,
 				Record<string, never>
-			>(world);
+			>(cmd);
 			payloadWriter.updateData(deviceId, "router-wan", {
 				connectionType,
 				username,
@@ -455,7 +449,7 @@ const rules = [
 	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.success-modal-navigate",
 		on: buildModalSubmitTrigger("success", "primary"),
-		handler: ({ event, updateContext }) => {
+		handler: ({ event, mutate }) => {
 			const parsed = parseModalSubmission(
 				event,
 				INTERNET_SUCCESS_NAVIGATION_CONTRACT,
@@ -463,7 +457,7 @@ const rules = [
 			if (!parsed || !parsed.ok) {
 				return;
 			}
-			updateContext((ctx) => {
+			mutate((ctx) => {
 				ctx.navigateAway = true;
 			});
 		},
@@ -473,7 +467,7 @@ const rules = [
 		on: { event: "PHASE_CHANGED", to: "terminal" },
 		handler: ({ schedule, once }) => {
 			once("internet.terminal.onboarding", () => {
-				schedule("internet.terminal.onboarding.delay", 100, ({ terminal }) => {
+				schedule("internet.terminal.onboarding.delay", 100, ({ cmd }) => {
 					const lines = [
 						"Terminal - Network diagnostic and testing utility",
 						"",
@@ -510,7 +504,7 @@ const rules = [
 						"",
 					];
 					for (const line of lines) {
-						terminal.writeOutput(line);
+						cmd.terminal.write(line);
 					}
 				});
 			});
@@ -521,9 +515,9 @@ const rules = [
 	BehaviorRule<InternetBehaviorContext, InternetTriggerSpec>({
 		id: "internet.terminal-command",
 		on: buildTerminalInputTrigger(),
-		guard: ({ phase, state }) =>
-			phase === "terminal" && state.question.status !== "completed",
-		handler: ({ event, state, terminal, interaction, progress }) => {
+		guard: ({ phase, snapshot }) =>
+			phase === "terminal" && snapshot.question.status !== "completed",
+		handler: ({ event, snapshot, cmd }) => {
 			const parsed = parseTerminalInput(
 				event,
 				INTERNET_TERMINAL_COMMAND_CONTRACT,
@@ -533,7 +527,7 @@ const rules = [
 			}
 
 			const command = parsed.value;
-			const status = deriveStatus(state);
+			const status = deriveStatus(snapshot);
 
 			if (command.kind === "help") {
 				const lines = [
@@ -565,13 +559,13 @@ const rules = [
 					"",
 				];
 				for (const line of lines) {
-					terminal.writeOutput(line);
+					cmd.terminal.write(line);
 				}
 				return;
 			}
 
 			if (command.kind === "ifconfig") {
-				terminal.writeOutput(
+				cmd.terminal.write(
 					status.pcIp ? `eth0: ${status.pcIp}` : "eth0: No IP assigned",
 				);
 				return;
@@ -579,7 +573,7 @@ const rules = [
 
 			if (command.kind === "nslookup") {
 				if (!command.domain) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						"Error: Missing domain. Usage: nslookup <domain>",
 						"error",
 					);
@@ -587,16 +581,16 @@ const rules = [
 				}
 				const domain = command.domain;
 				if (!status.hasValidDnsServer) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						"Error: Could not resolve hostname. DNS server not configured.",
 						"error",
 					);
 					return;
 				}
 				if (domain === "google.com") {
-					terminal.writeOutput(`google.com → ${GOOGLE_IP}`);
+					cmd.terminal.write(`google.com → ${GOOGLE_IP}`);
 				} else {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						`Error: Unknown host "${command.rawDomain ?? domain}".`,
 						"error",
 					);
@@ -606,7 +600,7 @@ const rules = [
 
 			if (command.kind === "curl") {
 				if (!command.target) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						"Error: Missing target. Usage: curl <hostname or IP>",
 						"error",
 					);
@@ -617,28 +611,28 @@ const rules = [
 				const isIpTarget = target === GOOGLE_IP.toLowerCase();
 
 				if (!isDomainTarget && !isIpTarget) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						`Error: Unknown host "${command.rawTarget ?? target}".`,
 						"error",
 					);
 					return;
 				}
 				if (!status.wanConnected) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						"Error: Network unreachable. No internet connection.",
 						"error",
 					);
 					return;
 				}
 				if (!status.natEnabled) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						"Error: Network unreachable. Check NAT configuration.",
 						"error",
 					);
 					return;
 				}
 				if (isDomainTarget && !status.hasValidDnsServer) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						"Error: Could not resolve hostname. DNS server not configured.",
 						"error",
 					);
@@ -646,26 +640,26 @@ const rules = [
 				}
 
 				if (isDomainTarget) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						`Resolving google.com... ${GOOGLE_IP}\nHTTP/1.1 200 OK\n\n<html>...google homepage...</html>`,
 					);
 				} else {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						"HTTP/1.1 200 OK\n\n<html>...google homepage...</html>",
 					);
 				}
 
 				const successTitle = "Connected to the Internet!";
 				const successMessage = `Congratulations! You've successfully connected your home network to the internet.\n\nYou learned how:\n- **Router LAN + DHCP** assigns private IPs to your devices\n- **Router WAN + PPPoE** authenticates with your ISP to get a public IP\n- **Router NAT** translates your private IP to the public IP\n- **DNS** resolves domain names (google.com) to IP addresses (${GOOGLE_IP})\n\nYour request traveled: PC → Router LAN → Router NAT → Router WAN → IGW → Internet → Google!`;
-				interaction.openModal(
+				cmd.openModal(
 					buildSuccessModal(successTitle, successMessage, "Next question"),
 				);
-				terminal.finishEngine();
-				progress.completeQuestion();
+				cmd.terminal.finish();
+				cmd.completeQuestion();
 				return;
 			}
 
-			terminal.writeOutput(
+			cmd.terminal.write(
 				'Error: Unknown command. Type "help" for available commands.',
 				"error",
 			);
@@ -675,8 +669,8 @@ const rules = [
 		id: "internet.terminal-not-ready",
 		on: buildTerminalInputTrigger(),
 		guard: ({ phase }) => phase !== "terminal",
-		handler: ({ terminal }) => {
-			terminal.writeOutput("Error: Terminal is not ready yet.", "error");
+		handler: ({ cmd }) => {
+			cmd.terminal.write("Error: Terminal is not ready yet.", "error");
 		},
 	}),
 ];

@@ -74,10 +74,11 @@ const CoresAndThreadsGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { state, behaviorContext, interactionSession } = useQuestionRuntime(
-		"cores-and-threads-page",
-		CORES_THREADS_DEFINITION,
-	);
+	const {
+		snapshot,
+		store: behaviorContext,
+		cmd,
+	} = useQuestionRuntime("cores-and-threads-page", CORES_THREADS_DEFINITION);
 	const gameCtx = useGameCtx();
 	useDragEngine();
 	const { registerDrawer } = useDrawerManager();
@@ -123,16 +124,13 @@ const CoresAndThreadsGame = ({
 			if (input.trim() === "./main") {
 				addOutput("Starting server...", "info");
 				addOutput("Server started successfully!", "output");
-				interactionSession.requestPhaseTransition(
-					"single-core-success",
-					"terminal.start",
-				);
+				cmd.setPhase("single-core-success", "terminal.start");
 			} else {
 				addOutput(`Command not found: ${input}`, "error");
 				addOutput("Try typing: ./main", "info");
 			}
 		},
-		[interactionSession, addOutput],
+		[cmd, addOutput],
 	);
 
 	useTerminalEngine({
@@ -140,7 +138,7 @@ const CoresAndThreadsGame = ({
 	});
 
 	// Terminal visibility based on game state phase
-	const shouldShowTerminal = state.phase === "boot";
+	const shouldShowTerminal = snapshot.phase === "boot";
 
 	// Initialize terminal in boot phase, close when server starts
 	useEffect(() => {
@@ -249,7 +247,7 @@ const CoresAndThreadsGame = ({
 			</Box>
 
 			{/* Metrics Bar */}
-			{state.phase !== "boot" && (
+			{snapshot.phase !== "boot" && (
 				<MetricsBar metrics={metrics} phase={behaviorContext.phase} />
 			)}
 
@@ -281,7 +279,7 @@ const CoresAndThreadsGame = ({
 			)}
 
 			{/* Active Game Board */}
-			{state.phase !== "boot" && (
+			{snapshot.phase !== "boot" && (
 				<Box flex={1} minH={0}>
 					<GameBoard>
 						<Grid

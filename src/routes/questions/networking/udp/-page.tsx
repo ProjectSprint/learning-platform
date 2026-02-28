@@ -53,10 +53,8 @@ const UdpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { state, behaviorContext } = useQuestionRuntime<UdpBehaviorContext>(
-		"udp-page",
-		UDP_DEFINITION,
-	);
+	const { snapshot, store: behaviorContext } =
+		useQuestionRuntime<UdpBehaviorContext>("udp-page", UDP_DEFINITION);
 	const gameCtx = useGameCtx();
 	useDragEngine();
 	const { registerDrawer } = useDrawerManager();
@@ -101,10 +99,10 @@ const UdpGame = ({
 	const inventory = useSpaceEntities("inventory");
 
 	const boardReady = useMemo(() => {
-		const internetSpace = state.spaces.internet;
-		const clientsSpace = state.spaces[SHARED_CLIENT_SPACE_ID];
+		const internetSpace = snapshot.spaces.internet;
+		const clientsSpace = snapshot.spaces[SHARED_CLIENT_SPACE_ID];
 		return internetSpace?.kind === "grid" && clientsSpace?.kind === "custom";
-	}, [state.spaces]);
+	}, [snapshot.spaces]);
 
 	const udpClientProgress = useMemo(
 		() =>
@@ -115,7 +113,7 @@ const UdpGame = ({
 						: clientId === "b"
 							? behaviorContext.clientFramesB
 							: behaviorContext.clientFramesC;
-				const frames = key.split("").map((ch) => ch === "1");
+				const frames = key.split("").map((ch: string) => ch === "1");
 				const receivedCount = frames.filter(Boolean).length;
 				const percent = Math.round((receivedCount / TOTAL_FRAMES) * 100);
 				return { clientId, frames, receivedCount, percent };

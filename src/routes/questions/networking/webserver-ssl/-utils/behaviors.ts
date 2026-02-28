@@ -128,17 +128,17 @@ const SSL_SUCCESS_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
 };
 
 /** Derive SSL terminal state from game state. */
-function deriveSslStatus(state: GameState) {
-	const port80Raw = state.spaces["port-80"];
+function deriveSslStatus(snapshot: GameState) {
+	const port80Raw = snapshot.spaces["port-80"];
 	const port80Space = port80Raw && isGridSpace(port80Raw) ? port80Raw : null;
-	const port443Raw = state.spaces["port-443"];
+	const port443Raw = snapshot.spaces["port-443"];
 	const port443Space =
 		port443Raw && isGridSpace(port443Raw) ? port443Raw : null;
 
 	const getTypes = (space: typeof port80Space) => {
 		if (!space) return [];
 		return Object.keys(space.entityPositions).map((entityId) => {
-			const entity = lookupEntity(state, entityId);
+			const entity = lookupEntity(snapshot, entityId);
 			return entity?.type ?? "";
 		});
 	};
@@ -170,7 +170,7 @@ function deriveSslStatus(state: GameState) {
 	let port80Domain = DEFAULT_DOMAIN;
 	if (port80Space) {
 		for (const entityId of Object.keys(port80Space.entityPositions)) {
-			const entity = lookupEntity(state, entityId);
+			const entity = lookupEntity(snapshot, entityId);
 			if (entity?.type === "domain" && typeof entity.data.domain === "string") {
 				port80Domain = entity.data.domain;
 				break;
@@ -185,9 +185,9 @@ const rules = [
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.browser-click",
 		on: buildEntityClickTrigger("browser"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
-			const ssl = deriveSslStatus(state);
+			const ssl = deriveSslStatus(snapshot);
 			const browserStatus =
 				ssl.httpsReady && ssl.hasRedirect
 					? "success"
@@ -212,7 +212,7 @@ const rules = [
 								connection: "Can't connect",
 								port: "-",
 							};
-			interaction.openModal(
+			cmd.openModal(
 				buildBrowserStatusModal(
 					entity.id,
 					browserModalStatus,
@@ -224,15 +224,15 @@ const rules = [
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.webserver-80-click",
 		on: buildEntityClickTrigger("webserver-80"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
-			const ssl = deriveSslStatus(state);
-			const port80Raw = state.spaces["port-80"];
+			const ssl = deriveSslStatus(snapshot);
+			const port80Raw = snapshot.spaces["port-80"];
 			const port80Space =
 				port80Raw && isGridSpace(port80Raw) ? port80Raw : null;
 			const port80Types = port80Space
 				? Object.keys(port80Space.entityPositions).map((entityId) => {
-						const current = lookupEntity(state, entityId);
+						const current = lookupEntity(snapshot, entityId);
 						return current?.type ?? "";
 					})
 				: [];
@@ -251,7 +251,7 @@ const rules = [
 				: hasIndexHtml
 					? "index.html"
 					: undefined;
-			interaction.openModal(
+			cmd.openModal(
 				buildWebserver80StatusModal(entity.id, {
 					status,
 					domain: ssl.port80Domain,
@@ -263,14 +263,14 @@ const rules = [
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.webserver-443-click",
 		on: buildEntityClickTrigger("webserver-443"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
-			const port443Raw = state.spaces["port-443"];
+			const port443Raw = snapshot.spaces["port-443"];
 			const port443Space =
 				port443Raw && isGridSpace(port443Raw) ? port443Raw : null;
 			const port443Types = port443Space
 				? Object.keys(port443Space.entityPositions).map((entityId) => {
-						const current = lookupEntity(state, entityId);
+						const current = lookupEntity(snapshot, entityId);
 						return current?.type ?? "";
 					})
 				: [];
@@ -285,8 +285,8 @@ const rules = [
 					: hasPrivateKey && hasCertificate
 						? "🔒 Serving HTTPS"
 						: "Missing SSL";
-			const ssl = deriveSslStatus(state);
-			interaction.openModal(
+			const ssl = deriveSslStatus(snapshot);
+			cmd.openModal(
 				buildWebserver443StatusModal(entity.id, {
 					status,
 					domain: ssl.port80Domain,
@@ -300,20 +300,20 @@ const rules = [
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.letsencrypt-domain-click",
 		on: buildEntityClickTrigger("domain"),
-		handler: ({ entity, state, context, interaction }) => {
+		handler: ({ entity, snapshot, store, cmd }) => {
 			if (!entity) return;
-			const spaceId = findEntitySpace(state, entity.id);
+			const spaceId = findEntitySpace(snapshot, entity.id);
 			if (spaceId !== "letsencrypt") return;
 			const issued =
 				typeof entity.data?.certificateIssued === "boolean"
 					? entity.data.certificateIssued
 					: false;
 			const domainName = issued
-				? context.certificateDomain || DEFAULT_DOMAIN
+				? store.certificateDomain || DEFAULT_DOMAIN
 				: typeof entity.data?.domain === "string"
 					? entity.data.domain
 					: DEFAULT_DOMAIN;
-			interaction.openModal(
+			cmd.openModal(
 				buildCertificateRequestModal(entity.id, domainName, issued, {
 					domain: DEFAULT_DOMAIN,
 				}),
@@ -323,63 +323,63 @@ const rules = [
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.index-click",
 		on: buildEntityClickTrigger("index-html"),
-		handler: ({ entity, interaction }) => {
+		handler: ({ entity, cmd }) => {
 			if (!entity) return;
-			interaction.openModal(buildIndexHtmlViewModal(entity.id));
+			cmd.openModal(buildIndexHtmlViewModal(entity.id));
 		},
 	}),
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.private-key-click",
 		on: buildEntityClickTrigger("private-key"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
-			const installed = findEntitySpace(state, entity.id) === "port-443";
-			interaction.openModal(buildPrivateKeyInfoModal(entity.id, installed));
+			const installed = findEntitySpace(snapshot, entity.id) === "port-443";
+			cmd.openModal(buildPrivateKeyInfoModal(entity.id, installed));
 		},
 	}),
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.certificate-click",
 		on: buildEntityClickTrigger("certificate"),
-		handler: ({ entity, state, interaction }) => {
+		handler: ({ entity, snapshot, cmd }) => {
 			if (!entity) return;
-			const installed = findEntitySpace(state, entity.id) === "port-443";
-			interaction.openModal(buildCertificateInfoModal(entity.id, installed));
+			const installed = findEntitySpace(snapshot, entity.id) === "port-443";
+			cmd.openModal(buildCertificateInfoModal(entity.id, installed));
 		},
 	}),
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.redirect-click",
 		on: buildEntityClickTrigger("redirect-to-https"),
-		handler: ({ entity, interaction }) => {
+		handler: ({ entity, cmd }) => {
 			if (!entity) return;
-			interaction.openModal(buildRedirectInfoModal(entity.id));
+			cmd.openModal(buildRedirectInfoModal(entity.id));
 		},
 	}),
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.phase-terminal-ready.port-80",
 		on: buildEntityArrivedTrigger("port-80"),
-		guard: ({ state, phase }) => {
-			const ssl = deriveSslStatus(state);
+		guard: ({ snapshot, phase }) => {
+			const ssl = deriveSslStatus(snapshot);
 			return ssl.httpsReady && ssl.hasRedirect && phase !== "terminal";
 		},
-		handler: ({ setPhase }) => {
-			setPhase("terminal", "ssl.behavior");
+		handler: ({ cmd }) => {
+			cmd.setPhase("terminal", "ssl.behavior");
 		},
 	}),
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.phase-terminal-ready.port-443",
 		on: buildEntityArrivedTrigger("port-443"),
-		guard: ({ state, phase }) => {
-			const ssl = deriveSslStatus(state);
+		guard: ({ snapshot, phase }) => {
+			const ssl = deriveSslStatus(snapshot);
 			return ssl.httpsReady && ssl.hasRedirect && phase !== "terminal";
 		},
-		handler: ({ setPhase }) => {
-			setPhase("terminal", "ssl.behavior");
+		handler: ({ cmd }) => {
+			cmd.setPhase("terminal", "ssl.behavior");
 		},
 	}),
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.certificate-issue",
 		on: buildModalSubmitTrigger(undefined, "issue"),
-		handler: ({ event, world, updateContext }) => {
+		handler: ({ event, cmd, mutate }) => {
 			const parsed = parseModalSubmission(event, CERTIFICATE_ISSUE_CONTRACT);
 			if (!parsed || !parsed.ok) {
 				return;
@@ -389,14 +389,14 @@ const rules = [
 			const payloadWriter = createEntityPayloadWriter<
 				SslEntityDataByType,
 				Record<string, never>
-			>(world);
+			>(cmd);
 			payloadWriter.updateData(deviceId, "domain", {
 				certificateIssued: true,
 				verified: true,
 				certificateDomain: domain,
 			});
 
-			updateContext((ctx) => {
+			mutate((ctx) => {
 				ctx.certificateDomain = domain;
 			});
 		},
@@ -404,7 +404,7 @@ const rules = [
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.success-modal-navigate",
 		on: buildModalSubmitTrigger("success", "primary"),
-		handler: ({ event, updateContext }) => {
+		handler: ({ event, mutate }) => {
 			const parsed = parseModalSubmission(
 				event,
 				SSL_SUCCESS_NAVIGATION_CONTRACT,
@@ -412,7 +412,7 @@ const rules = [
 			if (!parsed || !parsed.ok) {
 				return;
 			}
-			updateContext((ctx) => {
+			mutate((ctx) => {
 				ctx.navigateAway = true;
 			});
 		},
@@ -420,12 +420,12 @@ const rules = [
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.terminal-onboarding",
 		on: { event: "PHASE_CHANGED", to: "terminal" },
-		handler: ({ state, context, schedule, once }) => {
+		handler: ({ snapshot, store, schedule, once }) => {
 			once("ssl.terminal.onboarding", () => {
-				schedule("ssl.terminal.onboarding.delay", 100, ({ terminal }) => {
-					const ssl = deriveSslStatus(state);
+				schedule("ssl.terminal.onboarding.delay", 100, ({ cmd }) => {
+					const ssl = deriveSslStatus(snapshot);
 					const domain =
-						ssl.port80Domain || context.certificateDomain || DEFAULT_DOMAIN;
+						ssl.port80Domain || store.certificateDomain || DEFAULT_DOMAIN;
 					const helpLines = [
 						"Terminal - SSL diagnostic utility",
 						"",
@@ -450,7 +450,7 @@ const rules = [
 					];
 
 					for (const line of helpLines) {
-						terminal.writeOutput(line);
+						cmd.terminal.write(line);
 					}
 				});
 			});
@@ -461,21 +461,21 @@ const rules = [
 	BehaviorRule<SslBehaviorContext, SslTriggerSpec>({
 		id: "ssl.terminal-command",
 		on: buildTerminalInputTrigger(),
-		guard: ({ state }) => state.question.status !== "completed",
-		handler: ({ event, state, context, terminal, interaction, progress }) => {
+		guard: ({ snapshot }) => snapshot.question.status !== "completed",
+		handler: ({ event, snapshot, store, cmd }) => {
 			const parsed = parseTerminalInput(event, SSL_TERMINAL_COMMAND_CONTRACT);
 			if (!parsed || !parsed.ok) {
 				return;
 			}
 
 			const { command, tokens } = parsed.value;
-			const ssl = deriveSslStatus(state);
+			const ssl = deriveSslStatus(snapshot);
 			const getDomain = () =>
-				ssl.port80Domain || context.certificateDomain || DEFAULT_DOMAIN;
+				ssl.port80Domain || store.certificateDomain || DEFAULT_DOMAIN;
 
 			if (command === "curl") {
 				if (tokens.includes("-h") || tokens.includes("--help")) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						"Usage: curl [options] <url>\n\n" +
 							"Options:\n" +
 							"  -I, --head     Show document headers only\n" +
@@ -504,7 +504,7 @@ const rules = [
 				}
 
 				if (!url) {
-					terminal.writeOutput(
+					cmd.terminal.write(
 						"Error: No URL specified. Usage: curl <url>",
 						"error",
 					);
@@ -517,30 +517,30 @@ const rules = [
 					if (ssl.hasRedirect) {
 						const domain = getDomain();
 						if (verbose) {
-							terminal.writeOutput(`* Trying ${domain}...`);
-							terminal.writeOutput(
+							cmd.terminal.write(`* Trying ${domain}...`);
+							cmd.terminal.write(
 								`* Connected to ${domain} (127.0.0.1) port 80`,
 							);
 						}
-						terminal.writeOutput("HTTP/1.1 301 Moved Permanently");
-						terminal.writeOutput(`Location: https://${domain}/`);
-						terminal.writeOutput("");
-						terminal.writeOutput("301 redirected (use -L to follow)");
+						cmd.terminal.write("HTTP/1.1 301 Moved Permanently");
+						cmd.terminal.write(`Location: https://${domain}/`);
+						cmd.terminal.write("");
+						cmd.terminal.write("301 redirected (use -L to follow)");
 					} else if (ssl.httpReady) {
 						if (verbose) {
-							terminal.writeOutput(`* Trying ${getDomain()}...`);
-							terminal.writeOutput(
+							cmd.terminal.write(`* Trying ${getDomain()}...`);
+							cmd.terminal.write(
 								`* Connected to ${getDomain()} (127.0.0.1) port 80`,
 							);
 						}
-						terminal.writeOutput("HTTP/1.1 200 OK");
-						terminal.writeOutput("Content-Type: text/html");
+						cmd.terminal.write("HTTP/1.1 200 OK");
+						cmd.terminal.write("Content-Type: text/html");
 						if (!headOnly) {
-							terminal.writeOutput("");
-							terminal.writeOutput(INDEX_HTML_CONTENT);
+							cmd.terminal.write("");
+							cmd.terminal.write(INDEX_HTML_CONTENT);
 						}
 					} else {
-						terminal.writeOutput(
+						cmd.terminal.write(
 							"Error: Connection refused. Webserver not configured.",
 							"error",
 						);
@@ -550,14 +550,14 @@ const rules = [
 
 				if (targetUrl.startsWith("https://")) {
 					if (insecure) {
-						terminal.writeOutput(
+						cmd.terminal.write(
 							"Error: --insecure flag not supported in this simulation.",
 							"error",
 						);
 						return;
 					}
 					if (!ssl.httpsReady) {
-						terminal.writeOutput(
+						cmd.terminal.write(
 							"Error: SSL handshake failed. Certificate not found.",
 							"error",
 						);
@@ -566,38 +566,36 @@ const rules = [
 
 					const domain = getDomain();
 					if (verbose) {
-						terminal.writeOutput(`* Trying ${domain}:443...`);
-						terminal.writeOutput(
-							`* Connected to ${domain} (127.0.0.1) port 443`,
-						);
-						terminal.writeOutput(
+						cmd.terminal.write(`* Trying ${domain}:443...`);
+						cmd.terminal.write(`* Connected to ${domain} (127.0.0.1) port 443`);
+						cmd.terminal.write(
 							"* TLS 1.3 connection using TLS_AES_256_GCM_SHA384",
 						);
-						terminal.writeOutput("* Server certificate:");
-						terminal.writeOutput(`*  subject: ${domain}`);
-						terminal.writeOutput("*  issuer: Let's Encrypt Authority X3");
-						terminal.writeOutput("*  SSL certificate verify ok.");
+						cmd.terminal.write("* Server certificate:");
+						cmd.terminal.write(`*  subject: ${domain}`);
+						cmd.terminal.write("*  issuer: Let's Encrypt Authority X3");
+						cmd.terminal.write("*  SSL certificate verify ok.");
 					}
-					terminal.writeOutput(`🔒 TLS Handshake successful`);
-					terminal.writeOutput(`   Certificate: ${domain}`);
-					terminal.writeOutput("   Issuer: Let's Encrypt");
-					terminal.writeOutput("");
-					terminal.writeOutput("HTTP/1.1 200 OK");
-					terminal.writeOutput("Content-Type: text/html");
+					cmd.terminal.write(`🔒 TLS Handshake successful`);
+					cmd.terminal.write(`   Certificate: ${domain}`);
+					cmd.terminal.write("   Issuer: Let's Encrypt");
+					cmd.terminal.write("");
+					cmd.terminal.write("HTTP/1.1 200 OK");
+					cmd.terminal.write("Content-Type: text/html");
 					if (!headOnly) {
-						terminal.writeOutput("");
-						terminal.writeOutput(INDEX_HTML_CONTENT);
+						cmd.terminal.write("");
+						cmd.terminal.write(INDEX_HTML_CONTENT);
 					}
 
 					if (ssl.httpsReady && ssl.hasRedirect) {
-						interaction.openModal(buildSuccessModal());
-						terminal.finishEngine();
-						progress.completeQuestion();
+						cmd.openModal(buildSuccessModal());
+						cmd.terminal.finish();
+						cmd.completeQuestion();
 					}
 					return;
 				}
 
-				terminal.writeOutput(
+				cmd.terminal.write(
 					"Error: Unknown URL scheme. Use http:// or https://",
 					"error",
 				);
@@ -618,43 +616,43 @@ const rules = [
 						}
 					}
 					if (!url) {
-						terminal.writeOutput("Usage: openssl s_client <url>");
+						cmd.terminal.write("Usage: openssl s_client <url>");
 						return;
 					}
 					if (!url.toLowerCase().startsWith("https://")) {
-						terminal.writeOutput(
+						cmd.terminal.write(
 							"Error: s_client requires an https:// URL",
 							"error",
 						);
 						return;
 					}
 					if (!ssl.httpsReady) {
-						terminal.writeOutput(
+						cmd.terminal.write(
 							"Error: SSL handshake failed. The server doesn't have a certificate configured.",
 							"error",
 						);
 						return;
 					}
 					const domain = getDomain();
-					terminal.writeOutput(`CONNECTED(${Date.now() % 1000000})`);
-					terminal.writeOutput("---");
-					terminal.writeOutput("Certificate chain");
-					terminal.writeOutput(` 0 s:${domain}`);
-					terminal.writeOutput("   i:R3");
-					terminal.writeOutput("---");
-					terminal.writeOutput("Server certificate");
-					terminal.writeOutput(`subject=${domain}`);
-					terminal.writeOutput("issuer=Let's Encrypt Authority X3");
-					terminal.writeOutput("---");
-					terminal.writeOutput("Verify return code: 0 (ok)");
+					cmd.terminal.write(`CONNECTED(${Date.now() % 1000000})`);
+					cmd.terminal.write("---");
+					cmd.terminal.write("Certificate chain");
+					cmd.terminal.write(` 0 s:${domain}`);
+					cmd.terminal.write("   i:R3");
+					cmd.terminal.write("---");
+					cmd.terminal.write("Server certificate");
+					cmd.terminal.write(`subject=${domain}`);
+					cmd.terminal.write("issuer=Let's Encrypt Authority X3");
+					cmd.terminal.write("---");
+					cmd.terminal.write("Verify return code: 0 (ok)");
 					return;
 				}
-				terminal.writeOutput("Available openssl commands: s_client");
+				cmd.terminal.write("Available openssl commands: s_client");
 				return;
 			}
 
 			if (command === "help" || command === "?") {
-				terminal.writeOutput(
+				cmd.terminal.write(
 					"Available commands:\n" +
 						"  curl <url>           Test HTTP/HTTPS connection\n" +
 						"    curl http://example.com\n" +
@@ -670,11 +668,11 @@ const rules = [
 			}
 
 			if (command === "clear") {
-				terminal.clearHistory();
+				cmd.terminal.clearHistory();
 				return;
 			}
 
-			terminal.writeOutput(
+			cmd.terminal.write(
 				`Unknown command: ${command}. Type 'help' for available commands.`,
 				"error",
 			);

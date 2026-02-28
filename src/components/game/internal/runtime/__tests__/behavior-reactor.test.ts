@@ -14,21 +14,21 @@ import {
 const ok = (): RuntimeApiResult => ({ ok: true });
 
 const createWorldStub = () => {
-	const createEntity = vi.fn(() => ok());
-	const updateEntity = vi.fn(() => ok());
-	const updateEntityState = vi.fn(() => ok());
-	const deleteEntities = vi.fn(() => ok());
-	const addToSpace = vi.fn(() => ok());
+	const spawnEntity = vi.fn(() => ok());
+	const patchEntity = vi.fn(() => ok());
+	const patchEntityState = vi.fn(() => ok());
+	const destroyEntities = vi.fn(() => ok());
+	const placeInSpace = vi.fn(() => ok());
 	const removeFromSpace = vi.fn(() => ok());
 	const moveEntity = vi.fn(() => ok());
 	const moveEntityToGrid = vi.fn(() => ok());
 
 	const world: WorldApi = {
-		createEntity,
-		updateEntity,
-		updateEntityState,
-		deleteEntities,
-		addToSpace,
+		spawnEntity,
+		patchEntity,
+		patchEntityState,
+		destroyEntities,
+		placeInSpace,
 		removeFromSpace,
 		moveEntity,
 		moveEntityToGrid,

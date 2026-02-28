@@ -69,31 +69,25 @@ const InternetGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const {
-		world,
-		interactionSession,
-		state,
-		isCompleted,
-		behaviorContext,
-		registerTerminalFinish,
-	} = useQuestionRuntime("internet-page", INTERNET_DEFINITION);
+	const { cmd, snapshot, isCompleted, store, registerTerminalFinish } =
+		useQuestionRuntime("internet-page", INTERNET_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
 	const { terminal, openTerminal, closeTerminal, setPrompt, addEntry } =
 		useTerminalStore();
 	const shouldShowTerminal =
-		state.phase === "terminal" || state.phase === "completed";
+		snapshot.phase === "terminal" || snapshot.phase === "completed";
 	const dragEngine = useDragEngine();
-	const internetState = useInternetState({ dragEngine, world });
+	const internetState = useInternetState({ dragEngine, world: cmd });
 	const { registerDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
 
 	// Navigate away when behavior signals completion
 	useEffect(() => {
-		if (behaviorContext.navigateAway) {
+		if (store.navigateAway) {
 			onQuestionComplete();
 		}
-	}, [behaviorContext.navigateAway, onQuestionComplete]);
+	}, [store.navigateAway, onQuestionComplete]);
 
 	const terminalEngine = useTerminalEngine({});
 	registerTerminalFinish.current = terminalEngine.finish;
@@ -139,29 +133,26 @@ const InternetGame = ({
 	useEffect(() => {
 		const context: ConditionContext<InternetConditionKey> = {
 			dragStatus: dragEngine.progress.status,
-			questionStatus: state.question.status,
+			questionStatus: snapshot.question.status,
 			allDevicesPlaced: internetState.allDevicesPlaced,
 		};
 
 		const resolved = deriveQuestionPhase(
 			INTERNET_DEFINITION.phaseRules,
 			context,
-			state.phase,
+			snapshot.phase,
 			"setup",
 		);
 
-		if (state.phase !== resolved.nextPhase) {
-			interactionSession.requestPhaseTransition(
-				resolved.nextPhase,
-				"internet.phase_rules",
-			);
+		if (snapshot.phase !== resolved.nextPhase) {
+			cmd.setPhase(resolved.nextPhase, "internet.phase_rules");
 		}
 	}, [
 		dragEngine.progress.status,
-		interactionSession,
+		cmd,
 		internetState.allDevicesPlaced,
-		state.phase,
-		state.question.status,
+		snapshot.phase,
+		snapshot.question.status,
 	]);
 
 	useEffect(() => {

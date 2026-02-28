@@ -18,22 +18,17 @@
 8. [Behaviors & Reactions](#8-behaviors--reactions)
    - [Core Types](#core-types--typesbehaviorts)
    - [EventTrigger](#eventtrigger)
-   - [GuardContext](#guardcontext)
-   - [EffectContext](#effectcontext)
+   - [GuardCtx](#guardctx)
+   - [HandlerCtx](#handlerctx)
    - [EventProvenance](#eventprovenance)
    - [Contracts / Pattern Matching](#contracts--pattern-matching)
    - [Internal Wiring (BehaviorReactorDeps)](#internal-wiring-for-reference-only)
    - [Utility Behavior Types](#utility-behavior-types)
 9. [Authoring a Question](#9-authoring-a-question)
 10. [Public API — Inside a Behavior Handler](#10-public-api--inside-a-behavior-handler)
-    - [world](#world--mutate-entities-and-spaces)
-    - [interaction](#interaction--modals-and-terminal-visibility)
-    - [flow](#flow--execution-flow-and-phase-transitions)
-    - [progress](#progress--question-completion)
-    - [terminal](#terminal--terminal-output)
+    - [cmd](#cmd--single-flat-command-surface)
     - [Engine Hooks](#engine-hooks)
     - [QuestionRuntime](#questionruntime--outside-behavior-handlers)
-    - [Commands (legacy)](#commands--legacy-flat-alias)
     - [RuntimeApiResult](#runtimeapiresult)
 11. [UI & Presentation Layer](#11-ui--presentation-layer)
 
@@ -51,7 +46,7 @@ From those three atoms:
 
 **`GameState`** is the snapshot — it holds all current entities, all current spaces, the event queue, the active phase, and overlay state (open modals, terminal visibility).
 
-**Behavior rules** are the reactive layer. They subscribe to `GameEvent` triggers and run `handler` functions in response, optionally gated by a `guard`. Inside a handler you call the **Public API** (`world`, `interaction`, `progress`, `flow`, `terminal`) to mutate the world.
+**Behavior rules** are the reactive layer. They subscribe to `GameEvent` triggers and run `handler` functions in response, optionally gated by a `guard`. Inside a handler you call the **Public API** (`ctx.cmd`) to mutate the world.
 
 **`QuestionDefinition`** is the authoring layer sitting above all of this. It is a static, declarative description of one question — which spaces exist, which entities start where, what the initial phase is, and what `phaseRules` / `inventoryRules` / `spaceRules` / `dragRules` / `layoutRules` automatically derive from state. You never write a `QuestionDefinition` at runtime; you write it once as a config object.
 
@@ -63,11 +58,19 @@ QuestionDefinition (authoring)
 GameState (snapshot)
   ↓ events fire
 BehaviorRules react
-  ↓ call Public API
+  ↓ call ctx.cmd.*
 GameState mutates → new GameEvent appended → cycle repeats
 ```
 
-**Transformers vs. Public API:** The domain transformers (`tryAddEntityToSpace`, `tryMoveEntityAcrossSpaces`, etc.) are the *internal* mutation primitives — they operate on raw state slices and return `TransitionResult`. You never call them directly in question code. The **Public API** (`world.moveEntity`, etc.) wraps them, dispatches Redux actions, and emits the resulting `GameEvent`s. Always use the Public API in behavior handlers.
+**Transformers vs. Public API:** The domain transformers (`tryAddEntityToSpace`, `tryMoveEntityAcrossSpaces`, etc.) are the *internal* mutation primitives — they operate on raw state slices and return `TransitionResult`. You never call them directly in question code. The **Public API** (`ctx.cmd.moveEntity`, etc.) wraps them, dispatches Redux actions, and emits the resulting `GameEvent`s. Always use `ctx.cmd.*` in behavior handlers.
+
+### CQRS Contract: snapshot / cmd / store
+
+Handler context (`HandlerCtx`) exposes three surfaces with distinct consistency guarantees:
+
+- **`ctx.snapshot`** — **stale Redux point-in-time.** Captured at the start of the event batch. `cmd` mutations do not update `snapshot` within the same handler — the snapshot catches up on the next event after React re-renders.
+- **`ctx.cmd`** — **eventual fire-and-forget dispatch.** All mutations (entity, space, modal, phase, terminal) flow through this single flat surface. Effects are queued synchronously but are visible in `snapshot` only on the next render cycle.
+- **`ctx.store`** — **live in-memory behavior state.** The `TContext` object owned by the behavior reactor. Mutations via `ctx.mutate(fn)` are synchronously visible within the same handler tick.
 
 ---
 
@@ -120,7 +123,7 @@ TransitionResult<T>
 
 ### Phase and Question Status
 
-These are the concrete string values that `GameState.phase` and `GameState.question.status` hold. They are the values `PhaseRule` transitions between and that `progress.completeQuestion()` sets.
+These are the concrete string values that `GameState.phase` and `GameState.question.status` hold. They are the values `PhaseRule` transitions between and that `cmd.completeQuestion()` sets.
 
 | Type | File | Values |
 |------|------|--------|
@@ -191,7 +194,7 @@ type EntityData = {
 | `cloneEntityData` | `(entity: EntityData, newId: string) => EntityData` | Deep-clone with a new ID |
 | `cloneItemData` | `(item: ItemData, newId: string) => ItemData` | Deep-clone item with a new ID |
 
-> In question code you don't call these directly — you use `world.createEntity(config)` from the Public API, which calls these internally.
+> In question code you don't call these directly — you use `ctx.cmd.spawnEntity(config)` from the Public API, which calls these internally.
 
 **Type guard**:
 
@@ -401,7 +404,7 @@ type GameEventQueue = {
 
 ### Redux Action — how state changes (dispatch message)
 
-A Redux `Action` is the **message dispatched to the reducer** to actually mutate `GameState`. Every call to the Public API (`world.moveEntity(...)`) ultimately dispatches one or more Redux actions. You never dispatch actions directly in question code.
+A Redux `Action` is the **message dispatched to the reducer** to actually mutate `GameState`. Every call to the Public API (`ctx.cmd.moveEntity(...)`) ultimately dispatches one or more Redux actions. You never dispatch actions directly in question code.
 
 ```
 Action
@@ -415,7 +418,7 @@ Action
 The relationship:
 
 ```
-world.moveEntity()            ← you call this (Public API)
+ctx.cmd.moveEntity()           ← you call this (Public API)
   → tryMoveEntityAcrossSpaces()  ← transformer runs (internal)
   → dispatch(ENTITY_MOVED action) ← reducer updates GameState
   → append(ENTITY_MOVED event)   ← event queue records the fact
@@ -459,12 +462,12 @@ The domain read layer provides safe, typed queries over `GameReadState` (a read-
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `selectEntitiesByType` | `(state, type) => EntityData[]` | All entities of a given type |
-| `selectEntityStateValue` | `<T>(state, entityId, key) => T \| undefined` | Read one key from an entity's `state` bag |
+| `getEntitiesByType` | `(state, type) => EntityData[]` | All entities of a given type |
+| `getEntityStateValue` | `<T>(state, entityId, key) => T \| undefined` | Read one key from an entity's `state` bag |
 | `selectSpaceEntityCount` | `(state, spaceId) => number` | How many entities are in a space |
-| `selectSpaceIsFull` | `(state, spaceId) => boolean` | Space is at `maxCapacity` |
-| `selectSpaceIsEmpty` | `(state, spaceId) => boolean` | Space has zero entities |
-| `selectGridEmptyPositions` | `(state, spaceId) => GridPosition[]` | All unoccupied cells in a grid space |
+| `isSpaceFull` | `(state, spaceId) => boolean` | Space is at `maxCapacity` |
+| `isSpaceEmpty` | `(state, spaceId) => boolean` | Space has zero entities |
+| `getGridEmptyPositions` | `(state, spaceId) => GridPosition[]` | All unoccupied cells in a grid space |
 | `selectDerivedPhase` | `<CK>(rules, context, currentPhase, fallback) => PhaseResolution` | Evaluate phase rules against current context |
 
 ---
@@ -569,53 +572,53 @@ EventTrigger
 
 ---
 
-### GuardContext
+### GuardCtx
 
 Passed to the `guard` function of a rule. Read-only — you can only inspect, not mutate.
 
 ```ts
-type GuardContext<TContext> = {
+type GuardCtx<TContext> = {
   readonly event: GameEvent;
   provenance: EventProvenance;
-  entity?: EntityData;       // the entity involved, if applicable
-  state: GameState;
+  entity?: EntityData;           // the entity involved, if applicable
+  snapshot: GameState;           // stale Redux point-in-time snapshot
   phase: string;
-  context: Readonly<TContext>; // behavior's custom context
+  store: Readonly<TContext>;     // live behavior state (read-only in guard)
 }
 ```
+
+Deprecated alias: `GuardContext<TContext>` → `GuardCtx<TContext>`
 
 ---
 
-### EffectContext
+### HandlerCtx
 
-Passed to the `handler` function of a rule. Contains everything you need to react: read state, call the Public API, update behavior context, schedule future work.
+Passed to the `handler` function of a rule. Contains everything you need to react: read state, call the Public API, update behavior store, schedule future work.
 
 ```ts
-type EffectContext<TContext> = {
+type HandlerCtx<TContext> = {
   event: GameEvent;
   provenance: EventProvenance;
   entity?: EntityData;
-  state: GameState;
+  snapshot: GameState;           // stale Redux point-in-time snapshot
   phase: string;
-  context: TContext;
-  updateContext: (patch: Partial<TContext>) => void;
-  // Public API groups (see section 10):
-  world: WorldApi;
-  interaction: InteractionSessionApi;
-  flow: ExecutionFlowApi;
-  progress: ProgressApi;
-  terminal: TerminalBridge;
+  store: TContext;               // live in-memory behavior state (mutable via mutate)
+  mutate: (updater: (s: TContext) => void) => void;  // Immer-style mutation
+  // Single flat command surface:
+  cmd: CommandApi;
   // Scheduling:
   delay: (ms: number) => Promise<void>;
   once: (key: string, fn: () => void) => void;
-  schedule: (key: string, ms: number, fn: (ctx: ScheduledEffectContext<TContext>) => void) => void;
+  schedule: (key: string, ms: number, fn: (ctx: ScheduledCtx<TContext>) => void) => void;
   cancelSchedule: (key: string) => void;
-  // Convenience shortcuts:
-  setPhase: (phase: string) => void;
-  moveToInventory: (entityId: string) => void;
-  moveToGrid: (entityId: string, spaceId: string, position: GridPosition) => void;
 }
 ```
+
+Deprecated alias: `EffectContext<TContext>` → `HandlerCtx<TContext>`
+
+`ScheduledCtx<TContext>` is `HandlerCtx<TContext>` minus `event` and `entity` (timer-driven, no triggering event).
+
+Deprecated alias: `ScheduledEffectContext<TContext>` → `ScheduledCtx<TContext>`
 
 ---
 
@@ -661,11 +664,7 @@ type BehaviorReactorDeps = {
   state: GameState;
   events: GameEvent[];
   ack: (cursor: number) => void;
-  world: WorldApi;
-  interaction: InteractionSessionApi;
-  flow: ExecutionFlowApi;
-  progress: ProgressApi;
-  terminal?: TerminalBridge;
+  cmd: CommandApi;
   scheduler?: QuestionSchedulerApi;
 }
 ```
@@ -805,68 +804,54 @@ The factories produce correctly-typed `SpaceDefinition`, `EntityDefinition`, `Co
 
 ## 10. Public API — Inside a Behavior Handler
 
-Everything here is available on the `EffectContext` passed to your behavior `handler`. These are the *only* ways you should mutate the world or trigger UI from question code.
+Everything here is available on the `HandlerCtx` passed to your behavior `handler`. The single `cmd` surface is the *only* way you should mutate the world or trigger UI from question code.
 
 ---
 
-### `world` — Mutate entities and spaces
+### `cmd` — Single Flat Command Surface
 
-Wraps domain transformers, dispatches Redux actions, and emits `GameEvent`s. You do not need to touch the transformers directly.
+All mutations — entities, spaces, modals, phase, terminal — go through `ctx.cmd`. This replaces the old split API (`world`, `interaction`, `flow`, `progress`, `terminal` as separate objects).
 
-| Method | Description |
-|--------|-------------|
-| `world.createEntity(config)` | Spawn a new entity |
-| `world.updateEntity(entityId, updates)` | Patch entity name, visual, or data |
-| `world.updateEntityState(entityId, state)` | Patch entity state bag only |
-| `world.deleteEntities(entityIds)` | Remove one or more entities |
-| `world.addToSpace(entityId, spaceId, position?)` | Place entity into a space |
-| `world.removeFromSpace(entityId, spaceId)` | Remove entity from a space |
-| `world.moveEntity(entityId, toSpaceId, position?)` | Move entity across spaces (atomic) |
-| `world.moveEntityToGrid(entityId, spaceId, position)` | Move entity to a specific grid cell |
-
----
-
-### `interaction` — Modals and terminal visibility
+**Entity and Space Commands**
 
 | Method | Description |
 |--------|-------------|
-| `interaction.openModal(instance: ModalInstance)` | Open a modal dialog |
-| `interaction.closeModal(modalId, reason?)` | Programmatically close a modal |
-| `interaction.setTerminalVisible(visible)` | Show or hide the terminal panel |
-| `interaction.setModalGateOpen(open)` | Open or close the modal gate |
-| `interaction.requestPhaseTransition(phase)` | Request a phase change via the interaction layer |
+| `cmd.spawnEntity(config)` | Spawn a new entity |
+| `cmd.patchEntity(entityId, updates)` | Patch entity name, visual, or data |
+| `cmd.patchEntityState(entityId, state)` | Patch entity state bag only |
+| `cmd.destroyEntities(entityIds)` | Remove one or more entities |
+| `cmd.placeInSpace(entityId, spaceId, position?)` | Place entity into a space |
+| `cmd.removeFromSpace(entityId, spaceId)` | Remove entity from a space |
+| `cmd.moveEntity(entityId, toSpaceId, position?)` | Move entity across spaces (atomic) |
+| `cmd.moveEntityToGrid(entityId, spaceId)` | Move entity to first empty grid slot |
+| `cmd.moveToInventory(entityId)` | Convenience: move entity to inventory pool |
+| `cmd.moveToGrid(entityId, spaceId)` | Convenience: move entity to first empty grid slot |
 
----
-
-### `flow` — Execution flow and phase transitions
-
-`flow.requestPhaseTransition` and `interaction.requestPhaseTransition` both request a phase change, but through different subsystems. `flow` goes through the `ExecutionFlowDispatcher` (which validates the transition and logs a warning if invalid). `interaction` goes through the interaction session layer. In most behavior handlers, **prefer `flow.requestPhaseTransition`** — it enforces valid transitions. Use `interaction.requestPhaseTransition` only when the transition originates from a UI action (e.g., a modal button).
-
-| Method | Description |
-|--------|-------------|
-| `flow.requestPhaseTransition(phase)` | Request phase change through the execution flow dispatcher |
-| `flow.dispatchIntent(intent)` | Dispatch a raw `ExecutionFlowIntent` |
-
----
-
-### `progress` — Question completion
+**Interaction Commands**
 
 | Method | Description |
 |--------|-------------|
-| `progress.completeQuestion()` | Mark the current question as completed |
-| `progress.setQuestion(id, status?)` | Set the active question ID and status |
+| `cmd.openModal(instance: ModalInstance)` | Open a modal dialog |
+| `cmd.closeModal(modalId?, reason?)` | Programmatically close a modal |
+| `cmd.setPhase(phase, source?)` | Request a validated phase change |
+| `cmd.showTerminal(visible)` | Show or hide the terminal panel |
+| `cmd.setModalGateOpen(open)` | Open or close the modal gate |
+| `cmd.dispatchIntent(intent)` | Dispatch a raw `ExecutionFlowIntent` |
 
----
-
-### `terminal` — Terminal output
-
-Only relevant when using `useTerminalEngine`. Gives you access to the terminal's I/O from inside a behavior handler.
+**Progress Commands**
 
 | Method | Description |
 |--------|-------------|
-| `terminal.writeOutput(content)` | Append a line to the terminal display |
-| `terminal.clearHistory()` | Clear all terminal history entries |
-| `terminal.finishEngine()` | Signal the terminal engine to finish |
+| `cmd.completeQuestion()` | Mark the current question as completed |
+| `cmd.setQuestionStatus(id, status?)` | Set the active question ID and status |
+
+**Terminal Commands**
+
+| Method | Description |
+|--------|-------------|
+| `cmd.terminal.write(content, type?)` | Append a line to the terminal display |
+| `cmd.terminal.clearHistory()` | Clear all terminal history entries |
+| `cmd.terminal.finish()` | Signal the terminal engine to finish |
 
 ---
 
@@ -889,32 +874,25 @@ Used in page-level React components to manage engine lifecycles:
 
 ### QuestionRuntime — outside behavior handlers
 
-`QuestionRuntime<TContext>` is the runtime object available *outside* behavior handlers — e.g. in engine setup code, in page-level hooks, or when configuring `useDragEngine` / `useTerminalEngine`. It exposes the same API namespaces as `EffectContext` but is accessed imperatively rather than through a handler callback.
+`QuestionRuntime<TContext>` is the runtime object available *outside* behavior handlers — e.g. in engine setup code, in page-level hooks, or when configuring `useDragEngine` / `useTerminalEngine`. It exposes the same `cmd` surface as `HandlerCtx` but is accessed imperatively rather than through a handler callback.
 
 ```ts
 type QuestionRuntime<TContext> = {
-  world: WorldApi;
-  progress: ProgressApi;
-  executionFlow: ExecutionFlowApi;       // same as `flow` in EffectContext
-  interactionSession: InteractionSessionApi; // same as `interaction` in EffectContext
-  interactionState: InteractionSessionState; // { terminalVisible, modalGateOpen }
-  state: GameState;
+  cmd: CommandApi;                    // Single flat command surface (same as ctx.cmd in handlers)
+  snapshot: GameState;                // Stale Redux point-in-time snapshot
+  store: TContext;                    // Live in-memory behavior store
   phase: string;
   isCompleted: boolean;
   events: GameEvent[];
   ack: (cursor: number) => void;
-  behaviorContext: TContext;
-  registerTerminalFinish: (fn: () => void) => void;
+  registerTerminalFinish: MutableRefObject<(() => void) | null>;
 }
 ```
 
-> Note: `executionFlow` in `QuestionRuntime` corresponds to `flow` in `EffectContext`. `interactionSession` corresponds to `interaction`. The naming differs for historical reasons.
-
----
-
-### `Commands` — legacy flat alias
-
-The `Commands` type is a flat bag that combines `WorldApi` + some interaction methods into a single object. It predates the namespaced `world`/`interaction` split on `EffectContext`. **Prefer the namespaced APIs** (`world.*`, `interaction.*`) from `EffectContext` or `QuestionRuntime`. `Commands` exists for backward compatibility.
+The three properties follow the CQRS contract:
+- **`snapshot`** — stale Redux point-in-time; does not update within the current render cycle after `cmd` mutations
+- **`cmd`** — eventual fire-and-forget dispatch; mutations are queued and reflected on the next render
+- **`store`** — live in-memory behavior state; updated via `mutate()` inside behavior handlers
 
 ---
 
@@ -948,7 +926,7 @@ Used in JSX to render spaces. Each component connects to the game state automati
 
 ### Modal Types — `types/modal.ts`
 
-A `ModalInstance` is built from `ModalContentBlock`s and `ModalAction`s. Pass one to `interaction.openModal()`.
+A `ModalInstance` is built from `ModalContentBlock`s and `ModalAction`s. Pass one to `cmd.openModal()`.
 
 **Field kinds** (discriminated by `kind`):
 

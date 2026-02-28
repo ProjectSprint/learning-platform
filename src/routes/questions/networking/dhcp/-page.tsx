@@ -69,22 +69,16 @@ const NetworkingGame = ({
 	onQuestionComplete: () => void;
 }) => {
 	// Single runtime hook replaces useGameDispatch + useGameState + useEngineEvents + init useEffect
-	const {
-		world,
-		interactionSession,
-		state,
-		behaviorContext,
-		isCompleted,
-		registerTerminalFinish,
-	} = useQuestionRuntime("dhcp-page", DHCP_DEFINITION);
+	const { cmd, snapshot, store, isCompleted, registerTerminalFinish } =
+		useQuestionRuntime("dhcp-page", DHCP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
 	const { terminal, openTerminal, closeTerminal, setPrompt, addEntry } =
 		useTerminalStore();
 	const shouldShowTerminal =
-		state.phase === "terminal" || state.phase === "completed";
+		snapshot.phase === "terminal" || snapshot.phase === "completed";
 	const dragEngine = useDragEngine();
-	const networkState = useNetworkState({ dragEngine, world });
+	const networkState = useNetworkState({ dragEngine, world: cmd });
 	const { registerDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
 	const pc1Id = DHCP_SPACE_IDS.pc1;
@@ -146,10 +140,10 @@ const NetworkingGame = ({
 
 	// Navigate away when behavior signals completion
 	useEffect(() => {
-		if (behaviorContext.navigateAway) {
+		if (store.navigateAway) {
 			onQuestionComplete();
 		}
-	}, [behaviorContext.navigateAway, onQuestionComplete]);
+	}, [store.navigateAway, onQuestionComplete]);
 
 	const isItemClickableByType: Record<string, boolean> = useMemo(
 		() => ({ router: true, pc: true }),
@@ -168,26 +162,23 @@ const NetworkingGame = ({
 	useEffect(() => {
 		const context: ConditionContext<DhcpConditionKey> = {
 			dragStatus: dragEngine.progress.status,
-			questionStatus: state.question.status,
+			questionStatus: snapshot.question.status,
 		};
 		const resolved = deriveQuestionPhase(
 			DHCP_DEFINITION.phaseRules,
 			context,
-			state.phase,
+			snapshot.phase,
 			"setup",
 		);
 
-		if (state.phase !== resolved.nextPhase) {
-			interactionSession.requestPhaseTransition(
-				resolved.nextPhase,
-				"dhcp.phase_rules",
-			);
+		if (snapshot.phase !== resolved.nextPhase) {
+			cmd.setPhase(resolved.nextPhase, "dhcp.phase_rules");
 		}
 	}, [
 		dragEngine.progress.status,
-		interactionSession,
-		state.phase,
-		state.question.status,
+		cmd,
+		snapshot.phase,
+		snapshot.question.status,
 	]);
 
 	useEffect(() => {

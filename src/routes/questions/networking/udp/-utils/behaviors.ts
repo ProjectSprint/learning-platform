@@ -175,7 +175,7 @@ const updateEntityData = (
 	const payloadWriter = createEntityPayloadWriter<
 		UdpEntityDataByType,
 		Record<string, never>
-	>(ctx.world);
+	>(ctx.cmd);
 	payloadWriter.updateData(entityId, "udpEntity", updates);
 };
 
@@ -184,15 +184,15 @@ const moveEntityToSpace = (
 	entityId: string,
 	spaceId: UdpSpaceId,
 ) => {
-	const currentSpace = findEntitySpace(ctx.state, entityId);
+	const currentSpace = findEntitySpace(ctx.snapshot, entityId);
 	if (currentSpace === spaceId) {
 		return;
 	}
 	if (!currentSpace) {
-		ctx.world.addToSpace(entityId, spaceId);
+		ctx.cmd.placeInSpace(entityId, spaceId);
 		return;
 	}
-	ctx.world.moveEntity(entityId, spaceId);
+	ctx.cmd.moveEntity(entityId, spaceId);
 };
 
 const removeEntityFromSpace = (
@@ -200,8 +200,8 @@ const removeEntityFromSpace = (
 	entityId: string,
 	spaceId: UdpSpaceId,
 ) => {
-	if (findEntitySpace(ctx.state, entityId) === spaceId) {
-		ctx.world.removeFromSpace(entityId, spaceId);
+	if (findEntitySpace(ctx.snapshot, entityId) === spaceId) {
+		ctx.cmd.removeFromSpace(entityId, spaceId);
 	}
 };
 
@@ -210,12 +210,12 @@ const setNotice = (
 	message: string,
 	tone: "error" | "info" = "info",
 ) => {
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.noticeMessage = message;
 		state.noticeTone = tone;
 	});
 	ctx.schedule("udp.notice.clear", TIMER_NOTICE_MS, (scheduledCtx) => {
-		scheduledCtx.updateContext((state) => {
+		scheduledCtx.mutate((state) => {
 			state.noticeMessage = null;
 			state.noticeTone = null;
 		});
@@ -269,7 +269,7 @@ const exposeDataPacketsForClients = (
 	clientIds: readonly TcpClientId[],
 ) => {
 	for (const clientId of clientIds) {
-		const delivered = new Set(ctx.context.tcpDeliveredCounts[clientId]);
+		const delivered = new Set(ctx.store.tcpDeliveredCounts[clientId]);
 		for (const packetId of DATA_PACKET_IDS_BY_CLIENT[clientId]) {
 			const parts = packetId.split("-");
 			const seq = Number(parts[parts.length - 1]);
@@ -287,7 +287,7 @@ const resetClientsForReconnect = (
 	ctx: UdpCtx,
 	clientIds: readonly TcpClientId[],
 ) => {
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		for (const clientId of clientIds) {
 			state.tcpConnections[clientId] = false;
 			if (!state.tcpReconnecting.includes(clientId)) {
@@ -306,7 +306,7 @@ const resetClientsForReconnect = (
 			status: "normal",
 		});
 
-		const delivered = new Set(ctx.context.tcpDeliveredCounts[clientId]);
+		const delivered = new Set(ctx.store.tcpDeliveredCounts[clientId]);
 		for (const packetId of DATA_PACKET_IDS_BY_CLIENT[clientId]) {
 			const parts = packetId.split("-");
 			const seq = Number(parts[parts.length - 1]);
@@ -356,41 +356,41 @@ const injectUdpFramesToInventory = (ctx: UdpCtx | ScheduledUdpCtx) => {
 };
 
 const openNewClientModalOnce = (ctx: UdpCtx | ScheduledUdpCtx) => {
-	if (ctx.context.modalsShown.newClient) {
+	if (ctx.store.modalsShown.newClient) {
 		return;
 	}
-	ctx.interaction.openModal(buildNewClientModal());
-	ctx.updateContext((state) => {
+	ctx.cmd.openModal(buildNewClientModal());
+	ctx.mutate((state) => {
 		state.modalsShown.newClient = true;
 	});
 };
 
 const openTimeoutModalOnce = (ctx: UdpCtx | ScheduledUdpCtx) => {
-	if (ctx.context.modalsShown.timeout) {
+	if (ctx.store.modalsShown.timeout) {
 		return;
 	}
-	ctx.interaction.openModal(buildTimeoutModal());
-	ctx.updateContext((state) => {
+	ctx.cmd.openModal(buildTimeoutModal());
+	ctx.mutate((state) => {
 		state.modalsShown.timeout = true;
 	});
 };
 
 const openBreakingPointModalOnce = (ctx: UdpCtx | ScheduledUdpCtx) => {
-	if (ctx.context.modalsShown.breaking) {
+	if (ctx.store.modalsShown.breaking) {
 		return;
 	}
-	ctx.interaction.openModal(buildBreakingPointModal());
-	ctx.updateContext((state) => {
+	ctx.cmd.openModal(buildBreakingPointModal());
+	ctx.mutate((state) => {
 		state.modalsShown.breaking = true;
 	});
 };
 
 const openUdpSuccessModalOnce = (ctx: UdpCtx | ScheduledUdpCtx) => {
-	if (ctx.context.modalsShown.udpSuccess) {
+	if (ctx.store.modalsShown.udpSuccess) {
 		return;
 	}
-	ctx.interaction.openModal(buildUdpSuccessModal());
-	ctx.updateContext((state) => {
+	ctx.cmd.openModal(buildUdpSuccessModal());
+	ctx.mutate((state) => {
 		state.modalsShown.udpSuccess = true;
 	});
 };
@@ -415,18 +415,17 @@ const handleSynAckPacketDrop = (ctx: UdpCtx, entity: EntityData) => {
 		return;
 	}
 
-	const isHandshakePhase = ctx.context.tcpPhase === "handshake-synack";
-	const isNewClientPhase = ctx.context.tcpPhase === "chaos-new-client";
+	const isHandshakePhase = ctx.store.tcpPhase === "handshake-synack";
+	const isNewClientPhase = ctx.store.tcpPhase === "chaos-new-client";
 	const isRedoHandshake =
-		ctx.context.tcpPhase === "chaos-redo" &&
-		ctx.context.redoStage === "handshake";
+		ctx.store.tcpPhase === "chaos-redo" && ctx.store.redoStage === "handshake";
 
 	if (!isHandshakePhase && !isNewClientPhase && !isRedoHandshake) {
 		markRejected(ctx, entity, "Handshake packets are not expected right now.");
 		return;
 	}
 
-	if (ctx.context.tcpConnections[clientId]) {
+	if (ctx.store.tcpConnections[clientId]) {
 		markRejected(
 			ctx,
 			entity,
@@ -462,7 +461,7 @@ const handleSynAckPacketDrop = (ctx: UdpCtx, entity: EntityData) => {
 				status: "success",
 			});
 			moveEntityToSpace(sCtx, getReceivedAckEntityId(clientId), "received");
-			sCtx.updateContext((state) => {
+			sCtx.mutate((state) => {
 				state.tcpConnections[clientId] = true;
 				state.tcpReconnecting = state.tcpReconnecting.filter(
 					(id) => id !== clientId,
@@ -472,25 +471,22 @@ const handleSynAckPacketDrop = (ctx: UdpCtx, entity: EntityData) => {
 
 			if (isHandshakePhase) {
 				if (
-					allClientsConnected(
-						sCtx.context.tcpConnections,
-						INITIAL_TCP_CLIENT_IDS,
-					)
+					allClientsConnected(sCtx.store.tcpConnections, INITIAL_TCP_CLIENT_IDS)
 				) {
-					sCtx.updateContext((state) => {
+					sCtx.mutate((state) => {
 						state.tcpPhase = "data-transfer";
 					});
 				}
 			} else if (isNewClientPhase) {
-				sCtx.updateContext((state) => {
+				sCtx.mutate((state) => {
 					state.tcpPhase = "chaos-timeout";
 				});
 				openTimeoutModalOnce(sCtx);
 			} else if (
 				isRedoHandshake &&
-				allClientsConnected(sCtx.context.tcpConnections, reconnectClients)
+				allClientsConnected(sCtx.store.tcpConnections, reconnectClients)
 			) {
-				sCtx.updateContext((state) => {
+				sCtx.mutate((state) => {
 					state.redoStage = "data";
 				});
 				exposeDataPacketsForClients(sCtx, reconnectClients);
@@ -516,17 +512,17 @@ const handleDataPacketDrop = (ctx: UdpCtx, entity: EntityData) => {
 		return;
 	}
 
-	const inDataTransfer = ctx.context.tcpPhase === "data-transfer";
-	const inHandshakeTransfer = ctx.context.tcpPhase === "handshake-synack";
+	const inDataTransfer = ctx.store.tcpPhase === "data-transfer";
+	const inHandshakeTransfer = ctx.store.tcpPhase === "handshake-synack";
 	const inRedoData =
-		ctx.context.tcpPhase === "chaos-redo" && ctx.context.redoStage === "data";
+		ctx.store.tcpPhase === "chaos-redo" && ctx.store.redoStage === "data";
 
 	if (!inDataTransfer && !inHandshakeTransfer && !inRedoData) {
 		markRejected(ctx, entity, "Data packets are not expected in this phase.");
 		return;
 	}
 
-	if (!ctx.context.tcpConnections[clientId]) {
+	if (!ctx.store.tcpConnections[clientId]) {
 		markRejected(
 			ctx,
 			entity,
@@ -547,7 +543,7 @@ const handleDataPacketDrop = (ctx: UdpCtx, entity: EntityData) => {
 				status: "success",
 			});
 			const seq = typeof entity.data?.seq === "number" ? entity.data.seq : 0;
-			sCtx.updateContext((state) => {
+			sCtx.mutate((state) => {
 				if (seq > 0) {
 					const delivered = state.tcpDeliveredCounts[clientId];
 					const waiting = state.tcpWaitingSeqs[clientId];
@@ -582,12 +578,12 @@ const handleDataPacketDrop = (ctx: UdpCtx, entity: EntityData) => {
 			if (
 				(inDataTransfer || inHandshakeTransfer) &&
 				allClientsConnected(
-					sCtx.context.tcpConnections,
+					sCtx.store.tcpConnections,
 					INITIAL_TCP_CLIENT_IDS,
 				) &&
-				sCtx.context.tcpPacketsSent >= TRIGGER_CLIENT_D_PACKET_COUNT
+				sCtx.store.tcpPacketsSent >= TRIGGER_CLIENT_D_PACKET_COUNT
 			) {
-				sCtx.updateContext((state) => {
+				sCtx.mutate((state) => {
 					state.tcpPhase = "chaos-new-client";
 					if (!state.activeTcpClients.includes("d")) {
 						state.activeTcpClients = [...state.activeTcpClients, "d"];
@@ -603,7 +599,7 @@ const handleDataPacketDrop = (ctx: UdpCtx, entity: EntityData) => {
 			}
 
 			if (inRedoData) {
-				sCtx.updateContext((state) => {
+				sCtx.mutate((state) => {
 					state.tcpPhase = "breaking-point";
 				});
 				openBreakingPointModalOnce(sCtx);
@@ -613,20 +609,20 @@ const handleDataPacketDrop = (ctx: UdpCtx, entity: EntityData) => {
 };
 
 const handleUnicastReceived = (ctx: UdpCtx, entity: EntityData) => {
-	if (ctx.context.mode !== "udp" || ctx.context.udpPhase !== "unicast") {
+	if (ctx.store.mode !== "udp" || ctx.store.udpPhase !== "unicast") {
 		markRejected(ctx, entity, "Unicast responses are not expected right now.");
 		return;
 	}
 
 	updateEntityData(ctx, entity.id, { state: "received", status: "success" });
 
-	ctx.updateContext((state) => {
+	ctx.mutate((state) => {
 		state.unicastsReceived += 1;
 	});
 
-	if (ctx.context.unicastsReceived >= UDP_CLIENT_IDS.length) {
+	if (ctx.store.unicastsReceived >= UDP_CLIENT_IDS.length) {
 		ctx.schedule("udp.unicast.complete", TIMER_UDP_INTRO_DELAY_MS, (sCtx) => {
-			sCtx.updateContext((state) => {
+			sCtx.mutate((state) => {
 				state.udpPhase = "streaming";
 			});
 			injectUdpFramesToInventory(sCtx);
@@ -639,14 +635,14 @@ const handleFrameDrop = (ctx: UdpCtx, entity: EntityData) => {
 		return;
 	}
 
-	if (ctx.context.mode !== "udp" || ctx.context.udpPhase !== "streaming") {
+	if (ctx.store.mode !== "udp" || ctx.store.udpPhase !== "streaming") {
 		markRejected(ctx, entity, "UDP streaming has not started yet.");
 		return;
 	}
 
 	const frameNumber =
 		typeof entity.data?.frameNumber === "number" ? entity.data.frameNumber : 0;
-	const expectedFrame = ctx.context.lastSentFrame + 1;
+	const expectedFrame = ctx.store.lastSentFrame + 1;
 	if (frameNumber !== expectedFrame) {
 		markRejected(ctx, entity, `Send Frame ${expectedFrame} first.`);
 		return;
@@ -656,7 +652,7 @@ const handleFrameDrop = (ctx: UdpCtx, entity: EntityData) => {
 
 	ctx.schedule(`udp.frame.send.${entity.id}`, TIMER_FRAME_SEND_MS, (sCtx) => {
 		removeEntityFromSpace(sCtx, entity.id, "internet");
-		sCtx.updateContext((state) => {
+		sCtx.mutate((state) => {
 			state.lastSentFrame = frameNumber;
 
 			for (const clientId of UDP_CLIENT_IDS) {
@@ -674,7 +670,7 @@ const handleFrameDrop = (ctx: UdpCtx, entity: EntityData) => {
 
 		if (frameNumber >= TOTAL_FRAMES) {
 			openUdpSuccessModalOnce(sCtx);
-			sCtx.progress.completeQuestion();
+			sCtx.cmd.completeQuestion();
 		}
 	});
 };
@@ -754,7 +750,7 @@ const rules = [
 				return;
 			}
 
-			ctx.updateContext((state) => {
+			ctx.mutate((state) => {
 				state.mode = "udp";
 				state.udpPhase = "intro";
 				state.noticeMessage = null;
@@ -764,7 +760,7 @@ const rules = [
 			clearTcpArtifactsFromInternet(ctx);
 			clearTcpPools(ctx);
 			ctx.schedule("udp.intro.delay", TIMER_UDP_INTRO_DELAY_MS, (sCtx) => {
-				sCtx.updateContext((state) => {
+				sCtx.mutate((state) => {
 					state.udpPhase = "unicast";
 				});
 				injectUnicastsToInternet(sCtx);
@@ -774,7 +770,7 @@ const rules = [
 	BehaviorRule<UdpBehaviorContext, UdpTriggerSpec>({
 		id: "udp.success.navigate",
 		on: buildModalSubmitTrigger("udp-success", "complete"),
-		handler: ({ event, updateContext }) => {
+		handler: ({ event, mutate }) => {
 			const parsed = parseModalSubmission(
 				event,
 				UDP_SUCCESS_NAVIGATION_CONTRACT,
@@ -782,7 +778,7 @@ const rules = [
 			if (!parsed || !parsed.ok) {
 				return;
 			}
-			updateContext((state) => {
+			mutate((state) => {
 				state.navigateAway = true;
 			});
 		},

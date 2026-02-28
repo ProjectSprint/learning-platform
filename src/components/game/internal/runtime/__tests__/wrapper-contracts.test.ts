@@ -41,11 +41,11 @@ describe("wrapper API surface matches type contracts", () => {
 		const commands = createCommandsStub();
 		const world = createWorldApi({ commands });
 		const expectedKeys: (keyof WorldApi)[] = [
-			"createEntity",
-			"updateEntity",
-			"updateEntityState",
-			"deleteEntities",
-			"addToSpace",
+			"spawnEntity",
+			"patchEntity",
+			"patchEntityState",
+			"destroyEntities",
+			"placeInSpace",
 			"removeFromSpace",
 			"moveEntity",
 			"moveEntityToGrid",
@@ -81,7 +81,7 @@ describe("wrapper API surface matches type contracts", () => {
 		});
 		const expectedKeys: (keyof ProgressApi)[] = [
 			"completeQuestion",
-			"setQuestion",
+			"setQuestionStatus",
 		];
 		expect(Object.keys(progress).sort()).toEqual(expectedKeys.sort());
 	});
@@ -132,10 +132,10 @@ describe("runtime wrapper contracts", () => {
 		});
 		const world = createWorldApi({ commands });
 
-		const result = world.addToSpace("entity-1", "unknown-space");
+		const result = world.placeInSpace("entity-1", "unknown-space");
 		expect(result.ok).toBe(false);
 		if (!result.ok) {
-			expect(result.error.message).toContain("worldApi.addToSpace");
+			expect(result.error.message).toContain("worldApi.placeInSpace");
 			expect(result.error.message).toContain("space not found");
 		}
 	});
@@ -149,9 +149,9 @@ describe("runtime wrapper contracts", () => {
 		});
 
 		expect(progress.completeQuestion().ok).toBe(true);
-		expect(progress.setQuestion({ id: "q1", status: "completed" }).ok).toBe(
-			true,
-		);
+		expect(
+			progress.setQuestionStatus({ id: "q1", status: "completed" }).ok,
+		).toBe(true);
 		expect(dispatched).toHaveLength(1);
 		expect(dispatched[0].type).toBe("SET_QUESTION");
 	});

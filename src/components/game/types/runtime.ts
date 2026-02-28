@@ -153,6 +153,7 @@ export type ValidationError = {
 	message: string;
 };
 
+// Internal API types — used by wrappers and reactor, not exposed publicly.
 export type ExecutionFlowApi = {
 	requestPhaseTransition: (phase: string, source: string) => RuntimeApiResult;
 	dispatchIntent: (intent: ExecutionFlowIntent) => RuntimeApiResult;
@@ -173,15 +174,15 @@ export type InteractionSessionApi = {
 
 export type ProgressApi = {
 	completeQuestion: () => RuntimeApiResult;
-	setQuestion: (input: {
+	setQuestionStatus: (input: {
 		id: string;
 		status?: "in_progress" | "completed";
 	}) => RuntimeApiResult;
 };
 
 export type WorldApi = {
-	createEntity: (config: ItemDataConfig) => RuntimeApiResult;
-	updateEntity: (
+	spawnEntity: (config: ItemDataConfig) => RuntimeApiResult;
+	patchEntity: (
 		entityId: string,
 		updates: {
 			name?: string;
@@ -190,12 +191,12 @@ export type WorldApi = {
 			visual?: Record<string, unknown>;
 		},
 	) => RuntimeApiResult;
-	updateEntityState: (
+	patchEntityState: (
 		entityId: string,
 		state: Record<string, unknown>,
 	) => RuntimeApiResult;
-	deleteEntities: (entityIds: string[]) => RuntimeApiResult;
-	addToSpace: (
+	destroyEntities: (entityIds: string[]) => RuntimeApiResult;
+	placeInSpace: (
 		entityId: string,
 		spaceId: string,
 		position?: GridPosition,
@@ -209,18 +210,83 @@ export type WorldApi = {
 	moveEntityToGrid: (entityId: string, spaceId: string) => RuntimeApiResult;
 };
 
+/**
+ * CommandApi — the flat command surface exposed to behavior handlers via `ctx.cmd`.
+ *
+ * This is the CQRS "command" side: all mutations are fire-and-forget dispatches
+ * to Redux. Reads must come from `ctx.snapshot` (stale point-in-time) or
+ * `ctx.store` (live behavior state).
+ */
+export type CommandApi = {
+	// Entity lifecycle
+	spawnEntity: (config: ItemDataConfig) => RuntimeApiResult;
+	patchEntity: (
+		entityId: string,
+		updates: {
+			name?: string;
+			draggable?: boolean;
+			data?: Record<string, unknown>;
+			visual?: Record<string, unknown>;
+		},
+	) => RuntimeApiResult;
+	patchEntityState: (
+		entityId: string,
+		state: Record<string, unknown>,
+	) => RuntimeApiResult;
+	destroyEntities: (entityIds: string[]) => RuntimeApiResult;
+
+	// Space placement
+	placeInSpace: (
+		entityId: string,
+		spaceId: string,
+		position?: GridPosition,
+	) => RuntimeApiResult;
+	removeFromSpace: (entityId: string, spaceId: string) => RuntimeApiResult;
+	moveEntity: (
+		entityId: string,
+		toSpaceId: string,
+		position?: GridPosition,
+	) => RuntimeApiResult;
+	moveEntityToGrid: (entityId: string, spaceId: string) => RuntimeApiResult;
+
+	// Interaction
+	openModal: (modal: ModalInstance) => RuntimeApiResult;
+	closeModal: (modalId?: string) => RuntimeApiResult;
+	setPhase: (phase: string, source?: string) => void;
+	showTerminal: (visible: boolean) => RuntimeApiResult;
+	setModalGateOpen: (open: boolean) => RuntimeApiResult;
+
+	// Flow
+	dispatchIntent: (intent: ExecutionFlowIntent) => RuntimeApiResult;
+
+	// Progress
+	completeQuestion: () => RuntimeApiResult;
+	setQuestionStatus: (input: {
+		id: string;
+		status?: "in_progress" | "completed";
+	}) => RuntimeApiResult;
+
+	// Terminal sub-object
+	terminal: {
+		write: (content: string, type?: "output" | "error") => void;
+		clearHistory: () => void;
+		finish: () => void;
+	};
+
+	// Convenience shortcuts
+	moveToInventory: (entityId: string) => void;
+	moveToGrid: (entityId: string, spaceId: string) => boolean;
+};
+
 export type QuestionRuntime<TContext = Record<string, never>> = {
-	world: WorldApi;
-	progress: ProgressApi;
-	executionFlow: ExecutionFlowApi;
-	interactionSession: InteractionSessionApi;
+	cmd: CommandApi;
 	interactionState: InteractionSessionState;
-	state: GameState;
+	snapshot: GameState;
 	phase: string;
 	isCompleted: boolean;
 	events: GameEvent[];
 	ack: () => void;
-	behaviorContext: TContext;
+	store: TContext;
 	registerTerminalFinish: MutableRefObject<(() => void) | null>;
 };
 

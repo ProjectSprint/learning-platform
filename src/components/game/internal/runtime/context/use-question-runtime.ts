@@ -8,8 +8,12 @@
  *   useEffect(() => { initializeXxxQuestion(dispatch); }, []);
  *
  * With:
- *   const { world, progress, executionFlow, interactionSession, state, events, ack }
- *      = useQuestionRuntime("...", DEFINITION);
+ *   const { cmd, snapshot, store, events, ack } = useQuestionRuntime("...", DEFINITION);
+ *
+ * CQRS contract:
+ * - `snapshot` — stale Redux state (point-in-time, may lag behind recent commands)
+ * - `store` — live in-memory behavior store (always current)
+ * - `cmd` — fire-and-forget command bus (eventual consistency)
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -19,6 +23,7 @@ import type {
 } from "@/components/game/types/behavior";
 import type { QuestionDefinition } from "@/components/game/types/question";
 import type {
+	CommandApi,
 	ExecutionFlowApi,
 	InteractionSessionApi,
 	InteractionSessionState,
@@ -45,6 +50,72 @@ import {
 	createProgressApi,
 	createWorldApi,
 } from "../wrappers";
+
+// Re-export buildCommandApi under a stable internal name
+function buildCommandApiFromParts(
+	world: WorldApi,
+	interaction: InteractionSessionApi,
+	flow: ExecutionFlowApi,
+	progress: ProgressApi,
+	terminal: TerminalBridge,
+): CommandApi {
+	return {
+		// Entity lifecycle
+		spawnEntity: (config) => world.spawnEntity(config),
+		patchEntity: (entityId, updates) => world.patchEntity(entityId, updates),
+		patchEntityState: (entityId, state) =>
+			world.patchEntityState(entityId, state),
+		destroyEntities: (entityIds) => world.destroyEntities(entityIds),
+
+		// Space placement
+		placeInSpace: (entityId, spaceId, position) =>
+			world.placeInSpace(entityId, spaceId, position),
+		removeFromSpace: (entityId, spaceId) =>
+			world.removeFromSpace(entityId, spaceId),
+		moveEntity: (entityId, toSpaceId, position) =>
+			world.moveEntity(entityId, toSpaceId, position),
+		moveEntityToGrid: (entityId, spaceId) =>
+			world.moveEntityToGrid(entityId, spaceId),
+
+		// Interaction
+		openModal: (modal) => interaction.openModal(modal),
+		closeModal: (modalId) => interaction.closeModal(modalId),
+		setPhase: (phase, source) => {
+			interaction.requestPhaseTransition(phase, source ?? "behavior");
+		},
+		showTerminal: (visible) => interaction.setTerminalVisible(visible),
+		setModalGateOpen: (open) => interaction.setModalGateOpen(open),
+
+		// Flow
+		dispatchIntent: (intent) => flow.dispatchIntent(intent),
+
+		// Progress
+		completeQuestion: () => progress.completeQuestion(),
+		setQuestionStatus: (input) => progress.setQuestionStatus(input),
+
+		// Terminal sub-object
+		terminal: {
+			write: (content, type = "output") => {
+				terminal.writeOutput(content, type);
+			},
+			clearHistory: () => {
+				terminal.clearHistory();
+			},
+			finish: () => {
+				terminal.finishEngine();
+			},
+		},
+
+		// Convenience shortcuts
+		moveToInventory: (entityId) => {
+			world.moveEntity(entityId, "inventory");
+		},
+		moveToGrid: (entityId, spaceId) => {
+			const result = world.moveEntityToGrid(entityId, spaceId);
+			return result.ok;
+		},
+	};
+}
 
 /**
  * Hook that provides the full runtime context for a question page.
@@ -206,18 +277,24 @@ export function useQuestionRuntime<
 		scheduler,
 	});
 
+	// Build the cmd facade for the QuestionRuntime return value
+	const cmd = buildCommandApiFromParts(
+		worldApi,
+		interactionSessionApi,
+		executionFlowApi,
+		progressApi,
+		terminalBridge,
+	);
+
 	return {
-		world: worldApi,
-		progress: progressApi,
-		executionFlow: executionFlowApi,
-		interactionSession: interactionSessionApi,
+		cmd,
 		interactionState,
-		state,
+		snapshot: state,
 		phase: state.phase,
 		isCompleted: state.question.status === "completed",
 		events,
 		ack,
-		behaviorContext: behaviorResult.context,
+		store: behaviorResult.store,
 		registerTerminalFinish: finishEngineRef,
 	};
 }

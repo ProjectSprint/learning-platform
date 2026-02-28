@@ -10,40 +10,76 @@ import type {
 	BehaviorDefinition,
 	BehaviorReactorDeps,
 	BehaviorReactorResult,
-	EffectContext,
 	EventProvenance,
 	EventTrigger,
-	GuardContext,
-	ScheduledEffectContext,
+	GuardCtx,
+	HandlerCtx,
+	ScheduledCtx,
 } from "@/components/game/types/behavior";
 import type { EntityData } from "@/components/game/types/entity";
+import type { CommandApi } from "@/components/game/types/runtime";
 import type { GameEvent, GameState } from "@/components/game/types/state";
 
-type BehaviorConvenienceHelpers = Pick<
-	EffectContext<Record<string, unknown>>,
-	"setPhase" | "moveToInventory" | "moveToGrid"
->;
+function buildCommandApi(deps: BehaviorReactorDeps): CommandApi {
+	const { world, interaction, flow, progress } = deps;
 
-type BehaviorConvenienceDeps = Pick<
-	BehaviorReactorDeps,
-	"world" | "interaction"
->;
+	return {
+		// Entity lifecycle
+		spawnEntity: (config) => world.spawnEntity(config),
+		patchEntity: (entityId, updates) => world.patchEntity(entityId, updates),
+		patchEntityState: (entityId, state) =>
+			world.patchEntityState(entityId, state),
+		destroyEntities: (entityIds) => world.destroyEntities(entityIds),
 
-export const createBehaviorConvenience = ({
-	world,
-	interaction,
-}: BehaviorConvenienceDeps): BehaviorConvenienceHelpers => ({
-	setPhase: (phase, source) => {
-		interaction.requestPhaseTransition(phase, source ?? "behavior");
-	},
-	moveToInventory: (entityId) => {
-		world.moveEntity(entityId, "inventory");
-	},
-	moveToGrid: (entityId, spaceId) => {
-		const result = world.moveEntityToGrid(entityId, spaceId);
-		return result.ok;
-	},
-});
+		// Space placement
+		placeInSpace: (entityId, spaceId, position) =>
+			world.placeInSpace(entityId, spaceId, position),
+		removeFromSpace: (entityId, spaceId) =>
+			world.removeFromSpace(entityId, spaceId),
+		moveEntity: (entityId, toSpaceId, position) =>
+			world.moveEntity(entityId, toSpaceId, position),
+		moveEntityToGrid: (entityId, spaceId) =>
+			world.moveEntityToGrid(entityId, spaceId),
+
+		// Interaction
+		openModal: (modal) => interaction.openModal(modal),
+		closeModal: (modalId) => interaction.closeModal(modalId),
+		setPhase: (phase, source) => {
+			interaction.requestPhaseTransition(phase, source ?? "behavior");
+		},
+		showTerminal: (visible) => interaction.setTerminalVisible(visible),
+		setModalGateOpen: (open) => interaction.setModalGateOpen(open),
+
+		// Flow
+		dispatchIntent: (intent) => flow.dispatchIntent(intent),
+
+		// Progress
+		completeQuestion: () => progress.completeQuestion(),
+		setQuestionStatus: (input) => progress.setQuestionStatus(input),
+
+		// Terminal sub-object
+		terminal: {
+			write: (content, type = "output") => {
+				deps.terminal?.writeOutput(content, type);
+			},
+			clearHistory: () => {
+				deps.terminal?.clearHistory();
+			},
+			finish: () => {
+				deps.terminal?.finishEngine();
+			},
+		},
+
+		// Convenience shortcuts
+		moveToInventory: (entityId) => {
+			world.moveEntity(entityId, "inventory");
+		},
+		moveToGrid: (entityId, spaceId) => {
+			const result = world.moveEntityToGrid(entityId, spaceId);
+			return result.ok;
+		},
+	};
+}
 
 export function useBehaviorReactor<
 	TContext extends Record<string, unknown> = Record<string, never>,
@@ -111,7 +147,7 @@ export function useBehaviorReactor<
 
 						if (rule.guard && !rule.guard(guardCtx)) continue;
 
-						const effectCtx = buildEffectContext(
+						const effectCtx = buildHandlerCtx(
 							event,
 							entity,
 							state,
@@ -142,7 +178,7 @@ export function useBehaviorReactor<
 		};
 	}, [events, ack]);
 
-	return { context: contextState };
+	return { store: contextState };
 }
 
 type TriggerMatcherContext = {
@@ -275,14 +311,14 @@ function buildGuardContext<TContext>(
 	state: GameState,
 	context: Readonly<TContext>,
 	ruleId: string,
-): GuardContext<TContext> {
+): GuardCtx<TContext> {
 	return {
 		event,
 		provenance: buildEventProvenance(event, ruleId),
 		entity,
-		state,
+		snapshot: state,
 		phase: state.phase,
-		context,
+		store: context,
 	};
 }
 
@@ -300,66 +336,36 @@ type SharedContextDeps<TContext extends Record<string, unknown>> = {
 function buildSharedContextFields<TContext extends Record<string, unknown>>(
 	shared: SharedContextDeps<TContext>,
 ): Pick<
-	ScheduledEffectContext<TContext>,
-	| "context"
-	| "updateContext"
-	| "world"
-	| "interaction"
-	| "flow"
-	| "progress"
-	| "delay"
-	| "once"
-	| "terminal"
-	| "schedule"
-	| "cancelSchedule"
-	| "setPhase"
-	| "moveToInventory"
-	| "moveToGrid"
+	ScheduledCtx<TContext>,
+	"store" | "mutate" | "cmd" | "delay" | "once" | "schedule" | "cancelSchedule"
 > {
 	const deps = shared.depsRef.current;
-	const convenience = createBehaviorConvenience({
-		world: deps.world,
-		interaction: deps.interaction,
-	});
+	const cmd = buildCommandApi(deps);
 
 	return {
-		get context() {
+		get store() {
 			return shared.contextRef.current;
 		},
-		updateContext: (updater: (ctx: TContext) => void) => {
+		mutate: (updater: (ctx: TContext) => void) => {
 			shared.commitContextRef.current(updater);
 		},
-		world: deps.world,
-		interaction: deps.interaction,
-		flow: deps.flow,
-		progress: deps.progress,
+		cmd,
 		delay: (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 		once: (key, fn) => {
 			if (shared.onceKeys.has(key)) return;
 			shared.onceKeys.add(key);
 			fn();
 		},
-		terminal: {
-			writeOutput: (content, type = "output") => {
-				deps.terminal?.writeOutput(content, type);
-			},
-			clearHistory: () => {
-				deps.terminal?.clearHistory();
-			},
-			finishEngine: () => {
-				deps.terminal?.finishEngine();
-			},
-		},
 		schedule: (key, ms, fn) => {
 			deps.scheduler?.schedule(key, ms, () => {
 				const inner = buildSharedContextFields(shared);
 				const scheduledCtx = {
-					state: shared.stateRef.current,
+					snapshot: shared.stateRef.current,
 					phase: shared.stateRef.current.phase,
 					...inner,
 					provenance: shared.provenance,
-				} as ScheduledEffectContext<TContext>;
-				Object.defineProperty(scheduledCtx, "context", {
+				} as ScheduledCtx<TContext>;
+				Object.defineProperty(scheduledCtx, "store", {
 					get: () => shared.contextRef.current,
 					enumerable: true,
 				});
@@ -369,13 +375,10 @@ function buildSharedContextFields<TContext extends Record<string, unknown>>(
 		cancelSchedule: (key) => {
 			deps.scheduler?.cancel(key);
 		},
-		setPhase: convenience.setPhase,
-		moveToInventory: convenience.moveToInventory,
-		moveToGrid: convenience.moveToGrid,
 	};
 }
 
-function buildEffectContext<TContext extends Record<string, unknown>>(
+function buildHandlerCtx<TContext extends Record<string, unknown>>(
 	event: GameEvent,
 	entity: EntityData | undefined,
 	state: GameState,
@@ -388,7 +391,7 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 	stateRef: React.MutableRefObject<GameState>,
 	depsRef: React.MutableRefObject<BehaviorReactorDeps>,
 	ruleId: string,
-): EffectContext<TContext> {
+): HandlerCtx<TContext> {
 	const provenance = buildEventProvenance(event, ruleId);
 	const shared = buildSharedContextFields<TContext>({
 		provenance,
@@ -403,16 +406,37 @@ function buildEffectContext<TContext extends Record<string, unknown>>(
 		event,
 		provenance,
 		entity,
-		state,
+		snapshot: state,
 		phase: state.phase,
 		...shared,
-	} as EffectContext<TContext>;
-	Object.defineProperty(ctx, "context", {
+	} as HandlerCtx<TContext>;
+	Object.defineProperty(ctx, "store", {
 		get: () => contextRef.current,
 		enumerable: true,
 	});
 	return ctx;
 }
+
+// Keep the old name exported for the test that imports it directly
+export { buildHandlerCtx as buildEffectContext };
+
+// Kept for test compatibility — createBehaviorConvenience was tested directly.
+// The functionality is now internal to buildCommandApi.
+export const createBehaviorConvenience = ({
+	world,
+	interaction,
+}: Pick<BehaviorReactorDeps, "world" | "interaction">) => ({
+	setPhase: (phase: string, source?: string) => {
+		interaction.requestPhaseTransition(phase, source ?? "behavior");
+	},
+	moveToInventory: (entityId: string) => {
+		world.moveEntity(entityId, "inventory");
+	},
+	moveToGrid: (entityId: string, spaceId: string) => {
+		const result = world.moveEntityToGrid(entityId, spaceId);
+		return result.ok;
+	},
+});
 
 export function buildEventProvenance(
 	event: GameEvent,

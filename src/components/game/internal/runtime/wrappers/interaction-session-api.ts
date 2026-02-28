@@ -49,6 +49,7 @@ export const createInteractionSessionApi = ({
 		}
 	},
 
+	// Internal name kept for ExecutionFlowApi compatibility
 	requestPhaseTransition(phase, source) {
 		try {
 			const result = executionFlowApi.requestPhaseTransition(phase, source);

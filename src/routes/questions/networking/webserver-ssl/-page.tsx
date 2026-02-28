@@ -76,14 +76,20 @@ const SslGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { state, behaviorContext, isCompleted, registerTerminalFinish } =
-		useQuestionRuntime("webserver-ssl-page", SSL_DEFINITION);
+	const {
+		snapshot,
+		store: behaviorContext,
+		isCompleted,
+		registerTerminalFinish,
+	} = useQuestionRuntime("webserver-ssl-page", SSL_DEFINITION);
 	const gameCtx = useGameCtx();
 	const terminalInput = useTerminalInput();
 	const { terminal, openTerminal, closeTerminal, setPrompt, addEntry } =
 		useTerminalStore();
 	const shouldShowTerminal =
-		state.phase === "terminal" || state.phase === "completed" || isCompleted;
+		snapshot.phase === "terminal" ||
+		snapshot.phase === "completed" ||
+		isCompleted;
 	const {
 		browserItems,
 		browserStatus,
@@ -269,7 +275,7 @@ const SslGame = ({
 	const isEntityClickable = useCallback(
 		(entity: EntityData) => {
 			if (entity.type === "domain") {
-				return findEntitySpace(state, entity.id) === "letsencrypt";
+				return findEntitySpace(snapshot, entity.id) === "letsencrypt";
 			}
 			return [
 				"browser",
@@ -281,12 +287,12 @@ const SslGame = ({
 				"redirect-to-https",
 			].includes(entity.type);
 		},
-		[state],
+		[snapshot],
 	);
 
 	const getEntityStatus = useCallback(
 		(entity: EntityData) => {
-			const spaceId = findEntitySpace(state, entity.id);
+			const spaceId = findEntitySpace(snapshot, entity.id);
 			if (!spaceId) {
 				return {};
 			}
@@ -406,7 +412,7 @@ const SslGame = ({
 			port443Domain,
 			port443Missing,
 			port443Status,
-			state,
+			snapshot,
 		],
 	);
 

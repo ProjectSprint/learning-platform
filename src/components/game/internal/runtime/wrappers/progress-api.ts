@@ -22,7 +22,7 @@ export const createProgressApi = ({
 		}
 	},
 
-	setQuestion(input) {
+	setQuestionStatus(input) {
 		try {
 			dispatch({
 				type: "SET_QUESTION",
@@ -34,7 +34,7 @@ export const createProgressApi = ({
 			return runtimeOk();
 		} catch (error) {
 			return runtimeError(
-				`progressApi.setQuestion: ${toRuntimeErrorMessage(error)}`,
+				`progressApi.setQuestionStatus: ${toRuntimeErrorMessage(error)}`,
 			);
 		}
 	},

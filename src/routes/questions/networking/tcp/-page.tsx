@@ -109,8 +109,12 @@ const TcpGame = ({
 }: {
 	onQuestionComplete: () => void;
 }) => {
-	const { progress, interactionSession, state, behaviorContext, isCompleted } =
-		useQuestionRuntime<TcpBehaviorContext>("tcp-page", TCP_DEFINITION);
+	const {
+		cmd,
+		snapshot,
+		store: behaviorContext,
+		isCompleted,
+	} = useQuestionRuntime<TcpBehaviorContext>("tcp-page", TCP_DEFINITION);
 	const gameCtx = useGameCtx();
 	const successShownRef = useRef(false);
 	const {
@@ -126,7 +130,7 @@ const TcpGame = ({
 		splitterVisible,
 		waitingCount,
 	} = behaviorContext;
-	const tcpPhase = isTcpPhase(state.phase) ? state.phase : "mtu";
+	const tcpPhase = isTcpPhase(snapshot.phase) ? snapshot.phase : "mtu";
 	useDragEngine();
 	const { registerDrawer, updateDrawerConfig, openDrawer } = useDrawerManager();
 	const { setArrows, clearArrows } = useBoardArrows();
@@ -175,9 +179,9 @@ const TcpGame = ({
 	}, [registerDrawer]);
 
 	const tcpToolsVisible = useMemo(() => {
-		const toolsSpace = state.spaces[TCP_TOOLS_POOL_CONFIG.id];
+		const toolsSpace = snapshot.spaces[TCP_TOOLS_POOL_CONFIG.id];
 		return toolsSpace?.kind === "pool" && toolsSpace.entityIds.length > 0;
-	}, [state.spaces]);
+	}, [snapshot.spaces]);
 
 	useEffect(() => {
 		const nextSpaceIds = [
@@ -195,13 +199,17 @@ const TcpGame = ({
 	}, [tcpToolsVisible, openDrawer, receivedPoolVisible, updateDrawerConfig]);
 
 	useEffect(() => {
-		if (state.phase !== "terminal" || isCompleted || successShownRef.current) {
+		if (
+			snapshot.phase !== "terminal" ||
+			isCompleted ||
+			successShownRef.current
+		) {
 			return;
 		}
 		successShownRef.current = true;
-		interactionSession.openModal(buildSuccessModal());
-		progress.completeQuestion();
-	}, [interactionSession, isCompleted, progress, state.phase]);
+		cmd.openModal(buildSuccessModal());
+		cmd.completeQuestion();
+	}, [cmd, isCompleted, snapshot.phase]);
 
 	// Navigate away when behavior signals completion
 	useEffect(() => {
