@@ -95,6 +95,10 @@ export type CoresBehaviorContext = {
 	requestsCompletedAfterThreading: number;
 	// IO-ready queue (atomic, same pattern as pendingRequests)
 	ioReadyRequests: EntityArray;
+	// Round-robin cursor for lane selection. Persisted across pickupFromQueue calls so
+	// consecutive calls within the same event batch (where ctx.snapshot is stale and all
+	// lanes appear free) pick DIFFERENT lanes instead of double-assigning the same one.
+	pickupCursor: number;
 };
 
 type Ctx = EffectContext<CoresBehaviorContext>;
@@ -198,20 +202,33 @@ const calculateSpawnInterval = (ctx: {
 
 const selectAvailableLane = (
 	ctx: Pick<Ctx, "snapshot" | "store">,
-): CoreLaneId | null => {
+): { laneId: CoreLaneId | null; nextCursor: number } => {
 	const enabledLanes = LANE_IDS.slice(0, ctx.store.coreCount);
 	const selection = chooseLaneForExecution({
 		lanes: LANE_IDS,
 		enabledLanes,
 		policy: enabledLanes.length > 1 ? "round_robin" : "first_free",
-		cursor: 0,
+		// Use the persisted cursor so consecutive calls within the same event batch
+		// (where ctx.snapshot is stale) advance through lanes rather than always
+		// starting from index 0 and double-assigning the same lane.
+		cursor: ctx.store.pickupCursor,
 		isOccupied: (laneId) => {
 			const laneSpaceId = getLaneSpaceId(laneId as CoreLaneId);
 			const entities = listSpaceEntityIds(ctx.snapshot, laneSpaceId);
-			return entities.length > 0;
+			// Thread entities are transient: dropped by the user and deleted immediately
+			// by cores.thread-upgrade. A stale snapshot may still show a thread in the
+			// lane after deletion. Counting threads as occupancy would block pickups on
+			// empty lanes, so exclude them from the occupancy check.
+			return entities.some((id) => {
+				const entity = lookupEntity(ctx.snapshot, id);
+				return entity?.data.type !== "thread";
+			});
 		},
 	});
-	return selection.laneId as CoreLaneId | null;
+	return {
+		laneId: selection.laneId as CoreLaneId | null,
+		nextCursor: selection.cursor,
+	};
 };
 
 /**
@@ -219,10 +236,17 @@ const selectAvailableLane = (
  * Priority: io-ready requests from IO wait first, then queue (FIFO).
  */
 const pickupFromQueue = (ctx: Ctx) => {
-	const laneId = selectAvailableLane(ctx);
+	const { laneId, nextCursor } = selectAvailableLane(ctx);
 	if (!laneId) {
 		return;
 	}
+
+	// Persist the cursor BEFORE any cmd.* dispatches so that a second pickupFromQueue
+	// call in the same event batch (where ctx.snapshot is stale) sees the advanced
+	// cursor and selects the OTHER lane instead of double-assigning this one.
+	ctx.mutate((c) => {
+		c.pickupCursor = nextCursor;
+	});
 
 	const laneSpaceId = getLaneSpaceId(laneId);
 
@@ -1130,6 +1154,7 @@ export const CORES_BEHAVIORS = BehaviorDefinition<
 		ioWallTimeoutSeen: false,
 		requestsCompletedAfterThreading: 0,
 		ioReadyRequests: createEntityArray(),
+		pickupCursor: 0,
 	},
 	rules,
 });
