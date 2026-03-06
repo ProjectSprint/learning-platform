@@ -201,12 +201,7 @@ export const SPACE_CONFIGS: Record<
 		name: "Client",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 	"conn-1": {
@@ -214,12 +209,7 @@ export const SPACE_CONFIGS: Record<
 		name: "Connector",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 	router: {
@@ -227,12 +217,7 @@ export const SPACE_CONFIGS: Record<
 		name: "Router",
 		rows: 1,
 		cols: 3,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 3,
 	},
 	"conn-2": {
@@ -240,12 +225,7 @@ export const SPACE_CONFIGS: Record<
 		name: "Connector",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 	igw: {
@@ -253,12 +233,7 @@ export const SPACE_CONFIGS: Record<
 		name: "Gateway",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 	dns: {
@@ -266,12 +241,7 @@ export const SPACE_CONFIGS: Record<
 		name: "DNS Server",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 	google: {
@@ -279,12 +249,7 @@ export const SPACE_CONFIGS: Record<
 		name: "Google",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 };

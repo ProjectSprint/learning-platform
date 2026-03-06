@@ -78,7 +78,8 @@
       "Bash(pnpm vitest run:*)",
       "mcp__gsap__get_gsap_api_expert",
       "Bash(python3:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(ls:*)"
     ]
   }
 }

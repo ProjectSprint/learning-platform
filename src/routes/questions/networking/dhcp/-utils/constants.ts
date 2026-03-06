@@ -114,12 +114,7 @@ export const SPACE_CONFIGS: Record<
 		name: "PC-1",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 	[DHCP_SPACE_IDS.conn1]: {
@@ -127,12 +122,7 @@ export const SPACE_CONFIGS: Record<
 		name: "Connector",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 	[DHCP_SPACE_IDS.router]: {
@@ -140,12 +130,7 @@ export const SPACE_CONFIGS: Record<
 		name: "Router",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 	[DHCP_SPACE_IDS.conn2]: {
@@ -153,12 +138,7 @@ export const SPACE_CONFIGS: Record<
 		name: "Connector",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 	[DHCP_SPACE_IDS.pc2]: {
@@ -166,12 +146,7 @@ export const SPACE_CONFIGS: Record<
 		name: "PC-2",
 		rows: 1,
 		cols: 1,
-		metrics: {
-			cellWidth: { base: 64 },
-			cellHeight: { base: 64 },
-			gapX: { base: 4 },
-			gapY: { base: 4 },
-		},
+		metrics: {},
 		maxCapacity: 1,
 	},
 };

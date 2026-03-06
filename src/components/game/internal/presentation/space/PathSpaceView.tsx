@@ -3,8 +3,8 @@ import { gsap } from "gsap";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "@/components/game/types/entity";
 import type { PathSpaceData } from "@/components/game/types/space";
+import { useCellSize } from "../hooks/useCellSize";
 import { useDragContext } from "../interaction/drag/DragContext";
-import { useEntityCardSize } from "../interaction/drag/DragOverlay";
 
 type PathPoint = { x: number; y: number };
 type PathViewBox = { width: number; height: number };
@@ -96,7 +96,7 @@ export const PathSpaceView = ({
 		y: DROPZONE_CELL_HEIGHT / 2,
 	});
 	const hoveredRef = useRef(false);
-	const defaultCardSize = useEntityCardSize();
+	const resolvedCellSize = useCellSize(space.cellSize);
 
 	const viewBoxSize = useMemo(
 		() => parseViewBox(space.viewBox),
@@ -281,8 +281,8 @@ export const PathSpaceView = ({
 				activeDrag.element?.getBoundingClientRect() ??
 				null;
 			const dropzoneRect = dropzone.getBoundingClientRect();
-			const width = sourceRect?.width ?? defaultCardSize.width;
-			const height = sourceRect?.height ?? defaultCardSize.height;
+			const width = sourceRect?.width ?? resolvedCellSize.cellWidth;
+			const height = sourceRect?.height ?? resolvedCellSize.cellHeight;
 			const viewportX = dropzoneRect.left + (dropzoneRect.width - width) / 2;
 			const viewportY = dropzoneRect.top + (dropzoneRect.height - height) / 2;
 
@@ -314,8 +314,8 @@ export const PathSpaceView = ({
 		};
 	}, [
 		activeDrag,
-		defaultCardSize.height,
-		defaultCardSize.width,
+		resolvedCellSize.cellHeight,
+		resolvedCellSize.cellWidth,
 		onDropEntity,
 		showDropzone,
 		setDropAnimationTarget,
@@ -370,8 +370,8 @@ export const PathSpaceView = ({
 			}
 
 			const renderSize: EntityRenderSize = entitySizes[entity.id] ?? {
-				width: defaultCardSize.width,
-				height: defaultCardSize.height,
+				width: resolvedCellSize.cellWidth,
+				height: resolvedCellSize.cellHeight,
 			};
 			setEntitySizes((prev) => ({ ...prev, [entity.id]: renderSize }));
 			setEntityOpacities((prev) => ({ ...prev, [entity.id]: 1 }));
@@ -501,8 +501,8 @@ export const PathSpaceView = ({
 			timeline.play();
 		}
 	}, [
-		defaultCardSize.height,
-		defaultCardSize.width,
+		resolvedCellSize.cellHeight,
+		resolvedCellSize.cellWidth,
 		dropAnimationTarget,
 		entitySizes,
 		entities,
@@ -655,8 +655,8 @@ export const PathSpaceView = ({
 								border="1px solid"
 								borderColor="cyan.400"
 								borderRadius="md"
-								width={`${(entitySizes[entity.id] ?? defaultCardSize).width}px`}
-								height={`${(entitySizes[entity.id] ?? defaultCardSize).height}px`}
+								width={`${entitySizes[entity.id]?.width ?? resolvedCellSize.cellWidth}px`}
+								height={`${entitySizes[entity.id]?.height ?? resolvedCellSize.cellHeight}px`}
 								display="flex"
 								alignItems="center"
 								justifyContent="center"

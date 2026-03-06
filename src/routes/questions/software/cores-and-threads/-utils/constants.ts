@@ -33,12 +33,7 @@ export const REQUEST_QUEUE_CONFIG: GridSpaceConfig<string> = {
 	name: "Request Queue",
 	rows: 2,
 	cols: 4,
-	metrics: {
-		cellWidth: { base: 68 },
-		cellHeight: { base: 68 },
-		gapX: { base: 6 },
-		gapY: { base: 6 },
-	},
+	metrics: {},
 	maxCapacity: 8,
 };
 
@@ -47,12 +42,7 @@ export const IO_WAIT_CONFIG: GridSpaceConfig<string> = {
 	name: "I/O Wait",
 	rows: 2,
 	cols: 4,
-	metrics: {
-		cellWidth: { base: 68 },
-		cellHeight: { base: 68 },
-		gapX: { base: 6 },
-		gapY: { base: 6 },
-	},
+	metrics: {},
 	maxCapacity: 8,
 };
 
@@ -61,12 +51,7 @@ export const UPGRADE_CONFIG: GridSpaceConfig<string> = {
 	name: "Upgrade Zone",
 	rows: 1,
 	cols: 2,
-	metrics: {
-		cellWidth: { base: 80 },
-		cellHeight: { base: 80 },
-		gapX: { base: 8 },
-		gapY: { base: 8 },
-	},
+	metrics: {},
 	maxCapacity: 2,
 };
 
@@ -75,12 +60,7 @@ export const GROWTH_FACTOR_CONFIG: GridSpaceConfig<string> = {
 	name: "Growth Factor",
 	rows: 1,
 	cols: 2,
-	metrics: {
-		cellWidth: { base: 80 },
-		cellHeight: { base: 80 },
-		gapX: { base: 8 },
-		gapY: { base: 8 },
-	},
+	metrics: {},
 	maxCapacity: 2,
 };
 
@@ -96,8 +76,8 @@ export const createLaneConfig = (
 ): PathSpaceConfig<string> => ({
 	id: getLaneSpaceId(laneId),
 	name: `Server Lane ${laneId.split("-")[1]}${isThreaded ? " (Threaded)" : ""}`,
-	path: "M 12 60 L 308 60",
-	viewBox: "0 0 320 120",
+	path: "M 10 48 L 246 48",
+	viewBox: "0 0 256 96",
 	duration: 2,
 	speedMultiplier: 1,
 	showDropzone: false,

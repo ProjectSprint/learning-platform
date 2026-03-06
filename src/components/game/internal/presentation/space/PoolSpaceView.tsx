@@ -12,8 +12,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EntityData } from "@/components/game/types/entity";
 import type { PoolSpaceData } from "@/components/game/types/space";
 import { EntityCard } from "../entity/EntityCard";
+import { useCellSize } from "../hooks/useCellSize";
 import { useDragContext } from "../interaction/drag/DragContext";
-import { useEntityCardSize } from "../interaction/drag/DragOverlay";
 
 /**
  * Props for the PoolSpaceView component.
@@ -62,7 +62,7 @@ export const PoolSpaceView = ({
 	const { activeDrag, setActiveDrag, targetSpaceIdRef, setLastDropResult } =
 		useDragContext();
 	const entityRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-	const cardSize = useEntityCardSize();
+	const cardSize = useCellSize();
 	const poolRef = useRef<HTMLDivElement | null>(null);
 	const [isHovered, setIsHovered] = useState(false);
 	const isHoveredRef = useRef(false);
@@ -229,8 +229,8 @@ export const PoolSpaceView = ({
 								entity={entity}
 								isEmpty={!isInPool}
 								isDragging={isDragging}
-								width={cardSize.width}
-								height={cardSize.height}
+								width={cardSize.cellWidth}
+								height={cardSize.cellHeight}
 								onPointerDown={(e) => handlePointerDown(entity, e)}
 								cardRef={setEntityRef(entity.id)}
 							/>

@@ -7,9 +7,10 @@
  * Maintains identical visual design and animation behavior.
  */
 
-import { Box, Text, useBreakpointValue } from "@chakra-ui/react";
+import { Box, Text } from "@chakra-ui/react";
 import { gsap } from "gsap";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCellSize } from "../../hooks/useCellSize";
 import { useDragContext } from "./DragContext";
 
 /**
@@ -24,16 +25,6 @@ export interface DragOverlayProps {
  */
 const defaultGetEntityLabel = (entityType: string) =>
 	entityType.charAt(0).toUpperCase() + entityType.slice(1);
-
-/**
- * Hook to get the size of entity cards.
- * Uses responsive breakpoints for consistent sizing.
- */
-export const useEntityCardSize = () => {
-	const width = useBreakpointValue({ base: 120, sm: 132, md: 150 }) ?? 150;
-	const height = useBreakpointValue({ base: 52, sm: 58, md: 64 }) ?? 64;
-	return { width, height };
-};
 
 /**
  * DragOverlay component.
@@ -56,10 +47,10 @@ export const DragOverlay = ({
 		dropAnimationTarget,
 		setDropAnimationTarget,
 	} = useDragContext();
-	const cardSize = useEntityCardSize();
+	const cardSize = useCellSize();
 	const cardSizeRef = useRef({
-		width: cardSize.width,
-		height: cardSize.height,
+		width: cardSize.cellWidth,
+		height: cardSize.cellHeight,
 	});
 	const [isVisible, setIsVisible] = useState(false);
 	const [size, setSize] = useState({ width: 0, height: 0 });
@@ -68,8 +59,11 @@ export const DragOverlay = ({
 
 	// Initialize card size ref once on mount
 	useEffect(() => {
-		cardSizeRef.current = { width: cardSize.width, height: cardSize.height };
-	}, [cardSize.height, cardSize.width]);
+		cardSizeRef.current = {
+			width: cardSize.cellWidth,
+			height: cardSize.cellHeight,
+		};
+	}, [cardSize.cellHeight, cardSize.cellWidth]);
 
 	useLayoutEffect(() => {
 		if (!activeDrag) {

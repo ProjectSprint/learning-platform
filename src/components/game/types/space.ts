@@ -13,19 +13,29 @@ export type ResponsiveValue<T> =
 	| T
 	| ({ base: T } & Partial<Record<"sm" | "md" | "lg" | "xl" | "2xl", T>>);
 
-export type GridMetrics = {
-	cellWidth: ResponsiveValue<number>;
-	cellHeight: ResponsiveValue<number>;
+export type CellSize = {
+	cellWidth?: ResponsiveValue<number>;
+	cellHeight?: ResponsiveValue<number>;
+};
+
+export type ResolvedCellSize = {
+	cellWidth: number;
+	cellHeight: number;
+};
+
+export type GapSize = {
 	gapX?: ResponsiveValue<number>;
 	gapY?: ResponsiveValue<number>;
 };
 
-export type ResolvedGridMetrics = {
-	cellWidth: number;
-	cellHeight: number;
-	gapX?: number;
-	gapY?: number;
+export type ResolvedGapSize = {
+	gapX: number;
+	gapY: number;
 };
+
+export type GridMetrics = CellSize & GapSize;
+
+export type ResolvedGridMetrics = ResolvedCellSize & ResolvedGapSize;
 
 export type SpaceBaseConfig<TId extends string = string> = {
 	id: TId;
@@ -80,6 +90,7 @@ export type PathSpaceConfig<TId extends string = string> =
 		duration?: number;
 		speedMultiplier?: number;
 		showDropzone?: boolean;
+		cellSize?: CellSize;
 	};
 
 export type PathSpaceData = SpaceBase & {
@@ -89,6 +100,7 @@ export type PathSpaceData = SpaceBase & {
 	duration: number;
 	speedMultiplier: number;
 	showDropzone: boolean;
+	cellSize?: CellSize;
 	entityIds: string[];
 };
 

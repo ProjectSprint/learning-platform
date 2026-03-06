@@ -7,45 +7,23 @@
  * drag and drop interactions.
  */
 
-import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
+import { Box, Flex, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EntityStatus } from "@/components/game/types/board";
 import type { EntityData } from "@/components/game/types/entity";
 import type {
 	GridPosition,
 	GridSpaceData,
-	ResponsiveValue,
 } from "@/components/game/types/space";
 import { isItemData } from "../../domain/entity/entity-data";
 import { useGameDispatch } from "../../game-provider";
 import { PlacedEntity } from "../entity/PlacedEntity";
+import { useCellSize, useGapSize } from "../hooks/useCellSize";
 import { useDragContext } from "../interaction/drag/DragContext";
 import { useBoardRegistry } from "./arrow";
 import { GridCell } from "./GridCell";
 
 const CLICK_THRESHOLD_PX = 5;
-
-/**
- * Resolves a ResponsiveValue into a breakpoint record for useBreakpointValue.
- * If the value is a plain number, returns it directly.
- * If it's a breakpoint object, returns it as-is for Chakra to resolve.
- */
-function useResponsiveValue(
-	value: ResponsiveValue<number> | undefined,
-	fallback: number,
-): number {
-	const breakpointMap =
-		typeof value === "number" || value === undefined ? undefined : value;
-	const resolved = useBreakpointValue<number>(breakpointMap ?? {});
-
-	if (typeof value === "number") {
-		return value;
-	}
-	if (value === undefined) {
-		return fallback;
-	}
-	return resolved ?? value.base;
-}
 
 /**
  * Preview state for drag operations.
@@ -169,10 +147,12 @@ export const GridSpaceView = ({
 	const cols = viewCols ?? space.cols;
 
 	// Resolve responsive metrics
-	const resolvedMinCellWidth = useResponsiveValue(space.metrics.cellWidth, 0);
-	const resolvedCellHeight = useResponsiveValue(space.metrics.cellHeight, 60);
-	const resolvedGapX = useResponsiveValue(space.metrics.gapX, 0);
-	const resolvedGapY = useResponsiveValue(space.metrics.gapY, 0);
+	const resolvedCellSize = useCellSize(space.metrics);
+	const resolvedMinCellWidth = resolvedCellSize.cellWidth;
+	const resolvedCellHeight = resolvedCellSize.cellHeight;
+	const resolvedGaps = useGapSize(space.metrics);
+	const resolvedGapX = resolvedGaps.gapX;
+	const resolvedGapY = resolvedGaps.gapY;
 
 	// Create map of entities by position
 	const entitiesByPosition = useMemo(() => {

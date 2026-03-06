@@ -7,8 +7,4 @@ export {
 	DragProvider,
 	useDragContext,
 } from "./DragContext";
-export {
-	DragOverlay,
-	type DragOverlayProps,
-	useEntityCardSize,
-} from "./DragOverlay";
+export { DragOverlay, type DragOverlayProps } from "./DragOverlay";

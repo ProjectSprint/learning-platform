@@ -56,6 +56,7 @@ export const createPathSpaceData = (config: PathSpaceConfig): PathSpaceData => {
 		duration: config.duration ?? 1.5,
 		speedMultiplier: config.speedMultiplier ?? 1,
 		showDropzone: config.showDropzone ?? true,
+		cellSize: config.cellSize,
 		entityIds: [],
 	};
 };
