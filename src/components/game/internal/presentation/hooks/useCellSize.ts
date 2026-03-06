@@ -35,15 +35,25 @@ export function useResponsiveValue(
 }
 
 export function useCellSize(cellSize?: CellSize): ResolvedCellSize {
-	const defaults = cellSize ?? DEFAULT_CELL_SIZE;
-	const cellWidth = useResponsiveValue(defaults.cellWidth, 120);
-	const cellHeight = useResponsiveValue(defaults.cellHeight, 52);
+	const cellWidth = useResponsiveValue(
+		cellSize?.cellWidth ?? DEFAULT_CELL_SIZE.cellWidth,
+		0,
+	);
+	const cellHeight = useResponsiveValue(
+		cellSize?.cellHeight ?? DEFAULT_CELL_SIZE.cellHeight,
+		0,
+	);
 	return { cellWidth, cellHeight };
 }
 
 export function useGapSize(gapSize?: GapSize): ResolvedGapSize {
-	const defaults = gapSize ?? DEFAULT_GAP_SIZE;
-	const gapX = useResponsiveValue(defaults.gapX, 4);
-	const gapY = useResponsiveValue(defaults.gapY, 4);
+	const gapX = useResponsiveValue(
+		gapSize?.gapX ?? DEFAULT_GAP_SIZE.gapX,
+		0,
+	);
+	const gapY = useResponsiveValue(
+		gapSize?.gapY ?? DEFAULT_GAP_SIZE.gapY,
+		0,
+	);
 	return { gapX, gapY };
 }
