@@ -9,7 +9,18 @@ export type ListPosition = {
 
 export type SpacePosition = GridPosition | ListPosition;
 
+export type ResponsiveValue<T> =
+	| T
+	| ({ base: T } & Partial<Record<"sm" | "md" | "lg" | "xl" | "2xl", T>>);
+
 export type GridMetrics = {
+	cellWidth: ResponsiveValue<number>;
+	cellHeight: ResponsiveValue<number>;
+	gapX?: ResponsiveValue<number>;
+	gapY?: ResponsiveValue<number>;
+};
+
+export type ResolvedGridMetrics = {
 	cellWidth: number;
 	cellHeight: number;
 	gapX?: number;

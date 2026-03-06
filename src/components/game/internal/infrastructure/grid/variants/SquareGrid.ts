@@ -4,7 +4,7 @@
  */
 
 import type { SquareGridConfig } from "@/components/game/types/grid";
-import type { GridMetrics } from "@/components/game/types/space";
+import type { ResolvedGridMetrics } from "@/components/game/types/space";
 import type { GridCoordinate, Point2D } from "../../geometry/coordinates";
 import { createGridCoord } from "../../geometry/coordinates";
 import { GridBase } from "../core/GridBase";
@@ -39,7 +39,7 @@ export class SquareGrid<T = unknown> extends GridBase<T> {
 	/**
 	 * Creates a square grid from a 2D array of data.
 	 */
-	static fromData<T>(data: T[][], metrics: GridMetrics): SquareGrid<T> {
+	static fromData<T>(data: T[][], metrics: ResolvedGridMetrics): SquareGrid<T> {
 		const rows = data.length;
 		const cols = rows > 0 ? data[0].length : 0;
 
@@ -57,7 +57,7 @@ export class SquareGrid<T = unknown> extends GridBase<T> {
 	static empty<T>(
 		rows: number,
 		cols: number,
-		metrics: GridMetrics,
+		metrics: ResolvedGridMetrics,
 	): SquareGrid<T> {
 		return new SquareGrid({ rows, cols, metrics });
 	}

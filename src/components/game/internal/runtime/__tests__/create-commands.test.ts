@@ -30,7 +30,12 @@ describe("createCommands", () => {
 			name: "Board",
 			rows: 1,
 			cols: 1,
-			metrics: { cellWidth: 1, cellHeight: 1, gapX: 0, gapY: 0 },
+			metrics: {
+				cellWidth: { base: 1 },
+				cellHeight: { base: 1 },
+				gapX: { base: 0 },
+				gapY: { base: 0 },
+			},
 		});
 		const entity = createItemData({
 			id: "item-1",

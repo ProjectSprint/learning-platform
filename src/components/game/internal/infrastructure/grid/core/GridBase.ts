@@ -3,7 +3,7 @@
  * Provides the foundation for different grid types (square, hex, radial, etc.)
  */
 
-import type { GridMetrics } from "@/components/game/types/space";
+import type { ResolvedGridMetrics } from "@/components/game/types/space";
 import type { GridCoordinate, Point2D } from "../../geometry/coordinates";
 import { isInBounds, manhattanDistance } from "../../geometry/coordinates";
 import type { GridCell } from "./GridCell";
@@ -28,7 +28,7 @@ export abstract class GridBase<T = unknown> {
 	/**
 	 * Metrics defining cell sizes and spacing.
 	 */
-	public readonly metrics: GridMetrics;
+	public readonly metrics: ResolvedGridMetrics;
 
 	/**
 	 * Creates a new grid.
@@ -36,7 +36,7 @@ export abstract class GridBase<T = unknown> {
 	 * @param cols Number of columns
 	 * @param metrics Grid cell sizing and spacing
 	 */
-	constructor(rows: number, cols: number, metrics: GridMetrics) {
+	constructor(rows: number, cols: number, metrics: ResolvedGridMetrics) {
 		if (rows <= 0 || cols <= 0) {
 			throw new Error("Grid dimensions must be positive");
 		}

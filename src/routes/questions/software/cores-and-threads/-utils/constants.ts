@@ -33,7 +33,12 @@ export const REQUEST_QUEUE_CONFIG: GridSpaceConfig<string> = {
 	name: "Request Queue",
 	rows: 2,
 	cols: 4,
-	metrics: { cellWidth: 68, cellHeight: 68, gapX: 6, gapY: 6 },
+	metrics: {
+		cellWidth: { base: 68 },
+		cellHeight: { base: 68 },
+		gapX: { base: 6 },
+		gapY: { base: 6 },
+	},
 	maxCapacity: 8,
 };
 
@@ -42,7 +47,12 @@ export const IO_WAIT_CONFIG: GridSpaceConfig<string> = {
 	name: "I/O Wait",
 	rows: 2,
 	cols: 4,
-	metrics: { cellWidth: 68, cellHeight: 68, gapX: 6, gapY: 6 },
+	metrics: {
+		cellWidth: { base: 68 },
+		cellHeight: { base: 68 },
+		gapX: { base: 6 },
+		gapY: { base: 6 },
+	},
 	maxCapacity: 8,
 };
 
@@ -51,7 +61,12 @@ export const UPGRADE_CONFIG: GridSpaceConfig<string> = {
 	name: "Upgrade Zone",
 	rows: 1,
 	cols: 2,
-	metrics: { cellWidth: 80, cellHeight: 80, gapX: 8, gapY: 8 },
+	metrics: {
+		cellWidth: { base: 80 },
+		cellHeight: { base: 80 },
+		gapX: { base: 8 },
+		gapY: { base: 8 },
+	},
 	maxCapacity: 2,
 };
 
@@ -60,7 +75,12 @@ export const GROWTH_FACTOR_CONFIG: GridSpaceConfig<string> = {
 	name: "Growth Factor",
 	rows: 1,
 	cols: 2,
-	metrics: { cellWidth: 80, cellHeight: 80, gapX: 8, gapY: 8 },
+	metrics: {
+		cellWidth: { base: 80 },
+		cellHeight: { base: 80 },
+		gapX: { base: 8 },
+		gapY: { base: 8 },
+	},
 	maxCapacity: 2,
 };
 

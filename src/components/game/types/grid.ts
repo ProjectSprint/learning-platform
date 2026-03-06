@@ -1,4 +1,4 @@
-import type { GridMetrics } from "./space";
+import type { ResolvedGridMetrics } from "./space";
 
 export type GridDirection =
 	| "north"
@@ -13,7 +13,7 @@ export type GridDirection =
 export type SquareGridConfig<T> = {
 	rows: number;
 	cols: number;
-	metrics: GridMetrics;
+	metrics: ResolvedGridMetrics;
 	initializer?: (row: number, col: number) => T | null;
 };
 
@@ -28,7 +28,7 @@ export type CubeCoordinate = {
 export type HexGridConfig<T> = {
 	rows: number;
 	cols: number;
-	metrics: GridMetrics;
+	metrics: ResolvedGridMetrics;
 	orientation?: HexOrientation;
 	initializer?: (row: number, col: number) => T | null;
 };
@@ -41,7 +41,7 @@ export type PolarCoordinate = {
 export type RadialGridConfig<T> = {
 	rings: number;
 	sectorsPerRing: number | number[];
-	metrics: GridMetrics;
+	metrics: ResolvedGridMetrics;
 	centerRadius?: number;
 	ringSpacing?: number;
 	initializer?: (ring: number, sector: number) => T | null;

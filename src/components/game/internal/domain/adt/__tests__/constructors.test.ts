@@ -46,7 +46,7 @@ describe("domain/adt constructors", () => {
 			id: "board",
 			rows: 1,
 			cols: 1,
-			metrics: { cellWidth: 1, cellHeight: 1 },
+			metrics: { cellWidth: { base: 1 }, cellHeight: { base: 1 } },
 		});
 		const pool = createPoolSpaceData({ id: "inventory" });
 

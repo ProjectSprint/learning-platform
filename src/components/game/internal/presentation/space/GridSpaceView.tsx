@@ -14,6 +14,7 @@ import type { EntityData } from "@/components/game/types/entity";
 import type {
 	GridPosition,
 	GridSpaceData,
+	ResponsiveValue,
 } from "@/components/game/types/space";
 import { isItemData } from "../../domain/entity/entity-data";
 import { useGameDispatch } from "../../game-provider";
@@ -22,8 +23,29 @@ import { useDragContext } from "../interaction/drag/DragContext";
 import { useBoardRegistry } from "./arrow";
 import { GridCell } from "./GridCell";
 
-const DEFAULT_CELL_HEIGHT = 60;
 const CLICK_THRESHOLD_PX = 5;
+
+/**
+ * Resolves a ResponsiveValue into a breakpoint record for useBreakpointValue.
+ * If the value is a plain number, returns it directly.
+ * If it's a breakpoint object, returns it as-is for Chakra to resolve.
+ */
+function useResponsiveValue(
+	value: ResponsiveValue<number> | undefined,
+	fallback: number,
+): number {
+	const breakpointMap =
+		typeof value === "number" || value === undefined ? undefined : value;
+	const resolved = useBreakpointValue<number>(breakpointMap ?? {});
+
+	if (typeof value === "number") {
+		return value;
+	}
+	if (value === undefined) {
+		return fallback;
+	}
+	return resolved ?? value.base;
+}
 
 /**
  * Preview state for drag operations.
@@ -145,7 +167,12 @@ export const GridSpaceView = ({
 
 	const rows = viewRows ?? space.rows;
 	const cols = viewCols ?? space.cols;
-	const resolvedMinCellWidth = space.metrics.cellWidth;
+
+	// Resolve responsive metrics
+	const resolvedMinCellWidth = useResponsiveValue(space.metrics.cellWidth, 0);
+	const resolvedCellHeight = useResponsiveValue(space.metrics.cellHeight, 60);
+	const resolvedGapX = useResponsiveValue(space.metrics.gapX, 0);
+	const resolvedGapY = useResponsiveValue(space.metrics.gapY, 0);
 
 	// Create map of entities by position
 	const entitiesByPosition = useMemo(() => {
@@ -198,8 +225,7 @@ export const GridSpaceView = ({
 		return () => observer.disconnect();
 	}, []);
 
-	const cellHeight =
-		useBreakpointValue({ base: 48, sm: 54, md: 60 }) ?? DEFAULT_CELL_HEIGHT;
+	const cellHeight = resolvedCellHeight;
 	const availableWidth = boardSize.width - boardSize.gapX * (cols - 1);
 	const baseCellWidth = availableWidth / cols || 0;
 	const cellWidth =
@@ -541,7 +567,8 @@ export const GridSpaceView = ({
 				}
 				gridTemplateRows={`repeat(${rows}, ${cellHeight}px)`}
 				gridAutoFlow={orientation === "vertical" ? "column" : "row"}
-				gap={2}
+				columnGap={`${resolvedGapX}px`}
+				rowGap={`${resolvedGapY}px`}
 			>
 				{/* Render grid cells */}
 				{gridCells.map((cell) => {

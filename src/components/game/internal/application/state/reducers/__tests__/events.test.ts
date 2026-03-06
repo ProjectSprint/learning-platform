@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createGridSpaceData, createItemData } from "../../../../domain/adt";
 import { applicationReducer, createDefaultState } from "../index";
 
-const metrics = { cellWidth: 1, cellHeight: 1 };
+const metrics = { cellWidth: { base: 1 }, cellHeight: { base: 1 } };
 
 const resetEventQueue = <T extends { eventQueue: unknown }>(state: T) => {
 	return {

@@ -31,7 +31,12 @@ export const SPACE_CONFIGS: Record<
 		name: "Browser",
 		rows: 1,
 		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+		metrics: {
+			cellWidth: { base: 64 },
+			cellHeight: { base: 64 },
+			gapX: { base: 4 },
+			gapY: { base: 4 },
+		},
 		maxCapacity: 1,
 	},
 	"port-80": {
@@ -39,7 +44,12 @@ export const SPACE_CONFIGS: Record<
 		name: "Port 80 (HTTP)",
 		rows: 1,
 		cols: 3,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+		metrics: {
+			cellWidth: { base: 64 },
+			cellHeight: { base: 64 },
+			gapX: { base: 4 },
+			gapY: { base: 4 },
+		},
 		maxCapacity: 3,
 	},
 	letsencrypt: {
@@ -47,7 +57,12 @@ export const SPACE_CONFIGS: Record<
 		name: "Let's Encrypt",
 		rows: 1,
 		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+		metrics: {
+			cellWidth: { base: 64 },
+			cellHeight: { base: 64 },
+			gapX: { base: 4 },
+			gapY: { base: 4 },
+		},
 		maxCapacity: 1,
 	},
 	"port-443": {
@@ -55,7 +70,12 @@ export const SPACE_CONFIGS: Record<
 		name: "Port 443 (HTTPS)",
 		rows: 1,
 		cols: 5,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+		metrics: {
+			cellWidth: { base: 64 },
+			cellHeight: { base: 64 },
+			gapX: { base: 4 },
+			gapY: { base: 4 },
+		},
 		maxCapacity: 5,
 	},
 };

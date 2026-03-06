@@ -9,7 +9,7 @@ import {
 	findOwnershipViolations,
 } from "../invariants";
 
-const metrics = { cellWidth: 1, cellHeight: 1 };
+const metrics = { cellWidth: { base: 1 }, cellHeight: { base: 1 } };
 
 describe("domain invariants", () => {
 	it("passes when each entity belongs to at most one space", () => {

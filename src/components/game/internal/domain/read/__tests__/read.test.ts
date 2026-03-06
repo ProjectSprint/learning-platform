@@ -12,7 +12,7 @@ import {
 	selectGridEmptyPositions,
 } from "../index";
 
-const metrics = { cellWidth: 1, cellHeight: 1 };
+const metrics = { cellWidth: { base: 1 }, cellHeight: { base: 1 } };
 
 describe("domain/read", () => {
 	it("finds entity ownership and grid position", () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createGridSpaceData, createItemData } from "../../adt";
 import { tryAddEntityToSpace, tryMoveEntityAcrossSpaces } from "../space";
 
-const metrics = { cellWidth: 1, cellHeight: 1 };
+const metrics = { cellWidth: { base: 1 }, cellHeight: { base: 1 } };
 
 describe("domain/transformers/space", () => {
 	it("adds entity and emits entered-space event", () => {

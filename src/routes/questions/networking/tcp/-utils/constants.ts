@@ -22,7 +22,12 @@ export const SPACE_CONFIGS: Record<
 		name: "Content Splitter",
 		rows: 1,
 		cols: 1,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+		metrics: {
+			cellWidth: { base: 64 },
+			cellHeight: { base: 64 },
+			gapX: { base: 4 },
+			gapY: { base: 4 },
+		},
 		maxCapacity: 1,
 	},
 	internet: {
@@ -30,7 +35,12 @@ export const SPACE_CONFIGS: Record<
 		name: "Internet",
 		rows: 1,
 		cols: 3,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+		metrics: {
+			cellWidth: { base: 64 },
+			cellHeight: { base: 64 },
+			gapX: { base: 4 },
+			gapY: { base: 4 },
+		},
 		maxCapacity: 3,
 	},
 	server: {
@@ -38,7 +48,12 @@ export const SPACE_CONFIGS: Record<
 		name: "Server",
 		rows: 4,
 		cols: 3,
-		metrics: { cellWidth: 64, cellHeight: 64, gapX: 4, gapY: 4 },
+		metrics: {
+			cellWidth: { base: 64 },
+			cellHeight: { base: 64 },
+			gapX: { base: 4 },
+			gapY: { base: 4 },
+		},
 		maxCapacity: 12,
 	},
 };
