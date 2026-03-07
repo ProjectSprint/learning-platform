@@ -10,12 +10,15 @@ import {
 	BehaviorDefinition,
 	BehaviorRule,
 	buildEntityArrivedTrigger,
+	buildModalSubmitTrigger,
 	chooseLaneForExecution,
 	createEntityPayloadWriter,
 	type EffectContext,
 	findEntitySpace,
 	listSpaceEntityIds,
 	lookupEntity,
+	type ModalSubmissionContract,
+	parseModalSubmission,
 } from "@/components/game/engine/runtime";
 import type {
 	EntityUpdatedEvent,
@@ -347,11 +350,16 @@ const handleLaneMidpoint = (ctx: Ctx, requestId: string) => {
 	const isThreaded = ctx.store.threadedLanes.includes(laneId);
 
 	if (isThreaded) {
-		// Threaded lane: offload to io-wait, free the lane
-		updateEntityData(ctx, requestId, {
-			status: "waiting-io" as RequestStatus,
-		});
-		ctx.cmd.moveEntity(requestId, SPACE_IDS.ioWait);
+		// Guard: only offload to io-wait if there's capacity. If full, fall back to
+		// non-threaded behavior (request stays paused in the lane until I/O finishes),
+		// preventing a deadlock where full io-wait blocks lane pickup of io-ready items.
+		const ioWaitEntities = listSpaceEntityIds(ctx.snapshot, SPACE_IDS.ioWait);
+		if (ioWaitEntities.length < QUEUE_CAPACITY) {
+			updateEntityData(ctx, requestId, {
+				status: "waiting-io" as RequestStatus,
+			});
+			ctx.cmd.moveEntity(requestId, SPACE_IDS.ioWait);
+		}
 	}
 	// Create I/O subtask (for both threaded and non-threaded lanes)
 	createIoSubtask(ctx, requestId, targetIoSpaceId, laneId);
@@ -609,6 +617,12 @@ const spawnThreads = (ctx: Ctx) => {
 	});
 };
 
+const CORES_COMPLETE_NAVIGATION_CONTRACT: ModalSubmissionContract<null> = {
+	actionId: "finish",
+	modalId: "cores-complete",
+	parse: () => ({ ok: true, value: null }),
+};
+
 const rules = [
 	// Phase 1: Single Core Success
 	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
@@ -752,6 +766,49 @@ const rules = [
 		handler: (ctx) => {
 			ctx.mutate((c) => {
 				c.phase = "complete";
+				c.serverRunning = false;
+			});
+			ctx.cmd.openModal({
+				id: "cores-complete",
+				title: "🎉 Cores & Threads Mastered!",
+				blocking: true,
+				content: [
+					{
+						kind: "text",
+						text: "A single CPU core can only process one task at a time. When traffic spikes, requests queue up and time out — adding a second core lets two requests run in parallel.",
+					},
+					{
+						kind: "text",
+						text: "But even with multiple cores, I/O operations (disk reads, database queries) block the entire core while waiting for a response. The core sits idle doing nothing.",
+					},
+					{
+						kind: "text",
+						text: "Threads solve this — when a thread hits an I/O wait, it hands off the wait and frees the core to pick up the next request. This is why modern web servers use thread pools: cores do the computing, threads keep them busy.",
+					},
+				],
+				actions: [
+					{
+						id: "finish",
+						label: "Complete",
+						variant: "primary",
+						validate: false,
+						closesModal: true,
+					},
+				],
+			});
+		},
+	}),
+
+	BehaviorRule<CoresBehaviorContext, CoresTriggerSpec>({
+		id: "cores.complete-modal-navigate",
+		on: buildModalSubmitTrigger("cores-complete", "finish"),
+		handler: (ctx) => {
+			const parsed = parseModalSubmission(
+				ctx.event,
+				CORES_COMPLETE_NAVIGATION_CONTRACT,
+			);
+			if (!parsed || !parsed.ok) return;
+			ctx.mutate((c) => {
 				c.navigateAway = true;
 			});
 		},
@@ -957,13 +1014,12 @@ const rules = [
 
 					const currentSpaceId = findEntitySpace(ctx.snapshot, ownerRequestId);
 
-					if (isThreaded) {
-						// Promote to io-ready and enqueue regardless of where stale state
-						// shows the request. Fixes Case-A race: thread-upgrade ran first in
-						// the same batch, so ctx.snapshot (stale) still shows the request in the
-						// lane, but a pending ENTITY_MOVED is already moving it to io-wait.
-						// When that event fires, cores.pickup-on-request-arrived-at-iowait
-						// will call pickupFromQueue and pull from ioReadyRequests correctly.
+					const requestInIoWait = currentSpaceId === SPACE_IDS.ioWait;
+					if (isThreaded && requestInIoWait) {
+						// Request was offloaded to io-wait: promote to io-ready and enqueue.
+						// Fixes Case-A race: thread-upgrade ran first in the same batch, so
+						// ctx.snapshot (stale) still shows the request in the lane, but a
+						// pending ENTITY_MOVED is already moving it to io-wait.
 						updateEntityData(ctx, ownerRequestId, {
 							status: "io-ready" as RequestStatus,
 							ioCompleted: true,
@@ -971,14 +1027,10 @@ const rules = [
 						ctx.mutate((c) => {
 							arrayPush(c.ioReadyRequests, ownerRequestId);
 						});
-						// Attempt immediate pickup only if the request is already in io-wait.
-						// If stale state shows it still in the lane (race condition in-flight),
-						// defer to the ENTITY_ARRIVED_AT_SPACE event when ENTITY_MOVED lands.
-						if (currentSpaceId === SPACE_IDS.ioWait) {
-							pickupFromQueue(ctx as unknown as Ctx);
-						}
+						pickupFromQueue(ctx as unknown as Ctx);
 					} else {
-						// Non-threaded lane: resume by incrementing pathResumeToken
+						// Request stayed in the lane (io-wait was full, or non-threaded lane):
+						// resume in-place by incrementing pathResumeToken.
 						const currentToken = (request.data.pathResumeToken as number) ?? 0;
 						updateEntityData(ctx, ownerRequestId, {
 							status: "processing" as RequestStatus,

@@ -90,6 +90,7 @@ export type PathSpaceConfig<TId extends string = string> =
 		duration?: number;
 		speedMultiplier?: number;
 		showDropzone?: boolean;
+		dropzoneLabel?: string;
 		cellSize?: CellSize;
 	};
 

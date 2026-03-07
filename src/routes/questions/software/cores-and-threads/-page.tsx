@@ -287,7 +287,7 @@ const CoresAndThreadsGame = ({
 							gap={{ base: 3, md: 4 }}
 							height="100%"
 						>
-							{/* Col 1: Request Queue + Growth Factor */}
+							{/* Col 1: Request Queue + Growth Factor (+ I/O Ops in threads phase) */}
 							<GridItem>
 								<Box display="flex" flexDirection="column" gap={3}>
 									{/* Request Queue */}
@@ -306,6 +306,31 @@ const CoresAndThreadsGame = ({
 										title="Growth Factor"
 										getEntityLabel={getEntityLabel}
 									/>
+
+									{/* I/O Paths — under Growth Factor when I/O Wait is visible */}
+									{showIoWait && (
+										<Box>
+											<Text fontSize="xs" color="gray.500" mb={2}>
+												I/O Operations
+											</Text>
+											<Flex gap={4}>
+												<Box flex={1}>
+													<PathSpace
+														ctx={gameCtx}
+														config={DISK_PATH_CONFIG}
+														title="Disk I/O"
+													/>
+												</Box>
+												<Box flex={1}>
+													<PathSpace
+														ctx={gameCtx}
+														config={DB_PATH_CONFIG}
+														title="Database I/O"
+													/>
+												</Box>
+											</Flex>
+										</Box>
+									)}
 								</Box>
 							</GridItem>
 
@@ -355,32 +380,37 @@ const CoresAndThreadsGame = ({
 													showDropzone={
 														behaviorContext.showLaneDropzone && !isThreaded
 													}
+													dropzoneLabel="Thread"
 													title={`Lane ${laneId.split("-")[1]}${isThreaded ? " (Threaded)" : ""}`}
 												/>
 											);
 										},
 									)}
 
-									{/* I/O Paths */}
-									<Text fontSize="xs" color="gray.500" mt={2}>
-										I/O Operations
-									</Text>
-									<Flex gap={4}>
-										<Box flex={1}>
-											<PathSpace
-												ctx={gameCtx}
-												config={DISK_PATH_CONFIG}
-												title="Disk I/O"
-											/>
+									{/* I/O Paths — below lanes when I/O Wait is not visible */}
+									{!showIoWait && (
+										<Box>
+											<Text fontSize="xs" color="gray.500" mt={2}>
+												I/O Operations
+											</Text>
+											<Flex gap={4}>
+												<Box flex={1}>
+													<PathSpace
+														ctx={gameCtx}
+														config={DISK_PATH_CONFIG}
+														title="Disk I/O"
+													/>
+												</Box>
+												<Box flex={1}>
+													<PathSpace
+														ctx={gameCtx}
+														config={DB_PATH_CONFIG}
+														title="Database I/O"
+													/>
+												</Box>
+											</Flex>
 										</Box>
-										<Box flex={1}>
-											<PathSpace
-												ctx={gameCtx}
-												config={DB_PATH_CONFIG}
-												title="Database I/O"
-											/>
-										</Box>
-									</Flex>
+									)}
 								</Box>
 							</GridItem>
 						</Grid>

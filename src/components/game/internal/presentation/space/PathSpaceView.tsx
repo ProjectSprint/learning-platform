@@ -49,6 +49,8 @@ export interface PathSpaceViewProps {
 	title?: string;
 	speedMultiplier: number;
 	showDropzone?: boolean;
+	/** Custom label for the dropzone (defaults to "Drop") */
+	dropzoneLabel?: string;
 	onDropEntity?: (entityId: string) => boolean;
 	onEntityPathMidpoint?: (entityId: string) => void;
 	onEntityPathComplete?: (entityId: string) => void;
@@ -59,6 +61,7 @@ export const PathSpaceView = ({
 	entities,
 	speedMultiplier,
 	showDropzone = true,
+	dropzoneLabel = "Drop",
 	onDropEntity,
 	onEntityPathMidpoint,
 	onEntityPathComplete,
@@ -633,7 +636,7 @@ export const PathSpaceView = ({
 							boxShadow="0 0 0 1px rgba(0, 0, 0, 0.25)"
 						>
 							<Text fontSize="xs" color="gray.300">
-								Drop
+								{dropzoneLabel}
 							</Text>
 						</Box>
 					) : null}
